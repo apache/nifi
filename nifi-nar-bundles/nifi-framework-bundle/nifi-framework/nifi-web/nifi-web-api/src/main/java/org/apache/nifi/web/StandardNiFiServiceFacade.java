@@ -2391,8 +2391,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String bundleGroup, final String bundleArtifact, final String type) {
-        return controllerFacade.getControllerServiceTypes(serviceType, bundleGroup, bundleArtifact, type);
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
+                                                            final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getControllerServiceTypes(serviceType, serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion, bundleGroup, bundleArtifact, type);
     }
 
     @Override

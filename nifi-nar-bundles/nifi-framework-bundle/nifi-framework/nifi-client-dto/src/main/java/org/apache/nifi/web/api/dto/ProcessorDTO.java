@@ -42,6 +42,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean isExtensionMissing;
+    private Boolean multipleVersionsAvailable;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
@@ -155,6 +156,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setPersistsState(Boolean persistsState) {
         this.persistsState = persistsState;
+    }
+
+    /**
+     * @return whether this processor has multiple versions available
+     */
+    @ApiModelProperty(
+            value = "Whether the processor has multiple versions available."
+    )
+    public Boolean getMultipleVersionsAvailable() {
+        return multipleVersionsAvailable;
+    }
+
+    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+        this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
     /**

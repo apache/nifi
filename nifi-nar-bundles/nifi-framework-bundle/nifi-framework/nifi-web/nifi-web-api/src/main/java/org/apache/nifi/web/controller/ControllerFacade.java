@@ -29,6 +29,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -452,10 +454,13 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return types
      */
-    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroup, final String bundleArtifact, final String type) {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroup, bundleArtifact, type);
+    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
@@ -474,10 +479,10 @@ public class ControllerFacade implements Authorizable {
      * @param type type
      * @return whether the specified type implements the specified serviceType
      */
-    private boolean implementsServiceType(final String serviceType, final Class type) {
+    private boolean implementsServiceType(final Class serviceType, final Class type) {
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
         for (final Class i : interfaces) {
-            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+            if (ControllerService.class.isAssignableFrom(i) && serviceType.isAssignableFrom(i)) {
                 return true;
             }
         }
@@ -489,36 +494,62 @@ public class ControllerFacade implements Authorizable {
      * Gets the ControllerService types that this controller supports.
      *
      * @param serviceType type
+     * @param serviceBundleGroup if serviceType specified, the bundle group of the serviceType
+     * @param serviceBundleArtifact if serviceType specified, the bundle artifact of the serviceType
+     * @param serviceBundleVersion if serviceType specified, the bundle version of the serviceType
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ControllerService types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String bundleGroup, final String bundleArtifact, final String type) {
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
+                                                            final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
-        final Set<Class> matchingServiceImplementions;
         if (serviceType != null) {
-            matchingServiceImplementions = new HashSet<>();
+            final BundleCoordinate bundleCoordinate = new BundleCoordinate(serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion);
+            final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+            if (csBundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+            }
+
+            Class serviceClass = null;
+            final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(csBundle.getClassLoader());
+                serviceClass = Class.forName(serviceType, false, csBundle.getClassLoader());
+            } catch (final Exception e) {
+                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
+                throw new IllegalArgumentException(String.format("Unable to load %s from bundle %s: %s", serviceType, bundleCoordinate, e), e);
+            }
+
+            final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
             for (final Class csClass : serviceImplementations) {
-                if (implementsServiceType(serviceType, csClass)) {
-                    matchingServiceImplementions.add(csClass);
+                if (implementsServiceType(serviceClass, csClass)) {
+                    matchingServiceImplementations.put(csClass, ExtensionManager.getBundle(csClass.getClassLoader()));
                 }
             }
-        } else {
-            matchingServiceImplementions = serviceImplementations;
-        }
 
-        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions, bundleGroup, bundleArtifact, type);
+            return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        } else {
+            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        }
     }
 
     /**
      * Gets the ReportingTask types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ReportingTask types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type) {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroup, bundleArtifact, type);
+    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**

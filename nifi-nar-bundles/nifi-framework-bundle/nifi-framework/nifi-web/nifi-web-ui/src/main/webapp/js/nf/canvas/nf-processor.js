@@ -579,9 +579,9 @@
                             processorBundle.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor type as necessary
-                            canvasUtils.ellipsis(processorBundle, common.formatBundle(d.component.bundle));
+                            nfCanvasUtils.ellipsis(processorBundle, nfCommon.formatBundle(d.component.bundle));
                         }).append('title').text(function (d) {
-                            return common.formatBundle(d.component.bundle);
+                            return nfCommon.formatBundle(d.component.bundle);
                         });
                 } else {
                     // clear the processor name

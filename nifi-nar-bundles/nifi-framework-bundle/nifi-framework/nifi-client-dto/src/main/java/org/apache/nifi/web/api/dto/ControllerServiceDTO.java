@@ -21,6 +21,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntit
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,11 +34,13 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String name;
     private String type;
     private BundleDTO bundle;
+    private List<ControllerServiceApiDTO> controllerServiceApis;
     private String comments;
     private String state;
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean isExtensionMissing;
+    private Boolean multipleVersionsAvailable;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -94,6 +97,22 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     /**
+     * Lists the APIs this Controller Service implements.
+     *
+     * @return The listing of implemented APIs
+     */
+    @ApiModelProperty(
+            value = "Lists the APIs this Controller Service implements."
+    )
+    public List<ControllerServiceApiDTO> getControllerServiceApis() {
+        return controllerServiceApis;
+    }
+
+    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+        this.controllerServiceApis = controllerServiceApis;
+    }
+
+    /**
      * @return the comment for the Controller Service
      */
     @ApiModelProperty(
@@ -147,6 +166,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setExtensionMissing(Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
+    }
+
+    /**
+     * @return whether this controller service has multiple versions available
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service has multiple versions available."
+    )
+    public Boolean getMultipleVersionsAvailable() {
+        return multipleVersionsAvailable;
+    }
+
+    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+        this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
     /**

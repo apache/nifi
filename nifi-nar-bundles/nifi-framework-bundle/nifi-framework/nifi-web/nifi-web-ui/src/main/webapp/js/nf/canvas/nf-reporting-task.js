@@ -230,6 +230,7 @@
         var reportingTaskData = reportingTaskGrid.getData();
         var currentReportingTask = reportingTaskData.getItemById(reportingTaskEntity.id);
         reportingTaskData.updateItem(reportingTaskEntity.id, $.extend({
+            type: 'ReportingTask',
             bulletins: currentReportingTask.bulletins
         }, reportingTaskEntity));
     };

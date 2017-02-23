@@ -137,8 +137,8 @@
             var matchesGroup = true;
             if (matchesFilter && matchesTags) {
                 var bundleGroup = $('#processor-bundle-group-combo').combo('getSelectedOption');
-                if (common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
-                    if (common.isDefinedAndNotNull(item.bundle)) {
+                if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+                    if (nfCommon.isDefinedAndNotNull(item.bundle)) {
                         matchesGroup = (item.bundle.group === bundleGroup.value);
                     } else {
                         matchesGroup = false;
@@ -324,7 +324,7 @@
                                 id: 'version',
                                 name: 'Version',
                                 field: 'version',
-                                formatter: common.typeVersionFormatter,
+                                formatter: nfCommon.typeVersionFormatter,
                                 sortable: true,
                                 resizable: true
                             },
@@ -358,7 +358,7 @@
                         processorTypesData.setFilter(filter);
 
                         // initialize the sort
-                        common.sortType({
+                        nfCommon.sortType({
                             columnId: 'type',
                             sortAsc: true
                         }, processorTypesData);
@@ -369,7 +369,7 @@
                         processorTypesGrid.registerPlugin(new Slick.AutoTooltips());
                         processorTypesGrid.setSortColumn('type', true);
                         processorTypesGrid.onSort.subscribe(function (e, args) {
-                            common.sortType({
+                            nfCommon.sortType({
                                 columnId: args.sortCol.field,
                                 sortAsc: args.sortAsc
                             }, processorTypesData);
@@ -392,9 +392,9 @@
                                             .ellipsis();
                                     }
 
-                                    var bundle = common.formatBundle(processorType.bundle);
+                                    var bundle = nfCommon.formatBundle(processorType.bundle);
                                     var type = processorType.label;
-                                    if (common.isDefinedAndNotNull(processorType.bundle)) {
+                                    if (nfCommon.isDefinedAndNotNull(processorType.bundle)) {
                                         type += (' ' + processorType.bundle.version);
                                     }
 
@@ -472,8 +472,8 @@
                                 var type = documentedType.type;
 
                                 // record the group
-                                if (common.isDefinedAndNotNull(documentedType.bundle)) {
-                                        groups.add(documentedType.bundle.group);
+                                if (nfCommon.isDefinedAndNotNull(documentedType.bundle)) {
+                                    groups.add(documentedType.bundle.group);
                                 }
 
                                 // create the row for the processor type
@@ -493,7 +493,7 @@
                                 });
                             });
 
-                            // end the udpate
+                            // end the update
                             processorTypesData.endUpdate();
 
                             // set the total number of processors
@@ -747,7 +747,7 @@
                 grid.resizeCanvas();
                 grid.setSelectedRows([0]);
             }
-        }
+        };
 
         var processorComponent = new ProcessorComponent();
         return processorComponent;

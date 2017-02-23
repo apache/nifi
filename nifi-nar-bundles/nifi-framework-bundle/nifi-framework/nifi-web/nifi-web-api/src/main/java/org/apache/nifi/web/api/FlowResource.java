@@ -933,17 +933,17 @@ public class FlowResource extends ApplicationResource {
                 value = "If specified, will only return types that are a member of this bundle group.",
                 required = false
             )
-            @QueryParam("bundleGroup") String bundleGroup,
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
             @ApiParam(
                     value = "If specified, will only return types that are a member of this bundle artifact.",
                     required = false
             )
-            @QueryParam("bundleArtifact") String bundleArtifact,
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
             @ApiParam(
                     value = "If specified, will only return types whose fully qualified classname matches.",
                     required = false
             )
-            @QueryParam("type") String type) throws InterruptedException {
+            @QueryParam("type") String typeFilter) throws InterruptedException {
 
         authorizeFlow();
 
@@ -953,7 +953,7 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
-        entity.setProcessorTypes(serviceFacade.getProcessorTypes(bundleGroup, bundleArtifact, type));
+        entity.setProcessorTypes(serviceFacade.getProcessorTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -993,22 +993,43 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("serviceType") String serviceType,
             @ApiParam(
+                    value = "If serviceType specified, is the bundle group of the serviceType.",
+                    required = false
+            )
+            @QueryParam("serviceBundleGroup") String serviceBundleGroup,
+            @ApiParam(
+                    value = "If serviceType specified, is the bundle artifact of the serviceType.",
+                    required = false
+            )
+            @QueryParam("serviceBundleArtifact") String serviceBundleArtifact,
+            @ApiParam(
+                    value = "If serviceType specified, is the bundle version of the serviceType.",
+                    required = false
+            )
+            @QueryParam("serviceBundleVersion") String serviceBundleVersion,
+            @ApiParam(
                     value = "If specified, will only return types that are a member of this bundle group.",
                     required = false
             )
-            @QueryParam("bundleGroup") String bundleGroup,
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
             @ApiParam(
                     value = "If specified, will only return types that are a member of this bundle artifact.",
                     required = false
             )
-            @QueryParam("bundleArtifact") String bundleArtifact,
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
             @ApiParam(
                     value = "If specified, will only return types whose fully qualified classname matches.",
                     required = false
             )
-            @QueryParam("type") String type) throws InterruptedException {
+            @QueryParam("typeFilter") String typeFilter) throws InterruptedException {
 
         authorizeFlow();
+
+        if (serviceType != null) {
+            if (serviceBundleGroup == null || serviceBundleArtifact == null || serviceBundleVersion == null) {
+                throw new IllegalArgumentException("When specifying the serviceType the serviceBundleGroup, serviceBundleArtifact, and serviceBundleVersion must be specified.");
+            }
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1016,7 +1037,8 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
-        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType, bundleGroup, bundleArtifact, type));
+        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType, serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion,
+                bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -1053,17 +1075,17 @@ public class FlowResource extends ApplicationResource {
                     value = "If specified, will only return types that are a member of this bundle group.",
                     required = false
             )
-            @QueryParam("bundleGroup") String bundleGroup,
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
             @ApiParam(
                     value = "If specified, will only return types that are a member of this bundle artifact.",
                     required = false
             )
-            @QueryParam("bundleArtifact") String bundleArtifact,
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
             @ApiParam(
                     value = "If specified, will only return types whose fully qualified classname matches.",
                     required = false
             )
-            @QueryParam("type") String type) throws InterruptedException {
+            @QueryParam("type") String typeFilter) throws InterruptedException {
 
         authorizeFlow();
 
@@ -1073,7 +1095,7 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
-        entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes(bundleGroup, bundleArtifact, type));
+        entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

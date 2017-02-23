@@ -328,33 +328,37 @@ public interface NiFiServiceFacade {
     /**
      * Returns the list of processor types.
      *
-     * @param bundleGroup if specified, must be member of bundle group
-     * @param bundleArtifact if specified, must be member of bundle artifact
-     * @param type if specified, type must match
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return The list of available processor types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getProcessorTypes(final String bundleGroup, final String bundleArtifact, final String type);
+    Set<DocumentedTypeDTO> getProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter);
 
     /**
      * Returns the list of controller service types.
      *
      * @param serviceType Filters only service types that implement this type
-     * @param bundleGroup if specified, must be member of bundle group
-     * @param bundleArtifact if specified, must be member of bundle artifact
-     * @param type if specified, type must match
+     * @param serviceBundleGroup if serviceType specified, the bundle group of the serviceType
+     * @param serviceBundleArtifact if serviceType specified, the bundle artifact of the serviceType
+     * @param serviceBundleVersion if serviceType specified, the bundle version of the serviceType
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return The list of available controller types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getControllerServiceTypes(String serviceType, final String bundleGroup, final String bundleArtifact, final String type);
+    Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
+                                                     final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter);
 
     /**
      * Returns the list of reporting task types.
      *
-     * @param bundleGroup if specified, must be member of bundle group
-     * @param bundleArtifact if specified, must be member of bundle artifact
-     * @param type if specified, type must match
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return The list of available reporting task types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type);
+    Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter);
 
     /**
      * Returns the list of prioritizer types.

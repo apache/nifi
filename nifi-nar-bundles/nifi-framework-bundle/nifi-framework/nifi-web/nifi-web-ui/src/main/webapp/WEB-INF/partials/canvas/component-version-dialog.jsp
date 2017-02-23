@@ -35,6 +35,12 @@
                 <div id="component-version-selector"></div>
             </div>
         </div>
+        <div id="component-version-controller-service-apis-container" class="setting hidden">
+            <div class="setting-name">Supports Controller Services</div>
+            <div class="setting-field">
+                <div id="component-version-controller-service-apis"></div>
+            </div>
+        </div>
         <div class="setting">
             <div class="setting-name">Tags</div>
             <div class="setting-field">

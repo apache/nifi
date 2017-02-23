@@ -334,13 +334,13 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canRead(selection) === false || nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
-        if (nf.CanvasUtils.isProcessor(selection)) {
-            // TODO - only show when processor has multiple versions?
-            return true;
+        if (nfCanvasUtils.isProcessor(selection)) {
+            var processorData = selection.datum();
+            return processorData.component.multipleVersionsAvailable === true;
         } else {
             return false;
         }

@@ -36,6 +36,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean isExtensionMissing;
+    private Boolean multipleVersionsAvailable;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -164,6 +165,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setExtensionMissing(Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
+    }
+
+    /**
+     * @return whether this reporting task has multiple versions available
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task has multiple versions available."
+    )
+    public Boolean getMultipleVersionsAvailable() {
+        return multipleVersionsAvailable;
+    }
+
+    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+        this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
     /**

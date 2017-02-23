@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ public class DocumentedTypeDTO {
 
     private String type;
     private BundleDTO bundle;
+    private List<ControllerServiceApiDTO> controllerServiceApis;
     private String description;
     private String usageRestriction;
     private Set<String> tags;
@@ -90,6 +92,22 @@ public class DocumentedTypeDTO {
 
     public void setBundle(BundleDTO bundle) {
         this.bundle = bundle;
+    }
+
+    /**
+     * If this type represents a ControllerService, this lists the APIs it implements.
+     *
+     * @return The listing of implemented APIs
+     */
+    @ApiModelProperty(
+            value = "If this type represents a ControllerService, this lists the APIs it implements."
+    )
+    public List<ControllerServiceApiDTO> getControllerServiceApis() {
+        return controllerServiceApis;
+    }
+
+    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+        this.controllerServiceApis = controllerServiceApis;
     }
 
     /**

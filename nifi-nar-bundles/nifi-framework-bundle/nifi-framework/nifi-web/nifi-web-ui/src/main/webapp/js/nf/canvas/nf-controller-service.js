@@ -204,6 +204,7 @@
         var controllerServiceData = controllerServiceGrid.getData();
         var currentControllerServiceEntity = controllerServiceData.getItemById(controllerServiceEntity.id);
         controllerServiceData.updateItem(controllerServiceEntity.id, $.extend({
+            type: 'ControllerService',
             bulletins: currentControllerServiceEntity.bulletins
         }, controllerServiceEntity));
     };
@@ -1679,6 +1680,9 @@
                         // clear the comments
                         nfCommon.clearField('read-only-controller-service-comments');
 
+                        // clear the compatible apis
+                        $('#controller-service-compatible-apis').empty();
+
                         // removed the cached controller service details
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
                     },
@@ -1849,6 +1853,15 @@
                 $('#controller-service-name').val(controllerService['name']);
                 $('#controller-service-comments').val(controllerService['comments']);
 
+                // set the implemented apis
+                if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
+                    var formattedControllerServiceApis = nfCommon.getFormattedServiceApis(controllerService['controllerServiceApis']);
+                    var serviceTips = nfCommon.formatUnorderedList(formattedControllerServiceApis);
+                    $('#controller-service-compatible-apis').append(serviceTips);
+                } else {
+                    $('#controller-service-compatible-apis').append('<span class="unset">None</span>');
+                }
+
                 // get the reference container
                 var referenceContainer = $('#controller-service-referencing-components');
 
@@ -2018,6 +2031,15 @@
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
+
+                // set the implemented apis
+                if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
+                    var formattedControllerServiceApis = nfCommon.getFormattedServiceApis(controllerService['controllerServiceApis']);
+                    var serviceTips = nfCommon.formatUnorderedList(formattedControllerServiceApis);
+                    $('#controller-service-compatible-apis').append(serviceTips);
+                } else {
+                    $('#controller-service-compatible-apis').append('<span class="unset">None</span>');
+                }
 
                 // get the reference container
                 var referenceContainer = $('#controller-service-referencing-components');
