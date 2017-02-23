@@ -85,7 +85,7 @@ import java.util.stream.IntStream;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message.")
+                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message.")
 })
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
@@ -102,23 +102,21 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-<<<<<<< HEAD
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
                     + "If no incoming connection(s) are specified, this relationship is unused.")
-=======
+            .build();
+
     public static final PropertyDescriptor AUTO_INCREMENT_KEY = new PropertyDescriptor.Builder()
             .name("gen-table-fetch-partition-index")
             .displayName("AUTO_INCREMENT(index) column name")
             .description("The column has AUTO_INCREMENT attribute and index."
                     + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
                     + "The value must start by 1")
-            .defaultValue("null")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .expressionLanguageSupported(false)
->>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
+            .expressionLanguageSupported(true)
             .build();
 
     public GenerateTableFetch() {
@@ -180,18 +178,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-<<<<<<< HEAD
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-=======
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final int partitionSize = context.getProperty(PARTITION_SIZE).asInteger();
-        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).getValue();
->>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
+        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
+        String maxValueTmp = null;
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -256,7 +248,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             long rowCount = 0;
 
             try (final Connection con = dbcpService.getConnection();
-                final Statement st = con.createStatement()) {
+                 final Statement st = con.createStatement()) {
 
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
@@ -292,6 +284,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
+                                maxValueTmp = newMaxValue;
                             }
                         } catch (ParseException | IOException pie) {
                             // Fail the whole thing here before we start creating flow files and such
@@ -304,18 +297,37 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
 
-<<<<<<< HEAD
                 final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
-                // Generate SQL statements to read "pages" of data
-                for (long i = 0; i < numberOfFetches; i++) {
-                    long limit = partitionSize == 0 ? null : partitionSize;
-                    long offset = partitionSize == 0 ? null : i * partitionSize;
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                    FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                    sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                if (StringUtils.isEmpty(indexValue)) {
+                    // Generate SQL statements to read "pages" of data
+                    for (long i = 0; i < numberOfFetches; i++) {
+                        long limit = partitionSize == 0 ? null : partitionSize;
+                        long offset = partitionSize == 0 ? null : i * partitionSize;
+                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                        session.transfer(sqlFlowFile, REL_SUCCESS);
+                    }
+                } else {
+                    for (int i = 0; i < numberOfFetches; i++) {
+                        long limit = partitionSize == 0 ? null : partitionSize;
+                        int maxValue = Integer.parseInt(maxValueTmp);
+                        // to verify
+                        if (limit * i<maxValue) {
+                            whereClause = indexValue + " >= " + limit * i;
+                        } else {
+                            whereClause = indexValue + " >= " + maxValue;
+                        }
+
+                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause,
+                                StringUtils.join(maxValueColumnNameList, ", "), limit, null);
+                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                        session.transfer(sqlFlowFile, REL_SUCCESS);
+                    }
                 }
+
 
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
@@ -329,35 +341,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 } else {
                     logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
                     throw new ProcessException(e);
-=======
-            if("null".equals(indexValue)) {
-                // Generate SQL statements to read "pages" of data
-                for (int i = 0; i < numberOfFetches; i++) {
-                    FlowFile sqlFlowFile;
-
-                    Integer limit = partitionSize == 0 ? null : partitionSize;
-                    Integer offset = partitionSize == 0 ? null : i * partitionSize;
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                    sqlFlowFile = session.create();
-                    sqlFlowFile = session.write(sqlFlowFile, out -> {
-                        out.write(query.getBytes());
-                    });
-                    session.transfer(sqlFlowFile, REL_SUCCESS);
-                }
-            }else {
-                for (int i = 0; i < numberOfFetches; i++) {
-                    FlowFile sqlFlowFile;
-
-                    Integer limit = partitionSize;
-                    whereClause = indexValue + " >= " + limit * i;
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause,
-                            StringUtils.join(maxValueColumnNameList, ", "), limit, null);
-                    sqlFlowFile = session.create();
-                    sqlFlowFile = session.write(sqlFlowFile, out -> {
-                        out.write(query.getBytes());
-                    });
-                    session.transfer(sqlFlowFile, REL_SUCCESS);
->>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
                 }
             }
 
