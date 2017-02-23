@@ -192,6 +192,7 @@ public class QueryDatabaseTableTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 2);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0);
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTable.RESULT_TABLENAME));
         assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
         InputStream in = new ByteArrayInputStream(flowFile.toByteArray());
         runner.setProperty(QueryDatabaseTable.FETCH_SIZE, "2");
