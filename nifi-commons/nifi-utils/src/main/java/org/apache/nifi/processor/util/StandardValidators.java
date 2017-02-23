@@ -307,6 +307,28 @@ public class StandardValidators {
         }
     };
 
+    public static final Validator NON_NEGATIVE_LONG_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
+            String reason = null;
+            try {
+                final long longVal = Long.parseLong(value);
+
+                if (longVal < 0L) {
+                    reason = "value is negative";
+                }
+            } catch (final NumberFormatException e) {
+                reason = "value is not a valid long";
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
     public static final Validator CHARACTER_SET_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
