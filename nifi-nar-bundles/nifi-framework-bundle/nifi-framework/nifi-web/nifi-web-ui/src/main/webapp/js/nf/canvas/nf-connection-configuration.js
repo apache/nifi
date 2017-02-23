@@ -1450,9 +1450,6 @@
                             }
                         }]);
 
-                    // select the first tab
-                    $('#connection-configuration-tabs').find('li:first').click();
-
                     // show the details dialog
                     $('#connection-configuration').modal('setHeaderText', 'Configure Connection').modal('show');
 
