@@ -107,7 +107,6 @@ public class ScanAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.createRegexValidator(0, 1, false))
             .defaultValue(null)
             .build();
-    
     public static final PropertyDescriptor DICTIONARY_ENTRY_METADATA_DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Dictionary Entry Metadata Demarcator")
             .description("A single character used to demarcate the dictionary entry string between dictionary value and metadata.")
@@ -115,14 +114,14 @@ public class ScanAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(null)
             .build();
-    
+
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
 
     private volatile Pattern dictionaryFilterPattern = null;
     private volatile Pattern attributePattern = null;
     private volatile String dictionaryEntryMetadataDemarcator = null;
-    private volatile Map<String,String> dictionaryTerms = null;    
+    private volatile Map<String,String> dictionaryTerms = null;
     private volatile Set<String> attributeNameMatches = null;
 
     private volatile SynchronousFileWatcher fileWatcher = null;
@@ -144,7 +143,7 @@ public class ScanAttribute extends AbstractProcessor {
         properties.add(MATCHING_CRITERIA);
         properties.add(DICTIONARY_FILTER);
         properties.add(DICTIONARY_ENTRY_METADATA_DEMARCATOR);
-        
+
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -173,7 +172,7 @@ public class ScanAttribute extends AbstractProcessor {
 
         this.dictionaryTerms = createDictionary(context);
         this.fileWatcher = new SynchronousFileWatcher(Paths.get(context.getProperty(DICTIONARY_FILE).getValue()), new LastModifiedMonitor(), 1000L);
-        
+
         this.dictionaryEntryMetadataDemarcator = context.getProperty(DICTIONARY_ENTRY_METADATA_DEMARCATOR).getValue();
     }
 
@@ -184,8 +183,8 @@ public class ScanAttribute extends AbstractProcessor {
         String[] termMeta;
         String term;
         String meta;
-        
-        
+
+
         final File file = new File(context.getProperty(DICTIONARY_FILE).getValue());
         try (final InputStream fis = new FileInputStream(file);
                 final BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
@@ -195,19 +194,16 @@ public class ScanAttribute extends AbstractProcessor {
                 if (line.trim().isEmpty()) {
                     continue;
                 }
-         	   
-                if(dictionaryEntryMetadataDemarcator != null && line.contains(dictionaryEntryMetadataDemarcator))
-                {
-                	  termMeta = line.split(dictionaryEntryMetadataDemarcator);
-                	  term = termMeta[0];
-                	  meta = termMeta[1];
+
+                if(dictionaryEntryMetadataDemarcator != null && line.contains(dictionaryEntryMetadataDemarcator)) {
+                      termMeta = line.split(dictionaryEntryMetadataDemarcator);
+                      term = termMeta[0];
+                      meta = termMeta[1];
+                } else {
+                    term=line;
+                    meta="";
                 }
-                else
-                {
-                	term=line;
-                	meta="";
-                }
-                
+
                 String matchingTerm = term;
                 if (dictionaryFilterPattern != null) {
                     final Matcher matcher = dictionaryFilterPattern.matcher(term);
@@ -248,9 +244,9 @@ public class ScanAttribute extends AbstractProcessor {
         final boolean matchAll = context.getProperty(MATCHING_CRITERIA).getValue().equals(MATCH_CRITERIA_ALL);
 
         for  (FlowFile flowFile : flowFiles) {
-         	final Map<String,String> matched = (matchAll ? matchAll(flowFile, attributePattern, dictionaryTerms) : matchAny(flowFile, attributePattern, dictionaryTerms));
-        	flowFile = session.putAllAttributes(flowFile, matched);
-     
+            final Map<String,String> matched = (matchAll ? matchAll(flowFile, attributePattern, dictionaryTerms) : matchAny(flowFile, attributePattern, dictionaryTerms));
+            flowFile = session.putAllAttributes(flowFile, matched);
+
             final Relationship relationship = (((matched.size() == (attributeNameMatches.size() * 3) && matchAll) || (matched.size() > 0 && !matchAll))) ? REL_MATCHED : REL_UNMATCHED;
             session.getProvenanceReporter().route(flowFile, relationship);
             session.transfer(flowFile, relationship);
@@ -258,48 +254,46 @@ public class ScanAttribute extends AbstractProcessor {
         }
     }
 
-    private Map<String,String> matchAny(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {    	
-    	Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
-    	attributeNameMatches = new HashSet<String>();
+    private Map<String,String> matchAny(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {
+        Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
+        attributeNameMatches = new HashSet<String>();
 
-    	int hitCounter = 0;
-         	
+        int hitCounter = 0;
+
         for (final Map.Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             if (attributePattern == null || attributePattern.matcher(attribute.getKey()).matches()) {
-            	attributeNameMatches.add(attribute.getKey());
-            	
+                attributeNameMatches.add(attribute.getKey());
+
                 if (dictionary.containsKey(attribute.getValue())) {
-                	hitCounter++;
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
+                    hitCounter++;
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
                 }
             }
         }
         return dictionaryTermMatches;
     }
-    
-    private Map<String,String> matchAll(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {
-    	Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
-    	attributeNameMatches = new HashSet<String>();
 
-    	int hitCounter = 0;
-        	
+    private Map<String,String> matchAll(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {
+        Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
+        attributeNameMatches = new HashSet<String>();
+
+        int hitCounter = 0;
+
         for (final Map.Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             if (attributePattern == null || attributePattern.matcher(attribute.getKey()).matches()) {
-            	attributeNameMatches.add(attribute.getKey());
+                attributeNameMatches.add(attribute.getKey());
 
                 if (dictionary.containsKey(attribute.getValue())) {
-                 	hitCounter++;               	
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
-                	dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
-                }
-                else
-                {
-                	//if one attribute value is not found in the dictionary then no need to continue since this is a matchAll scenario.
-                	dictionaryTermMatches.clear();
-                	break;
+                    hitCounter++;
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
+                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
+                } else {
+                    //if one attribute value is not found in the dictionary then no need to continue since this is a matchAll scenario.
+                    dictionaryTermMatches.clear();
+                    break;
                 }
             }
         }
