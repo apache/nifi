@@ -22,64 +22,21 @@
 
     <body>
         <!-- Processor Documentation ================================================== -->
-        <h2>Apache NiFi CCDA Processor</h2>
+        <h2>Apache NiFi C-CDA Processor</h2>
         <p>
-            CCDA Processor Bundle provides parser for Consolidated-CDA documents</br>
-            This processor provides JSON in FlowFile content. Pretty Printing can be set as a property while configuring the processor.</br>
-            Individual attributes are set as FlowFile attributes. The attributes are named as &lt;Parent&gt; &lt;dot&gt; &lt;Key&gt;.</br>
+            C-CDA Processor Bundle provides parser for Consolidated-CDA documents</br>
+            This processor parses C-CDA and sets attributes as FlowFile attributes. The attributes are named as &lt;Parent&gt; &lt;dot&gt; &lt;Key&gt;.</br>
             If the Parent is repeating, the naming will be &lt;Parent&gt; &lt;underscore&gt; &lt;Parent Index&gt; &lt;dot&gt; &lt;Key&gt;.</br>
-        </p>
-        <h3>Example JSON Output</h3>
-        <p>
-            <pre><code>
-    "observation": [
-      {
-        "id": [
-          {
-            "extension": "121387536",
-            "root": "2.16.840.1.113883.1.13.99999.999239"
-          }
-        ],
-        "values": {
-          "code": "194828000",
-          "codeSystem": "2.16.840.1.113883.6.96",
-          "codeSystemName": "SNOMED CT",
-          "displayName": "Angina (disorder)",
-          "translations": [
-            {
-              "code": "413.9",
-              "codeSystem": "2.16.840.1.113883.6.103",
-              "codeSystemName": "ICD-9CM (diagnosis codes)",
-              "displayName": "Other and unspecified angina pectoris"
-            }
-          ]
-        },
-        "statusCode": {
-          "code": "completed"
-        },
-        "effectiveTime": {
-          "low": "20130711"
-        }
-      }
-    ]
-            </code></pre>
         </p>
         <h3>Example Attribute Output</h3>
         <p>
             <pre><code>
-    problemSection.act_04.observation.effectiveTime.low=20130711
-    problemSection.act_04.observation.id.extension=121387536
-    problemSection.act_04.observation.id.root=2.16.840.1.113883.1.13.99999.999239
-    problemSection.act_04.observation.statusCode.code=completed
-    problemSection.act_04.observation.values.code=194828000
-    problemSection.act_04.observation.values.codeSystem=2.16.840.1.113883.6.96
-    problemSection.act_04.observation.values.codeSystemName=SNOMED CT
-    problemSection.act_04.observation.values.displayName=Angina (disorder)
-    problemSection.act_04.observation.values.translations.code=413.9
-    problemSection.act_04.observation.values.translations.codeSystem=2.16.840.1.113883.6.103
-    problemSection.act_04.observation.values.translations.codeSystemName=ICD-9CM (diagnosis codes)
-    problemSection.act_04.observation.values.translations.displayName=Other and unspecified angina pectoris
-    problemSection.act_04.statusCode.code=active
+    problemSection.act.observation.problemStatus.code.code=33999-4
+    problemSection.act.observation.problemStatus.code.codeSystem=2.16.840.1.113883.6.1
+    problemSection.act.observation.problemStatus.code.codeSystemName=LOINC
+    problemSection.act.observation.problemStatus.code.displayName=Status
+    problemSection.act.observation.problemStatus.statusCode.code=completed
+    problemSection.act.observation.statusCode.code=completed
             </code></pre>
         </p>
         <h3>Example Parser Mapping</h3>
@@ -101,8 +58,6 @@
         <h3>References</h3>
         <p>
             These mappings are defined as per the implementation guide -<a href="http://www.hl7.org/documentcenter/public/standards/dstu/CDAR2_IG_IHE_CONSOL_DSTU_R1dot1_2012JUL.zip">HL7 Implementation Guide for CDA® Release 2</a></br>
-</br>
-            CCDA sample file used in this bundle for testing is from <a href="https://github.com/chb/sample_ccdas/blob/master/Cerner%20Samples/Transition_of_Care_Referral_Summary.xml">Cerner Sample - Transition of Care Referral Summary</a>
         </p>
     </body>
 </html>

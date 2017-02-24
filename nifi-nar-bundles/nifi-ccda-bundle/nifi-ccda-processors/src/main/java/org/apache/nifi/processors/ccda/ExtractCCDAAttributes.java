@@ -18,9 +18,7 @@ package org.apache.nifi.processors.ccda;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlContext;
@@ -42,17 +41,17 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StopWatch;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.openhealthtools.mdht.uml.cda.CDAPackage;
 import org.openhealthtools.mdht.uml.cda.ClinicalDocument;
@@ -63,26 +62,20 @@ import org.openhealthtools.mdht.uml.cda.ihe.IHEPackage;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil.ValidationHandler;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"CCDA", "healthcare", "extract", "JSON", "attributes"})
-@CapabilityDescription("Extracts information from an Consolidated CDA formatted FlowFile and provides JSON as FlowFile content "
-        + "and individual attributes as FlowFile attributes. The attributes are named as <Parent> <dot> <Key>. "
+@Tags({"CCDA", "healthcare", "extract", "attributes"})
+@CapabilityDescription("Extracts information from an Consolidated CDA formatted FlowFile and provides individual attributes "
+        + "as FlowFile attributes. The attributes are named as <Parent> <dot> <Key>. "
         + "If the Parent is repeating, the naming will be <Parent> <underscore> <Parent Index> <dot> <Key>. "
         + "For example, section.act_07.observation.name=Essential hypertension")
 public class ExtractCCDAAttributes extends AbstractProcessor {
 
-    private static final String APPLICATION_JSON = "application/json";
     private static final char FIELD_SEPARATOR = '@';
     private static final char KEY_VALUE_SEPARATOR = '#';
 
     private Map<String, Map<String, String>> processMap = new LinkedHashMap<String, Map<String, String>>(); // stores mapping data for Parser
-    private List<String> timingStats = new ArrayList<String>(); // stores timing statistics
-    private Map<String, String> attributes = new TreeMap<String, String>(); // stores CDA attributes
     private JexlEngine jexl = null; // JEXL Engine to execute code for mapping
     private JexlContext jexlCtx = null; // JEXL Context to hold element being processed
 
@@ -96,15 +89,6 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
     public static final PropertyDescriptor SKIP_VALIDATION = new PropertyDescriptor.Builder().name("skip-validation")
             .displayName("Skip Validation").description("Whether or not to validate CDA message values").required(true)
             .allowableValues("true", "false").defaultValue("true").addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
-    /**
-     * PRETTY_PRINTING - Choice of whether generated JSON in the FileFlow content is
-     * pretty printed with new line and tabs or just a continuous string of characters
-     */
-    public static final PropertyDescriptor PRETTY_PRINTING = new PropertyDescriptor.Builder().name("pretty-printing")
-            .displayName("Pretty Printing").description("Whether or not to Pretty Print JSON output").required(true)
-            .allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     /**
@@ -135,7 +119,6 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        getLogger().info("Loading packages");
 
         relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
@@ -143,9 +126,12 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
         properties = new ArrayList<>();
         properties.add(SKIP_VALIDATION);
-        properties.add(PRETTY_PRINTING);
+    }
 
-        long start = System.currentTimeMillis();
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) throws IOException {
+        getLogger().debug("Loading packages");
+        final StopWatch stopWatch = new StopWatch(true);
 
         // Load required MDHT packages
         System.setProperty( "org.eclipse.emf.ecore.EPackage.Registry.INSTANCE",
@@ -155,19 +141,21 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         CCDPackage.eINSTANCE.eClass();
         ConsolPackage.eINSTANCE.eClass();
         IHEPackage.eINSTANCE.eClass();
-        timingStats.add(String.format("Loaded packages in %d ms", System.currentTimeMillis() - start));
+        stopWatch.stop();
+        getLogger().debug("Loaded packages in {}", new Object[] {stopWatch.getDuration(TimeUnit.MILLISECONDS)});
 
         // Initialize JEXL
         jexl = new JexlBuilder().cache(1024).debug(false).silent(true).strict(false).create();
         jexlCtx = new MapContext();
 
-        getLogger().info("Loading mappings");
+        getLogger().debug("Loading mappings");
         loadMappings(); // Load CDA mappings for parser
 
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        Map<String, String> attributes = new TreeMap<String, String>(); // stores CDA attributes
         getLogger().info("Processing CCDA");
 
         FlowFile flowFile = session.get();
@@ -182,36 +170,25 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         }
 
         final Boolean skipValidation = context.getProperty(SKIP_VALIDATION).asBoolean();
-        final Boolean prettyPrinting = context.getProperty(PRETTY_PRINTING).asBoolean();
 
-        long start = System.currentTimeMillis(), total = start;
+        final StopWatch stopWatch = new StopWatch(true);
 
         ClinicalDocument cd = loadDocument(session.read(flowFile), skipValidation); // Load and optionally validate CDA document
 
-        start = System.currentTimeMillis();
-        getLogger().info("Processing elements");
-        Map<String, Object> elements = processElement(null, cd); // Process CDA element using mapping data
+        getLogger().debug("Loaded document for {} in {}", new Object[] {flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS)});
 
-        start = System.currentTimeMillis();
-        getLogger().info("Generating JSON");
+        getLogger().debug("Processing elements");
+        processElement(null, cd, attributes); // Process CDA element using mapping data
 
-        // Initialize GSON with optional pretty printing
-        Gson gson = prettyPrinting ? new GsonBuilder().setPrettyPrinting().create() : new GsonBuilder().create();
-        String json = gson.toJson(elements);
-        timingStats.add(String.format("JSON created in %d ms", System.currentTimeMillis() - start));
-        timingStats.add(String.format("CCDA Processed in %d ms", System.currentTimeMillis() - total));
-
-        logDetails(json);
-
-        flowFile = session.write(flowFile, new OutputStreamCallback() {
-
-            @Override
-            public void process(OutputStream output) throws IOException {
-                output.write(json.getBytes("UTF-8"));
-            }
-        });
-        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
         flowFile = session.putAllAttributes(flowFile, attributes);
+
+        stopWatch.stop();
+        getLogger().info("Successfully processed {} in {}", new Object[] {flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        if(getLogger().isDebugEnabled()){
+            for (Entry<String, String> entry : attributes.entrySet()) {
+                getLogger().debug("Attribute: {}={}", new Object[] {entry.getKey(), entry.getValue()});
+            }
+        }
 
         session.transfer(flowFile, REL_SUCCESS);
 
@@ -219,7 +196,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
     /**
      * Process elements children based on the parser mapping.
-     * Any String values are added to attributes and JSON map
+     * Any String values are added to attributes
      * For List, the processList method is called to iterate and process
      * For an Object this method is called recursively
      * While adding to the attributes the key is prefixed by parent
@@ -227,38 +204,40 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      * @param element   Element to be processed
      * @return          Map of processed data, value can contain String or Map of Strings
      */
-    protected Map<String, Object> processElement(String parent, Object element) {
-        long start = System.currentTimeMillis();
+    protected Map<String, Object> processElement(String parent, Object element, Map<String, String> attributes) {
+        final StopWatch stopWatch = new StopWatch(true);
 
         Map<String, Object> map = new LinkedHashMap<String, Object>();
         String name = element.getClass().getName();
-        Map<String, String> jexlMap = (HashMap<String, String>) processMap.get(name); // get JEXL mappings for this element
-        getLogger().debug("Processing " + name);
+        Map<String, String> jexlMap = processMap.get(name); // get JEXL mappings for this element
 
         if (jexlMap == null) {
-            getLogger().info("Missing mapping for element " + name);
+            getLogger().warn("Missing mapping for element " + name);
             return null;
         }
+
         for (Entry<String, String> entry : jexlMap.entrySet()) { // evaluate JEXL for each child element
             jexlCtx.set("element", element);
             JexlExpression jexlExpr = jexl.createExpression(entry.getValue());
             Object value = jexlExpr.evaluate(jexlCtx);
             String key = entry.getKey();
             String prefix = parent != null ? parent + "." + key : key;
-            addElement(map, prefix, key, value);
+            addElement(map, prefix, key, value, attributes);
         }
-        timingStats.add(String.format("Processed %s in %d ms", name, System.currentTimeMillis() - start));
+        stopWatch.stop();
+        getLogger().debug("Processed {} in {}", new Object[] {name, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+
         return map;
     }
 
     /**
-     * Adds element to the JSON map and attribute list based on the type
-     * @param map       JSON map
+     * Adds element to the attribute list based on the type
+     * @param map       object map
      * @param prefix    parent key as prefix
      * @param key       element key
      * @param value     element value
      */
-    protected void addElement(Map<String, Object> map, String prefix, String key, Object value) {
+    protected Map<String, String> addElement(Map<String, Object> map, String prefix, String key, Object value, Map<String, String> attributes) {
         // if the value is a String, add it to final attribute list
         // else process it further until we have a String representation
         if (value instanceof String) {
@@ -268,11 +247,12 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
             }
         } else if (value instanceof List) {
             if(value != null && !((List) value).isEmpty()) {
-                map.put(key, processList(prefix, (List) value));
+                map.put(key, processList(prefix, (List) value, attributes));
             }
         } else if (value != null) { // process element further
-            map.put(key, processElement(prefix, value));
+            map.put(key, processElement(prefix, value, attributes));
         }
+        return attributes;
     }
 
     /**
@@ -281,21 +261,19 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      * @param value     value is the individual Object being processed
      * @return          list of elements
      */
-    protected List<Object> processList(String key, List value) {
+    protected List<Object> processList(String key, List value, Map<String, String> attributes) {
         List<Object> items = new ArrayList<Object>();
         String keyFormat = value.size() > 1 ? "%s_%02d" : "%s";
         for (Object item : value) { // iterate over all elements and process each element
-            items.add(processElement(String.format(keyFormat, key, items.size() + 1), item));
+            items.add(processElement(String.format(keyFormat, key, items.size() + 1), item, attributes));
         }
         return items;
     }
 
     protected ClinicalDocument loadDocument(InputStream inputStream, Boolean skipValidation) {
-        long start = System.currentTimeMillis();
         ClinicalDocument cd = null;
 
         try {
-            getLogger().info("Loading document");
             cd = CDAUtil.load(inputStream); // load CDA document
             if (!skipValidation && !CDAUtil.validate(cd, new CDAValidationHandler())) { //optional validation
                 getLogger().error("Failed to validate CDA document");
@@ -305,12 +283,10 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
             getLogger().error("Failed to load CDA document", e);
             throw new ProcessException("Failed to load CDA document", e);
         }
-        timingStats.add(String.format("Loaded document in %d ms", System.currentTimeMillis() - start));
         return cd;
     }
 
     protected void loadMappings() {
-        long start = System.currentTimeMillis();
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         Properties mappings = new Properties();
         try (InputStream is = classloader.getResourceAsStream("mapping.properties")){
@@ -331,26 +307,6 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
             throw new ProcessException("Failed to load mappings", e);
         }
 
-        timingStats.add(String.format("Loaded mappings in %d ms", System.currentTimeMillis() - start));
-    }
-
-    private void logDetails(String json) {
-
-        if (getLogger().isTraceEnabled()) {
-            for (String timing : timingStats) {
-                getLogger().trace(timing);
-            }
-        }
-
-        if (getLogger().isDebugEnabled()) {
-            for (Entry<String, Map<String, String>> entry : processMap.entrySet()) {
-                getLogger().debug(String.format("Mapping: %s=%s", entry.getKey(), entry.getValue()));
-            }
-            for (Entry<String, String> entry : attributes.entrySet()) {
-                getLogger().debug(String.format("Attribute: %s=%s", entry.getKey(), entry.getValue()));
-            }
-            getLogger().debug(json);
-        }
     }
 
     protected class CDAValidationHandler implements ValidationHandler {
@@ -368,16 +324,6 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         public void handleInfo(Diagnostic diagnostic) {
             getLogger().info(new StringBuilder("INFO: ").append(diagnostic.getMessage()).toString());
         }
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
     }
 
 }

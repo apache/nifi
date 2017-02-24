@@ -93,7 +93,6 @@ public class TestExtractCCDAAttributes {
 
     private void runTests(final String content, Map<String, String> expectedAttributes, final boolean skipValidation, final boolean prettyPrinting) throws IOException{
         runner.setProperty(ExtractCCDAAttributes.SKIP_VALIDATION, String.valueOf(skipValidation));
-        runner.setProperty(ExtractCCDAAttributes.PRETTY_PRINTING, String.valueOf(prettyPrinting));
 
         runner.enqueue(content);
 
