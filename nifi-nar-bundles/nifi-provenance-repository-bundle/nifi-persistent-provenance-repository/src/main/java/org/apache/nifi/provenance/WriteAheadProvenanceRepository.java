@@ -141,7 +141,12 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         eventStore.initialize();
         eventIndex.initialize(eventStore);
 
-        eventStore.reindexLatestEvents(eventIndex);
+        try {
+            eventStore.reindexLatestEvents(eventIndex);
+        } catch (final Exception e) {
+            logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
+                + "events will not be available from the Provenance Repository when a query is issued.", e);
+        }
     }
 
     @Override
