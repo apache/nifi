@@ -19,16 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-morphlines-bundle</artifactId>
-        <version>0.1</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-morphlines-processors</artifactId>
     <packaging>jar</packaging>
-
-    <properties>
-        <kite.version>1.0.0</kite.version>
-        <nifi.version>1.1.0</nifi.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -42,7 +37,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>${nifi.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -59,72 +53,58 @@
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-core</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-avro</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-json</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-saxon</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-hadoop-core</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-hadoop-parquet-avro</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-hadoop-sequencefile</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-hadoop-rcfile</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-tika-core</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-tika-decompress</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-twitter</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-maxmind</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-metrics-servlets</artifactId>
-            <version>${kite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kitesdk</groupId>
             <artifactId>kite-morphlines-useragent</artifactId>
-            <version>${kite.version}</version>
         </dependency>
     </dependencies>  
 </project>

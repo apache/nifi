@@ -50,7 +50,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.exception.*;
 
 @Tags({"kitesdk", "morphlines"})
-@CapabilityDescription("Provide a description")
+@CapabilityDescription("Implements Morphlines framework")
 public class MorphlinesProcessor extends AbstractProcessor {
 
     private static Command morphline;
