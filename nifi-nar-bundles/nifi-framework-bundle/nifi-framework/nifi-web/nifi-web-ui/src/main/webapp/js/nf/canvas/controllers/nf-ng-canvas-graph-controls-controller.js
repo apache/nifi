@@ -336,10 +336,6 @@
             openConfigureOrDetailsView: function () {
                 var selection = nfCanvasUtils.getSelection();
 
-                if (selection.empty()) {
-                    nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
-                }
-
                 if (nfCanvasUtils.isConfigurable(selection)) {
                     nfActions.showConfiguration(selection);
                 } else if (nfCanvasUtils.hasDetails(selection)) {
