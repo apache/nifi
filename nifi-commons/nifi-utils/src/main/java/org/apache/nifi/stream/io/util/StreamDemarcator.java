@@ -41,7 +41,11 @@ public class StreamDemarcator extends AbstractDemarcator {
      *            instance of {@link InputStream} representing the data
      * @param delimiterBytes
      *            byte array representing delimiter bytes used to split the
-     *            input stream. Can be null
+     *            input stream. Can be 'null'. NOTE: the 'null' is allowed only
+     *            for convenience and consistency since without delimiter this
+     *            class is no different then BufferedReader which reads the
+     *            entire stream into a byte array and there may be a more
+     *            efficient ways to do that (if that is the case).
      * @param maxDataSize
      *            maximum size of data derived from the input stream. This means
      *            that neither {@link InputStream} nor its individual tokens (if
@@ -58,7 +62,11 @@ public class StreamDemarcator extends AbstractDemarcator {
      *            instance of {@link InputStream} representing the data
      * @param delimiterBytes
      *            byte array representing delimiter bytes used to split the
-     *            input stream. Can be null
+     *            input stream. Can be 'null'. NOTE: the 'null' is allowed only
+     *            for convenience and consistency since without delimiter this
+     *            class is no different then BufferedReader which reads the
+     *            entire stream into a byte array and there may be a more
+     *            efficient ways to do that (if that is the case).
      * @param maxDataSize
      *            maximum size of data derived from the input stream. This means
      *            that neither {@link InputStream} nor its individual tokens (if

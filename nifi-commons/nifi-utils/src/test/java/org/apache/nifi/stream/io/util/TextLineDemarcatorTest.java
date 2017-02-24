@@ -314,6 +314,30 @@ public class TextLineDemarcatorTest {
         assertEquals(0, second.getCrlfLength());
     }
 
+    @Test
+    public void validateStartsWithLongerThanLastToken() throws IOException {
+        final byte[] inputData = "This is going to be a spectacular test\nThis is".getBytes(StandardCharsets.UTF_8);
+        final byte[] startsWith = "This is going to be".getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream is = new ByteArrayInputStream(inputData);
+                final TextLineDemarcator demarcator = new TextLineDemarcator(is)) {
+
+            final OffsetInfo first = demarcator.nextOffsetInfo(startsWith);
+            assertNotNull(first);
+            assertEquals(0, first.getStartOffset());
+            assertEquals(39, first.getLength());
+            assertEquals(1, first.getCrlfLength());
+            assertTrue(first.isStartsWithMatch());
+
+            final OffsetInfo second = demarcator.nextOffsetInfo(startsWith);
+            assertNotNull(second);
+            assertEquals(39, second.getStartOffset());
+            assertEquals(7, second.getLength());
+            assertEquals(0, second.getCrlfLength());
+            assertFalse(second.isStartsWithMatch());
+        }
+    }
+
     private InputStream stringToIs(String data) {
         return new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
     }

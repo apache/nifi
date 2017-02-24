@@ -133,11 +133,15 @@ public class TextLineDemarcator extends AbstractDemarcator {
         }
 
         if (startsWith != null && data != null) {
-            for (int i = 0; i < startsWith.length; i++) {
-                byte sB = startsWith[i];
-                if (sB != data[i]) {
-                    offsetInfo.setStartsWithMatch(false);
-                    break;
+            if (startsWith.length > data.length) {
+                offsetInfo.setStartsWithMatch(false);
+            } else {
+                for (int i = 0; i < startsWith.length; i++) {
+                    byte sB = startsWith[i];
+                    if (sB != data[i]) {
+                        offsetInfo.setStartsWithMatch(false);
+                        break;
+                    }
                 }
             }
         }
