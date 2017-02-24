@@ -83,7 +83,8 @@ public class ScanAttribute extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor DICTIONARY_FILE = new PropertyDescriptor.Builder()
             .name("Dictionary File")
-            .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.")
+            .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.  The contents of "
+                    + "the text file are loaded into memory when the processor is scheduled and reloaded when the contents are modified.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
