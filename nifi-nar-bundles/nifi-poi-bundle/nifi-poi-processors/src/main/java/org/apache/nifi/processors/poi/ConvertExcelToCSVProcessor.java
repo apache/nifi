@@ -22,10 +22,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -42,16 +40,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
 import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -65,7 +61,10 @@ import org.xml.sax.helpers.XMLReaderFactory;
         "where the each row from the excel sheet is output as a newline in the csv file.")
 @WritesAttributes({@WritesAttribute(attribute="sheetname", description="The name of the Excel sheet that this particular row of data came from in the Excel document"),
         @WritesAttribute(attribute="numrows", description="The number of rows in this Excel Sheet"),
-        @WritesAttribute(attribute="sourcefilename", description="The name of the Excel document file that this data originated from")})
+        @WritesAttribute(attribute="sourcefilename", description="The name of the Excel document file that this data originated from"),
+        @WritesAttribute(attribute="convertexceltocsvprocessor.error", description="Error message that was encountered on a per Excel sheet basis. This attribute is" +
+                " only populated if an error was occured while processing the particular sheet. Having the error present at the sheet level will allow for the end" +
+                " user to better understand what syntax errors in their excel doc on a larger scale caused the error.")})
 public class ConvertExcelToCSVProcessor
         extends AbstractProcessor {
 
@@ -79,6 +78,8 @@ public class ConvertExcelToCSVProcessor
     private static final String SAX_CELL_CONTENT_REF = "v";
     private static final String SAX_ROW_REF = "row";
     private static final String SAX_SHEET_NAME_REF = "sheetPr";
+    private static final String DESIRED_SHEETS_DELIMITER = ",";
+    private static final String UNKNOWN_SHEET_NAME = "UNKNOWN";
 
     public static final PropertyDescriptor DESIRED_SHEETS = new PropertyDescriptor
             .Builder().name("extract-sheets")
@@ -135,35 +136,33 @@ public class ConvertExcelToCSVProcessor
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
         }
 
-        FlowFile ff = session.clone(flowFile);
         try {
 
-            AtomicReference<Long> rowCount = new AtomicReference<>(0L);
-            AtomicReference<String> sheetName = new AtomicReference<>("UNKNOWN");
-
-            ff = session.write(ff, new StreamCallback() {
+            session.read(flowFile, new InputStreamCallback() {
                 @Override
-                public void process(InputStream inputStream, OutputStream outputStream) throws IOException {
+                public void process(InputStream inputStream) throws IOException {
 
-                    String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions().getValue();
-                    if (desiredSheetsDelimited != null) {
-                        String[] desiredSheets = StringUtils.split(desiredSheetsDelimited, ",");
-                        if (desiredSheets != null) {
+                    try {
+                        String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS)
+                                .evaluateAttributeExpressions().getValue();
 
-                            OPCPackage pkg = null;
-                            try {
+                        OPCPackage pkg = OPCPackage.open(inputStream);
+                        XSSFReader r = new XSSFReader(pkg);
+                        SharedStringsTable sst = r.getSharedStringsTable();
+                        XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) r.getSheetsData();
 
-                                pkg = OPCPackage.open(inputStream);
-                                XSSFReader r = new XSSFReader(pkg);
-                                SharedStringsTable sst = r.getSharedStringsTable();
-                                XMLReader parser = fetchExcelSheetParser(sst, outputStream, rowCount, sheetName);
+                        if (desiredSheetsDelimited != null) {
 
-                                XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) r.getSheetsData();
+                            String[] desiredSheets = StringUtils
+                                    .split(desiredSheetsDelimited, DESIRED_SHEETS_DELIMITER);
+
+                            if (desiredSheets != null) {
+
                                 while (iter.hasNext()) {
                                     InputStream sheet = iter.next();
                                     String sheetName = iter.getSheetName();
@@ -171,71 +170,30 @@ public class ConvertExcelToCSVProcessor
                                     for (int i = 0; i < desiredSheets.length; i++) {
                                         //If the sheetName is a desired one parse it
                                         if (sheetName.equalsIgnoreCase(desiredSheets[i])) {
-                                            InputSource sheetSource = new InputSource(sheet);
-                                            parser.parse(sheetSource);
+                                            handleExcelSheet(session, flowFile, sst, sheet, sheetName);
                                             break;
                                         }
                                     }
-                                    sheet.close();
-
                                 }
+                            } else {
+                                getLogger().debug("Excel document was parsed but no sheets with the specified desired names were found.");
+                            }
 
-                            } catch (InvalidFormatException e) {
-                                e.printStackTrace();
-                            } catch (OpenXML4JException e) {
-                                e.printStackTrace();
-                            } catch (SAXException e) {
-                                e.printStackTrace();
+                        } else {
+                            //Get all of the sheets in the document.
+                            while (iter.hasNext()) {
+                                handleExcelSheet(session, flowFile, sst, iter.next(), iter.getSheetName());
                             }
                         }
-
-                    } else {
-                        //Get all of the sheets in the document.
-                        OPCPackage pkg = null;
-                        try {
-                            pkg = OPCPackage.open(inputStream);
-                            XSSFReader r = new XSSFReader(pkg);
-                            SharedStringsTable sst = r.getSharedStringsTable();
-                            XMLReader parser = fetchExcelSheetParser(sst, outputStream, rowCount, sheetName);
-
-                            Iterator<InputStream> sheets = r.getSheetsData();
-                            while (sheets.hasNext()) {
-                                InputStream sheet = sheets.next();
-                                InputSource sheetSource = new InputSource(sheet);
-                                parser.parse(sheetSource);
-                                sheet.close();
-                            }
-                        } catch (InvalidFormatException e) {
-                            getLogger().error(e.getMessage());
-                        } catch (OpenXML4JException e) {
-                            getLogger().error(e.getMessage());
-                        } catch (SAXException e) {
-                            getLogger().error(e.getMessage());
-                        }
+                    } catch (Exception ex) {
+                        getLogger().error(ex.getMessage());
                     }
                 }
             });
 
-            //Add the attributes to the new flowfile
-            ff = session.putAttribute(ff, SHEET_NAME, sheetName.get());
-            ff = session.putAttribute(ff, ROW_NUM, rowCount.get().toString());
-
-            if (StringUtils.isNotEmpty(flowFile.getAttribute(CoreAttributes.FILENAME.key()))) {
-                ff = session.putAttribute(ff, SOURCE_FILE_NAME, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            } else {
-                ff = session.putAttribute(ff, SOURCE_FILE_NAME, "UNKNOWN");
-            }
-
-            //Update the CoreAttributes.FILENAME to have the .csv extension now. Also update MIME.TYPE
-            ff = session.putAttribute(ff, CoreAttributes.FILENAME.key(), updateFilenameToCSVExtension(ff.getAttribute(CoreAttributes.UUID.key()),
-                    ff.getAttribute(CoreAttributes.FILENAME.key()), sheetName));
-            ff = session.putAttribute(ff, CoreAttributes.MIME_TYPE.key(), CSV_MIME_TYPE);
-
-            session.transfer(ff, SUCCESS);
-
         } catch (Exception ex) {
             getLogger().error(ex.getMessage());
-            session.transfer(ff, FAILURE);
+            session.transfer(flowFile, FAILURE);
         } finally {
             session.transfer(flowFile, ORIGINAL);
         }
@@ -243,26 +201,76 @@ public class ConvertExcelToCSVProcessor
 
 
     /**
-     * Creates the XMLReader for the Excel Document parser.
+     * Handles an individual Excel sheet from the entire Excel document. Each sheet will result in an individual flowfile.
      *
-     * @param sst
-     *  SharedStringsTable parsed from the incoming Excel spreedsheet
-     *
-     * @return
-     *  XMLReader object that will be used to parse the Excel document.
-     * @throws SAXException
-     *  SAXException
+     * @param session
+     *  The NiFi ProcessSession instance for the current invocation.
      */
-    public XMLReader fetchExcelSheetParser(SharedStringsTable sst, OutputStream outputStream,
-            AtomicReference<Long> rowCount, AtomicReference<String> sheetName) throws SAXException {
-        XMLReader parser =
-                XMLReaderFactory.createXMLReader(
-                        "org.apache.xerces.parsers.SAXParser"
-                );
-        ContentHandler handler = new ExcelSheetRowHandler(sst, outputStream, rowCount, sheetName);
-        parser.setContentHandler(handler);
-        return parser;
+    private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF,
+            SharedStringsTable sst, final InputStream sheetInputStream, String sName) {
+
+        FlowFile ff = session.create();
+        try {
+
+            XMLReader parser =
+                    XMLReaderFactory.createXMLReader(
+                            "org.apache.xerces.parsers.SAXParser"
+                    );
+            ExcelSheetRowHandler handler = new ExcelSheetRowHandler(sst);
+            parser.setContentHandler(handler);
+
+            ff = session.write(ff, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    InputSource sheetSource = new InputSource(sheetInputStream);
+                    try {
+                        ExcelSheetRowHandler eh = (ExcelSheetRowHandler) parser.getContentHandler();
+                        eh.setFlowFileOutputStream(out);
+                        parser.setContentHandler(eh);
+                        parser.parse(sheetSource);
+                        sheetInputStream.close();
+                    } catch (Exception ex) {
+                        getLogger().error(ex.getMessage());
+                    }
+                }
+            });
+
+            if (handler.getSheetName().equals(UNKNOWN_SHEET_NAME)) {
+                //Used the named parsed from the handler. This logic is only here because IF the handler does find a value that should take precedence.
+                ff = session.putAttribute(ff, SHEET_NAME, sName);
+            } else {
+                ff = session.putAttribute(ff, SHEET_NAME, handler.getSheetName());
+            }
+
+            ff = session.putAttribute(ff, ROW_NUM, new Long(handler.getRowCount()).toString());
+
+            if (StringUtils.isNotEmpty(originalParentFF.getAttribute(CoreAttributes.FILENAME.key()))) {
+                ff = session.putAttribute(ff, SOURCE_FILE_NAME, originalParentFF.getAttribute(CoreAttributes.FILENAME.key()));
+            } else {
+                ff = session.putAttribute(ff, SOURCE_FILE_NAME, UNKNOWN_SHEET_NAME);
+            }
+
+            //Update the CoreAttributes.FILENAME to have the .csv extension now. Also update MIME.TYPE
+            ff = session.putAttribute(ff, CoreAttributes.FILENAME.key(), updateFilenameToCSVExtension(ff.getAttribute(CoreAttributes.UUID.key()),
+                    ff.getAttribute(CoreAttributes.FILENAME.key()), handler.getSheetName()));
+            ff = session.putAttribute(ff, CoreAttributes.MIME_TYPE.key(), CSV_MIME_TYPE);
+
+            session.transfer(ff, SUCCESS);
+
+        } catch (SAXException saxE) {
+            getLogger().error(saxE.getMessage());
+            ff = session.putAttribute(ff,
+                    ConvertExcelToCSVProcessor.class.getName() + ".error", saxE.getMessage());
+            session.transfer(ff, FAILURE);
+        } finally {
+            try {
+                sheetInputStream.close();
+            } catch (IOException ioe) {
+                //nothing further can be done...
+            }
+        }
     }
+
 
     /**
      * Extracts every row from an Excel Sheet and generates a corresponding JSONObject whose key is the Excel CellAddress and value
@@ -272,21 +280,22 @@ public class ConvertExcelToCSVProcessor
             extends DefaultHandler {
 
         private SharedStringsTable sst;
-        private String currentSheetName;
         private String currentContent;
         private boolean nextIsString;
         private OutputStream outputStream;
         private boolean firstColInRow;
-        AtomicReference<Long> rowCount;
-        AtomicReference<String> sheetName;
+        long rowCount;
+        String sheetName;
 
-        private ExcelSheetRowHandler(SharedStringsTable sst, OutputStream outputStream,
-                AtomicReference<Long> rowCount, AtomicReference<String> sheetName) {
+        private ExcelSheetRowHandler(SharedStringsTable sst) {
             this.sst = sst;
-            this.outputStream = outputStream;
             this.firstColInRow = true;
-            this.rowCount = rowCount;
-            this.sheetName = sheetName;
+            this.rowCount = 0l;
+            this.sheetName = UNKNOWN_SHEET_NAME;
+        }
+
+        public void setFlowFileOutputStream(OutputStream outputStream) {
+            this.outputStream = outputStream;
         }
 
         public void startElement(String uri, String localName, String name,
@@ -302,8 +311,7 @@ public class ConvertExcelToCSVProcessor
             } else if (name.equals(SAX_ROW_REF)) {
                firstColInRow = true;
             } else if (name.equals(SAX_SHEET_NAME_REF)) {
-                currentSheetName = attributes.getValue(0);
-                sheetName.set(currentSheetName);
+                sheetName = attributes.getValue(0);
             }
 
             currentContent = "";
@@ -339,7 +347,7 @@ public class ConvertExcelToCSVProcessor
                 //If this is the first row and the end of the row element has been encountered then that means no columns were present.
                 if (!firstColInRow) {
                     try {
-                        rowCount.set((rowCount.get()+1));   //increment row count
+                        rowCount++;
                         outputStream.write("\n".getBytes());
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -354,6 +362,13 @@ public class ConvertExcelToCSVProcessor
             currentContent += new String(ch, start, length);
         }
 
+        public long getRowCount() {
+            return rowCount;
+        }
+
+        public String getSheetName() {
+            return sheetName;
+        }
     }
 
 
@@ -367,7 +382,7 @@ public class ConvertExcelToCSVProcessor
      * @return
      *  The new filename with the .csv extension that should be place in the output flowfile's attributes
      */
-    private String updateFilenameToCSVExtension(String nifiUUID, String origFileName, AtomicReference<String> sheetName) {
+    private String updateFilenameToCSVExtension(String nifiUUID, String origFileName, String sheetName) {
 
         StringBuilder stringBuilder = new StringBuilder();
 
@@ -383,7 +398,7 @@ public class ConvertExcelToCSVProcessor
         }
 
         stringBuilder.append("_");
-        stringBuilder.append(sheetName.get());
+        stringBuilder.append(sheetName);
         stringBuilder.append(".");
         stringBuilder.append("csv");
 

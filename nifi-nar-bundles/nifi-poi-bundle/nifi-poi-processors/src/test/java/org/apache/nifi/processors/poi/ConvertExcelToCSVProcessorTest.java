@@ -36,6 +36,27 @@ public class ConvertExcelToCSVProcessorTest {
     }
 
     @Test
+    public void testMultipleSheetsGeneratesMultipleFlowFiles() throws Exception {
+
+        testRunner.enqueue(new File("src/test/resources/TwoSheets.xlsx").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 2);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ffSheetA = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheetA = new Long(ffSheetA.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheetA == 4l);
+        assertTrue(ffSheetA.getAttribute(ConvertExcelToCSVProcessor.SHEET_NAME).equalsIgnoreCase("TestSheetA"));
+
+        MockFlowFile ffSheetB = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(1);
+        Long rowsSheetB = new Long(ffSheetB.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheetB == 3l);
+        assertTrue(ffSheetB.getAttribute(ConvertExcelToCSVProcessor.SHEET_NAME).equalsIgnoreCase("TestSheetB"));
+    }
+
+    @Test
     public void testProcessAllSheets() throws Exception {
 
         testRunner.enqueue(new File("src/test/resources/CollegeScorecard.xlsx").toPath());
@@ -51,7 +72,7 @@ public class ConvertExcelToCSVProcessorTest {
     }
 
     @Test
-    public void testProcessASpecificSheetThatDoesNotExist() throws Exception {
+    public void testProcessASpecificSheetThatDoesExist() throws Exception {
 
         testRunner.setProperty(ConvertExcelToCSVProcessor.DESIRED_SHEETS, "Scorecard");
         testRunner.enqueue(new File("src/test/resources/CollegeScorecard.xlsx").toPath());
@@ -78,13 +99,8 @@ public class ConvertExcelToCSVProcessorTest {
         testRunner.enqueue(new File("src/test/resources/CollegeScorecard.xlsx").toPath());
         testRunner.run();
 
-        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);  //We aren't expecting any output to success here because the sheet doesn't exist
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
-
-        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
-        Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
-        assertTrue(l == 0l);
-        assertTrue(ff.getAttribute(ConvertExcelToCSVProcessor.SHEET_NAME).equalsIgnoreCase("UNKNOWN"));
     }
 }
