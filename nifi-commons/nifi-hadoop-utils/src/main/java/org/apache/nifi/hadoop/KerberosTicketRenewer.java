@@ -20,6 +20,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Periodically attempts to renew the Kerberos user's ticket for the given UGI.
@@ -58,10 +59,19 @@ public class KerberosTicketRenewer implements Runnable {
             try {
                 logger.debug("Invoking renewal attempt for Kerberos ticket");
                 // While we run this "frequently", the Hadoop implementation will only perform the login at 80% of ticket lifetime.
-                ugi.checkTGTAndReloginFromKeytab();
+                ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                    ugi.checkTGTAndReloginFromKeytab();
+                    return null;
+                });
             } catch (IOException e) {
                 logger.error("Failed to renew Kerberos ticket", e);
+            } catch (InterruptedException e) {
+                logger.error("Interrupted while attempting to renew Kerberos ticket", e);
+                Thread.currentThread().interrupt();
+                return;
             }
+
+            logger.debug("current UGI {}", new Object[]{ugi});
 
             // Wait for a bit before checking again.
             try {
