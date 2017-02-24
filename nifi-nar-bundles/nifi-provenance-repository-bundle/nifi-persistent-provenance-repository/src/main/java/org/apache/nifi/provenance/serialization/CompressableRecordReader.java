@@ -283,7 +283,20 @@ public abstract class CompressableRecordReader implements RecordReader {
         }
 
         if (isData()) {
-            return nextRecord(dis, serializationVersion);
+            while (true) {
+                try {
+                    return nextRecord(dis, serializationVersion);
+                } catch (final IOException ioe) {
+                    throw ioe;
+                } catch (final Exception e) {
+                    // This would only happen if a bug were to exist such that an 'invalid' event were written
+                    // out. For example an Event that has no FlowFile UUID. While there is in fact an underlying
+                    // cause that would need to be sorted out in this case, the Provenance Repository should be
+                    // resilient enough to handle this. Otherwise, we end up throwing an Exception, which may
+                    // prevent iterating over additional events in the repository.
+                    logger.error("Failed to read Provenance Event from " + filename + "; will skip this event and continue reading subsequent events", e);
+                }
+            }
         } else {
             return null;
         }
