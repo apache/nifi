@@ -190,7 +190,7 @@ public class ExtensionManager {
 
         // If we don't then we'll create a new ClassLoader for this instance and add it to the map for future lookups
         if (instanceClassLoader == null) {
-            final ClassLoader registeredClassLoader = getClassLoader(classType);
+            ClassLoader registeredClassLoader = getClassLoader(classType);
             if (registeredClassLoader == null) {
                 return null;
             }
@@ -199,8 +199,20 @@ public class ExtensionManager {
             // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
             // InstanceClassLoader that has the NAR ClassLoader as a parent
             if (requiresInstanceClassLoading.contains(classType) && (registeredClassLoader instanceof URLClassLoader)) {
-                final URLClassLoader registeredUrlClassLoader = (URLClassLoader) registeredClassLoader;
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+                final Set<URL> classLoaderResources = new HashSet<>();
+
+                // if the registered class loader is a NAR class loader then walk the chain of class loaders until
+                // finding a non-NAR class loader, and build up a list of all URLs along the way
+                while (registeredClassLoader != null && registeredClassLoader instanceof NarClassLoader) {
+                    final NarClassLoader narClassLoader = (NarClassLoader) registeredClassLoader;
+                    for (URL classLoaderResource : narClassLoader.getURLs()) {
+                        classLoaderResources.add(classLoaderResource);
+                    }
+                    registeredClassLoader = narClassLoader.getParent();
+                }
+
+                final URL[] classLoaderUrls = classLoaderResources.toArray(new URL[classLoaderResources.size()]);
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, classLoaderUrls, registeredClassLoader);
             } else {
                 instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], registeredClassLoader);
             }

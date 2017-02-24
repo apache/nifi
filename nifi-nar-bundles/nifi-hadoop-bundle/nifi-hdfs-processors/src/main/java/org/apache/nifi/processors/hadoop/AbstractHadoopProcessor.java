@@ -28,6 +28,7 @@ import org.apache.hadoop.io.compress.Lz4Codec;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -64,6 +65,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
  */
+@RequiresInstanceClassLoading
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /**
      * Compression Type Enum
@@ -299,6 +301,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 fs = getFileSystemAsUser(config, ugi);
             }
         }
+        getLogger().debug("resetHDFSResources UGI {}", new Object[]{ugi});
 
         final Path workingDir = fs.getWorkingDirectory();
         getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
@@ -455,13 +458,19 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             getLogger().info("Kerberos ticket age exceeds threshold [{} seconds] " +
                 "attempting to renew ticket for user {}", new Object[]{
               kerberosReloginThreshold, ugi.getUserName()});
-            ugi.checkTGTAndReloginFromKeytab();
+            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                ugi.checkTGTAndReloginFromKeytab();
+                return null;
+            });
             lastKerberosReloginTime = System.currentTimeMillis() / 1000;
             getLogger().info("Kerberos relogin successful or ticket still valid");
         } catch (IOException e) {
             // Most likely case of this happening is ticket is expired and error getting a new one,
             // meaning dfs operations would fail
             getLogger().error("Kerberos relogin failed", e);
+            throw new ProcessException("Unable to renew kerberos ticket", e);
+        } catch (InterruptedException e) {
+            getLogger().error("Interrupted while attempting Kerberos relogin", e);
             throw new ProcessException("Unable to renew kerberos ticket", e);
         }
     }
