@@ -116,7 +116,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     + "The value must start by 1")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(false)
             .build();
 
     public GenerateTableFetch() {
