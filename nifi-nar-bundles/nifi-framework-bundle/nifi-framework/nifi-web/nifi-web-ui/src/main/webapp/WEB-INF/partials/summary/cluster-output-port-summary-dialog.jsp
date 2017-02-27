@@ -18,11 +18,6 @@
 <div id="cluster-output-port-summary-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="cluster-output-port-summary-header">
-            <button id="cluster-output-port-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
-            <div id="cluster-output-port-summary-last-refreshed-container" class="last-refreshed-container">
-                Last updated:&nbsp;<span id="cluster-output-port-summary-last-refreshed"></span>
-            </div>
-            <div id="cluster-output-port-summary-loading-container" class="loading-container"></div>
             <div id="cluster-output-port-details-container">
                 <div id="cluster-output-port-icon"></div>
                 <div id="cluster-output-port-details">
@@ -35,4 +30,9 @@
         </div>
         <div id="cluster-output-port-summary-table"></div>
     </div>
+    <button id="cluster-output-port-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="cluster-output-port-summary-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="cluster-output-port-summary-last-refreshed" class="value-color"></span>
+    </div>
+    <div id="cluster-output-port-summary-loading-container" class="loading-container"></div>
 </div>

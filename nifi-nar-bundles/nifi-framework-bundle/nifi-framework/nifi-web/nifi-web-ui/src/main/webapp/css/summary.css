@@ -326,7 +326,15 @@ span.sorted {
 }
 
 #cluster-processor-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-processor-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-processor-summary-last-refreshed {
@@ -334,7 +342,9 @@ span.sorted {
 }
 
 #cluster-processor-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -344,8 +354,9 @@ span.sorted {
 
 #cluster-processor-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-processor-icon {
@@ -360,17 +371,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-processor-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-processor-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -381,6 +386,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-processor-id {
@@ -389,6 +396,11 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }
 
 /* cluster input port summary table */
@@ -412,7 +424,15 @@ span.sorted {
 }
 
 #cluster-input-port-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-input-port-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-input-port-summary-last-refreshed {
@@ -420,7 +440,9 @@ span.sorted {
 }
 
 #cluster-input-port-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -430,8 +452,9 @@ span.sorted {
 
 #cluster-input-port-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-input-port-icon {
@@ -446,17 +469,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-input-port-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-input-port-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -467,6 +484,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-input-port-id {
@@ -475,6 +494,11 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }
 
 /* cluster output port summary table */
@@ -498,7 +522,15 @@ span.sorted {
 }
 
 #cluster-output-port-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-output-port-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-output-port-summary-last-refreshed {
@@ -506,7 +538,9 @@ span.sorted {
 }
 
 #cluster-output-port-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -516,8 +550,9 @@ span.sorted {
 
 #cluster-output-port-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-output-port-icon {
@@ -532,17 +567,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-output-port-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-output-port-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -553,6 +582,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-output-port-id {
@@ -561,6 +592,11 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }
 
 /* cluster remote process group summary table */
@@ -584,7 +620,15 @@ span.sorted {
 }
 
 #cluster-remote-process-group-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-remote-process-group-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-remote-process-group-summary-last-refreshed {
@@ -592,7 +636,9 @@ span.sorted {
 }
 
 #cluster-remote-process-group-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -602,8 +648,9 @@ span.sorted {
 
 #cluster-remote-process-group-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-remote-process-group-icon {
@@ -618,17 +665,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-remote-process-group-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-remote-process-group-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -639,6 +680,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-remote-process-group-id {
@@ -647,6 +690,11 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }
 
 /* cluster connection summary table */
@@ -670,7 +718,15 @@ span.sorted {
 }
 
 #cluster-connection-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-connection-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-connection-summary-last-refreshed {
@@ -678,7 +734,9 @@ span.sorted {
 }
 
 #cluster-connection-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -688,8 +746,9 @@ span.sorted {
 
 #cluster-connection-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-connection-icon {
@@ -704,17 +763,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-connection-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-connection-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -725,6 +778,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-connection-id {
@@ -733,6 +788,11 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }
 
 /* cluster process group summary table */
@@ -756,7 +816,15 @@ span.sorted {
 }
 
 #cluster-process-group-refresh-button {
-    float: left;
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-process-group-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
 }
 
 #cluster-process-group-summary-last-refreshed {
@@ -764,7 +832,9 @@ span.sorted {
 }
 
 #cluster-process-group-summary-loading-container {
-    float: left;
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
     width: 16px;
     height: 16px;
     background-color: transparent;
@@ -774,8 +844,9 @@ span.sorted {
 
 #cluster-process-group-details-container {
     position: absolute;
-    right: 35px;
+    right: 0px;
     height: 52px;
+    left: 0px;
 }
 
 #cluster-process-group-icon {
@@ -790,17 +861,11 @@ span.sorted {
     color: #ad9897;
 }
 
-#cluster-process-group-details {
-    float: left;
-    padding-left: 10px;
-}
-
 #cluster-process-group-name {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -811,6 +876,8 @@ span.sorted {
     font-family: Roboto;
     color: #728e9b;
     margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #cluster-process-group-id {
@@ -819,4 +886,9 @@ span.sorted {
     color: #775351;
     position: absolute;
     bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
 }

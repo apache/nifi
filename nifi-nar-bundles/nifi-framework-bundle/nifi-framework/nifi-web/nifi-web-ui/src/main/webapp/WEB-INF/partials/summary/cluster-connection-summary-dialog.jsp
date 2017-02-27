@@ -18,11 +18,6 @@
 <div id="cluster-connection-summary-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="cluster-connection-summary-header">
-            <button id="cluster-connection-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
-            <div id="cluster-connection-summary-last-refreshed-container" class="last-refreshed-container">
-                Last updated:&nbsp;<span id="cluster-connection-summary-last-refreshed"></span>
-            </div>
-            <div id="cluster-connection-summary-loading-container" class="loading-container"></div>
             <div id="cluster-connection-details-container">
                 <div id="cluster-connection-icon"></div>
                 <div id="cluster-connection-details">
@@ -35,4 +30,9 @@
         </div>
         <div id="cluster-connection-summary-table"></div>
     </div>
+    <button id="cluster-connection-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="cluster-connection-summary-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="cluster-connection-summary-last-refreshed" class="value-color"></span>
+    </div>
+    <div id="cluster-connection-summary-loading-container" class="loading-container"></div>
 </div>

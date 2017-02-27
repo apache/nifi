@@ -18,11 +18,6 @@
 <div id="cluster-process-group-summary-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="cluster-process-group-summary-header">
-            <button id="cluster-process-group-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
-            <div id="cluster-process-group-summary-last-refreshed-container" class="last-refreshed-container">
-                Last updated:&nbsp;<span id="cluster-process-group-summary-last-refreshed"></span>
-            </div>
-            <div id="cluster-process-group-summary-loading-container" class="loading-container"></div>
             <div id="cluster-process-group-details-container">
                 <div id="cluster-process-group-icon"></div>
                 <div id="cluster-process-group-details">
@@ -34,4 +29,9 @@
         </div>
         <div id="cluster-process-group-summary-table"></div>
     </div>
+    <button id="cluster-process-group-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="cluster-process-group-summary-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="cluster-process-group-summary-last-refreshed" class="value-color"></span>
+    </div>
+    <div id="cluster-process-group-summary-loading-container" class="loading-container"></div>
 </div>
