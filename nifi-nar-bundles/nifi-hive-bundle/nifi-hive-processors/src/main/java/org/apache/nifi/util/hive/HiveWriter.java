@@ -87,9 +87,7 @@ public class HiveWriter {
 
     @Override
     public String toString() {
-        return "{ "
-                + "endPoint = " + endPoint.toString()
-                + ", TransactionBatch = " + txnBatch.toString() + " }";
+        return "{ endPoint = " + endPoint + ", TransactionBatch = " + txnBatch + " }";
     }
 
     /**

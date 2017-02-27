@@ -670,6 +670,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         }
 
         callTimeoutPool = null;
+        hiveConfigurator.stopRenewer();
     }
 
     private void setupHeartBeatTimer() {
