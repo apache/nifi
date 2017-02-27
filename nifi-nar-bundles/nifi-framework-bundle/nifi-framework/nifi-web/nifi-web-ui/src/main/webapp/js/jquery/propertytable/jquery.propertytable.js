@@ -85,6 +85,227 @@
     var groupId = null;
 
     // text editor
+    var inputEditor = function (args) {
+        var scope = this;
+        var initialValue = '';
+        var previousValue;
+        var propertyDescriptor;
+        var wrapper;
+        var isEmpty;
+        var input;
+
+        this.init = function () {
+            var container = $('body');
+
+            // get the property descriptor
+            var gridContainer = $(args.grid.getContainerNode());
+            var descriptors = gridContainer.data('descriptors');
+            propertyDescriptor = descriptors[args.item.property];
+
+            // record the previous value
+            previousValue = args.item[args.column.field];
+
+            // create the wrapper
+            wrapper = $('<div></div>').addClass('slickgrid-editor').css({
+                'z-index': 100000,
+                'position': 'absolute',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                'background-color': 'rgb(255, 255, 255)',
+                'overflow': 'hidden',
+                'padding': '10px 20px',
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
+            }).appendTo(container);
+
+            // create the input field
+            input = $('<input type="password" accept="text/plain"/>').css({
+                'width': args.position.width + 'px',
+                'min-width': '212px',
+                'margin-bottom': '5px',
+                'margin-top': '10px'
+            }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
+
+            // create the button panel
+            var stringCheckPanel = $('<div class="string-check-container">');
+            stringCheckPanel.appendTo(wrapper);
+
+            // build the custom checkbox
+            isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
+            $('<span class="string-check-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel).on('click', nfCommon.checkboxLabelClickHandler);
+
+            // create the button panel
+            var toggleSensitiveValuePanel = $('<div class="toggle-sensitive-value-container">');
+            toggleSensitiveValuePanel.appendTo(wrapper);
+
+            // build the custom checkbox
+            showSensitiveValue = $('<div class="nf-checkbox toggle-sensitive-value checkbox-unchecked"/>').on('click', function() {
+                var inputType = input.attr('type');
+                if (inputType === 'password') {
+                    input.attr('type', 'text').addClass('sensitive');
+                } else {
+                    input.attr('type', 'password').removeClass('sensitive');
+                }
+            }).appendTo(toggleSensitiveValuePanel);
+            $('<span class="toggle-sensitive-value-label">&nbsp;Show sensitive value</span>').appendTo(toggleSensitiveValuePanel).on('click', nfCommon.checkboxLabelClickHandler);
+
+            var ok = $('<div class="button">Ok</div>').css({
+                'color': '#fff',
+                'background': '#728E9B'
+            }).hover(
+                function () {
+                    $(this).css('background', '#004849');
+                }, function () {
+                    $(this).css('background', '#728E9B');
+                }).on('click', scope.save);
+            var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                'color': '#004849',
+                'background': '#E3E8EB'
+            }).hover(
+                function () {
+                    $(this).css('background', '#C7D2D7');
+                }, function () {
+                    $(this).css('background', '#E3E8EB');
+                }).on('click', scope.cancel);
+            $('<div></div>').css({
+                'position': 'relative',
+                'top': '10px',
+                'left': '20px',
+                'width': '212px',
+                'clear': 'both',
+                'float': 'right'
+            }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
+
+            // position and focus
+            scope.position(args.position);
+            input.focus().select();
+        };
+
+        this.handleKeyDown = function (e) {
+            if (e.which === $.ui.keyCode.ENTER && !e.shiftKey) {
+                scope.save();
+            } else if (e.which === $.ui.keyCode.ESCAPE) {
+                scope.cancel();
+
+                // prevent further propagation or escape press and prevent default behavior
+                e.stopImmediatePropagation();
+                e.preventDefault();
+            }
+        };
+
+        this.save = function () {
+            args.commitChanges();
+        };
+
+        this.cancel = function () {
+            input.val(initialValue);
+            args.cancelChanges();
+        };
+
+        this.hide = function () {
+            wrapper.hide();
+        };
+
+        this.show = function () {
+            wrapper.show();
+        };
+
+        this.position = function (position) {
+            wrapper.css({
+                'top': position.top - 27,
+                'left': position.left - 20
+            });
+        };
+
+        this.destroy = function () {
+            wrapper.remove();
+        };
+
+        this.focus = function () {
+            input.focus();
+        };
+
+        this.loadValue = function (item) {
+            // determine if this is a sensitive property
+            var isEmptyChecked = false;
+            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+            // determine the value to use when populating the text field
+            if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
+                initialValue = item[args.column.field];
+                isEmptyChecked = initialValue === '';
+            }
+
+            // determine if its an empty string
+            var checkboxStyle = isEmptyChecked ? 'checkbox-checked' : 'checkbox-unchecked';
+            isEmpty.addClass(checkboxStyle);
+
+            // style sensitive properties differently
+            if (sensitive) {
+                input.addClass('sensitive').keydown(function () {
+                    var sensitiveInput = $(this);
+                    if (sensitiveInput.hasClass('sensitive')) {
+                        sensitiveInput.removeClass('sensitive');
+                    }
+                });
+            }
+
+            input.val(initialValue);
+            input.select();
+        };
+
+        this.serializeValue = function () {
+            // if the field has been cleared, set the value accordingly
+            if (input.val() === '') {
+                // if the user has checked the empty string checkbox, use emtpy string
+                if (isEmpty.hasClass('checkbox-checked')) {
+                    return '';
+                } else {
+                    // otherwise if the property is required
+                    if (nfCommon.isRequiredProperty(propertyDescriptor)) {
+                        if (nfCommon.isBlank(propertyDescriptor.defaultValue)) {
+                            return previousValue;
+                        } else {
+                            return propertyDescriptor.defaultValue;
+                        }
+                    } else {
+                        // if the property is not required, clear the value
+                        return null;
+                    }
+                }
+            } else {
+                // if the field still has the sensitive class it means a property
+                // was edited but never modified so we should restore the previous
+                // value instead of setting it to the 'sensitive value set' string
+                if (input.hasClass('sensitive')) {
+                    return previousValue;
+                } else {
+                    // if there is text specified, use that value
+                    return input.val();
+                }
+            }
+        };
+
+        this.applyValue = function (item, state) {
+            item[args.column.field] = state;
+        };
+
+        this.isValueChanged = function () {
+            return scope.serializeValue() !== previousValue;
+        };
+
+        this.validate = function () {
+            return {
+                valid: true,
+                msg: null
+            };
+        };
+
+        // initialize the custom long text editor
+        this.init();
+    };
+
+    // text editor
     var textEditor = function (args) {
         var scope = this;
         var initialValue = '';
@@ -1294,6 +1515,15 @@
                         }
                     };
                 } else {
+                    if (propertyDescriptor.sensitive === true) {
+                        return {
+                            columns: {
+                                value: {
+                                    editor: inputEditor
+                                }
+                            }
+                        };
+                    }
                     return {
                         columns: {
                             value: {

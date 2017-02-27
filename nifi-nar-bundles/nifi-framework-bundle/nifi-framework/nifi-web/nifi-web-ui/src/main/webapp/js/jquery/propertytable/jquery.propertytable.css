@@ -109,6 +109,22 @@ span.string-check-label {
     color: #262626;
 }
 
+div.toggle-sensitive-value-container {
+    line-height: 20px;
+}
+
+div.toggle-sensitive-value {
+    width: 12px;
+    height: 12px;
+    margin-top: 3px;
+}
+
+span.toggle-sensitive-value-label {
+    font-size: 13px;
+    font-weight: normal;
+    color: #262626;
+}
+
 div.value pre {
     overflow: hidden;
 }
