@@ -253,11 +253,15 @@ ul.property-info li {
 }
 
 div.nf-checkbox {
-    cursor: default;
+    cursor: pointer;
     width: 12px;
     height: 12px;
     float: left;
     margin-right: 4px;
+}
+
+.nf-checkbox-label {
+    cursor: pointer;
 }
 
 div.checkbox-unchecked {

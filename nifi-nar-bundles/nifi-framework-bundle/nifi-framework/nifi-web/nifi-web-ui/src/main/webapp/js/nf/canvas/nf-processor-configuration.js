@@ -170,7 +170,7 @@
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
-        var relationshipLabel = $('<div class="relationship-name ellipsis"></div>').text(relationship.name);
+        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(relationship.name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(relationship.name);
 
         // build the relationship checkbox element

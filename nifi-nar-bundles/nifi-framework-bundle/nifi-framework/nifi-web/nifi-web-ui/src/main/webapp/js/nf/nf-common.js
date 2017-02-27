@@ -63,6 +63,11 @@
             }
         });
 
+        // setup click areas for custom checkboxes
+        $(document).on('click', '.nf-checkbox-label', function (e) {
+            $(e.target).parent().find('.nf-checkbox').click();
+        });
+
         // show the loading icon when appropriate
         $(document).ajaxStart(function () {
             // show the loading indicator
