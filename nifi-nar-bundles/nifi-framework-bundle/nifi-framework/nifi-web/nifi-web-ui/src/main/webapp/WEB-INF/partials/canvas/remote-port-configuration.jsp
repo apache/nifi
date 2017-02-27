@@ -34,7 +34,7 @@
                 <input id="remote-port-concurrent-tasks" type="text"/>
                 <div id="remote-port-use-compression-container">
                     <div id="remote-port-use-compression" class="nf-checkbox"></div>
-                    <span>Compressed</span>
+                    <span class="nf-checkbox-label">Compressed</span>
                 </div>
             </div>
         </div>

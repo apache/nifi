@@ -1075,7 +1075,7 @@
                 var userId = $('<span class="user-id hidden"></span>').text(user.id);
 
                 // identity
-                var identity = $('<div class="available-identities"></div>').text(user.component.identity);
+                var identity = $('<div class="available-identities nf-checkbox-label"></div>').text(user.component.identity);
 
                 // clear
                 var clear = $('<div class="clear"></div>');
@@ -1108,10 +1108,10 @@
                 var groupId = $('<span class="group-id hidden"></span>').text(group.id);
 
                 // icon
-                var groupIcon = $('<div class="fa fa-users" style="margin-top: 6px;"></div>');
+                var groupIcon = $('<div class="fa fa-users nf-checkbox-label" style="margin-top: 6px;"></div>');
 
                 // identity
-                var identity = $('<div class="available-identities"></div>').text(group.component.identity);
+                var identity = $('<div class="available-identities nf-checkbox-label"></div>').text(group.component.identity);
 
                 // clear
                 var clear = $('<div class="clear"></div>');
