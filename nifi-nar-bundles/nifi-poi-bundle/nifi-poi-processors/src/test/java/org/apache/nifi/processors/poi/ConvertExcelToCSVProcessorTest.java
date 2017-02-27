@@ -56,6 +56,12 @@ public class ConvertExcelToCSVProcessorTest {
         assertTrue(ffSheetB.getAttribute(ConvertExcelToCSVProcessor.SHEET_NAME).equalsIgnoreCase("TestSheetB"));
     }
 
+    /**
+     * Validates that all sheets in the Excel document are exported.
+     *
+     * @throws Exception
+     *  Any exception thrown during execution.
+     */
     @Test
     public void testProcessAllSheets() throws Exception {
 
@@ -69,8 +75,32 @@ public class ConvertExcelToCSVProcessorTest {
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertTrue(l == 7805l);
+
+        testRunner.clearProvenanceEvents();
+        testRunner.clearTransferState();
+
+        testRunner.enqueue(new File("src/test/resources/TwoSheets.xlsx").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 2);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(l == 4l);
+
+        ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(1);
+        l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(l == 3l);
     }
 
+    /**
+     * Validates that the manually specified sheet is exported from the Excel document.
+     *
+     * @throws Exception
+     *  Any exception thrown during execution.
+     */
     @Test
     public void testProcessASpecificSheetThatDoesExist() throws Exception {
 
@@ -88,9 +118,11 @@ public class ConvertExcelToCSVProcessorTest {
     }
 
     /**
-     * We do want to allow this to be a success relationship because if arbitrary Excel
+     * Tests for a syntactically valid Excel XSSF document with a manually specified Excel sheet that does not exist.
+     * In this scenario only the Original relationship should be invoked.
+     *
      * @throws Exception
-     *  Any exception thrown
+     *  Any exception thrown during execution.
      */
     @Test
     public void testNonExistantSpecifiedSheetName() throws Exception {
