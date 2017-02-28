@@ -342,19 +342,14 @@ public class FingerprintFactory {
 
         // get the bundle details if possible
         final BundleDTO bundle = FlowFromDOMFactory.getBundle(DomUtils.getChild(processorElem, "bundle"));
+        addBundleFingerprint(builder, bundle);
 
         // create an instance of the Processor so that we know the default property values
         Processor processor = null;
         try {
             if (controller != null) {
-                BundleCoordinate purposedCoordinate;
-                try {
-                    purposedCoordinate = BundleUtils.getCompatibleBundle(className, bundle);
-                } catch (final IllegalStateException e) {
-                    purposedCoordinate = BundleCoordinate.MISSING_COORDINATE;
-                }
-
-                processor = controller.createProcessor(className, UUID.randomUUID().toString(), purposedCoordinate, false).getProcessor();
+                final BundleCoordinate coordinate = getCoordinate(className, bundle);
+                processor = controller.createProcessor(className, UUID.randomUUID().toString(), coordinate, false).getProcessor();
             }
         } catch (ProcessorInstantiationException | IllegalStateException e) {
             logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", className, e.toString());
@@ -578,6 +573,9 @@ public class FingerprintFactory {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
+
+        addBundleFingerprint(builder, dto.getBundle());
+
         builder.append(dto.getComments());
         builder.append(dto.getAnnotationData());
         builder.append(dto.getState());
@@ -586,13 +584,7 @@ public class FingerprintFactory {
         ControllerService controllerService = null;
         try {
             if (controller != null) {
-                BundleCoordinate coordinate;
-                try {
-                    coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
-                } catch (final IllegalStateException e) {
-                    coordinate = BundleCoordinate.MISSING_COORDINATE;
-                }
-
+                final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
                 controllerService = controller.createControllerService(dto.getType(), UUID.randomUUID().toString(), coordinate, false).getControllerServiceImplementation();
             }
         } catch (Exception e) {
@@ -616,10 +608,37 @@ public class FingerprintFactory {
         }
     }
 
+    private void addBundleFingerprint(final StringBuilder builder, final BundleDTO bundle) {
+        if (bundle != null) {
+            builder.append(bundle.getGroup());
+            builder.append(bundle.getArtifact());
+            builder.append(bundle.getVersion());
+        } else {
+            builder.append("MISSING_BUNDLE");
+        }
+    }
+
+    private BundleCoordinate getCoordinate(final String type, final BundleDTO dto) {
+        BundleCoordinate coordinate;
+        try {
+            coordinate = BundleUtils.getCompatibleBundle(type, dto);
+        } catch (final IllegalStateException e) {
+            if (dto == null) {
+                coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+            } else {
+                coordinate = new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion());
+            }
+        }
+        return coordinate;
+    }
+
     private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto, final FlowController controller) {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
+
+        addBundleFingerprint(builder, dto.getBundle());
+
         builder.append(dto.getComments());
         builder.append(dto.getSchedulingPeriod());
         builder.append(dto.getSchedulingStrategy());
@@ -629,13 +648,7 @@ public class FingerprintFactory {
         ReportingTask reportingTask = null;
         try {
             if (controller != null) {
-                BundleCoordinate coordinate;
-                try {
-                    coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
-                } catch (final IllegalStateException e) {
-                    coordinate = BundleCoordinate.MISSING_COORDINATE;
-                }
-
+                final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
                 reportingTask = controller.createReportingTask(dto.getType(), UUID.randomUUID().toString(), coordinate, false, false).getReportingTask();
             }
         } catch (Exception e) {

@@ -135,10 +135,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
      */
     private NodeIdentifier nodeId;
 
-    private final NiFiProperties nifiProperties;
-
     // guardedBy rwLock
     private boolean firstControllerInitialization = true;
+
+    private final NiFiProperties nifiProperties;
 
     private static final String CONNECTION_EXCEPTION_MSG_PREFIX = "Failed to connect node to cluster because ";
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowService.class);
@@ -436,7 +436,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
         if (configuredForClustering) {
-            final DataFlow proposedFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
+            // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
+            final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
+            if (logger.isTraceEnabled()) {
+                logger.trace("InitialFlow = " + new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
+            }
+
+            // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
+            // whole flow into the flow controller and applied any bundle upgrades
+            writeLock.lock();
+            try {
+                loadFromBytes(initialFlow, true);
+            } finally {
+                writeLock.unlock();
+            }
+
+            // Get the proposed flow by serializing the flow controller which now has the synced version from above
+            final DataFlow proposedFlow = createDataFlowFromController();
+            if (logger.isTraceEnabled()) {
+                logger.trace("ProposedFlow = " + new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
+            }
 
             /*
              * Attempt to connect to the cluster. If the manager is able to
@@ -457,9 +476,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 if (response == null || response.shouldTryLater()) {
                     logger.info("Flow controller will load local dataflow and suspend connection handshake until a cluster connection response is received.");
 
-                    // load local proposed flow
-                    loadFromBytes(proposedFlow, false);
-
                     // set node ID on controller before we start heartbeating because heartbeat needs node ID
                     controller.setNodeId(nodeId);
                     clusterCoordinator.setLocalNodeIdentifier(nodeId);
@@ -479,6 +495,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                      */
                     controller.startHeartbeating();
 
+                    // Initialize the controller after the flow is loaded so we don't take any actions on repos until everything is good
+                    initialzeController();
+
                     // notify controller that flow is initialized
                     try {
                         controller.onFlowInitialized(autoResumeState);
@@ -491,21 +510,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 } else {
                     try {
                         loadFromConnectionResponse(response);
-                        dao.save(controller, true);
                     } catch (final Exception e) {
                         logger.error("Failed to load flow from cluster due to: " + e, e);
                         handleConnectionFailure(e);
                         throw new IOException(e);
                     }
                 }
+
+                // save the flow in the controller so we write out the latest flow with any updated bundles to disk
+                dao.save(controller, true);
+
             } finally {
                 writeLock.unlock();
             }
         } else {
             writeLock.lock();
             try {
-                // operating in standalone mode, so load proposed flow
+                // operating in standalone mode, so load proposed flow and initialize the controller
                 loadFromBytes(dataFlow, true);
+                initialzeController();
+                dao.save(controller, true);
             } finally {
                 writeLock.unlock();
             }
@@ -533,7 +557,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // create the response
             final FlowResponseMessage response = new FlowResponseMessage();
-            response.setDataFlow(createDataFlow());
+            response.setDataFlow(createDataFlowFromController());
             return response;
         } catch (final Exception ex) {
             throw new ProtocolException("Failed serializing flow controller state for flow request due to: " + ex, ex);
@@ -549,14 +573,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     @Override
     public StandardDataFlow createDataFlow() throws IOException {
-        final byte[] snippetBytes = controller.getSnippetManager().export();
-        final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-
         // Load the flow from disk if the file exists.
         if (dao.isFlowPresent()) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             dao.load(baos);
             final byte[] bytes = baos.toByteArray();
+
+            final byte[] snippetBytes = controller.getSnippetManager().export();
+            final byte[] authorizerFingerprint = getAuthorizerFingerprint();
             final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint);
             return fromDisk;
         }
@@ -566,6 +590,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         // will automatically create a Root Process Group, and we need to ensure that
         // we replicate that Process Group to all nodes in the cluster, so that they all
         // end up with the same ID for the root Process Group.
+        return createDataFlowFromController();
+    }
+
+    @Override
+    public StandardDataFlow createDataFlowFromController() throws IOException {
+        final byte[] snippetBytes = controller.getSnippetManager().export();
+        final byte[] authorizerFingerprint = getAuthorizerFingerprint();
+
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         dao.save(controller, baos);
         final byte[] flowBytes = baos.toByteArray();
@@ -573,6 +605,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         return new StandardDataFlow(flowBytes, snippetBytes, authorizerFingerprint);
     }
+
 
     private NodeIdentifier getNodeId() {
         readLock.lock();
@@ -593,7 +626,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             if (connectionResponse.getDataFlow() == null) {
                 logger.info("Received a Reconnection Request that contained no DataFlow. Will attempt to connect to cluster using local flow.");
-                connectionResponse = connect(false, false, createDataFlow());
+                connectionResponse = connect(false, false, createDataFlowFromController());
             }
 
             loadFromConnectionResponse(connectionResponse);
@@ -668,11 +701,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         actualProposedFlow = new StandardDataFlow(flowBytes, null, authorizerFingerprint);
 
-        if (firstControllerInitialization) {
-            // load the controller services
-            logger.debug("Loading controller services");
-        }
-
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
         dao.load(controller, actualProposedFlow);
@@ -691,16 +719,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             } else {
                 logger.info("Template '{}' was already present in Root Group so will not import from file", template.getDetails().getName());
             }
-        }
-
-        // lazy initialization of controller tasks and flow
-        if (firstControllerInitialization) {
-            logger.debug("First controller initialization. Loading reporting tasks and initializing controller.");
-
-            // initialize the flow
-            controller.initializeFlow();
-
-            firstControllerInitialization = false;
         }
     }
 
@@ -867,6 +885,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // get the dataflow from the response
             final DataFlow dataFlow = response.getDataFlow();
+            if (logger.isTraceEnabled()) {
+                logger.trace("ResponseFlow = " + new String(dataFlow.getFlow(), StandardCharsets.UTF_8));
+            }
 
             // load new controller state
             loadFromBytes(dataFlow, true);
@@ -883,6 +904,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setClustered(true, response.getInstanceId());
 
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
+
+            // Initialize the controller after the flow is loaded so we don't take any actions on repos until everything is good
+            initialzeController();
 
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(autoResumeState);
@@ -903,6 +927,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             writeLock.unlock();
         }
 
+    }
+
+    private void initialzeController() throws IOException {
+        if (firstControllerInitialization) {
+            logger.debug("First controller initialization, initializing controller...");
+            controller.initializeFlow();
+            firstControllerInitialization = false;
+        }
     }
 
     @Override

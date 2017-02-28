@@ -21,11 +21,10 @@ package org.apache.nifi.bundle;
  */
 public class BundleCoordinate {
 
-    private static final String MISSING = "missing";
-    public static final BundleCoordinate MISSING_COORDINATE = new BundleCoordinate(MISSING, MISSING, MISSING);
-
     public static final String DEFAULT_GROUP = "default";
     public static final String DEFAULT_VERSION = "unversioned";
+
+    public static final BundleCoordinate UNKNOWN_COORDINATE = new BundleCoordinate(DEFAULT_GROUP, "unknown", DEFAULT_VERSION);
 
     private final String group;
     private final String id;

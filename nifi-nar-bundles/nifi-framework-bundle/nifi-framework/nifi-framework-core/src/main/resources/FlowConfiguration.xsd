@@ -288,7 +288,7 @@
         <xs:sequence>
             <xs:element name="group" type="NonEmptyStringType" />
             <xs:element name="artifact" type="NonEmptyStringType" />
-            <xs:element name="version" type="PositionType" />
+            <xs:element name="version" type="NonEmptyStringType" />
         </xs:sequence>
     </xs:complexType>
 

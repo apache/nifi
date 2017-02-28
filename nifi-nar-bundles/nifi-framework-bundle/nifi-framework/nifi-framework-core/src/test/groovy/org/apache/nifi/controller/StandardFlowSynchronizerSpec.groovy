@@ -82,7 +82,7 @@ class StandardFlowSynchronizerSpec extends Specification {
         flowSynchronizer.sync controller, proposedFlow, null
 
         then: "establish interactions for the mocked collaborators of StandardFlowSynchronizer to store the ending positions of components"
-        1 * controller.isInitialized() >> false
+        1 * controller.isFlowSynchronized() >> false
         _ * controller.rootGroupId >> flowControllerXml.rootGroup.id.text()
         _ * controller.getGroup(_) >> { String id -> positionableMocksById.get(id) }
         _ * controller.snippetManager >> snippetManager

@@ -30,20 +30,14 @@ public class BundleDTO {
     private String group;
     private String artifact;
     private String version;
-    private Boolean isMissing;
 
     public BundleDTO() {
     }
 
-    public BundleDTO(String group, String artifact, String version) {
-        this(group, artifact, version, false);
-    }
-
-    public BundleDTO(final String group, final String artifact, final String version, final Boolean isMissing) {
+    public BundleDTO(final String group, final String artifact, final String version) {
         this.group = group;
         this.artifact = artifact;
         this.version = version;
-        this.isMissing = isMissing;
     }
 
     /**
@@ -92,23 +86,6 @@ public class BundleDTO {
 
     public void setVersion(String version) {
         this.version = version;
-    }
-
-    /**
-     * Whether this bundle is missing.
-     *
-     * @return whether the bundle is missing
-     */
-    @ApiModelProperty(
-            value = "The version of the bundle.",
-            readOnly = true
-    )
-    public Boolean getMissing() {
-        return isMissing;
-    }
-
-    public void setMissing(Boolean missing) {
-        isMissing = missing;
     }
 
     @Override

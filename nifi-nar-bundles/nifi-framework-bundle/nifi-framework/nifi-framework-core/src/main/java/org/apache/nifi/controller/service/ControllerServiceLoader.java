@@ -25,6 +25,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +185,12 @@ public class ControllerServiceLoader {
         try {
             coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
         } catch (final IllegalStateException e) {
-            coordinate = BundleCoordinate.MISSING_COORDINATE;
+            final BundleDTO bundleDTO = dto.getBundle();
+            if (bundleDTO == null) {
+                coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+            } else {
+                coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+            }
         }
 
         final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, false);

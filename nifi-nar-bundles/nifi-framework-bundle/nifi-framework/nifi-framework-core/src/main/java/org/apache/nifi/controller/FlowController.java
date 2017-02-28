@@ -194,6 +194,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -284,6 +285,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean flowSynchronized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
     private final Authorizer authorizer;
     private final AuditService auditService;
@@ -1528,6 +1530,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             LOG.debug("Synchronizing controller with proposed flow");
             synchronizer.sync(this, dataFlow, encryptor);
+            flowSynchronized.set(true);
             LOG.info("Successfully synchronized controller with proposed flow");
         } finally {
             writeLock.unlock();
@@ -1696,7 +1699,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 try {
                     bundleCoordinate = BundleUtils.getCompatibleBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                 } catch (final IllegalStateException e) {
-                    bundleCoordinate = BundleCoordinate.MISSING_COORDINATE;
+                    final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
+                    if (bundleDTO == null) {
+                        bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                    } else {
+                        bundleCoordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                    }
                 }
 
                 final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, true);
@@ -1790,7 +1798,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 try {
                     bundleCoordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
                 } catch (final IllegalStateException e) {
-                    bundleCoordinate = BundleCoordinate.MISSING_COORDINATE;
+                    final BundleDTO bundleDTO = processorDTO.getBundle();
+                    if (bundleDTO == null) {
+                        bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                    } else {
+                        bundleCoordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                    }
                 }
 
                 final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
@@ -2848,6 +2861,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public boolean isInitialized() {
         return initialized.get();
+    }
+
+    public boolean isFlowSynchronized() {
+        return flowSynchronized.get();
     }
 
     public void startConnectable(final Connectable connectable) {

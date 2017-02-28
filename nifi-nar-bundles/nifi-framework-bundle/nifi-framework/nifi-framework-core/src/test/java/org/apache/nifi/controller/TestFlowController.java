@@ -40,6 +40,8 @@ import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -54,6 +56,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -61,6 +64,7 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -303,6 +307,48 @@ public class TestFlowController {
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
+        final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
+        logRepository.removeAllObservers();
+
+        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
+        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
+        final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
+        logRepository.removeAllObservers();
+
+        // first sync should work because we are syncing to an empty flow controller
+        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
+
+        // second sync should fail because the bundle of the processor is different
+        try {
+            syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-2.xml");
+            Assert.fail("Should have thrown UninheritableFlowException");
+        } catch (UninheritableFlowException e) {
+            //e.printStackTrace();
+        }
+    }
+
+    private void syncFlow(String flowXmlFile) throws IOException {
+        String flowString = null;
+        try (final InputStream in = new FileInputStream(flowXmlFile)) {
+            flowString = IOUtils.toString(in, StandardCharsets.UTF_8);
+        }
+        assertNotNull(flowString);
+
+        final DataFlow proposedDataFlow1 = Mockito.mock(DataFlow.class);
+        when(proposedDataFlow1.getFlow()).thenReturn(flowString.getBytes(StandardCharsets.UTF_8));
+
+        final String authFingerprint = authorizer.getFingerprint();
+        when(proposedDataFlow1.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1);
     }
 
     @Test

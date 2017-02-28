@@ -78,7 +78,7 @@ public abstract class ComponentDAO {
 
         if (bundle != null) {
             final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-            if (bundles.stream().filter(b -> b.equals(coordinate)).count() == 0) {
+            if (bundles.stream().filter(b -> b.getBundleDetails().getCoordinate().equals(coordinate)).count() == 0) {
                 throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", coordinate.toString()));
             }
         } else {

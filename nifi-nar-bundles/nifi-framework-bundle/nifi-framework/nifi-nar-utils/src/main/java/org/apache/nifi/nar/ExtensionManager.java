@@ -128,7 +128,7 @@ public class ExtensionManager {
         }
 
         final BundleCoordinate systemBundleCoordinate = new BundleCoordinate(
-                BundleCoordinate.DEFAULT_GROUP, "default", BundleCoordinate.DEFAULT_VERSION);
+                BundleCoordinate.DEFAULT_GROUP, "system", BundleCoordinate.DEFAULT_VERSION);
 
         final BundleDetails systemBundleDetails = new BundleDetails.Builder()
                 .workingDir(new File(narLibraryDirectory))
@@ -222,22 +222,9 @@ public class ExtensionManager {
         // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
         // InstanceClassLoader that has the NAR ClassLoader as a parent
         ClassLoader instanceClassLoader;
-        if (requiresInstanceClassLoading.contains(classType) ) {
-            final Set<URL> classLoaderResources = new HashSet<>();
-
-            // if the bundle class loader is a NAR class loader then walk the chain of class loaders until
-            // finding a non-NAR class loader, and build up a list of all URLs along the way
-            ClassLoader registeredClassLoader = bundleClassLoader;
-            while (registeredClassLoader != null && registeredClassLoader instanceof NarClassLoader) {
-                final NarClassLoader narClassLoader = (NarClassLoader) registeredClassLoader;
-                for (URL classLoaderResource : narClassLoader.getURLs()) {
-                    classLoaderResources.add(classLoaderResource);
-                }
-                registeredClassLoader = narClassLoader.getParent();
-            }
-
-            final URL[] classLoaderUrls = classLoaderResources.toArray(new URL[classLoaderResources.size()]);
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, classLoaderUrls, registeredClassLoader);
+        if (requiresInstanceClassLoading.contains(classType) && (bundleClassLoader instanceof URLClassLoader)) {
+            final URLClassLoader registeredUrlClassLoader = (URLClassLoader) bundleClassLoader;
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
         } else {
             instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], bundleClassLoader);
         }

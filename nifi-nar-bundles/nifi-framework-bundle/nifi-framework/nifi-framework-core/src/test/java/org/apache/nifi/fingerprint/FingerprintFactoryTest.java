@@ -88,6 +88,39 @@ public class FingerprintFactoryTest {
     }
 
     @Test
+    public void testSameFlowWithDifferentBundleShouldHaveDifferentFingerprints() throws IOException {
+        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
+
+        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-2.xml"), null);
+        assertTrue(fp2.contains("org.apache.nifinifi-standard-nar2.0"));
+
+        assertNotEquals(fp1, fp2);
+    }
+
+    @Test
+    public void testSameFlowAndOneHasNoBundleShouldHaveDifferentFingerprints() throws IOException {
+        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
+
+        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-no-bundle.xml"), null);
+        assertTrue(fp2.contains("MISSING_BUNDLE"));
+
+        assertNotEquals(fp1, fp2);
+    }
+
+    @Test
+    public void testSameFlowAndOneHasMissingBundleShouldHaveDifferentFingerprints() throws IOException {
+        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
+
+        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-missing-bundle.xml"), null);
+        assertTrue(fp2.contains("missingmissingmissing"));
+
+        assertNotEquals(fp1, fp2);
+    }
+
+    @Test
     public void testSchemaValidation() throws IOException {
         FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder());
         final String fingerprint = fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);

@@ -185,7 +185,7 @@ public class TestNodeClusterCoordinator {
 
         final FlowService flowService = Mockito.mock(FlowService.class);
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
-        Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
+        Mockito.when(flowService.createDataFlowFromController()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
         coordinator.setConnected(true);
 
