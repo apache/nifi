@@ -299,7 +299,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
-                if ("null".equals(indexValue)) {
+                if (StringUtils.isEmpty(indexValue)) {
                     // Generate SQL statements to read "pages" of data
                     for (long i = 0; i < numberOfFetches; i++) {
                         long limit = partitionSize == 0 ? null : partitionSize;
