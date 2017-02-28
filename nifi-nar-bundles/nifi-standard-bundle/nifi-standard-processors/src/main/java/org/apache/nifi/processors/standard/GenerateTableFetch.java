@@ -114,9 +114,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .description("The column has AUTO_INCREMENT attribute and index."
                     + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
                     + "The value must start by 1")
-            .defaultValue("null")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .build();
 
     public GenerateTableFetch() {
@@ -182,7 +182,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).getValue();
+        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
         String maxValueTmp = null;
 
         final StateManager stateManager = context.getStateManager();
