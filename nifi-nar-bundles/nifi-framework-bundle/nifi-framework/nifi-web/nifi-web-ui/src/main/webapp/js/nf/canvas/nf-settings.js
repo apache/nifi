@@ -949,7 +949,7 @@
                             content: tooltip,
                             position: {
                                 target: 'mouse',
-                                viewport: $(window),
+                                viewport: $('#shell-container'),
                                 adjust: {
                                     x: 8,
                                     y: 8,
@@ -979,7 +979,7 @@
                             content: tooltip,
                             position: {
                                 target: 'mouse',
-                                viewport: $(window),
+                                viewport: $('#shell-container'),
                                 adjust: {
                                     x: 8,
                                     y: 8,

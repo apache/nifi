@@ -19,6 +19,7 @@
 package org.apache.nifi.util.hive;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
@@ -54,23 +56,17 @@ public class HiveWriter {
     private TransactionBatch txnBatch;
     private long lastUsed; // time of last flush on this writer
     protected boolean closed; // flag indicating HiveWriter was closed
-    private boolean autoCreatePartitions;
-    private UserGroupInformation ugi;
     private int totalRecords = 0;
 
-    public HiveWriter(HiveEndPoint endPoint, int txnsPerBatch,
-                      boolean autoCreatePartitions, long callTimeout,
-                      ExecutorService callTimeoutPool, UserGroupInformation ugi)
+    public HiveWriter(HiveEndPoint endPoint, int txnsPerBatch, boolean autoCreatePartitions, long callTimeout, ExecutorService callTimeoutPool, UserGroupInformation ugi, HiveConf hiveConf)
             throws InterruptedException, ConnectFailure {
         try {
-            this.autoCreatePartitions = autoCreatePartitions;
             this.callTimeout = callTimeout;
             this.callTimeoutPool = callTimeoutPool;
             this.endPoint = endPoint;
-            this.ugi = ugi;
-            this.connection = newConnection(ugi);
+            this.connection = newConnection(endPoint, autoCreatePartitions, hiveConf, ugi);
             this.txnsPerBatch = txnsPerBatch;
-            this.recordWriter = getRecordWriter(endPoint);
+            this.recordWriter = getRecordWriter(endPoint, ugi, hiveConf);
             this.txnBatch = nextTxnBatch(recordWriter);
             this.closed = false;
             this.lastUsed = System.currentTimeMillis();
@@ -81,15 +77,17 @@ public class HiveWriter {
         }
     }
 
-    protected RecordWriter getRecordWriter(HiveEndPoint endPoint) throws StreamingException {
-        return new StrictJsonWriter(endPoint);
+    protected RecordWriter getRecordWriter(HiveEndPoint endPoint, UserGroupInformation ugi, HiveConf hiveConf) throws StreamingException, IOException, InterruptedException {
+        if (ugi == null) {
+            return new StrictJsonWriter(endPoint, hiveConf);
+        } else {
+            return ugi.doAs((PrivilegedExceptionAction<StrictJsonWriter>) () -> new StrictJsonWriter(endPoint, hiveConf));
+        }
     }
 
     @Override
     public String toString() {
-        return "{ "
-                + "endPoint = " + endPoint.toString()
-                + ", TransactionBatch = " + txnBatch.toString() + " }";
+        return "{ endPoint = " + endPoint + ", TransactionBatch = " + txnBatch + " }";
     }
 
     /**
@@ -230,11 +228,10 @@ public class HiveWriter {
         }
     }
 
-    protected StreamingConnection newConnection(final UserGroupInformation ugi)
-            throws InterruptedException, ConnectFailure {
+    protected StreamingConnection newConnection(HiveEndPoint endPoint, boolean autoCreatePartitions, HiveConf conf, UserGroupInformation ugi) throws InterruptedException, ConnectFailure {
         try {
             return callWithTimeout(() -> {
-                return endPoint.newConnection(autoCreatePartitions, null, ugi); // could block
+                return endPoint.newConnection(autoCreatePartitions, conf, ugi); // could block
             });
         } catch (StreamingException | TimeoutException e) {
             throw new ConnectFailure(endPoint, e);

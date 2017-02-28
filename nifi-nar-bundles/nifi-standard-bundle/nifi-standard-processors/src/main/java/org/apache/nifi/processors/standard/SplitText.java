@@ -377,7 +377,8 @@ public class SplitText extends AbstractProcessor {
      * will vary but the length of the split will never be > {@link #maxSplitSize} and {@link IllegalStateException} will be thrown.
      * This method also allows one to provide 'startsWithFilter' to allow headers to be determined via such filter (see {@link #HEADER_MARKER}.
      */
-    private SplitInfo computeHeader(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount, byte[] startsWithFilter, SplitInfo previousSplitInfo) {
+    private SplitInfo computeHeader(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount,
+            byte[] startsWithFilter, SplitInfo previousSplitInfo) throws IOException {
         long length = 0;
         long actualLineCount = 0;
         OffsetInfo offsetInfo = null;
@@ -419,7 +420,8 @@ public class SplitText extends AbstractProcessor {
      * If split size is controlled by the {@link #maxSplitSize}, then the resulting {@link SplitInfo}
      * line count will vary but the length of the split will never be > {@link #maxSplitSize}.
      */
-    private SplitInfo nextSplit(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount, SplitInfo remainderSplitInfo, long startingLength) {
+    private SplitInfo nextSplit(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount,
+            SplitInfo remainderSplitInfo, long startingLength) throws IOException {
         long length = 0;
         long trailingCrlfLength = 0;
         long actualLineCount = 0;

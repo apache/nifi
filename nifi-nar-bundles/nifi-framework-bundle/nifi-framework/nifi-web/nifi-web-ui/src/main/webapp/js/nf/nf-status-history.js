@@ -836,7 +836,7 @@
             // adds a legend entry for the specified instance
             var addLegendEntry = function (legend, instance) {
                 // create the label and the checkbox
-                var instanceLabelElement = $('<div></div>').addClass('legend-label').css('color', color(instance.label)).text(instance.label).ellipsis();
+                var instanceLabelElement = $('<div></div>').addClass('legend-label nf-checkbox-label').css('color', color(instance.label)).text(instance.label).ellipsis();
                 var instanceCheckboxElement = $('<div class="nf-checkbox"></div>').on('click', function () {
                     // get the line and the control points for this instance (select all for the line to update control and main charts)
                     var chartLine = d3.selectAll('path.chart-line-' + instance.id);

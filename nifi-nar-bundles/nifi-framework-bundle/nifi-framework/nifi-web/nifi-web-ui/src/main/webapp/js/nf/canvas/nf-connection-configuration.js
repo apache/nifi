@@ -753,7 +753,7 @@
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
-        var relationshipLabel = $('<div class="relationship-name ellipsis"></div>').text(name);
+        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(name);
         return $('<div class="available-relationship-container"><div class="available-relationship nf-checkbox checkbox-unchecked"></div>' +
             '</div>').append(relationshipLabel).append(relationshipValue).appendTo('#relationship-names');
@@ -1449,9 +1449,6 @@
                                 }
                             }
                         }]);
-
-                    // select the first tab
-                    $('#connection-configuration-tabs').find('li:first').click();
 
                     // show the details dialog
                     $('#connection-configuration').modal('setHeaderText', 'Configure Connection').modal('show');
