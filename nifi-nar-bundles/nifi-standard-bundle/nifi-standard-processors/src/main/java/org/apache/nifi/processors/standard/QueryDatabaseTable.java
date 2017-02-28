@@ -281,7 +281,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     try {
                         fileToProcess = session.write(fileToProcess, out -> {
                             // Max values will be updated in the state property map by the callback
-                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
+                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
                             try {
                                 nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile, convertNamesForAvro));
                             } catch (SQLException | RuntimeException e) {
@@ -419,10 +419,12 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
         DatabaseAdapter dbAdapter;
         Map<String, String> newColMap;
+        String tableName;
 
-        public MaxValueResultSetRowCollector(Map<String, String> stateMap, DatabaseAdapter dbAdapter) {
+        public MaxValueResultSetRowCollector(String tableName, Map<String, String> stateMap, DatabaseAdapter dbAdapter) {
             this.dbAdapter = dbAdapter;
             newColMap = stateMap;
+            this.tableName = tableName;
         }
 
         @Override
@@ -437,7 +439,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 if (nrOfColumns > 0) {
                     for (int i = 1; i <= nrOfColumns; i++) {
                         String colName = meta.getColumnName(i).toLowerCase();
-                        String fullyQualifiedMaxValueKey = getStateKey(meta.getTableName(i), colName);
+                        String fullyQualifiedMaxValueKey = getStateKey(tableName, colName);
                         Integer type = columnTypeMap.get(fullyQualifiedMaxValueKey);
                         // Skip any columns we're not keeping track of or whose value is null
                         if (type == null || resultSet.getObject(i) == null) {
