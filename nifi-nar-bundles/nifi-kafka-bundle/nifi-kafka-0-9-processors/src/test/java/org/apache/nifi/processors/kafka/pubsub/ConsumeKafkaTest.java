@@ -20,8 +20,10 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -29,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.Before;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -164,4 +167,37 @@ public class ConsumeKafkaTest {
         verifyNoMoreInteractions(mockLease);
     }
 
+    @Test
+    public void validateConsumerRetainer() throws Exception {
+        final ConsumerPool consumerPool = mock(ConsumerPool.class);
+
+        final ConsumeKafka processor = new ConsumeKafka() {
+            @Override
+            protected ConsumerPool createConsumerPool(ProcessContext context, ComponentLog log) {
+                return consumerPool;
+            }
+        };
+
+        final ComponentLog logger = mock(ComponentLog.class);
+        final ProcessorInitializationContext initializationContext = mock(ProcessorInitializationContext.class);
+        when(initializationContext.getLogger()).thenReturn(logger);
+        processor.initialize(initializationContext);
+
+        final ProcessContext processContext = mock(ProcessContext.class);
+        final PropertyValue heartbeatInternalMsConfig = mock(PropertyValue.class);
+        when(heartbeatInternalMsConfig.isSet()).thenReturn(true);
+        when(heartbeatInternalMsConfig.asInteger()).thenReturn(100);
+        when(processContext.getProperty(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).thenReturn(heartbeatInternalMsConfig);
+        processor.onScheduled(processContext);
+
+        // retainConsumers should be called at least 1 time if it passed longer than heartbeat interval milliseconds.
+        Thread.sleep(200);
+        verify(consumerPool, atLeast(1)).retainConsumers();
+
+        processor.stopConnectionRetainer();
+
+        // After stopping connection retainer, it shouldn't interact with consumerPool.
+        Thread.sleep(200);
+        verifyNoMoreInteractions(consumerPool);
+    }
 }
