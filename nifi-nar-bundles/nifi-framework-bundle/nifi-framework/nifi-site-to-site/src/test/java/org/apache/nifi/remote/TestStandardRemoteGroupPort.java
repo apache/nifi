@@ -110,6 +110,7 @@ public class TestStandardRemoteGroupPort {
                 connectableType = null;
                 break;
         }
+
         port = spy(new StandardRemoteGroupPort(ID, NAME,
                 processGroup, remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
 
