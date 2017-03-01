@@ -34,12 +34,13 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * Performs any initialization needed. This should be called only by the
      * framework.
      *
-     * @param eventReporter   to report to
-     * @param authorizer      the authorizer to use for authorizing individual events
+     * @param eventReporter to report to
+     * @param authorizer the authorizer to use for authorizing individual events
      * @param resourceFactory the resource factory to use for generating Provenance Resource objects for authorization purposes
+     * @param identifierLookup a mechanism for looking up identifiers in the flow
      * @throws java.io.IOException if unable to initialize
      */
-    void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory) throws IOException;
+    void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup identifierLookup) throws IOException;
 
 
     ProvenanceEventRecord getEvent(long id, NiFiUser user) throws IOException;

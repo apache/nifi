@@ -754,8 +754,13 @@ public class StandardProcessorTestRunner implements TestRunner {
         final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
+        final String oldValue = updatedProps.get(property);
         updatedProps.put(property, value);
         configuration.setProperties(updatedProps);
+
+        if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
+            service.onPropertyModified(property, oldValue, value);
+        }
 
         return validationResult;
     }

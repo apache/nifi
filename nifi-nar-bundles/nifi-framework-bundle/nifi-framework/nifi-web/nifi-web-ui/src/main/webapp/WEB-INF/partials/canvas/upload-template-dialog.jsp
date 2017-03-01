@@ -21,9 +21,9 @@
             <div id="template-browse-container">
                 <span id="select-template-label">Select Template</span>
                 <div id="select-template-button">
-                    <button class="fa fa-search"></button>
+                    <button class="fa fa-search" id="template-file-field-button" title="Browse"></button>
                     <form id="template-upload-form" enctype="multipart/form-data" method="post">
-                        <input type="file" name="template" id="template-file-field" title="Browse"/>
+                        <input type="file" name="template" id="template-file-field"/>
                     </form>
                 </div>
             </div>

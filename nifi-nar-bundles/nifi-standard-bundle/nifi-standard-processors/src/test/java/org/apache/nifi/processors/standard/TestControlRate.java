@@ -24,6 +24,9 @@ import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
 
+import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
+import static org.junit.Assert.assertEquals;
+
 public class TestControlRate {
 
     @Test
@@ -172,6 +175,35 @@ public class TestControlRate {
         runner.run();
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 0);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 1);
+        runner.assertQueueEmpty();
+    }
+
+    @Test
+    public void testBatchLimit() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "5555");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+
+        final int TEST_FILE_COUNT = 1500;
+
+        for (int i = 0; i < TEST_FILE_COUNT; i++) {
+            runner.enqueue("test data " + i);
+        }
+
+        runner.run(1, false);
+
+        // after 1 run should have MAX_FLOW_FILES_PER_BATCH files transferred and remainder of TEST_FILE_COUNT in queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, MAX_FLOW_FILES_PER_BATCH);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueNotEmpty();
+        assertEquals(TEST_FILE_COUNT - MAX_FLOW_FILES_PER_BATCH, runner.getQueueSize().getObjectCount());
+
+        runner.run(1, false);
+
+        // after 2 runs should have TEST_FILE_COUNT files transferred and 0 in queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, TEST_FILE_COUNT);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
     }
 

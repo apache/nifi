@@ -106,7 +106,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         when(tlsClientConfig.getPort()).thenReturn(testPort);
         when(tlsClientConfig.createCertificateSigningRequestPerformer()).thenReturn(tlsCertificateSigningRequestPerformer);
         when(tlsClientConfig.getSigningAlgorithm()).thenReturn(TlsConfig.DEFAULT_SIGNING_ALGORITHM);
-        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(tlsClientConfig.getDn(), keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(tlsClientConfig.getDn(), null, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         String testCsrPem = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);
         when(httpClientBuilderSupplier.get()).thenReturn(httpClientBuilder);
         when(httpClientBuilder.build()).thenAnswer(invocation -> {

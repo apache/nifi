@@ -37,6 +37,11 @@ public class TestSegmentContent {
         testRunner.enqueue(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9});
         testRunner.run();
 
+        testRunner.assertTransferCount(SegmentContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SegmentContent.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(SegmentContent.FRAGMENT_ID);
+        originalFlowFile.assertAttributeEquals(SegmentContent.FRAGMENT_COUNT, "3");
+
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(SegmentContent.REL_SEGMENTS);
         assertEquals(3, flowFiles.size());
 
@@ -56,6 +61,11 @@ public class TestSegmentContent {
 
         testRunner.enqueue(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9});
         testRunner.run();
+
+        testRunner.assertTransferCount(SegmentContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SegmentContent.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(SegmentContent.FRAGMENT_ID);
+        originalFlowFile.assertAttributeEquals(SegmentContent.FRAGMENT_COUNT, "1");
 
         testRunner.assertTransferCount(SegmentContent.REL_SEGMENTS, 1);
         final MockFlowFile out1 = testRunner.getFlowFilesForRelationship(SegmentContent.REL_SEGMENTS).get(0);

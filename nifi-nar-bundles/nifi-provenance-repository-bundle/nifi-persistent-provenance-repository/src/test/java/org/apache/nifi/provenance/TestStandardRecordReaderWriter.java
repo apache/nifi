@@ -16,25 +16,39 @@
  */
 package org.apache.nifi.provenance;
 
+import static org.apache.nifi.provenance.TestUtil.createFlowFile;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.NopTocWriter;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.stream.io.NullOutputStream;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWriter {
+    private AtomicLong idGenerator = new AtomicLong(0L);
 
+    @Before
+    public void resetIds() {
+        idGenerator.set(0L);
+    }
 
     @Test
     @Ignore("For local testing only")
@@ -49,12 +63,12 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
         final int numEvents = 10_000_000;
         final long startNanos = System.nanoTime();
         try (final OutputStream nullOut = new NullOutputStream();
-            final RecordWriter writer = new StandardRecordWriter(nullOut, tocWriter, false, 100000)) {
+            final RecordWriter writer = new StandardRecordWriter(nullOut, "devnull", idGenerator, tocWriter, false, 100000)) {
 
             writer.writeHeader(0L);
 
             for (int i = 0; i < numEvents; i++) {
-                writer.writeRecord(event, i);
+                writer.writeRecord(event);
             }
         }
 
@@ -83,12 +97,12 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
 
         final byte[] serializedRecord;
         try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
-            final StandardRecordWriter writer = new StandardRecordWriter(headerOut, null, false, 0)) {
+            final StandardRecordWriter writer = new StandardRecordWriter(headerOut, "devnull", idGenerator, null, false, 0)) {
 
             writer.writeHeader(1L);
             headerOut.reset();
 
-            writer.writeRecord(event, 1L);
+            writer.writeRecord(event);
             writer.flush();
             serializedRecord = headerOut.toByteArray();
         }
@@ -108,9 +122,45 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
         System.out.println("Took " + millis + " millis to read " + numEvents + " events");
     }
 
+    @Test
+    public void testWriteUtfLargerThan64k() throws IOException, InterruptedException {
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "1.txt");
+        attributes.put("uuid", UUID.randomUUID().toString());
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+        final String seventyK = StringUtils.repeat("X", 70000);
+        assertTrue(seventyK.length() > 65535);
+        assertTrue(seventyK.getBytes("UTF-8").length > 65535);
+        builder.setDetails(seventyK);
+        final ProvenanceEventRecord record = builder.build();
+
+        try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
+             final DataOutputStream out = new DataOutputStream(headerOut)) {
+            out.writeUTF(PersistentProvenanceRepository.class.getName());
+            out.writeInt(9);
+        }
+
+        try (final ByteArrayOutputStream recordOut = new ByteArrayOutputStream();
+            final StandardRecordWriter writer = new StandardRecordWriter(recordOut, "devnull", idGenerator, null, false, 0)) {
+
+            writer.writeHeader(1L);
+            recordOut.reset();
+
+            writer.writeRecord(record);
+        }
+    }
+
     @Override
     protected RecordWriter createWriter(File file, TocWriter tocWriter, boolean compressed, int uncompressedBlockSize) throws IOException {
-        return new StandardRecordWriter(file, tocWriter, compressed, uncompressedBlockSize);
+        return new StandardRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize);
     }
 
     @Override

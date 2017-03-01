@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import java.security.cert.X509Certificate;
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -42,19 +41,7 @@ public class HttpServletRequestContext implements NiFiWebRequestContext {
 
     @Override
     public String getProxiedEntitiesChain() {
-        String xProxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
-        final X509Certificate cert = extractClientCertificate(request);
-        if (cert != null) {
-            final String extractedPrincipal = extractPrincipal(cert);
-            final String formattedPrincipal = formatProxyDn(extractedPrincipal);
-            if (xProxiedEntitiesChain == null || xProxiedEntitiesChain.trim().isEmpty()) {
-                xProxiedEntitiesChain = formattedPrincipal;
-            } else {
-                xProxiedEntitiesChain += formattedPrincipal;
-            }
-        }
-
-        return xProxiedEntitiesChain;
+        return null;
     }
 
     /**
@@ -74,27 +61,4 @@ public class HttpServletRequestContext implements NiFiWebRequestContext {
         return request.getParameter(ID_PARAM);
     }
 
-    /**
-     * Utility methods that have been copied into this class to reduce the
-     * dependency footprint of this artifact. These utility methods typically
-     * live in web-utilities but that would pull in spring, jersey, jackson,
-     * etc.
-     */
-    private X509Certificate extractClientCertificate(HttpServletRequest request) {
-        X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-
-        if (certs != null && certs.length > 0) {
-            return certs[0];
-        }
-
-        return null;
-    }
-
-    private String extractPrincipal(X509Certificate cert) {
-        return cert.getSubjectDN().getName().trim();
-    }
-
-    private String formatProxyDn(String dn) {
-        return "<" + dn + ">";
-    }
 }

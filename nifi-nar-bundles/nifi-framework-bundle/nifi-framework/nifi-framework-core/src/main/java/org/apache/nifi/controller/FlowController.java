@@ -152,6 +152,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -233,10 +234,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider,
+    QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider, IdentifierLookup {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -454,7 +457,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         try {
             this.provenanceRepository = createProvenanceRepository(nifiProperties);
-            this.provenanceRepository.initialize(createEventReporter(bulletinRepository), authorizer, this);
+            this.provenanceRepository.initialize(createEventReporter(bulletinRepository), authorizer, this, this);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
         }
@@ -1226,13 +1229,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * given URI
      *
      * @param id group id
-     * @param uri group uri
+     * @param uris group uris, multiple url can be specified in comma-separated format
      * @return new group
      * @throws NullPointerException if either argument is null
      * @throws IllegalArgumentException if <code>uri</code> is not a valid URI.
      */
-    public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uri) {
-        return new StandardRemoteProcessGroup(requireNonNull(id).intern(), requireNonNull(uri).intern(), null, this, sslContext, nifiProperties);
+    public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
+        return new StandardRemoteProcessGroup(requireNonNull(id).intern(), uris, null, this, sslContext, nifiProperties);
     }
 
     public ProcessGroup getRootGroup() {
@@ -1769,7 +1772,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Remote Process Groups
             //
             for (final RemoteProcessGroupDTO remoteGroupDTO : dto.getRemoteProcessGroups()) {
-                final RemoteProcessGroup remoteGroup = createRemoteProcessGroup(remoteGroupDTO.getId(), remoteGroupDTO.getTargetUri());
+                final RemoteProcessGroup remoteGroup = createRemoteProcessGroup(remoteGroupDTO.getId(), remoteGroupDTO.getTargetUris());
                 remoteGroup.setComments(remoteGroupDTO.getComments());
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
@@ -2246,6 +2249,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param groupId group id
      * @return the component status
      */
+    @Override
     public ProcessGroupStatus getGroupStatus(final String groupId) {
         return getGroupStatus(groupId, getProcessorStats());
     }
@@ -2608,7 +2612,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
         status.setGroupId(remoteGroup.getProcessGroup().getIdentifier());
         status.setName(isRemoteProcessGroupAuthorized ? remoteGroup.getName() : remoteGroup.getIdentifier());
-        status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri().toString() : null);
+        status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri() : null);
 
         long lineageMillis = 0L;
         int flowFilesRemoved = 0;
@@ -3885,6 +3889,39 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return replayEvent;
     }
 
+    @Override
+    public List<String> getComponentIdentifiers() {
+        final List<String> componentIds = new ArrayList<>();
+        getGroup(getRootGroupId()).findAllProcessors().stream()
+            .forEach(proc -> componentIds.add(proc.getIdentifier()));
+        getGroup(getRootGroupId()).getInputPorts().stream()
+            .forEach(port -> componentIds.add(port.getIdentifier()));
+        getGroup(getRootGroupId()).getOutputPorts().stream()
+            .forEach(port -> componentIds.add(port.getIdentifier()));
+
+        return componentIds;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public List<String> getComponentTypes() {
+        final Set<Class> procClasses = ExtensionManager.getExtensions(Processor.class);
+        final List<String> componentTypes = new ArrayList<>(procClasses.size() + 2);
+        componentTypes.add(ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE);
+        componentTypes.add(ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE);
+        procClasses.stream()
+            .map(procClass -> procClass.getSimpleName())
+            .forEach(componentType -> componentTypes.add(componentType));
+        return componentTypes;
+    }
+
+    @Override
+    public List<String> getQueueIdentifiers() {
+        return getAllQueues().stream()
+            .map(q -> q.getIdentifier())
+            .collect(Collectors.toList());
+    }
+
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
@@ -4010,7 +4047,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public Authorizable createDataAuthorizable(final String componentId) {
+    public Authorizable createLocalDataAuthorizable(final String componentId) {
         final String rootGroupId = getRootGroupId();
 
         // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
@@ -4022,7 +4059,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findConnectable(componentId);
+            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);
@@ -4036,6 +4073,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             } else {
                 authorizable = new DataAuthorizable(connectable);
             }
+        }
+
+        return authorizable;
+    }
+
+    @Override
+    public Authorizable createRemoteDataAuthorizable(String remoteGroupPortId) {
+        final DataAuthorizable authorizable;
+
+        final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(remoteGroupPortId);
+        if (remoteGroupPort == null) {
+            throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+        } else {
+            // authorizable for remote group ports should be the remote process group
+            authorizable = new DataAuthorizable(remoteGroupPort.getRemoteProcessGroup());
         }
 
         return authorizable;

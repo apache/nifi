@@ -93,12 +93,6 @@ div.processor-relationship-container {
     line-height: normal;
 }
 
-div.relationship-description {
-    color: #888;
-    margin-left: 16px;
-    margin-top: 2px;
-}
-
 #run-duration-container {
     height: 20px;
     width: 340px;
@@ -109,6 +103,7 @@ div.relationship-description {
 #run-duration-slider {
     margin-top: 5px;
     border-radius: 0;
+    margin-right: 2px;
 }
 
 #run-duration-slider .ui-slider-handle {

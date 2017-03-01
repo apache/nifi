@@ -62,8 +62,8 @@ public class HiveConfigurator {
         return problems;
     }
 
-    public Configuration getConfigurationFromFiles(final String configFiles) {
-        final Configuration hiveConfig = new HiveConf();
+    public HiveConf getConfigurationFromFiles(final String configFiles) {
+        final HiveConf hiveConfig = new HiveConf();
         if (StringUtils.isNotBlank(configFiles)) {
             for (final String configFile : configFiles.split(",")) {
                 hiveConfig.addResource(new Path(configFile.trim()));

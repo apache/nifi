@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
@@ -62,7 +63,29 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public MockFlowFile(final long id, final FlowFile toCopy) {
-        this(id);
+        this.creationTime = System.nanoTime();
+        this.id = id;
+        entryDate = System.currentTimeMillis();
+
+        final Map<String, String> attributesToCopy = toCopy.getAttributes();
+        String filename = attributesToCopy.get(CoreAttributes.FILENAME.key());
+        if (filename == null) {
+            filename = String.valueOf(System.nanoTime()) + ".mockFlowFile";
+        }
+        attributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        String path = attributesToCopy.get(CoreAttributes.PATH.key());
+        if (path == null) {
+            path = "target";
+        }
+        attributes.put(CoreAttributes.PATH.key(), path);
+
+        String uuid = attributesToCopy.get(CoreAttributes.UUID.key());
+        if (uuid == null) {
+            uuid = UUID.randomUUID().toString();
+        }
+        attributes.put(CoreAttributes.UUID.key(), uuid);
+
         attributes.putAll(toCopy.getAttributes());
         final byte[] dataToCopy = ((MockFlowFile) toCopy).data;
         this.data = new byte[dataToCopy.length];
@@ -142,7 +165,7 @@ public class MockFlowFile implements FlowFileRecord {
 
     @Override
     public int hashCode() {
-        return (int) id;
+        return new HashCodeBuilder(7, 13).append(id).toHashCode();
     }
 
     @Override
@@ -150,8 +173,11 @@ public class MockFlowFile implements FlowFileRecord {
         if (obj == null) {
             return false;
         }
-        if (obj instanceof MockFlowFile) {
-            return ((MockFlowFile) obj).id == this.id;
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof FlowFile) {
+            return ((FlowFile) obj).getId() == this.id;
         }
         return false;
     }
@@ -291,10 +317,12 @@ public class MockFlowFile implements FlowFileRecord {
     public long getQueueDateIndex() {
         return 0;
     }
+
     public boolean isAttributeEqual(final String attributeName, final String expectedValue) {
         // unknown attribute name, so cannot be equal.
-        if (attributes.containsKey(attributeName) == false)
+        if (attributes.containsKey(attributeName) == false) {
             return false;
+        }
 
         String value = attributes.get(attributeName);
         return Objects.equals(expectedValue, value);

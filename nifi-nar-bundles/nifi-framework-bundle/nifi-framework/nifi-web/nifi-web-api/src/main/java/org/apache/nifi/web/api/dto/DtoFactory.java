@@ -1533,7 +1533,7 @@ public final class DtoFactory {
         dto.setCommunicationsTimeout(group.getCommunicationsTimeout());
         dto.setYieldDuration(group.getYieldDuration());
         dto.setParentGroupId(group.getProcessGroup().getIdentifier());
-        dto.setTargetUri(group.getTargetUri().toString());
+        dto.setTargetUris(group.getTargetUris());
         dto.setFlowRefreshed(group.getLastRefreshTime());
         dto.setContents(contents);
         dto.setTransportProtocol(group.getTransportProtocol().name());
@@ -2409,6 +2409,9 @@ public final class DtoFactory {
         final SystemDiagnosticsSnapshotDTO.VersionInfoDTO versionInfoDto = createVersionInfoDTO();
         snapshot.setVersionInfo(versionInfoDto);
 
+        // uptime
+        snapshot.setUptime(FormatUtils.formatHoursMinutesSeconds(sysDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
         return dto;
     }
 
@@ -2857,7 +2860,7 @@ public final class DtoFactory {
         copy.setActiveRemoteOutputPortCount(original.getActiveRemoteOutputPortCount());
         copy.setInactiveRemoteOutputPortCount(original.getInactiveRemoteOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
-        copy.setTargetUri(original.getTargetUri());
+        copy.setTargetUris(original.getTargetUris());
         copy.setTransportProtocol(original.getTransportProtocol());
         copy.setProxyHost(original.getProxyHost());
         copy.setProxyPort(original.getProxyPort());

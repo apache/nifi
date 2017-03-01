@@ -17,7 +17,7 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="flow-status" flex layout="row" layout-align="space-between center">
     <div id="flow-status-container" layout="row" layout-align="space-around center">
-        <div class="fa fa-cubes" ng-if="appCtrl.nf.Canvas.isClustered()"><span id="connected-nodes-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.connectedNodesCount}}</span></div>
+        <div class="fa fa-cubes" ng-if="appCtrl.nf.ClusterSummary.isClustered()"><span id="connected-nodes-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.connectedNodesCount}}</span></div>
         <div class="icon icon-threads"><span id="active-thread-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.activeThreadCount}}</span></div>
         <div class="fa fa-list"><span id="total-queued">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.totalQueued}}</span></div>
         <div class="fa fa-bullseye"><span id="controller-transmitting-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerTransmittingCount}}</span></div>

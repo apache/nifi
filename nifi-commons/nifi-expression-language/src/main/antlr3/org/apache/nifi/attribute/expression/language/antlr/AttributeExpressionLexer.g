@@ -77,12 +77,13 @@ COLON	: ':';
 COMMA	: ',';
 DOT		: '.';
 SEMICOLON : ';';
-WHOLE_NUMBER	: ('0'..'9')+;
+WHOLE_NUMBER : OP? ('0'..'9')+;
 
-DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?
-           | '.' ('0'..'9')+ EXP?
-           | ('0'..'9')+ EXP;
+DECIMAL :    OP? ('0'..'9')+ '.' ('0'..'9')* EXP?
+           | OP? '.' ('0'..'9')+ EXP?
+           | OP? ('0'..'9')+ EXP;
 
+fragment OP: ('+'|'-');
 fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 TRUE	: 'true';
@@ -136,6 +137,7 @@ UNESCAPE_HTML3 : 'unescapeHtml3';
 UNESCAPE_HTML4 : 'unescapeHtml4';
 BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
+GET_STATE_VALUE: 'getStateValue';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -180,6 +182,7 @@ SUBSTRING	: 'substring';
 REPLACE	: 'replace';
 REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
+IF_ELSE : 'ifElse';
 
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -46,6 +47,7 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -331,7 +333,7 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
+    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException {
         ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor");
         assertEquals(5,p_scheduled.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
@@ -342,8 +344,14 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
+    public void testReportingTaskDefaultScheduleAnnotation() throws ReportingTaskInstantiationException {
+        ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
+    }
 
+    @Test
+    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException {
         ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor");
         assertEquals("5 sec",p_settings.getYieldPeriod());
         assertEquals("1 min",p_settings.getPenalizationPeriod());
@@ -353,8 +361,16 @@ public class TestFlowController {
         assertEquals("0 sec",p_settings.getSchedulingPeriod());
     }
 
-
-
-
+    @Test
+    public void testDeleteProcessGroup() {
+        ProcessGroup pg = controller.createProcessGroup("my-process-group");
+        pg.setName("my-process-group");
+        ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service", false);
+        pg.addControllerService(cs);
+        controller.getRootGroup().addProcessGroup(pg);
+        controller.getRootGroup().removeProcessGroup(pg);
+        pg.getControllerServices(true);
+        assertTrue(pg.getControllerServices(true).isEmpty());
+    }
 
 }

@@ -75,6 +75,10 @@
     vertical-align: middle;
 }
 
+#reporting-task-types-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
 /*
     Processor type table filter
 */

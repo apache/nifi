@@ -107,6 +107,18 @@ public interface HBaseClientService extends ControllerService {
     void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, ResultHandler handler) throws IOException;
 
     /**
+     * Scans the given table for the given rowId and passes the result to the handler.
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param startRow the row identifier to start scanning at
+     * @param endRow the row identifier to end scanning at
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param handler a handler to process rows of the result
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException;
+
+    /**
      * Converts the given boolean to it's byte representation.
      *
      * @param b a boolean

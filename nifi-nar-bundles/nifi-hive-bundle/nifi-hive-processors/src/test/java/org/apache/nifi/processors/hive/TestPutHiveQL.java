@@ -356,12 +356,64 @@ public class TestPutHiveQL {
         runner.run();
 
         // should fail because of the semicolon
-        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
 
+        // Now we can check that the values were inserted by the multi-statement script.
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-                assertFalse(rs.next());
+                assertTrue(rs.next());
+                assertEquals("Record ID mismatch", 1, rs.getInt(1));
+                assertEquals("Record NAME mismatch", "George", rs.getString(2));
+            }
+        }
+    }
+
+    @Test
+    public void testMultipleStatementsWithinFlowFilePlusEmbeddedDelimiter() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersons);
+            }
+        }
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George\\;' WHERE ID=?; ";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        runner.run();
+
+        // should fail because of the semicolon
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+
+        // Now we can check that the values were inserted by the multi-statement script.
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals("Record ID mismatch", 1, rs.getInt(1));
+                assertEquals("Record NAME mismatch", "George\\;", rs.getString(2));
             }
         }
     }
@@ -444,13 +496,13 @@ public class TestPutHiveQL {
         runner.enqueue(sql.getBytes(), attributes);
         runner.run();
 
-        // should fail because of the semicolon
+        // should fail because of the table is invalid
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_FAILURE, 1);
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-                assertFalse(rs.next());
+                assertTrue(rs.next());
             }
         }
     }
@@ -467,6 +519,7 @@ public class TestPutHiveQL {
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
             "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("hiveql.args.1.value", "1");
@@ -483,7 +536,7 @@ public class TestPutHiveQL {
         runner.enqueue(sql.getBytes(), attributes);
         runner.run();
 
-        // should fail because of the semicolon
+        // should fail because there isn't a valid connection and tables don't exist.
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 1);
     }
 

@@ -95,7 +95,7 @@ import org.joda.time.format.DateTimeFormatter;
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-    + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT or POST).")
+    + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
     @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
@@ -104,6 +104,8 @@ import org.joda.time.format.DateTimeFormatter;
     @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
     @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
     @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
+    @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
+    @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be the body of the HTTP response.")})
 @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Send request header "
@@ -118,6 +120,9 @@ public final class InvokeHTTP extends AbstractProcessor {
     public final static String REQUEST_URL = "invokehttp.request.url";
     public final static String TRANSACTION_ID = "invokehttp.tx.id";
     public final static String REMOTE_DN = "invokehttp.remote.dn";
+    public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
+    public final static String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
+
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
@@ -127,13 +132,14 @@ public final class InvokeHTTP extends AbstractProcessor {
     // attributes.
     public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
+            EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
-            .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                + "Methods other than POST and PUT will be sent without a message body.")
+            .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
+                + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(true)
@@ -232,7 +238,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
         .name("Content-Type")
-        .description("The Content-Type to specify for when content is being transmitted through a PUT or POST. "
+        .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
             + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
         .required(true)
         .expressionLanguageSupported(true)
@@ -243,7 +249,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
             .name("send-message-body")
             .displayName("Send Message Body")
-            .description("If true, sends the HTTP message body on POST/PUT requests (default).  If false, suppresses the message body and content-type header for these requests.")
+            .description("If true, sends the HTTP message body on POST/PUT/PATCH requests (default).  If false, suppresses the message body and content-type header for these requests.")
             .defaultValue("true")
             .allowableValues("true", "false")
             .required(false)
@@ -337,7 +343,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
             .name("Use Chunked Encoding")
-            .description("When POST'ing or PUT'ing content set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with "
+            .description("When POST'ing, PUT'ing or PATCH'ing content set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with "
                     + "a value of 'chunked'. This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
             .required(true)
             .defaultValue("false")
@@ -460,7 +466,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         } else {
             // compile the attributes-to-send filter pattern
             if (PROP_ATTRIBUTES_TO_SEND.getName().equalsIgnoreCase(descriptor.getName())) {
-                if (newValue.isEmpty()) {
+                if (newValue == null || newValue.isEmpty()) {
                     regexAttributesToSend = null;
                 } else {
                     final String trimmedValue = StringUtils.trimToEmpty(newValue);
@@ -590,7 +596,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             }
 
             String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions().getValue().toUpperCase();
-            if ("POST".equals(request) || "PUT".equals(request)) {
+            if ("POST".equals(request) || "PUT".equals(request) || "PATCH".equals(request)) {
                 return;
             } else if (putToAttribute) {
                 requestFlowFile = session.create();
@@ -753,6 +759,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             if (requestFlowFile != null) {
                 logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
                 requestFlowFile = session.penalize(requestFlowFile);
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_MESSAGE, e.getMessage());
                 // transfer original to failure
                 session.transfer(requestFlowFile, REL_FAILURE);
             } else {
@@ -800,6 +808,10 @@ public final class InvokeHTTP extends AbstractProcessor {
             case "PUT":
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile);
                 requestBuilder = requestBuilder.put(requestBody);
+                break;
+            case "PATCH":
+                requestBody = getRequestBodyToSend(session, context, requestFlowFile);
+                requestBuilder = requestBuilder.patch(requestBody);
                 break;
             case "HEAD":
                 requestBuilder = requestBuilder.head();
@@ -855,7 +867,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         // iterate through the flowfile attributes, adding any attribute that
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
-        if (regexAttributesToSend != null) {
+        if (regexAttributesToSend != null && requestFlowFile != null) {
             Map<String, String> attributes = requestFlowFile.getAttributes();
             Matcher m = regexAttributesToSend.matcher("");
             for (Map.Entry<String, String> entry : attributes.entrySet()) {

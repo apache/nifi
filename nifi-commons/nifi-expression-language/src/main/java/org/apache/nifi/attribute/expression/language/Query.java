@@ -49,10 +49,12 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEv
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FromRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GetStateVariableEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.InEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
@@ -125,6 +127,7 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IF_ELSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
@@ -149,6 +152,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_DELIMITED_FIELD;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
@@ -384,8 +388,9 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator) throws ProcessException {
-        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap).getValue();
+    static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
+                                     final Map<String, String> stateVariables) throws ProcessException {
+        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap, stateVariables).getValue();
         if (evaluated == null) {
             return null;
         }
@@ -393,6 +398,11 @@ public class Query {
         final String value = evaluated.toString();
         final String escaped = value.replace("$$", "$");
         return decorator == null ? escaped : decorator.decorate(escaped);
+    }
+
+    static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables)
+            throws ProcessException {
+        return Query.prepare(rawValue).evaluateExpressions(expressionMap, decorator, stateVariables);
     }
 
     static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup) throws ProcessException {
@@ -563,12 +573,21 @@ public class Query {
     }
 
     QueryResult<?> evaluate(final Map<String, String> map) {
+        return evaluate(map, null);
+    }
+
+    QueryResult<?> evaluate(final Map<String, String> attributes, final Map<String, String> stateMap) {
         if (evaluated.getAndSet(true)) {
             throw new IllegalStateException("A Query cannot be evaluated more than once");
         }
-
-        return evaluator.evaluate(map);
+        if (stateMap != null) {
+            AttributesAndState attributesAndState = new AttributesAndState(attributes, stateMap);
+            return evaluator.evaluate(attributesAndState);
+        } else {
+            return evaluator.evaluate(attributes);
+        }
     }
+
 
     Tree getTree() {
         return this.tree;
@@ -746,6 +765,12 @@ public class Query {
                 } else {
                     throw new AttributeExpressionLanguageParsingException("Call to math() as the subject must take exactly 1 parameter");
                 }
+            }
+            case GET_STATE_VALUE: {
+                final Tree childTree = tree.getChild(0);
+                final Evaluator<?> argEvaluator = buildEvaluator(childTree);
+                final Evaluator<String> stringEvaluator = toStringEvaluator(argEvaluator);
+                return new GetStateVariableEvaluator(stringEvaluator);
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());
@@ -1200,8 +1225,10 @@ public class Query {
             case TO_DATE: {
                 if (argEvaluators.isEmpty()) {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
-                } else if (subjectEvaluator.getResultType() == ResultType.STRING) {
-                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "toDate");
+                } else if (subjectEvaluator.getResultType() == ResultType.STRING && argEvaluators.size() == 1) {
+                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), null), "toDate");
+                } else if (subjectEvaluator.getResultType() == ResultType.STRING && argEvaluators.size() == 2) {
+                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "toDate");
                 } else {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
                 }
@@ -1285,7 +1312,13 @@ public class Query {
                     toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf")), "lastIndexOf");
             }
             case FORMAT: {
-                return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format")), "format");
+                if(argEvaluators.size() == 1) {
+                    return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format"), null), "format");
+                } else if (argEvaluators.size() == 2) {
+                    return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "format");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("format() function takes 1 or 2 arguments");
+                }
             }
             case OR: {
                 return addToken(new OrEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0))), "or");
@@ -1337,6 +1370,12 @@ public class Query {
                 verifyArgCount(argEvaluators, 1, "jsonPath");
                 return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
+            }
+            case IF_ELSE: {
+                verifyArgCount(argEvaluators, 2, "ifElse");
+                return addToken(new IfElseEvaluator(toBooleanEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "argument to return if true"),
+                        toStringEvaluator(argEvaluators.get(1), "argument to return if false")), "ifElse");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());

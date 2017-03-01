@@ -70,6 +70,10 @@
     min-height: 150px;
 }
 
+#queue-listing-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
 /* queue listing table */
 
 #queue-listing-message {

@@ -43,9 +43,9 @@ public class TestExecuteLua extends BaseScriptTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ExecuteScript.SCRIPT_ENGINE, "lua");
-        runner.setProperty(ExecuteScript.SCRIPT_FILE, "target/test/resources/lua/test_onTrigger.lua");
-        runner.setProperty(ExecuteScript.MODULES, "target/test/resources/lua");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "lua");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/lua/test_onTrigger.lua");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/lua");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));

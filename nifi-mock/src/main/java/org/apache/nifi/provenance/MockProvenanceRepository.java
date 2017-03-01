@@ -56,7 +56,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory) throws IOException {
+    public void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup idLookup) throws IOException {
 
     }
 

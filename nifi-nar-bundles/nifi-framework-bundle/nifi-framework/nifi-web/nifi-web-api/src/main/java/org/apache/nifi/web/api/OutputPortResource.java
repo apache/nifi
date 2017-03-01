@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -192,6 +193,13 @@ public class OutputPortResource extends ApplicationResource {
                     + "output port id of the requested resource (%s).", requestPortDTO.getId(), id));
         }
 
+        final PositionDTO proposedPosition = requestPortDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestPortEntity);
         }
@@ -236,7 +244,8 @@ public class OutputPortResource extends ApplicationResource {
             value = "Deletes an output port",
             response = PortEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /output-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /output-ports/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -281,7 +290,12 @@ public class OutputPortResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable outputPort = lookup.getOutputPort(id);
+
+                    // ensure write permission to the output port
                     outputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    outputPort.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteOutputPort(id),
                 (revision, portEntity) -> {

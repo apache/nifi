@@ -26,7 +26,7 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.hcatalog.streaming.ConnectionError;
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
@@ -219,6 +219,16 @@ public class PutHiveStreaming extends AbstractProcessor {
             .defaultValue("100")
             .build();
 
+    public static final PropertyDescriptor RECORDS_PER_TXN = new PropertyDescriptor.Builder()
+            .name("hive-stream-records-per-transaction")
+            .displayName("Records per Transaction")
+            .description("Number of records to process before committing the transaction. This value must be greater than 1.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(GREATER_THAN_ONE_VALIDATOR)
+            .defaultValue("10000")
+            .build();
+
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -248,6 +258,7 @@ public class PutHiveStreaming extends AbstractProcessor {
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
+    protected volatile HiveConf hiveConfig;
 
     protected final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
@@ -270,6 +281,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         props.add(MAX_OPEN_CONNECTIONS);
         props.add(HEARTBEAT_INTERVAL);
         props.add(TXNS_PER_BATCH);
+        props.add(RECORDS_PER_TXN);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
@@ -307,7 +319,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).asInteger();
         final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).asInteger();
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
-        final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
+        hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -357,7 +369,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         }
 
         final ComponentLog log = getLogger();
-        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).asInteger();
+        final Integer recordsPerTxn = context.getProperty(RECORDS_PER_TXN).asInteger();
 
         // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
         ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
@@ -482,8 +494,8 @@ public class PutHiveStreaming extends AbstractProcessor {
                                     appendRecordsToFlowFile(session, Collections.singletonList(record), failureFlowFile, failureAvroWriter, reader);
                                 }
 
-                                // If we've reached the transactions-per-batch limit, flush the Hive Writer and update the Avro Writer for successful records
-                                if (hiveWriter.getTotalRecords() >= txnsPerBatch) {
+                                // If we've reached the records-per-transaction limit, flush the Hive Writer and update the Avro Writer for successful records
+                                if (hiveWriter.getTotalRecords() >= recordsPerTxn) {
                                     hiveWriter.flush(true);
                                     // Now send the records to the success relationship and update the success count
                                     try {
@@ -658,6 +670,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         }
 
         callTimeoutPool = null;
+        hiveConfigurator.stopRenewer();
     }
 
     private void setupHeartBeatTimer() {
@@ -826,7 +839,7 @@ public class PutHiveStreaming extends AbstractProcessor {
 
     protected HiveWriter makeHiveWriter(HiveEndPoint endPoint, ExecutorService callTimeoutPool, UserGroupInformation ugi, HiveOptions options)
             throws HiveWriter.ConnectFailure, InterruptedException {
-        return HiveUtils.makeHiveWriter(endPoint, callTimeoutPool, ugi, options);
+        return HiveUtils.makeHiveWriter(endPoint, callTimeoutPool, ugi, options, hiveConfig);
     }
 
     protected KerberosProperties getKerberosProperties() {

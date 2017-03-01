@@ -16,11 +16,62 @@
  */
 package org.apache.nifi.web.api;
 
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeAccess;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.SnippetAuthorizable;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.remote.HttpRemoteSiteListener;
+import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.exception.BadRequestException;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NotAuthorizedException;
+import org.apache.nifi.remote.protocol.ResponseCode;
+import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.util.ComponentIdGenerator;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.TransactionResultEntity;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.util.CacheKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -37,62 +88,10 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.AuthorizeAccess;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.remote.HttpRemoteSiteListener;
-import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.remote.exception.BadRequestException;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.NotAuthorizedException;
-import org.apache.nifi.remote.protocol.ResponseCode;
-import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.util.CacheKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 /**
  * Base class for controllers.
@@ -434,28 +433,60 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Authorizes the specified Snippet with the specified request action.
+     * Authorizes the specified process group.
      *
-     * @param authorizer authorizer
-     * @param lookup     lookup
-     * @param action     action
+     * @param processGroupAuthorizable      process group
+     * @param authorizer                    authorizer
+     * @param lookup                        lookup
+     * @param action                        action
+     * @param authorizeReferencedServices   whether to authorize referenced services
+     * @param authorizeTemplates            whether to authorize templates
+     * @param authorizeControllerServices   whether to authorize controller services
      */
-    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+    protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
+                                         final boolean authorizeReferencedServices, final boolean authorizeTemplates,
+                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices) {
+
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
-            // authorize the process group
-            authorize.accept(processGroupAuthorizable.getAuthorizable());
+        // authorize the process group
+        authorize.accept(processGroupAuthorizable.getAuthorizable());
 
-            // authorize the contents of the group
-            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        // authorize the contents of the group - these methods return all encapsulated components (recursive)
+        processGroupAuthorizable.getEncapsulatedProcessors().forEach(processorAuthorizable -> {
+            // authorize the processor
+            authorize.accept(processorAuthorizable.getAuthorizable());
+
+            // authorize any referenced services if necessary
+            if (authorizeReferencedServices) {
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+            }
         });
-        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
-        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
-        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
-        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
-        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedConnections().stream().map(connection -> connection.getAuthorizable()).forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedInputPorts().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedOutputPorts().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedFunnels().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedLabels().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedProcessGroups().stream().map(group -> group.getAuthorizable()).forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);
+
+        // authorize templates if necessary
+        if (authorizeTemplates) {
+            processGroupAuthorizable.getEncapsulatedTemplates().forEach(authorize);
+        }
+
+        // authorize controller services if necessary
+        if (authorizeControllerServices) {
+            processGroupAuthorizable.getEncapsulatedControllerServices().forEach(controllerServiceAuthorizable -> {
+                // authorize the controller service
+                authorize.accept(controllerServiceAuthorizable.getAuthorizable());
+
+                // authorize any referenced services if necessary
+                if (authorizeReferencedServices) {
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+                }
+            });
+        }
     }
 
     /**
@@ -465,22 +496,32 @@ public abstract class ApplicationResource {
      * @param lookup     lookup
      * @param action     action
      */
-    protected void authorizeSnippet(final SnippetDTO snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+    protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
+                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices) {
+
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
-            // authorize the process group
-            authorize.accept(processGroupAuthorizable.getAuthorizable());
-
-            // authorize the contents of the group
-            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        // authorize each component in the specified snippet
+        snippet.getSelectedProcessGroups().stream().forEach(processGroupAuthorizable -> {
+            // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
+            // referenced services are considered so those are explicitly authorized when authorizing a processor
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
         });
-        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
-        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
-        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
-        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
-        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+        snippet.getSelectedRemoteProcessGroups().stream().forEach(authorize);
+        snippet.getSelectedProcessors().stream().forEach(processorAuthorizable -> {
+            // authorize the processor
+            authorize.accept(processorAuthorizable.getAuthorizable());
+
+            // authorize any referenced services if necessary
+            if (authorizeReferencedServices) {
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+            }
+        });
+        snippet.getSelectedInputPorts().stream().forEach(authorize);
+        snippet.getSelectedOutputPorts().stream().forEach(authorize);
+        snippet.getSelectedConnections().stream().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
+        snippet.getSelectedFunnels().stream().forEach(authorize);
+        snippet.getSelectedLabels().stream().forEach(authorize);
     }
 
     /**

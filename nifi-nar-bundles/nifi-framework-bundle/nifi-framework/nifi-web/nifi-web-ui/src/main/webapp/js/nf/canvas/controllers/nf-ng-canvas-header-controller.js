@@ -15,113 +15,141 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.Storage',
+                'nf.Shell',
+                'nf.ErrorHandler'],
+            function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
+                return (nf.ng.Canvas.HeaderCtrl = factory($, nfCommon, nfStorage, nfShell, nfErrorHandler));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.Canvas.HeaderCtrl =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.Storage'),
+                require('nf.Shell'),
+                require('nf.ErrorHandler')));
+    } else {
+        nf.ng.Canvas.HeaderCtrl = factory(root.$,
+            root.nf.Common,
+            root.nf.Storage,
+            root.nf.Shell,
+            root.nf.ErrorHandler);
+    }
+}(this, function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
     'use strict';
 
-    var MIN_TOOLBAR_WIDTH = 640;
+    return function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
+        'use strict';
 
-    var config = {
-        urls: {
-            accessConfig: '../nifi-api/access/config'
-        }
-    };
+        var MIN_TOOLBAR_WIDTH = 640;
 
-    function HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
-        this.toolboxCtrl = toolboxCtrl;
-        this.globalMenuCtrl = globalMenuCtrl;
-        this.flowStatusCtrl = flowStatusCtrl;
+        var config = {
+            urls: {
+                accessConfig: '../nifi-api/access/config'
+            }
+        };
 
-        /**
-         * The login controller.
-         */
-        this.loginCtrl = {
+        function HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
+            this.toolboxCtrl = toolboxCtrl;
+            this.globalMenuCtrl = globalMenuCtrl;
+            this.flowStatusCtrl = flowStatusCtrl;
 
             /**
-             * Initialize the login controller.
+             * The login controller.
              */
-            init: function () {
-                var self = this;
+            this.loginCtrl = {
 
-                // if the user is not anonymous or accessing via http
-                if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
-                    $('#login-link-container').css('display', 'none');
+                /**
+                 * Initialize the login controller.
+                 */
+                init: function () {
+                    var loginCtrl = this;
+
+                    // if the user is not anonymous or accessing via http
+                    if ($('#current-user').text() !== nfCommon.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
+                        $('#login-link-container').css('display', 'none');
+                    }
+
+                    // if accessing via http, don't show the current user
+                    if (location.protocol === 'http:') {
+                        $('#current-user-container').css('display', 'none');
+                    }
+
+                    // get the login config
+                    var loginXhr = $.ajax({
+                        type: 'GET',
+                        url: config.urls.accessConfig,
+                        dataType: 'json'
+                    });
+
+                    $.when(loginXhr).done(function (loginResult) {
+                        loginCtrl.supportsLogin = loginResult.config.supportsLogin;
+                    }).fail(nfErrorHandler.handleAjaxError);
+                },
+
+                /**
+                 * Boolean describing whether or not the NiFi instance supports login.
+                 */
+                supportsLogin: undefined,
+
+                /**
+                 * The login shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the login shell.
+                     */
+                    launch: function () {
+                        nfShell.showPage('login', false);
+                    }
                 }
+            };
 
-                // if accessing via http, don't show the current user
-                if (location.protocol === 'http:') {
-                    $('#current-user-container').css('display', 'none');
+            /**
+             * The logout controller.
+             */
+            this.logoutCtrl = {
+                logout: function () {
+                    nfStorage.removeItem("jwt");
+                    window.location = '/nifi';
                 }
+            };
+        }
 
-                // get the login config
-                var loginXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.accessConfig,
-                    dataType: 'json'
-                });
+        HeaderCtrl.prototype = {
+            constructor: HeaderCtrl,
 
-                $.when(loginXhr).done(function (loginResult) {
-                    self.supportsLogin = loginResult.config.supportsLogin;
-                }).fail(nf.Common.handleAjaxError);
+            /**
+             *  Register the header controller.
+             */
+            register: function () {
+                if (serviceProvider.headerCtrl === undefined) {
+                    serviceProvider.register('headerCtrl', headerCtrl);
+                }
             },
 
             /**
-             * Boolean describing whether or not the NiFi instance supports login.
+             * Initialize the canvas header.
+             *
+             * @argument {boolean} supportsLogin    Whether login is supported.
              */
-            supportsLogin: undefined,
-
-            /**
-             * The login shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the login shell.
-                 */
-                launch: function () {
-                    nf.Shell.showPage('login', false);
-                }
+            init: function () {
+                this.toolboxCtrl.init();
+                this.globalMenuCtrl.init();
+                this.flowStatusCtrl.init();
+                this.loginCtrl.init();
             }
-        };
-
-        /**
-         * The logout controller.
-         */
-        this.logoutCtrl = {
-            logout: function () {
-                nf.Storage.removeItem("jwt");
-                window.location = '/nifi';
-            }
-        };
-    }
-
-    HeaderCtrl.prototype = {
-        constructor: HeaderCtrl,
-
-        /**
-         *  Register the header controller.
-         */
-        register: function () {
-            if (serviceProvider.headerCtrl === undefined) {
-                serviceProvider.register('headerCtrl', headerCtrl);
-            }
-        },
-
-        /**
-         * Initialize the canvas header.
-         *
-         * @argument {boolean} supportsLogin    Whether login is supported.
-         */
-        init: function () {
-            this.toolboxCtrl.init();
-            this.globalMenuCtrl.init();
-            this.flowStatusCtrl.init();
-            this.loginCtrl.init();
         }
-    }
 
-    var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl);
-    headerCtrl.register();
-    return headerCtrl;
-};
+        var headerCtrl = new HeaderCtrl(toolboxCtrl, globalMenuCtrl, flowStatusCtrl);
+        headerCtrl.register();
+        return headerCtrl;
+    };
+}));

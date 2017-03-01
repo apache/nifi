@@ -18,6 +18,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -50,6 +51,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -90,6 +93,41 @@ public class TestPutElasticsearch {
         runner.assertNotValid();
         runner.setProperty(PutElasticsearch.ID_ATTRIBUTE, "doc_id");
         runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearch.REL_SUCCESS, 1);
+        assertFalse(runner.getProvenanceEvents().isEmpty());
+        runner.getProvenanceEvents().forEach(event -> { assertEquals(event.getEventType(), ProvenanceEventType.SEND); });
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
+    public void testPutElasticSearchOnTriggerEL() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchTransportClientProcessor.CLUSTER_NAME, "${cluster.name}");
+        runner.setProperty(AbstractElasticsearchTransportClientProcessor.HOSTS, "${hosts}");
+        runner.setProperty(AbstractElasticsearchTransportClientProcessor.PING_TIMEOUT, "${ping.timeout}");
+        runner.setProperty(AbstractElasticsearchTransportClientProcessor.SAMPLER_INTERVAL, "${sampler.interval}");
+
+        runner.setProperty(PutElasticsearch.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch.TYPE, "status");
+        runner.setProperty(PutElasticsearch.BATCH_SIZE, "1");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch.ID_ATTRIBUTE, "doc_id");
+        runner.assertValid();
+        runner.setVariable("cluster.name", "elasticsearch");
+        runner.setVariable("hosts", "127.0.0.1:9300");
+        runner.setVariable("ping.timeout", "5s");
+        runner.setVariable("sampler.interval", "5s");
+
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");

@@ -65,6 +65,39 @@ public class ContentClaimFieldMap implements Record {
     }
 
     @Override
+    public int hashCode() {
+        return (int) (31 + contentClaimOffset + 21 * resourceClaimFieldMap.hashCode());
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+
+        ContentClaimFieldMap other = (ContentClaimFieldMap) obj;
+        if (contentClaimOffset != other.contentClaimOffset) {
+            return false;
+        }
+
+        if (resourceClaimFieldMap == null) {
+            if (other.resourceClaimFieldMap != null) {
+                return false;
+            }
+        } else if (!resourceClaimFieldMap.equals(other.resourceClaimFieldMap)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
     public String toString() {
         return "ContentClaimFieldMap[" + contentClaim + "]";
     }

@@ -22,7 +22,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
         <title>NiFi</title>
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/reset.css/reset.css" type="text/css" />
         <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css" />
         <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />

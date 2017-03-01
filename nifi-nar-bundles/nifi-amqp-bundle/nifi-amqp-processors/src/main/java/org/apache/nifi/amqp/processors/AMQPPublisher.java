@@ -19,8 +19,6 @@ package org.apache.nifi.amqp.processors;
 import java.io.IOException;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
@@ -32,50 +30,21 @@ import com.rabbitmq.client.ReturnListener;
  */
 final class AMQPPublisher extends AMQPWorker {
 
-    private final static Logger logger = LoggerFactory.getLogger(AMQPPublisher.class);
-
-    private final String exchangeName;
-
-    private final String routingKey;
-
     private final ComponentLog processLog;
+
+    private final String connectionString;
 
     /**
      * Creates an instance of this publisher
      *
      * @param connection
      *            instance of AMQP {@link Connection}
-     * @param exchangeName
-     *            the name of AMQP exchange to which messages will be published.
-     *            If not provided 'default' exchange will be used.
-     * @param routingKey
-     *            (required) the name of the routingKey to be used by AMQP-based
-     *            system to route messages to its final destination (queue).
      */
-    AMQPPublisher(Connection connection, String exchangeName, String routingKey, ComponentLog processLog) {
+    AMQPPublisher(Connection connection, ComponentLog processLog) {
         super(connection);
         this.processLog = processLog;
-        this.validateStringProperty("routingKey", routingKey);
-        this.exchangeName = exchangeName == null ? "" : exchangeName.trim();
-        if (this.exchangeName.length() == 0) {
-            logger.info("The 'exchangeName' is not specified. Messages will be sent to default exchange");
-        }
-
-        this.routingKey = routingKey;
         this.channel.addReturnListener(new UndeliverableMessageLogger());
-        logger.info("Successfully connected AMQPPublisher to " + connection.toString() + " and '" + this.exchangeName
-                + "' exchange with '" + routingKey + "' as a routing key.");
-    }
-
-    /**
-     * Publishes message without any AMQP properties (see
-     * {@link BasicProperties}) to a pre-defined AMQP Exchange.
-     *
-     * @param bytes
-     *            bytes representing a message.
-     */
-    void publish(byte[] bytes) {
-        this.publish(bytes, null);
+        this.connectionString = connection.toString();
     }
 
     /**
@@ -86,14 +55,28 @@ final class AMQPPublisher extends AMQPWorker {
      *            bytes representing a message.
      * @param properties
      *            instance of {@link BasicProperties}
+     * @param exchange
+     *            the name of AMQP exchange to which messages will be published.
+     *            If not provided 'default' exchange will be used.
+     * @param routingKey
+     *            (required) the name of the routingKey to be used by AMQP-based
+     *            system to route messages to its final destination (queue).
      */
-    void publish(byte[] bytes, BasicProperties properties) {
+    void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
+        this.validateStringProperty("routingKey", routingKey);
+        exchange = exchange == null ? "" : exchange.trim();
+        if (exchange.length() == 0) {
+            processLog.info("The 'exchangeName' is not specified. Messages will be sent to default exchange");
+        }
+        processLog.info("Successfully connected AMQPPublisher to " + this.connectionString + " and '" + exchange
+                + "' exchange with '" + routingKey + "' as a routing key.");
+
         if (this.channel.isOpen()) {
             try {
-                this.channel.basicPublish(this.exchangeName, this.routingKey, true, properties, bytes);
+                this.channel.basicPublish(exchange, routingKey, true, properties, bytes);
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to publish to '" +
-                        this.exchangeName + "' with '" + this.routingKey + "'.", e);
+                        exchange + "' with '" + routingKey + "'.", e);
             }
         } else {
             throw new IllegalStateException("This instance of AMQPPublisher is invalid since "
@@ -106,7 +89,7 @@ final class AMQPPublisher extends AMQPWorker {
      */
     @Override
     public String toString() {
-        return super.toString() + ", EXCHANGE:" + this.exchangeName + ", ROUTING_KEY:" + this.routingKey;
+        return this.connectionString;
     }
 
     /**
@@ -127,7 +110,7 @@ final class AMQPPublisher extends AMQPWorker {
                 throws IOException {
             String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
                     + "' as routing key came back with replyCode=" + replyCode + " and replyText=" + replyText + ".";
-            logger.warn(logMessage);
+            processLog.warn(logMessage);
             AMQPPublisher.this.processLog.warn(logMessage);
         }
     }

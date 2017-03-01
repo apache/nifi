@@ -32,18 +32,26 @@ public abstract class AbstractRecordWriter implements RecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(AbstractRecordWriter.class);
 
     private final File file;
+    private final String storageLocation;
     private final TocWriter tocWriter;
     private final Lock lock = new ReentrantLock();
 
     private volatile boolean dirty = false;
     private volatile boolean closed = false;
 
-    private int recordsWritten = 0;
-
     public AbstractRecordWriter(final File file, final TocWriter writer) throws IOException {
         logger.trace("Creating Record Writer for {}", file);
 
         this.file = file;
+        this.storageLocation = file.getName();
+        this.tocWriter = writer;
+    }
+
+    public AbstractRecordWriter(final String storageLocation, final TocWriter writer) throws IOException {
+        logger.trace("Creating Record Writer for {}", storageLocation);
+
+        this.file = null;
+        this.storageLocation = storageLocation;
         this.tocWriter = writer;
     }
 
@@ -51,7 +59,7 @@ public abstract class AbstractRecordWriter implements RecordWriter {
     public synchronized void close() throws IOException {
         closed = true;
 
-        logger.trace("Closing Record Writer for {}", file == null ? null : file.getName());
+        logger.trace("Closing Record Writer for {}", getStorageLocation());
 
         lock();
         try {
@@ -94,9 +102,8 @@ public abstract class AbstractRecordWriter implements RecordWriter {
         }
     }
 
-    @Override
-    public int getRecordsWritten() {
-        return recordsWritten;
+    protected String getStorageLocation() {
+        return storageLocation;
     }
 
     @Override
@@ -133,6 +140,7 @@ public abstract class AbstractRecordWriter implements RecordWriter {
         this.dirty = true;
     }
 
+    @Override
     public boolean isDirty() {
         return dirty;
     }
@@ -142,7 +150,7 @@ public abstract class AbstractRecordWriter implements RecordWriter {
     }
 
     @Override
-    public void sync() throws IOException {
+    public synchronized void sync() throws IOException {
         try {
             if (tocWriter != null) {
                 tocWriter.sync();

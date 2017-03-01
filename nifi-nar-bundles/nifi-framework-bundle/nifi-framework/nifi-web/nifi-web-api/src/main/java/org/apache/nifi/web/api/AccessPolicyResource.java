@@ -422,7 +422,8 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Deletes an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}", type = ""),
+                    @Authorization(value = "Write - Policy of the parent resource - /policies/{resource}", type = "")
             }
     )
     @ApiResponses(
@@ -472,7 +473,12 @@ public class AccessPolicyResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable accessPolicy = lookup.getAccessPolicyById(id);
+
+                    // ensure write permission to the access policy
                     accessPolicy.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the policy for the parent process group
+                    accessPolicy.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 (revision, accessPolicyEntity) -> {

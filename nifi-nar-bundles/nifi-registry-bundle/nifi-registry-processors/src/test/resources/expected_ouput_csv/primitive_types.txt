@@ -1,0 +1,1 @@
+"this is a simple string."|10|21474836470|1.7976931348623157E308|true

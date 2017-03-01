@@ -331,35 +331,9 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
                 // convert HBase cells to NiFi cells
                 final ResultCell[] resultCells = new ResultCell[cells.length];
-
                 for (int i=0; i < cells.length; i++) {
                     final Cell cell = cells[i];
-
-                    final ResultCell resultCell = new ResultCell();
-                    resultCell.setRowArray(cell.getRowArray());
-                    resultCell.setRowOffset(cell.getRowOffset());
-                    resultCell.setRowLength(cell.getRowLength());
-
-                    resultCell.setFamilyArray(cell.getFamilyArray());
-                    resultCell.setFamilyOffset(cell.getFamilyOffset());
-                    resultCell.setFamilyLength(cell.getFamilyLength());
-
-                    resultCell.setQualifierArray(cell.getQualifierArray());
-                    resultCell.setQualifierOffset(cell.getQualifierOffset());
-                    resultCell.setQualifierLength(cell.getQualifierLength());
-
-                    resultCell.setTimestamp(cell.getTimestamp());
-                    resultCell.setTypeByte(cell.getTypeByte());
-                    resultCell.setSequenceId(cell.getSequenceId());
-
-                    resultCell.setValueArray(cell.getValueArray());
-                    resultCell.setValueOffset(cell.getValueOffset());
-                    resultCell.setValueLength(cell.getValueLength());
-
-                    resultCell.setTagsArray(cell.getTagsArray());
-                    resultCell.setTagsOffset(cell.getTagsOffset());
-                    resultCell.setTagsLength(cell.getTagsLength());
-
+                    final ResultCell resultCell = getResultCell(cell);
                     resultCells[i] = resultCell;
                 }
 
@@ -367,6 +341,54 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 handler.handle(rowKey, resultCells);
             }
         }
+    }
+
+    @Override
+    public void scan(final String tableName, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, final ResultHandler handler)
+            throws IOException {
+
+        try (final Table table = connection.getTable(TableName.valueOf(tableName));
+             final ResultScanner scanner = getResults(table, startRow, endRow, columns)) {
+
+            for (final Result result : scanner) {
+                final byte[] rowKey = result.getRow();
+                final Cell[] cells = result.rawCells();
+
+                if (cells == null) {
+                    continue;
+                }
+
+                // convert HBase cells to NiFi cells
+                final ResultCell[] resultCells = new ResultCell[cells.length];
+                for (int i=0; i < cells.length; i++) {
+                    final Cell cell = cells[i];
+                    final ResultCell resultCell = getResultCell(cell);
+                    resultCells[i] = resultCell;
+                }
+
+                // delegate to the handler
+                handler.handle(rowKey, resultCells);
+            }
+        }
+    }
+
+    // protected and extracted into separate method for testing
+    protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns) throws IOException {
+        final Scan scan = new Scan();
+        scan.setStartRow(startRow);
+        scan.setStopRow(endRow);
+
+        if (columns != null) {
+            for (Column col : columns) {
+                if (col.getQualifier() == null) {
+                    scan.addFamily(col.getFamily());
+                } else {
+                    scan.addColumn(col.getFamily(), col.getQualifier());
+                }
+            }
+        }
+
+        return table.getScanner(scan);
     }
 
     // protected and extracted into separate method for testing
@@ -393,6 +415,34 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         return table.getScanner(scan);
+    }
+
+    private ResultCell getResultCell(Cell cell) {
+        final ResultCell resultCell = new ResultCell();
+        resultCell.setRowArray(cell.getRowArray());
+        resultCell.setRowOffset(cell.getRowOffset());
+        resultCell.setRowLength(cell.getRowLength());
+
+        resultCell.setFamilyArray(cell.getFamilyArray());
+        resultCell.setFamilyOffset(cell.getFamilyOffset());
+        resultCell.setFamilyLength(cell.getFamilyLength());
+
+        resultCell.setQualifierArray(cell.getQualifierArray());
+        resultCell.setQualifierOffset(cell.getQualifierOffset());
+        resultCell.setQualifierLength(cell.getQualifierLength());
+
+        resultCell.setTimestamp(cell.getTimestamp());
+        resultCell.setTypeByte(cell.getTypeByte());
+        resultCell.setSequenceId(cell.getSequenceId());
+
+        resultCell.setValueArray(cell.getValueArray());
+        resultCell.setValueOffset(cell.getValueOffset());
+        resultCell.setValueLength(cell.getValueLength());
+
+        resultCell.setTagsArray(cell.getTagsArray());
+        resultCell.setTagsOffset(cell.getTagsOffset());
+        resultCell.setTagsLength(cell.getTagsLength());
+        return resultCell;
     }
 
     static protected class ValidationResources {

@@ -16,45 +16,33 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
-import java.nio.ByteBuffer;
-
 public class MapPutResult {
 
     private final boolean successful;
-    private final ByteBuffer key, value;
-    private final ByteBuffer existingValue;
-    private final ByteBuffer evictedKey, evictedValue;
+    private final MapCacheRecord record;
+    private final MapCacheRecord existing;
+    private final MapCacheRecord evicted;
 
-    public MapPutResult(final boolean successful, final ByteBuffer key, final ByteBuffer value, final ByteBuffer existingValue, final ByteBuffer evictedKey, final ByteBuffer evictedValue) {
+    public MapPutResult(boolean successful, MapCacheRecord record, MapCacheRecord existing, MapCacheRecord evicted) {
         this.successful = successful;
-        this.key = key;
-        this.value = value;
-        this.existingValue = existingValue;
-        this.evictedKey = evictedKey;
-        this.evictedValue = evictedValue;
+        this.record = record;
+        this.existing = existing;
+        this.evicted = evicted;
     }
 
     public boolean isSuccessful() {
         return successful;
     }
 
-    public ByteBuffer getKey() {
-        return key;
+    public MapCacheRecord getRecord() {
+        return record;
     }
 
-    public ByteBuffer getValue() {
-        return value;
+    public MapCacheRecord getExisting() {
+        return existing;
     }
 
-    public ByteBuffer getExistingValue() {
-        return existingValue;
-    }
-
-    public ByteBuffer getEvictedKey() {
-        return evictedKey;
-    }
-
-    public ByteBuffer getEvictedValue() {
-        return evictedValue;
+    public MapCacheRecord getEvicted() {
+        return evicted;
     }
 }

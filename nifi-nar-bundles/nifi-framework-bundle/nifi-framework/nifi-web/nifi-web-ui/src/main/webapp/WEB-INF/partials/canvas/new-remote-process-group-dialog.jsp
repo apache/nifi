@@ -18,9 +18,11 @@
 <div id="new-remote-process-group-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">URL</div>
+            <div class="setting-name">URLs
+                <div class="fa fa-question-circle" alt="Info" title="Specify the remote target NiFi URLs. Multiple URLs can be specified in comma-separated format. Different protocols cannot be mixed. If remote NiFi is a cluster, two or more node URLs are recommended for better connection establishment availability."></div>
+             </div>
             <div class="setting-field">
-                <input id="new-remote-process-group-uri" type="text" placeholder="https://remotehost:8080/nifi"/>
+                <input id="new-remote-process-group-uris" type="text" placeholder="https://remotehost:8080/nifi"/>
             </div>
         </div>
         <div class="setting">

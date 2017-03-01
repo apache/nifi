@@ -185,7 +185,11 @@ public class JmsFactory {
             baos.write(byteBuffer, 0, byteCount);
         }
 
-        baos.close();
+        try {
+            baos.close();
+        } catch (final IOException ioe) {
+        }
+
         return baos.toByteArray();
     }
 
@@ -378,6 +382,9 @@ public class JmsFactory {
     private static boolean isSSL(URI uri) {
         try {
             CompositeData compositeData = URISupport.parseComposite(uri);
+            if ("ssl".equals(compositeData.getScheme())) {
+                return true;
+            }
             for(URI component : compositeData.getComponents()){
                 if ("ssl".equals(component.getScheme())) {
                     return true;

@@ -97,6 +97,11 @@ i[class^="icon-"]:before, i[class*=" icon-"]:before {
     margin: -2px;
 }
 
+/*shift rotated font awesome icons*/
+.fa-rotate-90 {
+    left: -2px !important;
+}
+
 body {
     display: block;
     font-family: Roboto, sans-serif;
@@ -162,6 +167,7 @@ ul.links span.header-link-over {
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ellipsis.multiline {
@@ -247,11 +253,15 @@ ul.property-info li {
 }
 
 div.nf-checkbox {
-    cursor: default;
+    cursor: pointer;
     width: 12px;
     height: 12px;
     float: left;
     margin-right: 4px;
+}
+
+.nf-checkbox-label {
+    cursor: pointer;
 }
 
 div.checkbox-unchecked {
@@ -286,6 +296,10 @@ div.ajax-error:before {
 
 .ui-draggable .dialog-header {
     cursor: move;
+}
+
+span.link:focus {
+    outline: none;
 }
 
 span.link {
@@ -588,7 +602,7 @@ md-progress-linear > div {
     font-weight: 500;
 }
 
-.setting-header{
+.setting-header {
     color: #728e9b;
     font-size: 12pt;
     font-family: 'Roboto Slab';
@@ -604,4 +618,32 @@ md-progress-linear > div {
     background-color: #fff;
     cursor: default;
     line-height: normal;
+}
+
+/* jquery ui autocomplete override */
+
+.ui-autocomplete {
+    overflow: auto !important;
+    border: 1px solid #aaaaaa !important;
+    font-size: 12px !important;
+    font-family: Roboto !important;
+}
+
+.ui-menu .ui-menu-item a {
+    display: block;
+    border: 1px solid transparent;
+    line-height: 1.5;
+    margin: 0 !important;
+    color: #333 !important;
+}
+
+.ui-menu .ui-menu-item a.ui-state-active {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+}
+
+/* jquery ui slider override */
+
+.ui-slider-handle.ui-state-active {
+    background: #fff !important;
 }

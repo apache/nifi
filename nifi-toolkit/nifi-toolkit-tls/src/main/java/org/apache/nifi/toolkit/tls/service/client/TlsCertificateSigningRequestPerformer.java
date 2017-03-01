@@ -18,6 +18,16 @@
 package org.apache.nifi.toolkit.tls.service.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.http.HttpHost;
@@ -38,17 +48,6 @@ import org.eclipse.jetty.server.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyPair;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
-
 public class TlsCertificateSigningRequestPerformer {
     public static final String RECEIVED_RESPONSE_CODE = "Received response code ";
     public static final String EXPECTED_ONE_CERTIFICATE = "Expected one certificate";
@@ -59,23 +58,28 @@ public class TlsCertificateSigningRequestPerformer {
     private final Supplier<HttpClientBuilder> httpClientBuilderSupplier;
     private final String caHostname;
     private final String dn;
+    private final String domainAlternativeNames;
     private final String token;
     private final int port;
     private final ObjectMapper objectMapper;
     private final String signingAlgorithm;
 
     public TlsCertificateSigningRequestPerformer(TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
+        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomainAlternativeNames(),
+                tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
     protected TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
+        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomainAlternativeNames(),
+                tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
-    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, String signingAlgorithm) {
+    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname,
+                                                  String dn, String domainAlternativeNames, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
         this.dn = CertificateUtils.reorderDn(dn);
+        this.domainAlternativeNames = domainAlternativeNames;
         this.token = token;
         this.port = port;
         this.objectMapper = new ObjectMapper();
@@ -87,7 +91,7 @@ public class TlsCertificateSigningRequestPerformer {
      *
      * @param keyPair the keypair to generate the csr for
      * @throws IOException if there is a problem during the process
-     * @returnd the resulting certificate chain
+     * @return the resulting certificate chain
      */
     public X509Certificate[] perform(KeyPair keyPair) throws IOException {
         try {
@@ -104,7 +108,7 @@ public class TlsCertificateSigningRequestPerformer {
             String jsonResponseString;
             int responseCode;
             try (CloseableHttpClient client = httpClientBuilder.build()) {
-                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, keyPair, signingAlgorithm);
+                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, domainAlternativeNames, keyPair, signingAlgorithm);
                 TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(TlsHelper.calculateHMac(token, request.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(request));
 

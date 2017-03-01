@@ -74,6 +74,12 @@ public class TestStandardFlowFileQueue {
     private TestSwapManager swapManager = null;
     private StandardFlowFileQueue queue = null;
 
+    private Connection connection = null;
+    private FlowFileRepository flowFileRepo = null;
+    private ProvenanceEventRepository provRepo = null;
+    private ResourceClaimManager claimManager = null;
+    private ProcessScheduler scheduler = null;
+
     private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
     @BeforeClass
@@ -86,16 +92,16 @@ public class TestStandardFlowFileQueue {
     public void setup() {
         provRecords.clear();
 
-        final Connection connection = Mockito.mock(Connection.class);
+        connection = Mockito.mock(Connection.class);
         Mockito.when(connection.getSource()).thenReturn(Mockito.mock(Connectable.class));
         Mockito.when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
 
-        final ProcessScheduler scheduler = Mockito.mock(ProcessScheduler.class);
+        scheduler = Mockito.mock(ProcessScheduler.class);
         swapManager = new TestSwapManager();
 
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
-        final ProvenanceEventRepository provRepo = Mockito.mock(ProvenanceEventRepository.class);
-        final ResourceClaimManager claimManager = Mockito.mock(ResourceClaimManager.class);
+        flowFileRepo = Mockito.mock(FlowFileRepository.class);
+        provRepo = Mockito.mock(ProvenanceEventRepository.class);
+        claimManager = Mockito.mock(ResourceClaimManager.class);
 
         Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
         Mockito.doAnswer(new Answer<Object>() {
@@ -354,6 +360,55 @@ public class TestStandardFlowFileQueue {
 
         final Set<FlowFileRecord> exp = new HashSet<>();
         for (int i = 0; i < 9999; i++) {
+            final FlowFileRecord flowFile = queue.poll(exp);
+            assertNotNull(flowFile);
+            assertEquals(1, queue.getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(1, queue.getUnacknowledgedQueueSize().getByteCount());
+
+            queue.acknowledge(Collections.singleton(flowFile));
+            assertEquals(0, queue.getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(0, queue.getUnacknowledgedQueueSize().getByteCount());
+        }
+
+        assertEquals(0, swapManager.swapInCalledCount);
+        assertEquals(1, queue.getActiveQueueSize().getObjectCount());
+        assertNotNull(queue.poll(exp));
+
+        assertEquals(0, swapManager.swapInCalledCount);
+        assertEquals(0, queue.getActiveQueueSize().getObjectCount());
+
+        assertEquals(1, swapManager.swapOutCalledCount);
+
+        assertNotNull(queue.poll(exp)); // this should trigger a swap-in of 10,000 records, and then pull 1 off the top.
+        assertEquals(1, swapManager.swapInCalledCount);
+        assertEquals(9999, queue.getActiveQueueSize().getObjectCount());
+
+        assertTrue(swapManager.swappedOut.isEmpty());
+
+        queue.poll(exp);
+    }
+
+    @Test
+    public void testSwapInWhenThresholdIsLessThanSwapSize() {
+        // create a queue where the swap threshold is less than 10k
+        queue = new StandardFlowFileQueue("id", connection, flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000);
+
+        for (int i = 1; i <= 20000; i++) {
+            queue.put(new TestFlowFile());
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+        queue.put(new TestFlowFile());
+        assertEquals(1, swapManager.swappedOut.size());
+
+        final Set<FlowFileRecord> exp = new HashSet<>();
+
+        // At this point there should be:
+        // 1k flow files in the active queue
+        // 9,001 flow files in the swap queue
+        // 10k flow files swapped to disk
+
+        for (int i = 0; i < 999; i++) { //
             final FlowFileRecord flowFile = queue.poll(exp);
             assertNotNull(flowFile);
             assertEquals(1, queue.getUnacknowledgedQueueSize().getObjectCount());

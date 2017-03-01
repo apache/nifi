@@ -345,6 +345,25 @@ public class TailFile extends AbstractProcessor {
 
         Map<String, String> statesMap = stateMap.toMap();
 
+        if (statesMap.containsKey(TailFileState.StateKeys.FILENAME)
+                && !statesMap.keySet().stream().anyMatch(key -> key.startsWith(MAP_PREFIX))) {
+            // If statesMap contains "filename" key without "file.0." prefix,
+            // and there's no key with "file." prefix, then
+            // it indicates that the statesMap is created with earlier version of NiFi.
+            // In this case, we need to migrate the state by adding prefix indexed with 0.
+            final Map<String, String> migratedStatesMap = new HashMap<>(statesMap.size());
+            for (String key : statesMap.keySet()) {
+                migratedStatesMap.put(MAP_PREFIX + "0." + key, statesMap.get(key));
+            }
+
+            // LENGTH is added from NiFi 1.1.0. Set the value with using the last position so that we can use existing state
+            // to avoid sending duplicated log data after updating NiFi.
+            migratedStatesMap.put(MAP_PREFIX + "0." + TailFileState.StateKeys.LENGTH, statesMap.get(TailFileState.StateKeys.POSITION));
+            statesMap = Collections.unmodifiableMap(migratedStatesMap);
+
+            getLogger().info("statesMap has been migrated. {}", new Object[]{migratedStatesMap});
+        }
+
         initStates(filesToTail, statesMap, false);
         recoverState(context, filesToTail, statesMap);
     }
@@ -791,11 +810,12 @@ public class TailFile extends AbstractProcessor {
                     byte ch = buffer.get(i);
 
                     switch (ch) {
-                        case '\n':
+                        case '\n': {
                             baos.write(ch);
                             seenCR = false;
                             baos.writeTo(out);
-                            checksum.update(baos.getUnderlyingBuffer(), 0, baos.size());
+                            final byte[] baosBuffer = baos.toByteArray();
+                            checksum.update(baosBuffer, 0, baos.size());
                             if (getLogger().isTraceEnabled()) {
                                 getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
                             }
@@ -804,15 +824,18 @@ public class TailFile extends AbstractProcessor {
                             rePos = pos + i + 1;
                             linesRead++;
                             break;
-                        case '\r':
+                        }
+                        case '\r': {
                             baos.write(ch);
                             seenCR = true;
                             break;
-                        default:
+                        }
+                        default: {
                             if (seenCR) {
                                 seenCR = false;
                                 baos.writeTo(out);
-                                checksum.update(baos.getUnderlyingBuffer(), 0, baos.size());
+                                final byte[] baosBuffer = baos.toByteArray();
+                                checksum.update(baosBuffer, 0, baos.size());
                                 if (getLogger().isTraceEnabled()) {
                                     getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
                                 }
@@ -824,6 +847,7 @@ public class TailFile extends AbstractProcessor {
                             } else {
                                 baos.write(ch);
                             }
+                        }
                     }
                 }
 
@@ -931,6 +955,15 @@ public class TailFile extends AbstractProcessor {
             Map<String, String> updatedState = new HashMap<String, String>();
 
             for(String key : oldState.toMap().keySet()) {
+                // These states are stored by older version of NiFi, and won't be used anymore.
+                // New states have 'file.<index>.' prefix.
+                if (TailFileState.StateKeys.CHECKSUM.equals(key)
+                        || TailFileState.StateKeys.FILENAME.equals(key)
+                        || TailFileState.StateKeys.POSITION.equals(key)
+                        || TailFileState.StateKeys.TIMESTAMP.equals(key)) {
+                    getLogger().info("Removed state {}={} stored by older version of NiFi.", new Object[]{key, oldState.get(key)});
+                    continue;
+                }
                 updatedState.put(key, oldState.get(key));
             }
 

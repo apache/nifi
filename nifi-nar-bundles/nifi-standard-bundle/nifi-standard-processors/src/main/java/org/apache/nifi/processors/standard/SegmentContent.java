@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -80,11 +81,11 @@ public class SegmentContent extends AbstractProcessor {
     public static final String SEGMENT_ID = "segment.identifier";
     public static final String SEGMENT_INDEX = "segment.index";
     public static final String SEGMENT_COUNT = "segment.count";
-    public static final String SEGMENT_ORIGINAL_FILENAME = "segment.original.filename";
+    public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
-    public static final String FRAGMENT_ID = "fragment.identifier";
-    public static final String FRAGMENT_INDEX = "fragment.index";
-    public static final String FRAGMENT_COUNT = "fragment.count";
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
 
     public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
             .name("Segment Size")
@@ -180,6 +181,7 @@ public class SegmentContent extends AbstractProcessor {
         }
 
         session.transfer(segmentSet, REL_SEGMENTS);
+        flowFile = FragmentAttributes.copyAttributesToOriginal(session, flowFile, segmentId, totalSegments);
         session.transfer(flowFile, REL_ORIGINAL);
 
         if (totalSegments <= 10) {

@@ -161,7 +161,7 @@ public class LumberjackDecoder {
 
         // Lumberjack has a weird approach to frames, where compressed frames embed D(ata) or J(SON) frames.
         // inside a compressed input.
-        //  Or astated in the documentation:
+        //  Or as stated in the documentation:
         //
         // "As an example, you could have 3 data frames compressed into a single
         // 'compressed' frame type: 1D{k,v}{k,v}1D{k,v}{k,v}1D{k,v}{k,v}"

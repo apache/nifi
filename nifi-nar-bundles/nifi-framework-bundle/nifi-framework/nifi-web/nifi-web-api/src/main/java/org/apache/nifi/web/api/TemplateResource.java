@@ -122,7 +122,7 @@ public class TemplateResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable template = lookup.getTemplate(id);
+            final Authorizable template = lookup.getTemplate(id).getAuthorizable();
             template.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -165,7 +165,8 @@ public class TemplateResource extends ApplicationResource {
             value = "Deletes a template",
             response = TemplateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /templates/{uuid}", type = "")
+                    @Authorization(value = "Write - /templates/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -196,8 +197,13 @@ public class TemplateResource extends ApplicationResource {
                 serviceFacade,
                 requestTemplateEntity,
                 lookup -> {
-                    final Authorizable template = lookup.getTemplate(id);
+                    final Authorizable template = lookup.getTemplate(id).getAuthorizable();
+
+                    // ensure write permission to the template
                     template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    template.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 (templateEntity) -> {

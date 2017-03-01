@@ -18,12 +18,19 @@
  */
 package org.apache.nifi.processors.kite;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.nifi.processor.ProcessContext;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
 import org.apache.nifi.processors.kite.AbstractKiteConvertProcessor.CodecType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -32,6 +39,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestCSVToAvroProcessor {
 
@@ -220,50 +230,6 @@ public class TestCSVToAvroProcessor {
     }
 
     @Test
-    public void testCSVProperties() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
-        ConvertCSVToAvro processor = new ConvertCSVToAvro();
-        ProcessContext context = runner.getProcessContext();
-
-        // check defaults
-        processor.createCSVProperties(context);
-        Assert.assertEquals("Charset should match",
-                "utf8", processor.props.charset);
-        Assert.assertEquals("Delimiter should match",
-                ",", processor.props.delimiter);
-        Assert.assertEquals("Quote should match",
-                "\"", processor.props.quote);
-        Assert.assertEquals("Escape should match",
-                "\\", processor.props.escape);
-        Assert.assertEquals("Header flag should match",
-                false, processor.props.useHeader);
-        Assert.assertEquals("Lines to skip should match",
-                0, processor.props.linesToSkip);
-
-        runner.setProperty(ConvertCSVToAvro.CHARSET, "utf16");
-        runner.setProperty(ConvertCSVToAvro.DELIMITER, "|");
-        runner.setProperty(ConvertCSVToAvro.QUOTE, "'");
-        runner.setProperty(ConvertCSVToAvro.ESCAPE, "\u2603");
-        runner.setProperty(ConvertCSVToAvro.HAS_HEADER, "true");
-        runner.setProperty(ConvertCSVToAvro.LINES_TO_SKIP, "2");
-
-        // check updates
-        processor.createCSVProperties(context);
-        Assert.assertEquals("Charset should match",
-                "utf16", processor.props.charset);
-        Assert.assertEquals("Delimiter should match",
-                "|", processor.props.delimiter);
-        Assert.assertEquals("Quote should match",
-                "'", processor.props.quote);
-        Assert.assertEquals("Escape should match",
-                "\u2603", processor.props.escape);
-        Assert.assertEquals("Header flag should match",
-                true, processor.props.useHeader);
-        Assert.assertEquals("Lines to skip should match",
-                2, processor.props.linesToSkip);
-    }
-
-    @Test
     public void testBasicConversionNoErrors() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
         runner.assertNotValid();
@@ -281,5 +247,54 @@ public class TestCSVToAvroProcessor {
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("failure", 0);
         runner.assertTransferCount("incompatible", 0);
+    }
+
+    @Test
+    public void testExpressionLanguageBasedCSVProperties() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, SCHEMA.toString());
+        runner.assertValid();
+
+        runner.setProperty(ConvertCSVToAvro.DELIMITER, "${csv.delimiter}");
+        runner.setProperty(ConvertCSVToAvro.QUOTE, "${csv.quote}");
+
+        HashMap<String, String> flowFileAttributes = new HashMap<String,String>();
+        flowFileAttributes.put("csv.delimiter", "|");
+        flowFileAttributes.put("csv.quote", "~");
+
+        runner.enqueue(streamFor("1|green\n2|~blue|field~|\n3|grey|12.95"), flowFileAttributes);
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 3 rows", 3, converted);
+        Assert.assertEquals("Should reject 0 row", 0, errors);
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 0);
+        runner.assertTransferCount("incompatible", 0);
+
+        final InputStream in = new ByteArrayInputStream(runner.getFlowFilesForRelationship("success").get(0).toByteArray());
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            assertTrue(dataFileReader.hasNext());
+            GenericRecord record = dataFileReader.next();
+            assertEquals(1L, record.get("id"));
+            assertEquals("green", record.get("color").toString());
+            assertNull(record.get("price"));
+
+            assertTrue(dataFileReader.hasNext());
+            record = dataFileReader.next();
+            assertEquals(2L, record.get("id"));
+            assertEquals("blue|field", record.get("color").toString());
+            assertNull(record.get("price"));
+
+            assertTrue(dataFileReader.hasNext());
+            record = dataFileReader.next();
+            assertEquals(3L, record.get("id"));
+            assertEquals("grey", record.get("color").toString());
+            assertEquals(12.95, record.get("price"));
+        }
     }
 }

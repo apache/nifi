@@ -15,9 +15,27 @@
  * limitations under the License.
  */
 
-/* global nf, CodeMirror */
+/* global define, module, require, exports */
 
-nf.nfel = (function() {
+/* requires qtip plugin to be loaded first*/
+
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'CodeMirror'],
+            function ($, CodeMirror) {
+                return (nf.nfel = factory($, CodeMirror));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.nfel =
+            factory(require('jquery'),
+                require('CodeMirror')));
+    } else {
+        nf.nfel = factory(root.$,
+            root.CodeMirror);
+    }
+}(this, function ($, CodeMirror) {
+    'use strict';
     
     /**
      * Formats the specified arguments for the EL function tooltip.
@@ -662,16 +680,17 @@ nf.nfel = (function() {
                             }
 
                             return argumentStringResult;
-                        } else if (stream.match(/^(([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?)|((\.[0-9]+)([eE][+-]?([0-9])+)?)|(([0-9]+)([eE][+-]?([0-9])+))/)) {
+                        } else if (stream.match(/^[-\+]?((([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?)|((\.[0-9]+)([eE][+-]?([0-9])+)?)|(([0-9]+)([eE][+-]?([0-9])+)))/)) {
                             // -------------
                             // Decimal value
                             // -------------
                             // This matches the following ANTLR spec for deciamls
                             //
-                            // DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?    ^([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?
-                            //             | '.' ('0'..'9')+ EXP?
-                            //             | ('0'..'9')+ EXP;
+                            // DECIMAL :     OP? ('0'..'9')+ '.' ('0'..'9')* EXP?    ^([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?
+                            //             | OP? '.' ('0'..'9')+ EXP?
+                            //             | OP? ('0'..'9')+ EXP;
                             //
+                            // fragment OP: ('+'|'-');
                             // fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
                             // change context back to arguments
@@ -679,7 +698,7 @@ nf.nfel = (function() {
 
                             // style for decimal (use same as number)
                             return 'number';
-                        } else if (stream.match(/^-?[0-9]+/)) {
+                        } else if (stream.match(/^[-\+]?[0-9]+/)) {
                             // -------------
                             // integer value
                             // -------------
@@ -852,4 +871,4 @@ nf.nfel = (function() {
             return completions;
         }
     };
-}());
+}));

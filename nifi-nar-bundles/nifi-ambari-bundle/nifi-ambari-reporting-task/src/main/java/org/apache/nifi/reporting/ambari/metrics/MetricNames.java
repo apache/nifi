@@ -21,6 +21,9 @@ package org.apache.nifi.reporting.ambari.metrics;
  */
 public interface MetricNames {
 
+    // Metric Name separator
+    String METRIC_NAME_SEPARATOR = ".";
+
     // NiFi Metrics
     String FLOW_FILES_RECEIVED = "FlowFilesReceivedLast5Minutes";
     String BYTES_RECEIVED = "BytesReceivedLast5Minutes";

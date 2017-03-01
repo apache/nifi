@@ -87,7 +87,7 @@ public class FingerprintFactory {
     // no fingerprint value
     public static final String NO_VALUE = "NO_VALUE";
 
-    private static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
+    static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final StringEncryptor encryptor;
@@ -113,6 +113,11 @@ public class FingerprintFactory {
         } catch (final Exception e) {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
+    }
+
+    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder) {
+        this.encryptor = encryptor;
+        this.flowConfigDocBuilder = docBuilder;
     }
 
     /**

@@ -25,7 +25,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 public interface Triggerable {
 
-    public static final long MINIMUM_SCHEDULING_NANOS = 30000L;
+    public static final long MINIMUM_SCHEDULING_NANOS = 1L;
 
     /**
      * <p>

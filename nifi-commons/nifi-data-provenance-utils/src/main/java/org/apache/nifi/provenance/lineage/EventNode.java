@@ -18,7 +18,6 @@ package org.apache.nifi.provenance.lineage;
 
 import java.util.List;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 
@@ -58,7 +57,7 @@ public class EventNode implements ProvenanceEventLineageNode {
 
     @Override
     public String getFlowFileUuid() {
-        return record.getAttributes().get(CoreAttributes.UUID.key());
+        return record.getFlowFileUuid();
     }
 
     @Override

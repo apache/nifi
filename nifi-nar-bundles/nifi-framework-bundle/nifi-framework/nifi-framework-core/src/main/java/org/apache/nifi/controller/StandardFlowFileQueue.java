@@ -448,7 +448,8 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         // Swap Queue to the Active Queue. However, we don't do this if there are FlowFiles already swapped out
         // to disk, because we want them to be swapped back in in the same order that they were swapped out.
 
-        if (activeQueue.size() > swapThreshold - SWAP_RECORD_POLL_SIZE) {
+        final int activeQueueSize = activeQueue.size();
+        if (activeQueueSize > 0 && activeQueueSize > swapThreshold - SWAP_RECORD_POLL_SIZE) {
             return;
         }
 

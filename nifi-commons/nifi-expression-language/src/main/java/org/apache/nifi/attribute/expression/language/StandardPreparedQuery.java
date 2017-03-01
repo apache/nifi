@@ -38,14 +38,14 @@ public class StandardPreparedQuery implements PreparedQuery {
 
 
     @Override
-    public String evaluateExpressions(final Map<String, String> valueMap, final AttributeValueDecorator decorator) throws ProcessException {
+    public String evaluateExpressions(final Map<String, String> valMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) throws ProcessException {
         final StringBuilder sb = new StringBuilder();
         for (final String val : queryStrings) {
             final Tree tree = trees.get(val);
             if (tree == null) {
                 sb.append(val);
             } else {
-                final String evaluated = Query.evaluateExpression(tree, val, valueMap, decorator);
+                final String evaluated = Query.evaluateExpression(tree, val, valMap, decorator, stateVariables);
                 if (evaluated != null) {
                     sb.append(evaluated);
                 }
@@ -54,4 +54,9 @@ public class StandardPreparedQuery implements PreparedQuery {
         return sb.toString();
     }
 
+    @Override
+    public String evaluateExpressions(final Map<String, String> valMap, final AttributeValueDecorator decorator)
+            throws ProcessException {
+        return evaluateExpressions(valMap, decorator, null);
+    }
 }

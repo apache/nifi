@@ -23,10 +23,12 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.SnippetAuthorizable;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
@@ -47,6 +49,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -92,6 +95,33 @@ public class SnippetResource extends ApplicationResource {
     // --------
 
     /**
+     * Authorizes the specified snippet request with the specified request action. This method is used when creating a snippet. Because we do not know what
+     * the snippet will be used for, we just ensure the user has permissions to each selected component. Some actions may require additional permissions
+     * (including referenced services) but those will be enforced when the snippet is used.
+     *
+     * @param authorizer authorizer
+     * @param lookup     lookup
+     * @param action     action
+     */
+    private void authorizeSnippetRequest(final SnippetDTO snippetRequest, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+
+        // note - we are not authorizing templates or controller services as they are not considered when using this snippet
+        snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+            // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
+            // in a subsequent action with this snippet
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
+        });
+        snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
+        snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
+        snippetRequest.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
+        snippetRequest.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
+        snippetRequest.getConnections().keySet().stream().map(id -> lookup.getConnection(id).getAuthorizable()).forEach(authorize);
+        snippetRequest.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+        snippetRequest.getLabels().keySet().stream().map(id -> lookup.getLabel(id)).forEach(authorize);
+    }
+
+    /**
      * Creates a snippet based off the specified configuration.
      *
      * @param httpServletRequest request
@@ -102,7 +132,7 @@ public class SnippetResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(
-            value = "Creates a snippet",
+            value = "Creates a snippet. The snippet will be automatically discarded if not used in a subsequent request after 1 minute.",
             response = SnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components", type = "")
@@ -133,6 +163,10 @@ public class SnippetResource extends ApplicationResource {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
         }
 
+        if (requestSnippetEntity.getSnippet().getParentGroupId() == null) {
+            throw new IllegalArgumentException("The parent Process Group of the snippet must be specified.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestSnippetEntity);
         }
@@ -141,7 +175,7 @@ public class SnippetResource extends ApplicationResource {
                 serviceFacade,
                 requestSnippetEntity,
                 lookup -> {
-                    final SnippetDTO snippet = requestSnippetEntity.getSnippet();
+                    final SnippetDTO snippetRequest = requestSnippetEntity.getSnippet();
 
                     // the snippet being created may be used later for batch component modifications,
                     // copy/paste, or template creation. during those subsequent actions, the snippet
@@ -150,9 +184,9 @@ public class SnippetResource extends ApplicationResource {
                     // read OR write
 
                     try {
-                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+                        authorizeSnippetRequest(snippetRequest, authorizer, lookup, RequestAction.READ);
                     } catch (final AccessDeniedException e) {
-                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                        authorizeSnippetRequest(snippetRequest, authorizer, lookup, RequestAction.WRITE);
                     }
                 },
                 null,
@@ -183,7 +217,7 @@ public class SnippetResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
     @ApiOperation(
-            value = "Move's the components in this Snippet into a new Process Group and drops the snippet",
+            value = "Move's the components in this Snippet into a new Process Group and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Write Process Group - /process-groups/{uuid}", type = ""),
@@ -238,9 +272,9 @@ public class SnippetResource extends ApplicationResource {
                         lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
 
-                        // ensure write permission to every component in the snippet
-                        final Snippet snippet = lookup.getSnippet(snippetId);
-                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                    // ensure write permission to every component in the snippet excluding referenced services
+                    final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false);
                 },
                 () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, snippetEntity) -> {
@@ -264,10 +298,11 @@ public class SnippetResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
     @ApiOperation(
-            value = "Deletes the components in a snippet and drops the snippet",
+            value = "Deletes the components in a snippet and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = "")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
             }
     )
     @ApiResponses(
@@ -301,9 +336,12 @@ public class SnippetResource extends ApplicationResource {
                 requestEntity,
                 requestRevisions,
                 lookup -> {
-                    // ensure read permission to every component in the snippet
-                    final Snippet snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                    // ensure write permission to every component in the snippet excluding referenced services
+                    final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false);
+
+                    // ensure write permission to the parent process group
+                    snippet.getParentProcessGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, entity) -> {

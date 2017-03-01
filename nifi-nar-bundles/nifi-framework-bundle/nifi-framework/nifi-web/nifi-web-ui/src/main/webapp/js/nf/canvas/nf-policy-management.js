@@ -15,9 +15,46 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.PolicyManagement = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'Slick',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.ng.Bridge',
+                'nf.Dialog',
+                'nf.Shell'],
+            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.PolicyManagement =
+            factory(require('jquery'),
+                require('Slick'),
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.ng.Bridge'),
+                require('nf.Dialog'),
+                require('nf.Shell')));
+    } else {
+        nf.PolicyManagement = factory(root.$,
+            root.Slick,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.ng.Bridge,
+            root.nf.Dialog,
+            root.nf.Shell);
+    }
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+    'use strict';
     
     var config = {
         urls: {
@@ -113,6 +150,10 @@ nf.PolicyManagement = (function () {
             reset: function () {
                 this.term = null;
             },
+            _create: function() {
+                this._super();
+                this.widget().menu('option', 'items', '> :not(.search-no-matches)' );
+            },
             _normalize: function (searchResults) {
                 var items = [];
                 items.push(searchResults);
@@ -125,11 +166,11 @@ nf.PolicyManagement = (function () {
                 var allowedGroups = getAllAllowedGroups();
                 var allowedUsers = getAllAllowedUsers();
 
-                var self = this;
+                var nfUserSearchAutocomplete = this;
                 $.each(searchResults.userGroups, function (_, tenant) {
                     // see if this match is not already selected
                     if ($.inArray(tenant.id, allowedGroups) === -1) {
-                        self._renderGroup(ul, $.extend({
+                        nfUserSearchAutocomplete._renderGroup(ul, $.extend({
                             type: 'group'
                         }, tenant));
                     }
@@ -137,7 +178,7 @@ nf.PolicyManagement = (function () {
                 $.each(searchResults.users, function (_, tenant) {
                     // see if this match is not already selected
                     if ($.inArray(tenant.id, allowedUsers) === -1) {
-                        self._renderUser(ul, $.extend({
+                        nfUserSearchAutocomplete._renderUser(ul, $.extend({
                             type: 'user'
                         }, tenant));
                     }
@@ -150,7 +191,7 @@ nf.PolicyManagement = (function () {
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
-                ul.width($('#search-users-field').outerWidth() - 6);
+                ul.width($('#search-users-field').outerWidth() - 2);
             },
             _renderUser: function (ul, match) {
                 var userContent = $('<a></a>').text(match.component.identity);
@@ -236,7 +277,7 @@ nf.PolicyManagement = (function () {
         // also consider groups already selected in the search users dialog
         container.children('li').each(function (_, allowedTenant) {
             var tenant = $(allowedTenant).data('tenant');
-            if (nf.Common.isDefinedAndNotNull(tenant)) {
+            if (nfCommon.isDefinedAndNotNull(tenant)) {
                 tenants.push(tenant);
             }
         });
@@ -340,16 +381,16 @@ nf.PolicyManagement = (function () {
         // policy type listing
         $('#policy-type-list').combo({
             options: [
-                nf.Common.getPolicyTypeListing('flow'),
-                nf.Common.getPolicyTypeListing('controller'),
-                nf.Common.getPolicyTypeListing('provenance'),
-                nf.Common.getPolicyTypeListing('restricted-components'),
-                nf.Common.getPolicyTypeListing('policies'),
-                nf.Common.getPolicyTypeListing('tenants'),
-                nf.Common.getPolicyTypeListing('site-to-site'),
-                nf.Common.getPolicyTypeListing('system'),
-                nf.Common.getPolicyTypeListing('proxy'),
-                nf.Common.getPolicyTypeListing('counters')],
+                nfCommon.getPolicyTypeListing('flow'),
+                nfCommon.getPolicyTypeListing('controller'),
+                nfCommon.getPolicyTypeListing('provenance'),
+                nfCommon.getPolicyTypeListing('restricted-components'),
+                nfCommon.getPolicyTypeListing('policies'),
+                nfCommon.getPolicyTypeListing('tenants'),
+                nfCommon.getPolicyTypeListing('site-to-site'),
+                nfCommon.getPolicyTypeListing('system'),
+                nfCommon.getPolicyTypeListing('proxy'),
+                nfCommon.getPolicyTypeListing('counters')],
             select: function (option) {
                 if (initialized) {
                     // record the policy type
@@ -500,9 +541,24 @@ nf.PolicyManagement = (function () {
 
         // initialize the templates table
         var usersColumns = [
-            {id: 'identity', name: 'User', sortable: true, resizable: true, formatter: identityFormatter},
-            {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
+            {
+                id: 'identity',
+                name: 'User',
+                sortable: true,
+                resizable: true,
+                formatter: identityFormatter
+            },
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: actionFormatter,
+                width: 100,
+                maxWidth: 100
+            }
         ];
+
         var usersOptions = {
             forceFitColumns: true,
             enableTextSelectionOnCells: true,
@@ -580,8 +636,8 @@ nf.PolicyManagement = (function () {
         // defines a function for sorting
         var comparer = function (a, b) {
             if(a.permissions.canRead && b.permissions.canRead) {
-                var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead){
@@ -605,9 +661,9 @@ nf.PolicyManagement = (function () {
      * @param item
      */
     var promptToRemoveUserFromPolicy = function (item) {
-        nf.Dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Update Policy',
-            dialogContent: 'Remove \'' + nf.Common.escapeHtml(item.component.identity) + '\' from this policy?',
+            dialogContent: 'Remove \'' + nfCommon.escapeHtml(item.component.identity) + '\' from this policy?',
             yesHandler: function () {
                 removeUserFromPolicy(item);
             }
@@ -640,7 +696,7 @@ nf.PolicyManagement = (function () {
      * Prompts for the deletion of the selected policy.
      */
     var promptToDeletePolicy = function () {
-        nf.Dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Delete Policy',
             dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy if applicable.',
             yesText: 'Delete',
@@ -657,20 +713,20 @@ nf.PolicyManagement = (function () {
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
         
-        if (nf.Common.isDefinedAndNotNull(currentEntity)) {
+        if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
-                url: currentEntity.uri + '?' + $.param(nf.Client.getRevision(currentEntity)),
+                url: currentEntity.uri + '?' + $.param(nfClient.getRevision(currentEntity)),
                 dataType: 'json'
             }).done(function () {
                 loadPolicy();
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             });
         } else {
-            nf.Dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Delete Policy',
                 dialogContent: 'No policy selected'
             });
@@ -746,11 +802,11 @@ nf.PolicyManagement = (function () {
             return $('<span>Showing effective policy inherited from the controller.</span>');
         } else {
             // extract the group id
-            var processGroupId = nf.Common.substringAfterLast(resource, '/');
+            var processGroupId = nfCommon.substringAfterLast(resource, '/');
             var processGroupName = processGroupId;
 
             // attempt to resolve the group name
-            var breadcrumbs = nf.ng.Bridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
             $.each(breadcrumbs, function (_, breadcrumbEntity) {
                 if (breadcrumbEntity.id === processGroupId) {
                     processGroupName = breadcrumbEntity.label;
@@ -759,18 +815,23 @@ nf.PolicyManagement = (function () {
             });
 
             // build the mark up
-            return $('<span>Showing effective policy inherited from Process Group </span>').append($('<span class="link"></span>').text(processGroupName).on('click', function () {
-                // close the shell
-                $('#shell-close-button').click();
+            return $('<span>Showing effective policy inherited from Process Group </span>')
+                .append( $('<span class="link ellipsis" style="max-width: 200px; vertical-align: top;"></span>')
+                    .text(processGroupName)
+                    .attr('title', processGroupName)
+                    .on('click', function () {
+                        // close the shell
+                        $('#shell-close-button').click();
 
-                // load the correct group and unselect everything if necessary
-                nf.CanvasUtils.enterGroup(processGroupId).done(function () {
-                    nf.CanvasUtils.getSelection().classed('selected', false);
+                        // load the correct group and unselect everything if necessary
+                        nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(processGroupId).done(function () {
+                            nfCanvasUtils.getSelection().classed('selected', false);
 
-                    // inform Angular app that values have changed
-                    nf.ng.Bridge.digest();
-                });
-            })).append('<span>.</span>');
+                            // inform Angular app that values have changed
+                            nfNgBridge.digest();
+                        });
+                    })
+            ).append('<span>.</span>');
         }
     };
 
@@ -887,7 +948,7 @@ nf.PolicyManagement = (function () {
                         resetPolicy();
 
                         deferred.reject();
-                        nf.Common.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -945,7 +1006,7 @@ nf.PolicyManagement = (function () {
                         resetPolicy();
 
                         deferred.reject();
-                        nf.Common.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -984,7 +1045,7 @@ nf.PolicyManagement = (function () {
         }
 
         var entity = {
-            'revision': nf.Client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': 0
                 }
@@ -1013,7 +1074,7 @@ nf.PolicyManagement = (function () {
                 resetPolicy();
                 loadPolicy();
             }
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -1041,9 +1102,9 @@ nf.PolicyManagement = (function () {
         });
 
         var currentEntity = $('#policy-table').data('policy');
-        if (nf.Common.isDefinedAndNotNull(currentEntity)) {
+        if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             var entity = {
-                'revision': nf.Client.getRevision(currentEntity),
+                'revision': nfClient.getRevision(currentEntity),
                 'component': {
                     'id': currentEntity.id,
                     'users': users,
@@ -1068,16 +1129,16 @@ nf.PolicyManagement = (function () {
                     loadPolicy();
                 }
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             }).always(function () {
-                nf.Canvas.reload({
+                nfCanvasUtils.reload({
                     'transition': true
                 });
             });
         } else {
-            nf.Dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Update Policy',
                 dialogContent: 'No policy selected'
             });
@@ -1089,12 +1150,12 @@ nf.PolicyManagement = (function () {
      */
     var showPolicy = function () {
         // show the configuration dialog
-        nf.Shell.showContent('#policy-management').always(function () {
+        nfShell.showContent('#policy-management').always(function () {
             reset();
         });
 
         // adjust the table size
-        nf.PolicyManagement.resetTableSize();
+        nfPolicyManagement.resetTableSize();
     };
 
     /**
@@ -1140,7 +1201,7 @@ nf.PolicyManagement = (function () {
         $('div.policy-selected-component-container').hide();
     };
 
-    return {
+    var nfPolicyManagement = {
         /**
          * Initializes the settings page.
          */
@@ -1166,7 +1227,7 @@ nf.PolicyManagement = (function () {
             var policyTable = $('#policy-table');
             if (policyTable.is(':visible')) {
                 var policyGrid = policyTable.data('gridInstance');
-                if (nf.Common.isDefinedAndNotNull(policyGrid)) {
+                if (nfCommon.isDefinedAndNotNull(policyGrid)) {
                     policyGrid.resizeCanvas();
                 }
             }
@@ -1320,7 +1381,7 @@ nf.PolicyManagement = (function () {
             
             var resource;
             if (selection.empty()) {
-                $('#selected-policy-component-id').text(nf.Canvas.getGroupId());
+                $('#selected-policy-component-id').text(nfCanvasUtils.getGroupId());
                 resource = 'process-groups';
 
                 // disable site to site option
@@ -1341,19 +1402,19 @@ nf.PolicyManagement = (function () {
                 var d = selection.datum();
                 $('#selected-policy-component-id').text(d.id);
 
-                if (nf.CanvasUtils.isProcessor(selection)) {
+                if (nfCanvasUtils.isProcessor(selection)) {
                     resource = 'processors';
-                } else if (nf.CanvasUtils.isProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isProcessGroup(selection)) {
                     resource = 'process-groups';
-                } else if (nf.CanvasUtils.isInputPort(selection)) {
+                } else if (nfCanvasUtils.isInputPort(selection)) {
                     resource = 'input-ports';
-                } else if (nf.CanvasUtils.isOutputPort(selection)) {
+                } else if (nfCanvasUtils.isOutputPort(selection)) {
                     resource = 'output-ports';
-                } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                     resource = 'remote-process-groups';
-                } else if (nf.CanvasUtils.isLabel(selection)) {
+                } else if (nfCanvasUtils.isLabel(selection)) {
                     resource = 'labels';
-                } else if (nf.CanvasUtils.isFunnel(selection)) {
+                } else if (nfCanvasUtils.isFunnel(selection)) {
                     resource = 'funnels';
                 }
 
@@ -1361,16 +1422,16 @@ nf.PolicyManagement = (function () {
                 $('#component-policy-target')
                     .combo('setOptionEnabled', {
                         value: 'write-receive-data'
-                    }, nf.CanvasUtils.isInputPort(selection) && nf.Canvas.getParentGroupId() === null)
+                    }, nfCanvasUtils.isInputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, nf.CanvasUtils.isOutputPort(selection) && nf.Canvas.getParentGroupId() === null)
+                    }, nfCanvasUtils.isOutputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
                     .combo('setOptionEnabled', {
                         value: 'read-data'
-                    }, !nf.CanvasUtils.isLabel(selection))
+                    }, !nfCanvasUtils.isLabel(selection))
                     .combo('setOptionEnabled', {
                         value: 'write-data'
-                    }, !nf.CanvasUtils.isLabel(selection));
+                    }, !nfCanvasUtils.isLabel(selection));
             }
 
             // populate the initial resource
@@ -1408,4 +1469,6 @@ nf.PolicyManagement = (function () {
             return loadPolicy().always(showPolicy);
         }
     };
-}());
+
+    return nfPolicyManagement;
+}));

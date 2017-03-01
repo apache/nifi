@@ -31,15 +31,19 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.SnippetAuthorizable;
+import org.apache.nifi.authorization.TemplateAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -85,10 +89,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -96,10 +101,12 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -282,6 +289,13 @@ public class ProcessGroupResource extends ApplicationResource {
                     + "not equal the process group id of the requested resource (%s).", requestProcessGroupDTO.getId(), id));
         }
 
+        final PositionDTO proposedPosition = requestProcessGroupDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
         }
@@ -325,6 +339,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = ProcessGroupEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services by any encapsulated components - /controller-services/{uuid}", type = ""),
                     @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components", type = "")
             }
     )
@@ -370,17 +386,18 @@ public class ProcessGroupResource extends ApplicationResource {
                 requestProcessGroupEntity,
                 requestRevision,
                 lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
 
-                    // ensure write to the process group
-                    final Authorizable processGroup = processGroupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+                    // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
+                    // read to any referenced services by encapsulated components
+                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false);
 
-                    // ensure write to all encapsulated components
-                    processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(encaupsulatedAuthorizable -> {
-                        encaupsulatedAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                    });
+                    // ensure write permission to the parent process group, if applicable... if this is the root group the
+                    // request will fail later but still need to handle authorization here
+                    final Authorizable parentAuthorizable = processGroupAuthorizable.getAuthorizable().getParentAuthorizable();
+                    if (parentAuthorizable != null) {
+                        parentAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
                 },
                 () -> serviceFacade.verifyDeleteProcessGroup(id),
                 (revision, processGroupEntity) -> {
@@ -443,6 +460,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestProcessGroupEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Process group ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestProcessGroupEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestProcessGroupEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestProcessGroupEntity.getComponent().getParentGroupId())) {
@@ -560,7 +584,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = ProcessorEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Write - if the Processor is restricted - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -599,6 +624,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (StringUtils.isBlank(requestProcessor.getType())) {
             throw new IllegalArgumentException("The type of processor to create must be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestProcessor.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestProcessor.getParentGroupId() != null && !groupId.equals(requestProcessor.getParentGroupId())) {
@@ -759,6 +791,13 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Input port ID cannot be specified.");
         }
 
+        final PositionDTO proposedPosition = requestPortEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (requestPortEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestPortEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestPortEntity.getComponent().getParentGroupId(), groupId));
@@ -898,6 +937,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestPortEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Output port ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestPortEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestPortEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestPortEntity.getComponent().getParentGroupId())) {
@@ -1042,6 +1088,13 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Funnel ID cannot be specified.");
         }
 
+        final PositionDTO proposedPosition = requestFunnelEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (requestFunnelEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestFunnelEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestFunnelEntity.getComponent().getParentGroupId(), groupId));
@@ -1182,6 +1235,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestLabelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Label ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestLabelEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestLabelEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestLabelEntity.getComponent().getParentGroupId())) {
@@ -1333,6 +1393,13 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The URI of the process group must be specified.");
         }
 
+        final PositionDTO proposedPosition = requestRemoteProcessGroupDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (requestRemoteProcessGroupDTO.getParentGroupId() != null && !groupId.equals(requestRemoteProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestRemoteProcessGroupDTO.getParentGroupId(), groupId));
@@ -1357,31 +1424,12 @@ public class ProcessGroupResource extends ApplicationResource {
                     // set the processor id as appropriate
                     remoteProcessGroupDTO.setId(generateUuid());
 
-                    // parse the uri
-                    final URI uri;
-                    try {
-                        uri = URI.create(remoteProcessGroupDTO.getTargetUri());
-                    } catch (final IllegalArgumentException e) {
-                        throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroupDTO.getTargetUri());
-                    }
+                    // parse the uri to check if the uri is valid
+                    final String targetUris = remoteProcessGroupDTO.getTargetUris();
+                    SiteToSiteRestApiClient.parseClusterUrls(targetUris);
 
-                    // validate each part of the uri
-                    if (uri.getScheme() == null || uri.getHost() == null) {
-                        throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroupDTO.getTargetUri());
-                    }
-
-                    if (!(uri.getScheme().equalsIgnoreCase("http") || uri.getScheme().equalsIgnoreCase("https"))) {
-                        throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + remoteProcessGroupDTO.getTargetUri());
-                    }
-
-                    // normalize the uri to the other controller
-                    String controllerUri = uri.toString();
-                    if (controllerUri.endsWith("/")) {
-                        controllerUri = StringUtils.substringBeforeLast(controllerUri, "/");
-                    }
-
-                    // since the uri is valid, use the normalized version
-                    remoteProcessGroupDTO.setTargetUri(controllerUri);
+                    // since the uri is valid, use it
+                    remoteProcessGroupDTO.setTargetUris(targetUris);
 
                     // create the remote process group
                     final Revision revision = getRevision(remoteProcessGroupEntity, remoteProcessGroupDTO.getId());
@@ -1511,6 +1559,15 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Connection ID cannot be specified.");
         }
 
+        final List<PositionDTO> proposedBends = requestConnectionEntity.getComponent().getBends();
+        if (proposedBends != null) {
+            for (final PositionDTO proposedBend : proposedBends) {
+                if (proposedBend.getX() == null || proposedBend.getY() == null) {
+                    throw new IllegalArgumentException("The x and y coordinate of the each bend must be specified.");
+                }
+            }
+        }
+
         if (requestConnectionEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestConnectionEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestConnectionEntity.getComponent().getParentGroupId(), groupId));
@@ -1524,8 +1581,32 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The source of the connection must be specified.");
         }
 
+        if (requestConnection.getSource().getType() == null) {
+            throw new IllegalArgumentException("The type of the source of the connection must be specified.");
+        }
+
+        final ConnectableType sourceConnectableType;
+        try {
+            sourceConnectableType = ConnectableType.valueOf(requestConnection.getSource().getType());
+        } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("Unrecognized source type %s. Expected values are [%s]",
+                    requestConnection.getSource().getType(), StringUtils.join(ConnectableType.values(), ", ")));
+        }
+
         if (requestConnection.getDestination() == null || requestConnection.getDestination().getId() == null) {
             throw new IllegalArgumentException("The destination of the connection must be specified.");
+        }
+
+        if (requestConnection.getDestination().getType() == null) {
+            throw new IllegalArgumentException("The type of the destination of the connection must be specified.");
+        }
+
+        final ConnectableType destinationConnectableType;
+        try {
+            destinationConnectableType = ConnectableType.valueOf(requestConnection.getDestination().getType());
+        } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("Unrecognized destination type %s. Expected values are [%s]",
+                    requestConnection.getDestination().getType(), StringUtils.join(ConnectableType.values(), ", ")));
         }
 
         if (isReplicateRequest()) {
@@ -1540,15 +1621,29 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
+                    // explicitly handle RPGs differently as the connectable id can be ambiguous if self referencing
+                    final Authorizable source;
+                    if (ConnectableType.REMOTE_OUTPUT_PORT.equals(sourceConnectableType)) {
+                        source = lookup.getRemoteProcessGroup(requestConnection.getSource().getGroupId());
+                    } else {
+                        source = lookup.getLocalConnectable(requestConnection.getSource().getId());
+                    }
+
                     // ensure write access to the source
-                    final Authorizable source = lookup.getConnectable(requestConnection.getSource().getId());
                     if (source == null) {
                         throw new ResourceNotFoundException("Cannot find source component with ID [" + requestConnection.getSource().getId() + "]");
                     }
                     source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
+                    // explicitly handle RPGs differently as the connectable id can be ambiguous if self referencing
+                    final Authorizable destination;
+                    if (ConnectableType.REMOTE_INPUT_PORT.equals(destinationConnectableType)) {
+                        destination = lookup.getRemoteProcessGroup(requestConnection.getDestination().getGroupId());
+                    } else {
+                        destination = lookup.getLocalConnectable(requestConnection.getDestination().getId());
+                    }
+
                     // ensure write access to the destination
-                    final Authorizable destination = lookup.getConnectable(requestConnection.getDestination().getId());
                     if (destination == null) {
                         throw new ResourceNotFoundException("Cannot find destination component with ID [" + requestConnection.getDestination().getId() + "]");
                     }
@@ -1647,11 +1742,12 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/snippet-instance")
     @ApiOperation(
-            value = "Copies a snippet",
+            value = "Copies a snippet and discards it.",
             response = FlowSnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = "")
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = ""),
+                    @Authorization(value = "Write - if the snippet contains any restricted Processors - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -1692,7 +1788,24 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestCopySnippetEntity,
                 lookup -> {
-                    authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId());
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    final SnippetAuthorizable snippet = authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false);
+
+                    // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
+                    final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
+                    final Consumer<ConfigurableComponentAuthorizable> authorizeRestricted = authorizable -> {
+                        if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        }
+                    };
+
+                    // consider each processor. note - this request will not create new controller services so we do not need to check
+                    // for if there are not restricted controller services. it will however, need to authorize the user has access
+                    // to any referenced services and this is done within authorizeSnippetUsage above.
+                    snippet.getSelectedProcessors().stream().forEach(authorizeRestricted);
+                    snippet.getSelectedProcessGroups().stream().forEach(processGroup -> {
+                        processGroup.getEncapsulatedProcessors().forEach(authorizeRestricted);
+                    });
                 },
                 null,
                 copySnippetRequestEntity -> {
@@ -1741,7 +1854,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = FlowEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - /templates/{uuid}", type = "")
+                    @Authorization(value = "Read - /templates/{uuid}", type = ""),
+                    @Authorization(value = "Write - if the template contains any restricted components - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -1778,11 +1892,27 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestInstantiateTemplateRequestEntity,
                 lookup -> {
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    final Authorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
-                    template.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    // ensure write on the group
+                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    // ensure read on the template
+                    final TemplateAuthorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
+                    template.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
+
+                    // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
+                    final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
+                    final Consumer<ConfigurableComponentAuthorizable> authorizeRestricted = authorizable -> {
+                        if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        }
+                    };
+
+                    // ensure restricted access if necessary
+                    template.getEncapsulatedProcessors().forEach(authorizeRestricted);
+                    template.getEncapsulatedControllerServices().forEach(authorizeRestricted);
                 },
                 null,
                 instantiateTemplateRequestEntity -> {
@@ -1810,13 +1940,16 @@ public class ProcessGroupResource extends ApplicationResource {
     // templates
     // ---------
 
-    private void authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId) {
-        // ensure write access to the target process group
-        lookup.getProcessGroup(groupId).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+    private SnippetAuthorizable authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId, final boolean authorizeTransitiveServices) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        // ensure read permission to every component in the snippet
-        final Snippet snippet = lookup.getSnippet(snippetId);
-        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+        // ensure write access to the target process group
+        lookup.getProcessGroup(groupId).getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+        // ensure read permission to every component in the snippet including referenced services
+        final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
+        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true, authorizeTransitiveServices);
+        return snippet;
     }
 
     /**
@@ -1831,7 +1964,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/templates")
     @ApiOperation(
-            value = "Creates a template",
+            value = "Creates a template and discards the specified snippet.",
             response = TemplateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
@@ -1871,7 +2004,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestCreateTemplateRequestEntity,
                 lookup -> {
-                    authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId());
+                    authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId(), true);
                 },
                 () -> serviceFacade.verifyCanAddTemplate(groupId, requestCreateTemplateRequestEntity.getName()),
                 createTemplateRequestEntity -> {
@@ -1919,6 +2052,7 @@ public class ProcessGroupResource extends ApplicationResource {
     )
     public Response uploadTemplate(
             @Context final HttpServletRequest httpServletRequest,
+            @Context final UriInfo uriInfo,
             @ApiParam(
                     value = "The process group id.",
                     required = true
@@ -1954,14 +2088,11 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             // convert request accordingly
-            URI importUri = null;
-            try {
-                importUri = new URI(generateResourceUri("process-groups", groupId, "templates", "import"));
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
+            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+            uriBuilder.segment("process-groups", groupId, "templates", "import");
+            final URI importUri = uriBuilder.build();
 
-            // change content type to JSON for serializing entity
+            // change content type to XML for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 
@@ -2080,7 +2211,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Write - if the Controller Service is restricted - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -2140,7 +2272,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestControllerService.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
                     }

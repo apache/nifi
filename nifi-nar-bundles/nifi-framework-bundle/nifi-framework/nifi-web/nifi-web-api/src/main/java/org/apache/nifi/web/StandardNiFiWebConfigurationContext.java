@@ -17,6 +17,20 @@
 package org.apache.nifi.web;
 
 import com.sun.jersey.core.util.MultivaluedMapImpl;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -65,21 +79,6 @@ import org.apache.nifi.web.util.ClientResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 /**
  * Implements the NiFiWebConfigurationContext interface to support a context in both standalone and clustered environments.
  */
@@ -115,12 +114,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .accessAttempt(true)
                     .action(RequestAction.READ)
                     .userContext(userContext)
+                    .explanationSupplier(() -> "Unable to view the user interface.")
                     .build();
 
             final AuthorizationResult result = authorizer.authorize(request);
             if (!Result.Approved.equals(result.getResult())) {
-                final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-                throw new AccessDeniedException(message);
+                throw new AccessDeniedException(result.getExplanation());
             }
         });
     }
@@ -854,9 +853,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private Map<String, String> getHeaders(final NiFiWebRequestContext config) {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Accept", "application/json,application/xml");
-        if (StringUtils.isNotBlank(config.getProxiedEntitiesChain())) {
-            headers.put("X-ProxiedEntitiesChain", config.getProxiedEntitiesChain());
-        }
         return headers;
     }
 

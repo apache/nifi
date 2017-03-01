@@ -28,6 +28,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -73,6 +74,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
                     "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor COLLECTION = new PropertyDescriptor
@@ -90,6 +93,25 @@ public abstract class SolrProcessor extends AbstractProcessor {
                     "system property java.security.auth.login.config.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor
+            .Builder().name("Username")
+            .description("The username to use when Solr is configured with basic authentication.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor
+            .Builder().name("Password")
+            .description("The password to use when Solr is configured with basic authentication.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
+            .sensitive(true)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -148,10 +170,20 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .build();
 
     private volatile SolrClient solrClient;
+    private volatile String solrLocation;
+    private volatile String basicUsername;
+    private volatile String basicPassword;
+    private volatile boolean basicAuthEnabled = false;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
-        this.solrClient = createSolrClient(context);
+        this.solrLocation =  context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
+        this.basicUsername = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
+        this.basicPassword = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
+        if (!StringUtils.isBlank(basicUsername) && !StringUtils.isBlank(basicPassword)) {
+            basicAuthEnabled = true;
+        }
+        this.solrClient = createSolrClient(context, solrLocation);
     }
 
     @OnStopped
@@ -172,8 +204,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
      *          The context
      * @return an HttpSolrClient or CloudSolrClient
      */
-    protected SolrClient createSolrClient(final ProcessContext context) {
-        final String solrLocation = context.getProperty(SOLR_LOCATION).getValue();
+    protected SolrClient createSolrClient(final ProcessContext context, final String solrLocation) {
         final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
@@ -219,12 +250,28 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
     /**
      * Returns the {@link org.apache.solr.client.solrj.SolrClient} that was created by the
-     * {@link #createSolrClient(org.apache.nifi.processor.ProcessContext)} method
+     * {@link #createSolrClient(org.apache.nifi.processor.ProcessContext, String)} method
      *
      * @return an HttpSolrClient or CloudSolrClient
      */
     protected final SolrClient getSolrClient() {
         return solrClient;
+    }
+
+    protected final String getSolrLocation() {
+        return solrLocation;
+    }
+
+    protected final String getUsername() {
+        return basicUsername;
+    }
+
+    protected final String getPassword() {
+        return basicPassword;
+    }
+
+    protected final boolean isBasicAuthEnabled() {
+        return basicAuthEnabled;
     }
 
     @Override
@@ -268,7 +315,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
         // For solr cloud the location will be the ZooKeeper host:port so we can't validate the SSLContext, but for standard solr
         // we can validate if the url starts with https we need an SSLContextService, if it starts with http we can't have an SSLContextService
         if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            final String solrLocation = context.getProperty(SOLR_LOCATION).getValue();
+            final String solrLocation = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
             if (solrLocation != null) {
                 final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
                 if (solrLocation.startsWith("https:") && sslContextService == null) {
@@ -285,6 +332,26 @@ public abstract class SolrProcessor extends AbstractProcessor {
                             .build());
                 }
             }
+        }
+
+        // Validate that we username and password are provided together, or that neither are provided
+        final String username = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
+
+        if (!StringUtils.isBlank(username) && StringUtils.isBlank(password)) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(BASIC_PASSWORD.getDisplayName())
+                    .valid(false)
+                    .explanation("a password must be provided for the given username")
+                    .build());
+        }
+
+        if (!StringUtils.isBlank(password) && StringUtils.isBlank(username)) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(BASIC_USERNAME.getDisplayName())
+                    .valid(false)
+                    .explanation("a username must be provided for the given password")
+                    .build());
         }
 
         Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);

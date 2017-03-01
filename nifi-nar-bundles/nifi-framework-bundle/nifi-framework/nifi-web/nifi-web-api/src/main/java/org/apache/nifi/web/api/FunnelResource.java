@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.FunnelDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -192,6 +193,13 @@ public class FunnelResource extends ApplicationResource {
                     + "funnel id of the requested resource (%s).", requestFunnelDTO.getId(), id));
         }
 
+        final PositionDTO proposedPosition = requestFunnelDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestFunnelEntity);
         }
@@ -237,7 +245,8 @@ public class FunnelResource extends ApplicationResource {
             value = "Deletes a funnel",
             response = FunnelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /funnels/{uuid}", type = "")
+                    @Authorization(value = "Write - /funnels/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -282,7 +291,12 @@ public class FunnelResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable funnel = lookup.getFunnel(id);
+
+                    // ensure write permission to the funnel
                     funnel.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    funnel.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteFunnel(id),
                 (revision, funnelEntity) -> {

@@ -619,6 +619,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.removeLabel(label);
         }
 
+        for (final ControllerServiceNode cs : group.getControllerServices(false)) {
+            group.removeControllerService(cs);
+        }
+
         for (final ProcessGroup childGroup : new ArrayList<>(group.getProcessGroups())) {
             group.removeProcessGroup(childGroup);
         }
@@ -1482,11 +1486,11 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Connectable findConnectable(final String identifier) {
-        return findConnectable(identifier, this);
+    public Connectable findLocalConnectable(final String identifier) {
+        return findLocalConnectable(identifier, this);
     }
 
-    private static Connectable findConnectable(final String identifier, final ProcessGroup group) {
+    private static Connectable findLocalConnectable(final String identifier, final ProcessGroup group) {
         final ProcessorNode procNode = group.getProcessor(identifier);
         if (procNode != null) {
             return procNode;
@@ -1507,6 +1511,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             return funnel;
         }
 
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final Connectable childGroupConnectable = findLocalConnectable(identifier, childGroup);
+            if (childGroupConnectable != null) {
+                return childGroupConnectable;
+            }
+        }
+
+        return null;
+    }
+
+    public RemoteGroupPort findRemoteGroupPort(final String identifier) {
+        return findRemoteGroupPort(identifier, this);
+    }
+
+    private static RemoteGroupPort findRemoteGroupPort(final String identifier, final ProcessGroup group) {
         for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
             final RemoteGroupPort remoteInPort = remoteGroup.getInputPort(identifier);
             if (remoteInPort != null) {
@@ -1520,9 +1539,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final Connectable childGroupConnectable = findConnectable(identifier, childGroup);
-            if (childGroupConnectable != null) {
-                return childGroupConnectable;
+            final RemoteGroupPort childGroupRemoteGroupPort = findRemoteGroupPort(identifier, childGroup);
+            if (childGroupRemoteGroupPort != null) {
+                return childGroupRemoteGroupPort;
             }
         }
 
@@ -2307,6 +2326,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             for (final Connection connection : connections.values()) {
                 connection.verifyCanDelete();
+            }
+
+            for(final ControllerServiceNode cs : controllerServices.values()) {
+                cs.verifyCanDelete();
             }
 
             for (final ProcessGroup childGroup : processGroups.values()) {

@@ -53,6 +53,7 @@ public abstract class NiFiProperties {
     public static final String FLOW_CONFIGURATION_ARCHIVE_DIR = "nifi.flow.configuration.archive.dir";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "nifi.flow.configuration.archive.max.time";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "nifi.flow.configuration.archive.max.storage";
+    public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT = "nifi.flow.configuration.archive.max.count";
     public static final String AUTHORIZER_CONFIGURATION_FILE = "nifi.authorizer.configuration.file";
     public static final String LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "nifi.login.identity.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
@@ -152,9 +153,11 @@ public abstract class NiFiProperties {
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
     public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
     public static final String WEB_HTTP_HOST = "nifi.web.http.host";
+    public static final String WEB_HTTP_NETWORK_INTERFACE_PREFIX = "nifi.web.http.network.interface.";
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
     public static final String WEB_HTTPS_PORT_FORWARDING = "nifi.web.https.port.forwarding";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
+    public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.web.https.network.interface.";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
 
@@ -972,11 +975,15 @@ public abstract class NiFiProperties {
     }
 
     public String getFlowConfigurationArchiveMaxTime() {
-        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_TIME, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME);
+        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_TIME, null);
     }
 
     public String getFlowConfigurationArchiveMaxStorage() {
-        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE);
+        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, null);
+    }
+
+    public Integer getFlowConfigurationArchiveMaxCount() {
+        return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
     }
 
     public String getVariableRegistryProperties() {
@@ -1014,6 +1021,50 @@ public abstract class NiFiProperties {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Returns the network interface list to use for HTTP. This method returns a mapping of
+     * network interface property names to network interface names.
+     *
+     * @return the property name and network interface name of all HTTP network interfaces
+     */
+    public Map<String, String> getHttpNetworkInterfaces() {
+        final Map<String, String> networkInterfaces = new HashMap<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTP_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property key
+                final String key = StringUtils.substringAfter(propertyName,
+                        WEB_HTTP_NETWORK_INTERFACE_PREFIX);
+                networkInterfaces.put(key, getProperty(propertyName));
+            }
+        }
+        return networkInterfaces;
+    }
+
+    /**
+     * Returns the network interface list to use for HTTPS. This method returns a mapping of
+     * network interface property names to network interface names.
+     *
+     * @return the property name and network interface name of all HTTPS network interfaces
+     */
+    public Map<String, String> getHttpsNetworkInterfaces() {
+        final Map<String, String> networkInterfaces = new HashMap<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property key
+                final String key = StringUtils.substringAfter(propertyName,
+                        WEB_HTTPS_NETWORK_INTERFACE_PREFIX);
+                networkInterfaces.put(key, getProperty(propertyName));
+            }
+        }
+        return networkInterfaces;
     }
 
     public int size() {
@@ -1084,6 +1135,20 @@ public abstract class NiFiProperties {
                 return properties.stringPropertyNames();
             }
         };
+    }
+
+    /**
+     * This method is used to validate the NiFi properties when the file is loaded
+     * for the first time. The objective is to stop NiFi startup in case a property
+     * is not correctly configured and could cause issues afterwards.
+     */
+    public void validate() {
+        // REMOTE_INPUT_HOST should be a valid hostname
+        String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
+        if(!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
+            throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
+        }
+        // Other properties to validate...
     }
 
 }

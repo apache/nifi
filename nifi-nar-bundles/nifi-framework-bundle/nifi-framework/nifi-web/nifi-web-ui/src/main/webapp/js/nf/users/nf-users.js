@@ -14,18 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-$(document).ready(function () {
-    // initialize the counters page
-    nf.Users.init();
 
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#users').css('top', 20);
-        $('#users-refresh-container').css('bottom', 20);
+/* global top, define, module, require, exports */
+
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.UsersTable',
+                'nf.ErrorHandler',
+                'nf.Storage',
+                'nf.Client'],
+            function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
+                return (nf.Users = factory($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Users =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.UsersTable'),
+                require('nf.ErrorHandler'),
+                require('nf.Storage'),
+                require('nf.Client')));
+    } else {
+        nf.Users =
+            factory(root.$,
+                root.nf.Common,
+                root.nf.UsersTable,
+                root.nf.ErrorHandler,
+                root.nf.Storage,
+                root.nf.Client);
     }
-});
+}(this, function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
+    'use strict';
 
-nf.Users = (function () {
+    $(document).ready(function () {
+        // initialize the counters page
+        nfUsers.init();
+
+        //alter styles if we're not in the shell
+        if (top === window) {
+            $('#users').css('top', 20);
+            $('#users-refresh-container').css('bottom', 20);
+        }
+    });
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -47,14 +79,14 @@ nf.Users = (function () {
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            nf.Common.setCurrentUser(currentUser);
-        }).fail(nf.Common.handleAjaxError);
+            nfCommon.setCurrentUser(currentUser);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var initializeUsersPage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#user-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            nf.UsersTable.loadUsersTable();
+        nfCommon.addHoverEffect('#user-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            nfUsersTable.loadUsersTable();
         });
 
         // get the banners if we're not in the shell
@@ -66,8 +98,8 @@ nf.Users = (function () {
                     dataType: 'json'
                 }).done(function (bannerResponse) {
                     // ensure the banners response is specified
-                    if (nf.Common.isDefinedAndNotNull(bannerResponse.banners)) {
-                        if (nf.Common.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(bannerResponse.banners)) {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(bannerResponse.banners.headerText).show();
 
@@ -81,7 +113,7 @@ nf.Users = (function () {
                             updateTop('users');
                         }
 
-                        if (nf.Common.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(bannerResponse.banners.footerText).show();
 
@@ -97,7 +129,7 @@ nf.Users = (function () {
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -106,30 +138,30 @@ nf.Users = (function () {
         });
     };
 
-    return {
+    var nfUsers = {
         /**
          * Initializes the counters page.
          */
         init: function () {
-            nf.Storage.init();
+            nfStorage.init();
 
             // initialize the client
-            nf.Client.init();
+            nfClient.init();
 
             // load the users authorities
             ensureAccess().done(function () {
                 // create the counters table
-                nf.UsersTable.init();
+                nfUsersTable.init();
 
                 // load the users table
-                nf.UsersTable.loadUsersTable().done(function () {
+                nfUsersTable.loadUsersTable().done(function () {
                     // finish initializing users page
                     initializeUsersPage().done(function () {
                         // listen for browser resize events to update the page size
-                        $(window).resize(nf.UsersTable.resetTableSize);
-                        
+                        $(window).resize(nfUsersTable.resetTableSize);
+
                         // configure the initial grid height
-                        nf.UsersTable.resetTableSize();
+                        nfUsersTable.resetTableSize();
 
                         // get the about details
                         $.ajax({
@@ -143,15 +175,15 @@ nf.Users = (function () {
                             // set the document title and the about title
                             document.title = countersTitle;
                             $('#users-header-text').text(countersTitle);
-                        }).fail(nf.Common.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
                     });
 
                     $(window).on('resize', function (e) {
                         // resize dialogs when appropriate
                         var dialogs = $('.dialog');
                         for (var i = 0, len = dialogs.length; i < len; i++) {
-                            if ($(dialogs[i]).is(':visible')){
-                                setTimeout(function(dialog){
+                            if ($(dialogs[i]).is(':visible')) {
+                                setTimeout(function (dialog) {
                                     dialog.modal('resize');
                                 }, 50, $(dialogs[i]));
                             }
@@ -160,8 +192,8 @@ nf.Users = (function () {
                         // resize grids when appropriate
                         var gridElements = $('*[class*="slickgrid_"]');
                         for (var j = 0, len = gridElements.length; j < len; j++) {
-                            if ($(gridElements[j]).is(':visible')){
-                                setTimeout(function(gridElement){
+                            if ($(gridElements[j]).is(':visible')) {
+                                setTimeout(function (gridElement) {
                                     gridElement.data('gridInstance').resizeCanvas();
                                 }, 50, $(gridElements[j]));
                             }
@@ -171,4 +203,6 @@ nf.Users = (function () {
             });
         }
     };
-}());
+
+    return nfUsers;
+}));

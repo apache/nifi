@@ -22,7 +22,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -31,8 +31,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class StandardQueryResult implements QueryResult {
+public class StandardQueryResult implements QueryResult, ProgressiveResult {
+    private static final Logger logger = LoggerFactory.getLogger(StandardQueryResult.class);
 
     public static final int TTL = (int) TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
     private final Query query;
@@ -44,12 +47,12 @@ public class StandardQueryResult implements QueryResult {
 
     private final Lock writeLock = rwLock.writeLock();
     // guarded by writeLock
-    private final Set<ProvenanceEventRecord> matchingRecords = new TreeSet<>(new EventIdComparator());
-    private long totalHitCount;
+    private final SortedSet<ProvenanceEventRecord> matchingRecords = new TreeSet<>(new EventIdComparator());
     private int numCompletedSteps = 0;
     private Date expirationDate;
     private String error;
     private long queryTime;
+    private final Object completionMonitor = new Object();
 
     private volatile boolean canceled = false;
 
@@ -65,22 +68,7 @@ public class StandardQueryResult implements QueryResult {
     public List<ProvenanceEventRecord> getMatchingEvents() {
         readLock.lock();
         try {
-            if (matchingRecords.size() <= query.getMaxResults()) {
-                return new ArrayList<>(matchingRecords);
-            }
-
-            final List<ProvenanceEventRecord> copy = new ArrayList<>(query.getMaxResults());
-
-            int i = 0;
-            final Iterator<ProvenanceEventRecord> itr = matchingRecords.iterator();
-            while (itr.hasNext()) {
-                copy.add(itr.next());
-                if (++i >= query.getMaxResults()) {
-                    break;
-                }
-            }
-
-            return copy;
+            return new ArrayList<>(matchingRecords);
         } finally {
             readLock.unlock();
         }
@@ -137,7 +125,7 @@ public class StandardQueryResult implements QueryResult {
     public boolean isFinished() {
         readLock.lock();
         try {
-            return numCompletedSteps >= numSteps || canceled;
+            return numCompletedSteps >= numSteps || canceled || matchingRecords.size() >= query.getMaxResults();
         } finally {
             readLock.unlock();
         }
@@ -147,6 +135,7 @@ public class StandardQueryResult implements QueryResult {
         this.canceled = true;
     }
 
+    @Override
     public void setError(final String error) {
         writeLock.lock();
         try {
@@ -163,22 +152,74 @@ public class StandardQueryResult implements QueryResult {
         }
     }
 
-    public void update(final Collection<ProvenanceEventRecord> matchingRecords, final long totalHits) {
+    @Override
+    public void update(final Collection<ProvenanceEventRecord> newEvents, final long totalHits) {
+        boolean queryComplete = false;
+
         writeLock.lock();
         try {
-            this.matchingRecords.addAll(matchingRecords);
-            this.totalHitCount += totalHits;
+            if (isFinished()) {
+                return;
+            }
+
+            this.matchingRecords.addAll(newEvents);
+
+            // If we've added more records than the query's max, then remove the trailing elements.
+            // We do this, rather than avoiding the addition of the elements because we want to choose
+            // the events with the largest ID.
+            if (matchingRecords.size() > query.getMaxResults()) {
+                final Iterator<ProvenanceEventRecord> itr = matchingRecords.iterator();
+                for (int i = 0; i < query.getMaxResults(); i++) {
+                    itr.next();
+                }
+
+                while (itr.hasNext()) {
+                    itr.next();
+                    itr.remove();
+                }
+            }
 
             numCompletedSteps++;
             updateExpiration();
 
-            if (numCompletedSteps >= numSteps) {
+            if (numCompletedSteps >= numSteps || this.matchingRecords.size() >= query.getMaxResults()) {
                 final long searchNanos = System.nanoTime() - creationNanos;
                 queryTime = TimeUnit.MILLISECONDS.convert(searchNanos, TimeUnit.NANOSECONDS);
+                queryComplete = true;
+
+                if (numCompletedSteps >= numSteps) {
+                    logger.info("Completed {} comprised of {} steps in {} millis", query, numSteps, queryTime);
+                } else {
+                    logger.info("Completed {} comprised of {} steps in {} millis (only completed {} steps because the maximum number of results was reached)",
+                        query, numSteps, queryTime, numCompletedSteps);
+                }
             }
         } finally {
             writeLock.unlock();
         }
+
+        if (queryComplete) {
+            synchronized (completionMonitor) {
+                completionMonitor.notifyAll();
+            }
+        }
+    }
+
+    @Override
+    public boolean awaitCompletion(final long time, final TimeUnit unit) throws InterruptedException {
+        final long finishTime = System.currentTimeMillis() + unit.toMillis(time);
+        synchronized (completionMonitor) {
+            while (!isFinished()) {
+                final long millisToWait = finishTime - System.currentTimeMillis();
+                if (millisToWait > 0) {
+                    completionMonitor.wait(millisToWait);
+                } else {
+                    return isFinished();
+                }
+            }
+        }
+
+        return isFinished();
     }
 
     /**

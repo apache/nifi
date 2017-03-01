@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2016 The Apache Software Foundation
+Copyright 2014-2017 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -1059,6 +1059,11 @@ The following binary components are provided under the Apache Software License v
       ParCEFone
       Copyright 2016 Fluenda
 
+  (ASLv2) Grok
+    The following NOTICE information applies:
+      Grok
+      Copyright 2014 Anthony Corbacho, and contributors.
+
   (ASLv2) The Netty Project
       The following NOTICE information applies:
 
@@ -1196,6 +1201,11 @@ The derived work is adapted from
   release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
 and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
+  (ASLv2) Google Cloud Java Client
+    The following NOTICE information applies:
+      Google Cloud Java Client
+      Copyright Google Inc. All Rights Reserved.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -1273,6 +1283,15 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) JaCoCo Java Code Coverage Library ( org.jacoco ) http://www.eclemma.org/jacoco
+    (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
+
+************************
+The MIT License
+************************
+
+The following binary components are provided under the MIT License.  See project link for details.
+
+  (MIT License) EWS Java API (com.microsoft.ews-java-api:ews-java-api:2.0 - https://github.com/OfficeDev/ews-java-api)
 
 *****************
 Mozilla Public License v2.0

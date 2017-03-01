@@ -214,7 +214,7 @@ public class TestGetSolr {
             this.solrClient = solrClient;
         }
         @Override
-        protected SolrClient createSolrClient(ProcessContext context) {
+        protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             return solrClient;
         }
     }

@@ -28,7 +28,6 @@ import org.apache.nifi.util.StringUtils;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -50,6 +49,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -57,6 +57,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .description("Username to access the Elasticsearch cluster")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -65,6 +66,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected abstract void createElasticsearchClient(ProcessContext context) throws ProcessException;
@@ -74,8 +76,9 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
         Set<ValidationResult> results = new HashSet<>();
 
         // Ensure that if username or password is set, then the other is too
-        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(USERNAME)) != StringUtils.isEmpty(propertyMap.get(PASSWORD))) {
+        String userName = validationContext.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        String password = validationContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        if (StringUtils.isEmpty(userName) != StringUtils.isEmpty(password)) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "If username or password is specified, then the other must be specified as well").build());
         }

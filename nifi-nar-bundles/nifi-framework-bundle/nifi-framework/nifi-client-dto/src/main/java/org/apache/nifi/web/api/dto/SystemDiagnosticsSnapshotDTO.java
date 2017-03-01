@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * The diagnostics of the system this NiFi is running on.
@@ -59,6 +57,8 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
     private Integer totalThreads;
     private Integer daemonThreads;
+
+    private String uptime;
 
     private StorageUsageDTO flowFileRepositoryStorageUsage;
     private Set<StorageUsageDTO> contentRepositoryStorageUsage;
@@ -317,6 +317,15 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.versionInfo = versionInfo;
     }
 
+    @ApiModelProperty("The uptime of the Java virtual machine")
+    public String getUptime() {
+        return uptime;
+    }
+
+    public void setUptime(String uptime) {
+        this.uptime = uptime;
+    }
+
     @Override
     public SystemDiagnosticsSnapshotDTO clone() {
         final SystemDiagnosticsSnapshotDTO other = new SystemDiagnosticsSnapshotDTO();
@@ -346,19 +355,21 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
         other.setFlowFileRepositoryStorageUsage(getFlowFileRepositoryStorageUsage().clone());
 
-        final Set<StorageUsageDTO> contentRepoStorageUsage = new HashSet<>();
+        final Set<StorageUsageDTO> contentRepoStorageUsage = new LinkedHashSet<>();
         other.setContentRepositoryStorageUsage(contentRepoStorageUsage);
         for (final StorageUsageDTO usage : getContentRepositoryStorageUsage()) {
             contentRepoStorageUsage.add(usage.clone());
         }
 
-        final Set<GarbageCollectionDTO> gcUsage = new HashSet<>();
+        final Set<GarbageCollectionDTO> gcUsage = new LinkedHashSet<>();
         other.setGarbageCollection(gcUsage);
         for (final GarbageCollectionDTO gcDto : getGarbageCollection()) {
             gcUsage.add(gcDto.clone());
         }
 
         other.setVersionInfo(getVersionInfo().clone());
+
+        other.setUptime(getUptime());
 
         return other;
     }

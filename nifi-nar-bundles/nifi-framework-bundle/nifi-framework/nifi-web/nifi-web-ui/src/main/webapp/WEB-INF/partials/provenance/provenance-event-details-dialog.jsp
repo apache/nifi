@@ -95,7 +95,7 @@
                     <div id="attributes-header" class="event-header">Attribute Values</div>
                     <div id="modified-attribute-toggle-container">
                         <div id="modified-attribute-toggle" class="nf-checkbox checkbox-unchecked"></div>
-                        <div id="modified-attribute-toggle-label">Show modified attributes only</div>
+                        <div id="modified-attribute-toggle-label" class="nf-checkbox-label">Show modified attributes only</div>
                         <div class="clear"></div>
                     </div>
                     <div class="clear"></div>

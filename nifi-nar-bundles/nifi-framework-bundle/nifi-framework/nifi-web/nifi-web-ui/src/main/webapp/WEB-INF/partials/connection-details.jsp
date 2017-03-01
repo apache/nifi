@@ -24,7 +24,7 @@
                     <div class="setting">
                         <div id="read-only-connection-source-label" class="setting-name"></div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="read-only-connection-source"></div>
+                            <div id="read-only-connection-source" class="ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
@@ -48,7 +48,7 @@
                     <div class="setting">
                         <div id="read-only-connection-target-label" class="setting-name"></div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="read-only-connection-target"></div>
+                            <div id="read-only-connection-target" class="ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">

@@ -17,15 +17,23 @@
 
 package org.apache.nifi.repository.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UTFDataFormatException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 public class SchemaRecordWriter {
+
+    public static final int MAX_ALLOWED_UTF_LENGTH = 65_535;
+
+    private static final Logger logger = LoggerFactory.getLogger(SchemaRecordWriter.class);
 
     public void writeRecord(final Record record, final OutputStream out) throws IOException {
         // write sentinel value to indicate that there is a record. This allows the reader to then read one
@@ -36,8 +44,12 @@ public class SchemaRecordWriter {
     }
 
     private void writeRecordFields(final Record record, final OutputStream out) throws IOException {
+        writeRecordFields(record, record.getSchema(), out);
+    }
+
+    private void writeRecordFields(final Record record, final RecordSchema schema, final OutputStream out) throws IOException {
         final DataOutputStream dos = out instanceof DataOutputStream ? (DataOutputStream) out : new DataOutputStream(out);
-        for (final RecordField field : record.getSchema().getFields()) {
+        for (final RecordField field : schema.getFields()) {
             final Object value = record.getFieldValue(field);
 
             try {
@@ -105,7 +117,7 @@ public class SchemaRecordWriter {
                 out.writeLong((Long) value);
                 break;
             case STRING:
-                out.writeUTF((String) value);
+                writeUTFLimited(out, (String) value, field.getFieldName());
                 break;
             case LONG_STRING:
                 final byte[] charArray = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -126,7 +138,7 @@ public class SchemaRecordWriter {
                 break;
             case UNION:
                 final NamedValue namedValue = (NamedValue) value;
-                out.writeUTF(namedValue.getName());
+                writeUTFLimited(out, namedValue.getName(), field.getFieldName());
                 final Record childRecord = (Record) namedValue.getValue();
                 writeRecordFields(childRecord, out);
                 break;
@@ -136,4 +148,45 @@ public class SchemaRecordWriter {
                 break;
         }
     }
+
+    private void writeUTFLimited(final DataOutputStream out, final String utfString, final String fieldName) throws IOException {
+        try {
+            out.writeUTF(utfString);
+        } catch (UTFDataFormatException e) {
+            final String truncated = utfString.substring(0, getCharsInUTF8Limit(utfString, MAX_ALLOWED_UTF_LENGTH));
+            logger.warn("Truncating repository record value for field '{}'!  Attempted to write {} chars that encode to a UTF8 byte length greater than "
+                            + "supported maximum ({}), truncating to {} chars.",
+                    (fieldName == null) ? "" : fieldName, utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
+            if (logger.isDebugEnabled()) {
+                logger.warn("String value was:\n{}", truncated);
+            }
+            out.writeUTF(truncated);
+        }
+    }
+
+    static int getCharsInUTF8Limit(final String str, final int utf8Limit) {
+        // Calculate how much of String fits within UTF8 byte limit based on RFC3629.
+        //
+        // Java String values use char[] for storage, so character values >0xFFFF that
+        // map to 4 byte UTF8 representations are not considered.
+
+        final int charsInOriginal = str.length();
+        int bytesInUTF8 = 0;
+
+        for (int i = 0; i < charsInOriginal; i++) {
+            final int curr = str.charAt(i);
+            if (curr < 0x0080) {
+                bytesInUTF8++;
+            } else if (curr < 0x0800) {
+                bytesInUTF8 += 2;
+            } else {
+                bytesInUTF8 += 3;
+            }
+            if (bytesInUTF8 > utf8Limit) {
+                return i;
+            }
+        }
+        return charsInOriginal;
+    }
+
 }

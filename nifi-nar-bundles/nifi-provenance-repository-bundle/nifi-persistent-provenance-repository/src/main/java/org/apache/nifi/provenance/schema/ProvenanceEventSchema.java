@@ -46,11 +46,15 @@ import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 
 public class ProvenanceEventSchema {
-    public static final RecordSchema PROVENANCE_EVENT_SCHEMA_V1 = buildSchemaV1();
+    public static final RecordSchema PROVENANCE_EVENT_SCHEMA_V1 = buildSchemaV1(true);
+    public static final RecordSchema PROVENANCE_EVENT_SCHEMA_V1_WITHOUT_EVENT_ID = buildSchemaV1(false);
 
-    private static RecordSchema buildSchemaV1() {
+    private static RecordSchema buildSchemaV1(final boolean includeEventId) {
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(RECORD_IDENTIFIER);
+        if (includeEventId) {
+            fields.add(RECORD_IDENTIFIER);
+        }
+
         fields.add(EVENT_TYPE);
         fields.add(EVENT_TIME);
         fields.add(FLOWFILE_ENTRY_DATE);

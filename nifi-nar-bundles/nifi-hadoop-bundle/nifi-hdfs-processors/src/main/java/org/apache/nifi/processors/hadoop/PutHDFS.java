@@ -180,7 +180,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         List<PropertyDescriptor> props = new ArrayList<>(properties);
         props.add(new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(DIRECTORY)
-                .description("The parent HDFS directory to which files should be written")
+                .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
         props.add(CONFLICT_RESOLUTION);
         props.add(BLOCK_SIZE);

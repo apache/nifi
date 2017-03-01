@@ -17,7 +17,6 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.controller.Snippet;
 
 public interface AuthorizableLookup {
 
@@ -117,24 +116,6 @@ public interface AuthorizableLookup {
     Authorizable getRemoteProcessGroup(String id);
 
     /**
-     * Get the authorizable RemoteProcessGroup input port.
-     *
-     * @param remoteProcessGroupId remote process group id
-     * @param id input port id
-     * @return authorizable
-     */
-    Authorizable getRemoteProcessGroupInputPort(String remoteProcessGroupId, String id);
-
-    /**
-     * Get the authorizable RemoteProcessGroup output port.
-     *
-     * @param remoteProcessGroupId remote process group id
-     * @param id output port id
-     * @return authorizable
-     */
-    Authorizable getRemoteProcessGroupOutputPort(String remoteProcessGroupId, String id);
-
-    /**
      * Get the authorizable Label.
      *
      * @param id label id
@@ -201,15 +182,15 @@ public interface AuthorizableLookup {
      * @param id template id
      * @return authorizable
      */
-    Authorizable getTemplate(String id);
+    TemplateAuthorizable getTemplate(String id);
 
     /**
-     * Get the authorizable connectable.
+     * Get the authorizable connectable. Note this does not include RemoteGroupPorts.
      *
      * @param id connectable id
      * @return authorizable
      */
-    Authorizable getConnectable(String id);
+    Authorizable getLocalConnectable(String id);
 
     /**
      * Get the snippet of authorizable's.
@@ -217,20 +198,13 @@ public interface AuthorizableLookup {
      * @param id snippet id
      * @return snippet of authorizable's
      */
-    Snippet getSnippet(String id);
+    SnippetAuthorizable getSnippet(String id);
 
     /**
      * Get the {@link Authorizable} that represents the resource of users and user groups.
      * @return authorizable
      */
     Authorizable getTenant();
-
-    /**
-     * Get the authorizable for data of a specified component.
-     *
-     * @return authorizable
-     */
-    Authorizable getData(String id);
 
     /**
      * Get the authorizable for access all policies.

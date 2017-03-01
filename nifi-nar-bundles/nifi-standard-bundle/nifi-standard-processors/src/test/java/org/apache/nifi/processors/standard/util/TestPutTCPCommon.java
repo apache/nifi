@@ -37,6 +37,8 @@ import static org.junit.Assert.assertNull;
 
 public abstract class TestPutTCPCommon {
     private final static String TCP_SERVER_ADDRESS = "127.0.0.1";
+    private final static String SERVER_VARIABLE = "ALKJAFLKJDFLSKJSDFLKJSDF";
+    private final static String TCP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
     private final static String UNKNOWN_HOST = "fgdsfgsdffd";
     private final static String INVALID_IP_ADDRESS = "300.300.300.300";
     private final static int MIN_INVALID_PORT = 0;
@@ -72,6 +74,7 @@ public abstract class TestPutTCPCommon {
     public void setup() throws Exception {
         recvQueue = new ArrayBlockingQueue<List<Byte>>(BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutTCP.class);
+        runner.setVariable(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
     }
 
     private synchronized TCPTestServer createTestServer(final String address, final ArrayBlockingQueue<List<Byte>> recvQueue, final String delimiter) throws Exception {
@@ -98,6 +101,16 @@ public abstract class TestPutTCPCommon {
     public void testValidFiles() throws Exception {
         server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        sendTestData(VALID_FILES);
+        checkReceivedAllData(recvQueue, VALID_FILES);
+        checkInputQueueIsEmpty();
+        checkTotalNumConnections(server, 1);
+    }
+
+    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    public void testValidFilesEL() throws Exception {
+        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS_EL, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();

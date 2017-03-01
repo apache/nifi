@@ -112,12 +112,23 @@ public class ControllerResource extends ApplicationResource {
                 .accessAttempt(true)
                 .action(action)
                 .userContext(userContext)
+                .explanationSupplier(() -> {
+                    final StringBuilder explanation = new StringBuilder("Unable to ");
+
+                    if (RequestAction.READ.equals(action)) {
+                        explanation.append("view ");
+                    } else {
+                        explanation.append("modify ");
+                    }
+                    explanation.append("the controller.");
+
+                    return explanation.toString();
+                })
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
-            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-            throw new AccessDeniedException(message);
+            throw new AccessDeniedException(result.getExplanation());
         }
     }
 
@@ -238,7 +249,8 @@ public class ControllerResource extends ApplicationResource {
             response = ReportingTaskEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Write - if the Reporting Task is restricted - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -283,7 +295,7 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestReportingTask.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
@@ -330,7 +342,8 @@ public class ControllerResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Write - if the Controller Service is restricted - /restricted-components", type = "")
             }
     )
     @ApiResponses(
@@ -380,7 +393,7 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestControllerService.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
@@ -497,6 +510,10 @@ public class ControllerResource extends ApplicationResource {
         // ensure connected to the cluster
         if (!isConnectedToCluster()) {
             throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET, getClusterCoordinatorNode());
         }
 
         // get the specified relationship

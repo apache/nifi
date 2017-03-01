@@ -15,9 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Funnel = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils'],
+            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+                return (nf.Funnel = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Funnel =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.Funnel = factory(root.$,
+            root.d3,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+    'use strict';
+
+    var nfConnectable;
+    var nfDraggable;
+    var nfSelectable;
+    var nfContextMenu;
 
     var dimensions = {
         width: 48,
@@ -75,7 +105,7 @@ nf.Funnel = (function () {
                 'class': 'funnel component'
             })
             .classed('selected', selected)
-            .call(nf.CanvasUtils.position);
+            .call(nfCanvasUtils.position);
 
         // funnel border
         funnel.append('rect')
@@ -119,7 +149,7 @@ nf.Funnel = (function () {
             .text('\ue803');
 
         // always support selection
-        funnel.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
+        funnel.call(nfSelectable.activate).call(nfContextMenu.activate);
     };
 
     /**
@@ -148,7 +178,7 @@ nf.Funnel = (function () {
             var funnel = d3.select(this);
 
             // update the component behavior as appropriate
-            nf.CanvasUtils.editable(funnel);
+            nfCanvasUtils.editable(funnel, nfConnectable, nfDraggable);
         });
     };
 
@@ -161,11 +191,21 @@ nf.Funnel = (function () {
         removed.remove();
     };
 
-    return {
+    var nfFunnel = {
         /**
          * Initializes of the Processor handler.
+         *
+         * @param nfConnectableRef   The nfConnectable module.
+         * @param nfDraggableRef   The nfDraggable module.
+         * @param nfSelectableRef   The nfSelectable module.
+         * @param nfContextMenuRef   The nfContextMenu module.
          */
-        init: function () {
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+            nfConnectable = nfConnectableRef;
+            nfDraggable = nfDraggableRef;
+            nfSelectable = nfSelectableRef;
+            nfContextMenu = nfContextMenuRef;
+
             funnelMap = d3.map();
             removedCache = d3.map();
             addedCache = d3.map();
@@ -186,8 +226,8 @@ nf.Funnel = (function () {
          */
         add: function (funnelEntities, options) {
             var selectAll = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // get the current time
@@ -208,7 +248,7 @@ nf.Funnel = (function () {
                 $.each(funnelEntities, function (_, funnelEntity) {
                     add(funnelEntity);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(funnelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(funnelEntities)) {
                 add(funnelEntities);
             }
 
@@ -217,7 +257,7 @@ nf.Funnel = (function () {
             selection.enter().call(renderFunnels, selectAll);
             selection.call(updateFunnels);
         },
-        
+
         /**
          * Populates the graph with the specified funnels.
          *
@@ -227,16 +267,16 @@ nf.Funnel = (function () {
         set: function (funnelEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             var set = function (proposedFunnelEntity) {
                 var currentFunnelEntity = funnelMap.get(proposedFunnelEntity.id);
 
                 // set the funnel if appropriate due to revision and wasn't previously removed
-                if (nf.Client.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
+                if (nfClient.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
                     funnelMap.set(proposedFunnelEntity.id, $.extend({
                         type: 'Funnel',
                         dimensions: dimensions
@@ -259,14 +299,14 @@ nf.Funnel = (function () {
                 $.each(funnelEntities, function (_, funnelEntity) {
                     set(funnelEntity);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(funnelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(funnelEntities)) {
                 set(funnelEntities);
             }
 
             // apply the selection and handle all new processors
             var selection = select();
             selection.enter().call(renderFunnels, selectAll);
-            selection.call(updateFunnels).call(nf.CanvasUtils.position, transition);
+            selection.call(updateFunnels).call(nfCanvasUtils.position, transition);
             selection.exit().call(removeFunnels);
         },
 
@@ -277,7 +317,7 @@ nf.Funnel = (function () {
          * @param {string} id
          */
         get: function (id) {
-            if (nf.Common.isUndefined(id)) {
+            if (nfCommon.isUndefined(id)) {
                 return funnelMap.values();
             } else {
                 return funnelMap.get(id);
@@ -291,7 +331,7 @@ nf.Funnel = (function () {
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (nf.Common.isDefinedAndNotNull(id)) {
+            if (nfCommon.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updateFunnels);
             } else {
                 d3.selectAll('g.funnel').call(updateFunnels);
@@ -312,7 +352,7 @@ nf.Funnel = (function () {
                     url: funnelEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.Funnel.set(response);
+                    nfFunnel.set(response);
                 });
             }
         },
@@ -323,7 +363,7 @@ nf.Funnel = (function () {
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(nf.CanvasUtils.position);
+            d3.select('#id-' + id).call(nfCanvasUtils.position);
         },
 
         /**
@@ -352,7 +392,7 @@ nf.Funnel = (function () {
          * Removes all processors.
          */
         removeAll: function () {
-            nf.Funnel.remove(funnelMap.keys());
+            nfFunnel.remove(funnelMap.keys());
         },
 
         /**
@@ -373,4 +413,6 @@ nf.Funnel = (function () {
             expire(removedCache);
         }
     };
-}());
+
+    return nfFunnel;
+}));
