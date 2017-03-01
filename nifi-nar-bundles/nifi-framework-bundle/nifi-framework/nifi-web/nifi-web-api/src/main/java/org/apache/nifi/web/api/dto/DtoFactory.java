@@ -1564,6 +1564,8 @@ public final class DtoFactory {
 
             dto.setAuthorizationIssues(authIssues);
         }
+        // TODO - set validation errors
+        // TODO - set local network interface
 
         dto.setActiveRemoteInputPortCount(activeRemoteInputPortCount);
         dto.setInactiveRemoteInputPortCount(inactiveRemoteInputPortCount);

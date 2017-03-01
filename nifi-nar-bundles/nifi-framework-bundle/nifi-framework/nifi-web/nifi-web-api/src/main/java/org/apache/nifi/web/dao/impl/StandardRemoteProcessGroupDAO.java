@@ -144,6 +144,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // if any remote group properties are changing, verify update
         if (isAnyNotNull(remoteProcessGroupDto.getYieldDuration(),
+                remoteProcessGroupDto.getLocalNetworkInterface(),
                 remoteProcessGroupDto.getCommunicationsTimeout(),
                 remoteProcessGroupDto.getProxyHost(),
                 remoteProcessGroupDto.getProxyPort(),
@@ -359,6 +360,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
 
         final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
+        final String localNetworkInterface = remoteProcessGroupDTO.getLocalNetworkInterface();
 
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
@@ -390,6 +392,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             if (isNotNull(proxyPassword) && !DtoFactory.SENSITIVE_VALUE_MASK.equals(proxyPassword)) {
                 remoteProcessGroup.setProxyPassword(proxyPassword);
             }
+        }
+        if (isNotNull(localNetworkInterface)) {
+            // TODO - update the local network interface
         }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();

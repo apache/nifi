@@ -667,6 +667,21 @@
         });
     };
 
+    var hasIssues = function (d) {
+        return !nfCommon.isEmpty(d.component.authorizationIssues) || !nfCommon.isEmpty(d.component.validationErrors);
+    };
+
+    var getIssues = function (d) {
+        var issues = [];
+        if (!nfCommon.isEmpty(d.component.authorizationIssues)) {
+            issues = issues.concat(d.component.authorizationIssues);
+        }
+        if (!nfCommon.isEmpty(d.component.validationErrors)) {
+            issues = issues.concat(d.component.validationErrors);
+        }
+        return issues;
+    };
+
     /**
      * Updates the process group status.
      *
@@ -723,7 +738,7 @@
             .text(function (d) {
                 var icon = '';
                 if (d.permissions.canRead) {
-                    if (!nfCommon.isEmpty(d.component.authorizationIssues)) {
+                    if (hasIssues(d)) {
                         icon = '\uf071';
                     } else if (d.component.transmitting === true) {
                         icon = '\uf140';
@@ -736,7 +751,7 @@
             .attr('font-family', function (d) {
                 var family = '';
                 if (d.permissions.canRead) {
-                    if (!nfCommon.isEmpty(d.component.authorizationIssues) || d.component.transmitting) {
+                    if (hasIssues(d) || d.component.transmitting) {
                         family = 'FontAwesome';
                     } else {
                         family = 'flowfont';
@@ -745,20 +760,20 @@
                 return family;
             })
             .classed('invalid', function (d) {
-                return d.permissions.canRead && !nfCommon.isEmpty(d.component.authorizationIssues);
+                return d.permissions.canRead && hasIssues(d);
             })
             .classed('transmitting', function (d) {
-                return d.permissions.canRead && nfCommon.isEmpty(d.component.authorizationIssues) && d.component.transmitting === true;
+                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === true;
             })
             .classed('not-transmitting', function (d) {
-                return d.permissions.canRead && nfCommon.isEmpty(d.component.authorizationIssues) && d.component.transmitting === false;
+                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === false;
             })
             .each(function (d) {
                 // get the tip
                 var tip = d3.select('#authorization-issues-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !nfCommon.isEmpty(d.component.authorizationIssues)) {
+                if (d.permissions.canRead && hasIssues(d)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#remote-process-group-tooltips').append('div')
@@ -770,7 +785,7 @@
 
                     // update the tip
                     tip.html(function () {
-                        var list = nfCommon.formatUnorderedList(d.component.authorizationIssues);
+                        var list = nfCommon.formatUnorderedList(getIssues(d));
                         if (list === null || list.length === 0) {
                             return '';
                         } else {

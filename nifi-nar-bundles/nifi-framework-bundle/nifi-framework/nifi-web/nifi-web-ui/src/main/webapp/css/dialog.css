@@ -18,10 +18,6 @@
     Specific dialog settings.
 */
 
-#new-remote-process-group-transport-protocol-combo {
-    width: 160px;
-}
-
 #fill-color-dialog {
     display: none;
     width: 240px;
