@@ -45,7 +45,7 @@ public class SSLCommsSession implements CommsSession {
     private int protocolVersion;
 
     public SSLCommsSession(final SSLContext sslContext, final String hostname, final int port) throws IOException {
-        sslSocketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
+        sslSocketChannel = new SSLSocketChannel(sslContext, hostname, port, null, true);
 
         in = new SSLSocketChannelInputStream(sslSocketChannel);
         bufferedIn = new BufferedInputStream(in);

@@ -262,6 +262,7 @@ public class FlowFromDOMFactory {
         dto.setProxyHost(getString(element, "proxyHost"));
         dto.setProxyPort(getOptionalInt(element, "proxyPort"));
         dto.setProxyUser(getString(element, "proxyUser"));
+        dto.setLocalNetworkInterface(getString(element, "networkInterface"));
 
         final String rawPassword = getString(element, "proxyPassword");
         final String proxyPassword = encryptor == null ? rawPassword : decrypt(rawPassword, encryptor);

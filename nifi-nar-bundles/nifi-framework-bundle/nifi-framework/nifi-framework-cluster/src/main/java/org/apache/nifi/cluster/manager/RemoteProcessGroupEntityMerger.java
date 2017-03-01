@@ -33,7 +33,6 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
     public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final RemoteProcessGroupEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -47,6 +46,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         final RemoteProcessGroupDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap = new HashMap<>();
@@ -75,6 +75,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
         final RemoteProcessGroupContentsDTO remoteProcessGroupContents = clientDto.getContents();
 
         final Map<String, Set<NodeIdentifier>> authorizationErrorMap = new HashMap<>();
+        final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
         Boolean mergedIsTargetSecure = null;
         final Set<RemoteProcessGroupPortDTO> mergedInputPorts = new HashSet<>();
         final Set<RemoteProcessGroupPortDTO> mergedOutputPorts = new HashSet<>();
@@ -88,6 +89,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
 
                 // merge the authorization errors
                 ErrorMerger.mergeErrors(authorizationErrorMap, nodeId, nodeRemoteProcessGroup.getAuthorizationIssues());
+                ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeRemoteProcessGroup.getValidationErrors());
 
                 // use the first target secure flag since they will all be the same
                 final Boolean nodeIsTargetSecure = nodeRemoteProcessGroup.isTargetSecure();
@@ -124,5 +126,6 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
 
         // set the merged the validation errors
         clientDto.setAuthorizationIssues(ErrorMerger.normalizedMergedErrors(authorizationErrorMap, dtoMap.size()));
+        clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
     }
 }

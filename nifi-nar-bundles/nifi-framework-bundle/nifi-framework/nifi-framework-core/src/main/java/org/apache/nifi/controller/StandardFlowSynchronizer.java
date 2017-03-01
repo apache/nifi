@@ -45,6 +45,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -1124,6 +1125,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             if (remoteGroupDto.getProxyPassword() != null) {
                 remoteGroup.setProxyPassword(remoteGroupDto.getProxyPassword());
+            }
+
+            if (StringUtils.isBlank(remoteGroupDto.getLocalNetworkInterface())) {
+                remoteGroup.setNetworkInterface(null);
+            } else {
+                remoteGroup.setNetworkInterface(remoteGroupDto.getLocalNetworkInterface());
             }
 
             final Set<RemoteProcessGroupPortDescriptor> inputPorts = new HashSet<>();

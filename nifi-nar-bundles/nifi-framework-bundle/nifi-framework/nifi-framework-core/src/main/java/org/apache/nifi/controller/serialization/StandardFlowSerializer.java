@@ -69,7 +69,7 @@ import org.w3c.dom.Node;
  */
 public class StandardFlowSerializer implements FlowSerializer {
 
-    private static final String MAX_ENCODING_VERSION = "1.0";
+    private static final String MAX_ENCODING_VERSION = "1.1";
 
     private final StringEncryptor encryptor;
 
@@ -260,6 +260,9 @@ public class StandardFlowSerializer implements FlowSerializer {
         if (!StringUtils.isEmpty(remoteRef.getProxyPassword())) {
             final String value = ENC_PREFIX + encryptor.encrypt(remoteRef.getProxyPassword()) + ENC_SUFFIX;
             addTextElement(element, "proxyPassword", value);
+        }
+        if (remoteRef.getNetworkInterface() != null) {
+            addTextElement(element, "networkInterface", remoteRef.getNetworkInterface());
         }
 
         for (final RemoteGroupPort port : remoteRef.getInputPorts()) {

@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1550,20 +1551,20 @@ public final class DtoFactory {
         }
 
         if (group.getAuthorizationIssue() != null) {
-            final List<String> authIssues = new ArrayList<>();
-            final String authIssue = group.getAuthorizationIssue();
-            if (authIssue != null) {
-                authIssues.add(authIssue);
+            dto.setAuthorizationIssues(Arrays.asList(group.getAuthorizationIssue()));
+        }
+
+        final Collection<ValidationResult> validationErrors = group.validate();
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            final List<String> errors = new ArrayList<>();
+            for (final ValidationResult validationResult : validationErrors) {
+                errors.add(validationResult.toString());
             }
 
-            final Collection<ValidationResult> validationResults = group.validate();
-            validationResults.stream()
-                .filter(result -> !result.isValid())
-                .map(result -> result.toString())
-                .forEach(str -> authIssues.add(str));
-
-            dto.setAuthorizationIssues(authIssues);
+            dto.setValidationErrors(errors);
         }
+
+        dto.setLocalNetworkInterface(group.getNetworkInterface());
 
         dto.setActiveRemoteInputPortCount(activeRemoteInputPortCount);
         dto.setInactiveRemoteInputPortCount(inactiveRemoteInputPortCount);

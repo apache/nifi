@@ -23,7 +23,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.nio.channels.SocketChannel;
 import java.security.cert.CertificateException;
@@ -87,9 +89,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     private final SiteInfoProvider siteInfoProvider;
     private final PeerSelector peerSelector;
+    private final InetAddress localAddress;
 
     public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
-            final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider) {
+        final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider,
+        final InetAddress localAddress) {
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
 
         this.remoteDestination = remoteDestination;
@@ -97,6 +101,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         this.eventReporter = eventReporter;
         this.commsTimeout = commsTimeoutMillis;
         this.idleExpirationMillis = idleExpirationMillis;
+        this.localAddress = localAddress;
 
         this.siteInfoProvider = siteInfoProvider;
 
@@ -440,7 +445,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
+                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, localAddress, true);
                 socketChannel.connect();
 
                 commsSession = new SSLSocketChannelCommunicationsSession(socketChannel);
@@ -452,6 +457,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 }
             } else {
                 final SocketChannel socketChannel = SocketChannel.open();
+                if (localAddress != null) {
+                    final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
+                    socketChannel.socket().bind(localSocketAddress);
+                }
+
                 socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
                 socketChannel.socket().setSoTimeout(commsTimeout);
 
