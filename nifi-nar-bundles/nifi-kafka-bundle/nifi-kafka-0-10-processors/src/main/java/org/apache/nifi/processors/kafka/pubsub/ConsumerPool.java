@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,6 +41,7 @@ public class ConsumerPool implements Closeable {
 
     private final BlockingQueue<SimpleConsumerLease> pooledLeases;
     private final List<String> topics;
+    private final Pattern topicPattern;
     private final Map<String, Object> kafkaProperties;
     private final long maxWaitMillis;
     private final ComponentLog logger;
@@ -74,7 +76,7 @@ public class ConsumerPool implements Closeable {
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
-        final Map<String, Object> kafkaProperties,
+            final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
             final String keyEncoding,
@@ -90,6 +92,29 @@ public class ConsumerPool implements Closeable {
         this.bootstrapServers = bootstrapServers;
         this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
         this.topics = Collections.unmodifiableList(topics);
+        this.topicPattern = null;
+    }
+
+    public ConsumerPool(
+            final int maxConcurrentLeases,
+            final byte[] demarcator,
+            final Map<String, Object> kafkaProperties,
+            final Pattern topics,
+            final long maxWaitMillis,
+            final String keyEncoding,
+            final String securityProtocol,
+            final String bootstrapServers,
+            final ComponentLog logger) {
+        this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
+        this.maxWaitMillis = maxWaitMillis;
+        this.logger = logger;
+        this.demarcatorBytes = demarcator;
+        this.keyEncoding = keyEncoding;
+        this.securityProtocol = securityProtocol;
+        this.bootstrapServers = bootstrapServers;
+        this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
+        this.topics = null;
+        this.topicPattern = topics;
     }
 
     /**
@@ -119,7 +144,11 @@ public class ConsumerPool implements Closeable {
              * This subscription tightly couples the lease to the given
              * consumer. They cannot be separated from then on.
              */
-            consumer.subscribe(topics, lease);
+            if (topics != null) {
+              consumer.subscribe(topics, lease);
+            } else {
+              consumer.subscribe(topicPattern, lease);
+            }
         }
         lease.setProcessSession(session);
         leasesObtainedCountRef.incrementAndGet();
