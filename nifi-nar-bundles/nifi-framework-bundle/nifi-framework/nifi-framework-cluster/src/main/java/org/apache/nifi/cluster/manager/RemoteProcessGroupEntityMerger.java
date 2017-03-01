@@ -33,7 +33,6 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
     public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final RemoteProcessGroupEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -47,6 +46,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         final RemoteProcessGroupDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap = new HashMap<>();

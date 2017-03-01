@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import static org.apache.nifi.util.StringUtils.isEmpty;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -31,13 +39,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-
-import static org.apache.nifi.util.StringUtils.isEmpty;
 
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
@@ -393,8 +394,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
                 remoteProcessGroup.setProxyPassword(proxyPassword);
             }
         }
-        if (isNotNull(localNetworkInterface)) {
-            // TODO - update the local network interface
+        if (localNetworkInterface != null) {
+            if (StringUtils.isBlank(localNetworkInterface)) {
+                remoteProcessGroup.setNetworkInterface(null);
+            } else {
+                remoteProcessGroup.setNetworkInterface(localNetworkInterface);
+            }
         }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();

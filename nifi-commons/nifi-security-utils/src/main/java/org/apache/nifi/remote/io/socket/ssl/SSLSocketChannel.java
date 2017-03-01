@@ -18,6 +18,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -68,9 +69,13 @@ public class SSLSocketChannel implements Closeable {
     private boolean closed = false;
     private volatile boolean interrupted = false;
 
-    public SSLSocketChannel(final SSLContext sslContext, final String hostname, final int port, final boolean client) throws IOException {
+    public SSLSocketChannel(final SSLContext sslContext, final String hostname, final int port, final InetAddress localAddress, final boolean client) throws IOException {
         this.socketAddress = new InetSocketAddress(hostname, port);
         this.channel = SocketChannel.open();
+        if (localAddress != null) {
+            final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
+            this.channel.bind(localSocketAddress);
+        }
         this.hostname = hostname;
         this.port = port;
         this.engine = sslContext.createSSLEngine();

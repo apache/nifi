@@ -879,30 +879,33 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         writeLock.lock();
         try {
             this.networkInterfaceName = interfaceName;
+            if (interfaceName == null) {
+                this.nicValidationResult = null;
+            } else {
+                try {
+                    final Enumeration<InetAddress> inetAddresses = NetworkInterface.getByName(interfaceName).getInetAddresses();
 
-            try {
-                final Enumeration<InetAddress> inetAddresses = NetworkInterface.getByName(interfaceName).getInetAddresses();
-
-                if (inetAddresses.hasMoreElements()) {
-                    this.localAddress = inetAddresses.nextElement();
-                    this.nicValidationResult = null;
-                } else {
+                    if (inetAddresses.hasMoreElements()) {
+                        this.localAddress = inetAddresses.nextElement();
+                        this.nicValidationResult = null;
+                    } else {
+                        this.localAddress = null;
+                        this.nicValidationResult = new ValidationResult.Builder()
+                            .input(interfaceName)
+                            .subject("Network Interface Name")
+                            .valid(false)
+                            .explanation("No IP Address could be found that is bound to the interface with name " + interfaceName)
+                            .build();
+                    }
+                } catch (final Exception e) {
                     this.localAddress = null;
                     this.nicValidationResult = new ValidationResult.Builder()
                         .input(interfaceName)
                         .subject("Network Interface Name")
                         .valid(false)
-                        .explanation("No IP Address could be found that is bound to the interface with name " + interfaceName)
+                        .explanation("Could not obtain Network Interface with name " + interfaceName)
                         .build();
                 }
-            } catch (final Exception e) {
-                this.localAddress = null;
-                this.nicValidationResult = new ValidationResult.Builder()
-                    .input(interfaceName)
-                    .subject("Network Interface Name")
-                    .valid(false)
-                    .explanation("Could not obtain Network Interface with name " + interfaceName)
-                    .build();
             }
         } finally {
             writeLock.unlock();

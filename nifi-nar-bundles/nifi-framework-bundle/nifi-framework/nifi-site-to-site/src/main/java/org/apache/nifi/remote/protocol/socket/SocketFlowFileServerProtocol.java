@@ -156,8 +156,8 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             final Peer peer,
             final Optional<ClusterNodeInformation> clusterNodeInfo,
             final String remoteInputHost,
-            final int remoteInputPort,
-            final int remoteInputHttpPort,
+        final Integer remoteInputPort,
+        final Integer remoteInputHttpPort,
             final boolean isSiteToSiteSecure) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");

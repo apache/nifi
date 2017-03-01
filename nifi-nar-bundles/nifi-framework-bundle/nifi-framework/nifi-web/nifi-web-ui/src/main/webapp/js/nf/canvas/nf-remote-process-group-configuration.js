@@ -84,7 +84,8 @@
                                     proxyHost: $('#remote-process-group-proxy-host').val(),
                                     proxyPort: $('#remote-process-group-proxy-port').val(),
                                     proxyUser: $('#remote-process-group-proxy-user').val(),
-                                    proxyPassword: $('#remote-process-group-proxy-password').val()
+                                    proxyPassword: $('#remote-process-group-proxy-password').val(),
+                                    localNetworkInterface: $('#remote-process-group-local-network-interface').val()
                                 }
                             };
 
