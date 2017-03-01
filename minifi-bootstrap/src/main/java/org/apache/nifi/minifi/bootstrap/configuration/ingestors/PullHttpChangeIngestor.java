@@ -27,6 +27,7 @@ import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -71,6 +72,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     public static final String PORT_KEY = PULL_HTTP_BASE_KEY + ".port";
     public static final String HOST_KEY = PULL_HTTP_BASE_KEY + ".hostname";
     public static final String PATH_KEY = PULL_HTTP_BASE_KEY + ".path";
+    public static final String QUERY_KEY = PULL_HTTP_BASE_KEY + ".query";
     public static final String TRUSTSTORE_LOCATION_KEY = PULL_HTTP_BASE_KEY + ".truststore.location";
     public static final String TRUSTSTORE_PASSWORD_KEY = PULL_HTTP_BASE_KEY + ".truststore.password";
     public static final String TRUSTSTORE_TYPE_KEY = PULL_HTTP_BASE_KEY + ".truststore.type";
@@ -86,6 +88,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     private final AtomicReference<Integer> portReference = new AtomicReference<>();
     private final AtomicReference<String> hostReference = new AtomicReference<>();
     private final AtomicReference<String> pathReference = new AtomicReference<>();
+    private final AtomicReference<String> queryReference = new AtomicReference<>();
     private volatile Differentiator<ByteBuffer> differentiator;
     private volatile String connectionScheme;
     private volatile String lastEtag = "";
@@ -110,6 +113,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         }
 
         final String path = properties.getProperty(PATH_KEY, "/");
+        final String query = properties.getProperty(QUERY_KEY, "");
 
         final String portString = (String) properties.get(PORT_KEY);
         final Integer port;
@@ -122,6 +126,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         portReference.set(port);
         hostReference.set(host);
         pathReference.set(path);
+        queryReference.set(query);
 
         final String useEtagString = (String) properties.getOrDefault(USE_ETAG_KEY, "false");
         if ("true".equalsIgnoreCase(useEtagString) || "false".equalsIgnoreCase(useEtagString)){
@@ -175,10 +180,15 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     public void run() {
         try {
             logger.debug("Attempting to pull new config");
-            final HttpUrl url = new HttpUrl.Builder()
+            HttpUrl.Builder builder = new HttpUrl.Builder()
                     .host(hostReference.get())
                     .port(portReference.get())
-                    .encodedPath(pathReference.get())
+                    .encodedPath(pathReference.get());
+            String query = queryReference.get();
+            if (!StringUtil.isNullOrEmpty(query)) {
+                builder = builder.encodedQuery(query);
+            }
+            final HttpUrl url = builder
                     .scheme(connectionScheme)
                     .build();
 

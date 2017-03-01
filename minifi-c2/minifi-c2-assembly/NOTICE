@@ -1,0 +1,240 @@
+Apache NiFi
+Copyright 2014-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache NiFi
+    The following NOTICE information applies:
+        Apache NiFi
+        Copyright 2014-2017 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        This product includes the following work from the Apache Hadoop project:
+
+        BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+        This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+        Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+        while at Mandiant http://www.mandiant.com
+        The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
+
+
+
+        This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+        Copyright 2015 The Apache Software Foundation
+        The derived work is adapted from
+          org/apache/storm/hive/common/HiveWriter.java
+          org/apache/storm/hive/common/HiveOptions.java
+        and can be found in the org.apache.nifi.util.hive package
+
+        This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+        Copyright 2008-2017 The Apache Software Foundation
+        The derived work is adapted from
+          release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+        and can be found in the org.apache.hadoop.hive.ql.io.orc package
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+   (ASLv2) JsonPath
+     The following NOTICE information applies:
+       Copyright 2011 JsonPath authors
+
+  (ASLv2) JSON-SMART
+    The following NOTICE information applies:
+      Copyright 2011 JSON-SMART authors
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+      ## Credits
+
+      A list of contributors may be found from CREDITS file, which is included
+      in some artifacts (usually source distributions); but is always available
+      from the source code management (SCM) system project uses.
+
+  (ASLv2) Apache Commons Collections
+    The following NOTICE information applies:
+      Apache Commons Collections
+      Copyright 2001-2013 The Apache Software Foundation
+
+  (ASLv2) Jettison
+    The following NOTICE information applies:
+         Copyright 2006 Envoi Solutions LLC
+
+  (ASLv2) Apache HttpComponents
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      Apache HttpCore
+      Copyright 2005-2015 The Apache Software Foundation
+
+      Apache HttpMime
+      Copyright 1999-2013 The Apache Software Foundation
+
+      This project contains annotations derived from JCIP-ANNOTATIONS
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Net
+    The following NOTICE information applies:
+      Apache Commons Net
+      Copyright 2001-2013 The Apache Software Foundation
+
+  (ASLv2) Swagger Core
+    The following NOTICE information applies:
+      Swagger Core 1.5.3-M1
+      Copyright 2015 Reverb Technologies, Inc.
+
+  (ASLv2) Spring Security
+    The following NOTICE information applies:
+          Spring Framework 4.0.3.RELEASE
+          Copyright (c) 2002-2015 Pivotal, Inc.
+
+  (ASLv2) Spring Framework
+    The following NOTICE information applies:
+      Spring Framework 4.1.4.RELEASE
+      Copyright (c) 2002-2015 Pivotal, Inc.
+
+    (ASLv2) Quartz
+      The following NOTICE information applies:
+        Copyright Declaration:
+        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
+
+        Trademark and Patent declaration
+        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
+        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
+
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+
+        Third Party declaration
+        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
+        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
+        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
+        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+
+        Confidentiality Disclaimer:
+        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
+        Contact GitHub API Training Shop Blog About
+
+  (ASLv2) Jasypt
+    The following NOTICE information applies:
+	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2017 The Apache Software Foundation
+
+  (ASLv2) Apache ZooKeeper
+    The following NOTICE information applies:
+      Apache ZooKeeper
+      Copyright 2009-2012 The Apache Software Foundation
+
+  (ASLv2) Apache log4j
+    The following NOTICE information applies:
+      Apache log4j
+      Copyright 2007 The Apache Software Foundation
+
+  (ASLv2) The Netty Project
+    The following NOTICE information applies:
+      The Netty Project
+      Copyright 2011 The Netty Project
+
+  (ASLv2) Apache Curator
+    The following NOTICE information applies:
+      Curator Framework
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Client
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Recipes
+      Copyright 2011-2014 The Apache Software Foundation
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.19 - https://jersey.java.net/jersey-json/)
+    (CDDL 1.1) (GPL2 w/ CPE) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.2.3-1 - http://jaxb.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) aopalliance version 1.0 repackaged as a module (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.4.0-b25 - https://hk2.java.net/external/aopalliance-repackaged)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19 - https://jersey.java.net/jersey-client/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19 - https://jersey.java.net/jersey-core/)
+
+
+************************
+Common Development and Distribution License 1.0
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
+
+    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+    (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
+    (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
+
+
+************************
+Eclipse Public License 1.0
+************************
+
+The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
+
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.3 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.3 - http://logback.qos.ch/)
+    (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)

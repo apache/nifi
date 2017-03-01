@@ -39,6 +39,7 @@ limitations under the License.
         <module>minifi-assembly</module>
         <module>minifi-toolkit</module>
         <module>minifi-docker</module>
+        <module>minifi-c2</module>
     </modules>
 
     <url>http://nifi.apache.org/minifi</url>
@@ -398,6 +399,11 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
+                <version>${org.apache.nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-toolkit-tls</artifactId>
                 <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
