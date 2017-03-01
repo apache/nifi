@@ -63,7 +63,7 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
             .displayName("Broker URI")
             .description("URI pointing to the network location of the JMS Message broker. For example, "
                       + "'tcp://myhost:61616' for ActiveMQ or 'myhost:1414' for IBM MQ")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new NonEmptyBrokerURIValidator())
             .required(true)
             .expressionLanguageSupported(true)
             .build();
@@ -87,12 +87,27 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
     ConnectionFactory getConnectionFactory();
 
     /**
+     * {@link Validator} that ensures that brokerURI's length > 0 after EL evaluation
+     */
+    static class NonEmptyBrokerURIValidator implements Validator {
+
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            String value = input;
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                value = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
+            }
+            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, value, context);
+        }
+    }
+
+    /**
      *
      */
     static class ClientLibValidator implements Validator {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String libDirPath = context.getProperty(CLIENT_LIB_DIR_PATH).getValue();
+            String libDirPath = context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue();
             StringBuilder invalidationMessageBuilder = new StringBuilder();
             if (libDirPath != null) {
                 File file = new File(libDirPath);
