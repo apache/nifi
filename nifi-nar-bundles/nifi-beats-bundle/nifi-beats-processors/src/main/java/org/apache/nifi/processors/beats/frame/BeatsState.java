@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
 
 /**
- * The parts of a Lumberjack frame.
+ * The stages of parsing of a Beats conversation.
  */
-@Deprecated
-public enum LumberjackState {
+public enum BeatsState {
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+    VERSION, // First stage is parsing the version
+    FRAMETYPE, // Second stage is to be able to read the frame type
+    PAYLOAD, // payload being populated
+    COMPLETE // complete packet handling
 }

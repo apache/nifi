@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
 
 /**
- * The parts of a Lumberjack frame.
+ * Represents an error encountered when decoding frames.
  */
-@Deprecated
-public enum LumberjackState {
+public class BeatsFrameException extends RuntimeException {
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+    public BeatsFrameException(String message) {
+        super(message);
+    }
+
+    public BeatsFrameException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

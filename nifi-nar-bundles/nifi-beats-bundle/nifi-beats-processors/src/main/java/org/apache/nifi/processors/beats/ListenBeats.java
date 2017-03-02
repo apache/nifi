@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack;
+package org.apache.nifi.processors.beats;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,43 +52,35 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.processor.util.listen.response.ChannelResponse;
-import org.apache.nifi.processors.lumberjack.event.LumberjackEvent;
-import org.apache.nifi.processors.lumberjack.event.LumberjackEventFactory;
-import org.apache.nifi.processors.lumberjack.frame.LumberjackEncoder;
-import org.apache.nifi.processors.lumberjack.handler.LumberjackSocketChannelHandlerFactory;
-import org.apache.nifi.processors.lumberjack.response.LumberjackChannelResponse;
-import org.apache.nifi.processors.lumberjack.response.LumberjackResponse;
+import org.apache.nifi.processors.beats.event.BeatsEvent;
+import org.apache.nifi.processors.beats.event.BeatsEventFactory;
+import org.apache.nifi.processors.beats.frame.BeatsEncoder;
+import org.apache.nifi.processors.beats.handler.BeatsSocketChannelHandlerFactory;
+import org.apache.nifi.processors.beats.response.BeatsChannelResponse;
+import org.apache.nifi.processors.beats.response.BeatsResponse;
 import org.apache.nifi.ssl.SSLContextService;
 
-import com.google.gson.Gson;
-
-@Deprecated
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Tags({"listen", "lumberjack", "tcp", "logs"})
-@CapabilityDescription("This processor is deprecated and may be removed in the near future. Listens for Lumberjack messages being sent to a given port over TCP. Each message will be " +
-    "acknowledged after successfully writing the message to a FlowFile. Each FlowFile will contain data " +
-    "portion of one or more Lumberjack frames. In the case where the Lumberjack frames contain syslog messages, the " +
-    "output of this processor can be sent to a ParseSyslog processor for further processing. ")
+@Tags({"listen", "beats", "tcp", "logs"})
+@CapabilityDescription("Listens for messages sent by libbeat compatible clients (e.g. filebeats, metricbeats, etc) using Libbeat's 'output.logstash', writing its JSON formatted payload " +
+        "to the content of a FlowFile." +
+        "This processor replaces the now deprecated ListenLumberjack")
 @WritesAttributes({
-    @WritesAttribute(attribute = "lumberjack.sender", description = "The sending host of the messages."),
-    @WritesAttribute(attribute = "lumberjack.port", description = "The sending port the messages were received over."),
-    @WritesAttribute(attribute = "lumberjack.sequencenumber", description = "The sequence number of the message. Only included if <Batch Size> is 1."),
-    @WritesAttribute(attribute = "lumberjack.*", description = "The keys and respective values as sent by the lumberjack producer. Only included if <Batch Size> is 1."),
-    @WritesAttribute(attribute = "mime.type", description = "The mime.type of the content which is text/plain")
+    @WritesAttribute(attribute = "beats.sender", description = "The sending host of the messages."),
+    @WritesAttribute(attribute = "beats.port", description = "The sending port the messages were received over."),
+    @WritesAttribute(attribute = "beats.sequencenumber", description = "The sequence number of the message. Only included if <Batch Size> is 1."),
+    @WritesAttribute(attribute = "mime.type", description = "The mime.type of the content which is application/json")
 })
 @SeeAlso(classNames = {"org.apache.nifi.processors.standard.ParseSyslog"})
-/**
- * @deprecated  As of release 1.2.0, replaced by {@link org.apache.nifi.processors.beats.ListenBeats}
- * */
-public class ListenLumberjack extends AbstractListenEventBatchingProcessor<LumberjackEvent> {
+public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("SSL Context Service")
+        .name("SSL_CONTEXT_SERVICE")
+        .displayName("SSL Context Service")
         .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
-            "messages will be received over a secure connection. Note that as Lumberjack client requires" +
-            "two-way SSL authentication, the controller MUST have a truststore and a keystore to work" +
-            "properly.")
-        .required(true)
+            "messages will be received over a secure connection.")
+        // Nearly all Lumberjack v1 implementations require TLS to work. v2 implementations (i.e. beats) have TLS as optional
+        .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
 
@@ -108,14 +100,14 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
 
         if (sslContextService != null && sslContextService.isTrustStoreConfigured() == false) {
             results.add(new ValidationResult.Builder()
-                .explanation("The context service must have a truststore  configured for the lumberjack forwarder client to work correctly")
+                .explanation("The context service must have a truststore  configured for the beats forwarder client to work correctly")
                 .valid(false).subject(SSL_CONTEXT_SERVICE.getName()).build());
         }
 
         return results;
     }
 
-    private volatile LumberjackEncoder lumberjackEncoder;
+    private volatile BeatsEncoder beatsEncoder;
 
 
     @Override
@@ -123,13 +115,13 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
     public void onScheduled(ProcessContext context) throws IOException {
         super.onScheduled(context);
         // wanted to ensure charset was already populated here
-        lumberjackEncoder = new LumberjackEncoder();
+        beatsEncoder = new BeatsEncoder();
     }
 
     @Override
-    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<LumberjackEvent> events) throws IOException {
-        final EventFactory<LumberjackEvent> eventFactory = new LumberjackEventFactory();
-        final ChannelHandlerFactory<LumberjackEvent, AsyncChannelDispatcher> handlerFactory = new LumberjackSocketChannelHandlerFactory<>();
+    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<BeatsEvent> events) throws IOException {
+        final EventFactory<BeatsEvent> eventFactory = new BeatsEventFactory();
+        final ChannelHandlerFactory<BeatsEvent, AsyncChannelDispatcher> handlerFactory = new BeatsSocketChannelHandlerFactory<>();
 
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
@@ -152,12 +144,12 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
 
 
     @Override
-    protected String getBatchKey(LumberjackEvent event) {
+    protected String getBatchKey(BeatsEvent event) {
         return event.getSender();
     }
 
-    protected void respond(final LumberjackEvent event, final LumberjackResponse lumberjackResponse) {
-        final ChannelResponse response = new LumberjackChannelResponse(lumberjackEncoder, lumberjackResponse);
+    protected void respond(final BeatsEvent event, final BeatsResponse beatsResponse) {
+        final ChannelResponse response = new BeatsChannelResponse(beatsEncoder, beatsResponse);
 
         final ChannelResponder responder = event.getResponder();
         responder.addResponse(response);
@@ -169,13 +161,13 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
         }
     }
 
-    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<LumberjackEvent> events) {
+    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<BeatsEvent> events) {
         // first commit the session so we guarantee we have all the events successfully
         // written to FlowFiles and transferred to the success relationship
         session.commit();
         // respond to each event to acknowledge successful receipt
-        for (final LumberjackEvent event : events) {
-            respond(event, LumberjackResponse.ok(event.getSeqNumber()));
+        for (final BeatsEvent event : events) {
+            respond(event, BeatsResponse.ok(event.getSeqNumber()));
         }
     }
 
@@ -183,48 +175,37 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
     protected String getTransitUri(FlowFileEventBatch batch) {
         final String sender = batch.getEvents().get(0).getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-        final String transitUri = new StringBuilder().append("lumberjack").append("://").append(senderHost).append(":")
+        final String transitUri = new StringBuilder().append("beats").append("://").append(senderHost).append(":")
             .append(port).toString();
         return transitUri;
     }
 
     @Override
     protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
-        final List<LumberjackEvent> events = batch.getEvents();
+        final List<BeatsEvent> events = batch.getEvents();
         // the sender and command will be the same for all events based on the batch key
         final String sender = events.get(0).getSender();
         final int numAttributes = events.size() == 1 ? 5 : 4;
         final Map<String, String> attributes = new HashMap<>(numAttributes);
-        attributes.put(LumberjackAttributes.SENDER.key(), sender);
-        attributes.put(LumberjackAttributes.PORT.key(), String.valueOf(port));
-        attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        attributes.put(beatsAttributes.SENDER.key(), sender);
+        attributes.put(beatsAttributes.PORT.key(), String.valueOf(port));
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
         // if there was only one event then we can pass on the transaction
         // NOTE: we could pass on all the transaction ids joined together
         if (events.size() == 1) {
-            attributes.put(LumberjackAttributes.SEQNUMBER.key(), String.valueOf(events.get(0).getSeqNumber()));
-
-            // Convert the serialized fields from JSON
-            String serialFields = String.valueOf(events.get(0).getFields());
-            Gson jsonObject = new Gson();
-
-            Map<String, String> fields = jsonObject.fromJson(serialFields, Map.class);
-
-            for (Map.Entry<String, String> entry : fields.entrySet()) {
-                attributes.put(LumberjackAttributes.FIELDS.key().concat(".").concat(entry.getKey()), entry.getValue());
-            }
+            attributes.put(beatsAttributes.SEQNUMBER.key(), String.valueOf(events.get(0).getSeqNumber()));
         }
         return attributes;
     }
 
-    public enum LumberjackAttributes implements FlowFileAttributeKey {
-        SENDER("lumberjack.sender"),
-        PORT("lumberjack.port"),
-        SEQNUMBER("lumberjack.sequencenumber"),
-        FIELDS("lumberjack.fields");
+    public enum beatsAttributes implements FlowFileAttributeKey {
+        SENDER("beats.sender"),
+        PORT("beats.port"),
+        SEQNUMBER("beats.sequencenumber");
 
         private final String key;
 
-        LumberjackAttributes(String key) {
+        beatsAttributes(String key) {
             this.key = key;
         }
 
