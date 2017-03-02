@@ -24,7 +24,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,11 +32,11 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.hadoop.util.ByteFilteringOutputStream;
 import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
 import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
-import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,7 +48,7 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
 
     @Override
     public FlowFile writeSequenceFile(final FlowFile flowFile, final ProcessSession session,
-            final Configuration configuration, final CompressionType compressionType) {
+            final Configuration configuration, final CompressionType compressionType, final CompressionCodec compressionCodec) {
 
         if (flowFile.getSize() > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Cannot write " + flowFile
@@ -97,7 +97,7 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
                                 SequenceFile.Writer.stream(fsDataOutputStream),
                                 SequenceFile.Writer.keyClass(Text.class),
                                 SequenceFile.Writer.valueClass(InputStreamWritable.class),
-                                SequenceFile.Writer.compression(compressionType, new DefaultCodec()))) {
+                                SequenceFile.Writer.compression(compressionType, compressionCodec))) {
 
                     processInputStream(in, flowFile, writer);
 
