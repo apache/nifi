@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard
 
 import org.apache.nifi.processor.exception.ProcessException
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure
 import org.apache.nifi.processors.standard.util.record.MockRecordParser
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.serialization.record.RecordField
@@ -42,7 +43,6 @@ import java.sql.Statement
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
 import static org.mockito.Mockito.spy
@@ -53,7 +53,8 @@ import static org.mockito.Mockito.spy
 @RunWith(JUnit4.class)
 class TestPutDatabaseRecord {
 
-    private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)"
+    private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100)," +
+            " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
     private final static String DB_LOCATION = "target/db_pdr"
 
     TestRunner runner
@@ -131,33 +132,20 @@ class TestPutDatabaseRecord {
 
         ] as PutDatabaseRecord.TableSchema
 
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
+        runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, 'false')
+        runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'false')
+        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'false')
+        def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
+
         processor.with {
-            try {
-                assertNull(generateInsert(null, null, null,
-                        false, false, false, false,
-                        false, false).sql)
-                fail('Expecting ProcessException')
-            } catch (ProcessException ignore) {
-                // Expected
-            }
-            try {
-                assertNull(generateInsert(null, 'PERSONS', null,
-                        false, false, false, false,
-                        false, false).sql)
-                fail('Expecting ProcessException')
-            } catch (ProcessException ignore) {
-                // Expected
-            }
 
             assertEquals('INSERT INTO PERSONS (id, name, code) VALUES (?,?,?)',
-                    generateInsert(schema, 'PERSONS', tableSchema,
-                            false, false, false, false,
-                            false, false).sql)
+                    generateInsert(schema, 'PERSONS', tableSchema, settings).sql)
 
             assertEquals('DELETE FROM PERSONS WHERE id = ? AND name = ? AND code = ?',
-                    generateDelete(schema, 'PERSONS', tableSchema,
-                            false, false, false, false,
-                            false, false).sql)
+                    generateDelete(schema, 'PERSONS', tableSchema, settings).sql)
         }
     }
 
@@ -204,6 +192,81 @@ class TestPutDatabaseRecord {
         assertEquals(4, rs.getInt(1))
         assertEquals('rec4', rs.getString(2))
         assertEquals(104, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertBatchUpdateException() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 101)
+        parser.addRecord(2, 'rec2', 102)
+        parser.addRecord(3, 'rec3', 1000)
+        parser.addRecord(4, 'rec4', 104)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // Transaction should be rolled back and table should remain empty.
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertBatchUpdateExceptionRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 101)
+        parser.addRecord(2, 'rec2', 102)
+        parser.addRecord(3, 'rec3', 1000)
+        parser.addRecord(4, 'rec4', 104)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, 'true')
+
+        runner.enqueue(new byte[0])
+        try {
+            runner.run()
+            fail("ProcessException is expected")
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException)
+        }
+
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // Transaction should be rolled back and table should remain empty.
         assertFalse(rs.next())
 
         stmt.close()
@@ -297,6 +360,37 @@ class TestPutDatabaseRecord {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+    }
+
+    @Test
+    void testSqlStatementTypeNoValueRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("sql", RecordFieldType.STRING)
+
+        parser.addRecord('')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, 'sql')
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, 'true')
+
+        def attrs = [:]
+        attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
+        runner.enqueue(new byte[0], attrs)
+        try {
+            runner.run()
+            fail("ProcessException is expected")
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException)
+        }
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 0)
     }
 
     @Test
