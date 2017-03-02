@@ -62,8 +62,8 @@ import org.apache.nifi.ssl.SSLContextService;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "beats", "tcp", "logs"})
-@CapabilityDescription("Listens for messages sent by libbeat compatible clients (e.g. filebeats, metricbeats, etc) being sent to a given port over TCP, writing its contents in" +
-        "JSON format to the content of the message to a FlowFile." +
+@CapabilityDescription("Listens for messages sent by libbeat compatible clients (e.g. filebeats, metricbeats, etc) using Libbeat's 'output.logstash', writing its JSON formatted payload " +
+        "to the content of a FlowFile." +
         "This processor replaces the now deprecated ListenLumberjack")
 @WritesAttributes({
     @WritesAttribute(attribute = "beats.sender", description = "The sending host of the messages."),
