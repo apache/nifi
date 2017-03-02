@@ -77,6 +77,36 @@ public class TestThreadPoolRequestReplicator {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
     }
 
+    @Test
+    public void testFailedRequestsAreCleanedUp() {
+        withReplicator(replicator -> {
+            final Set<NodeIdentifier> nodeIds = new HashSet<>();
+            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false));
+            final URI uri = new URI("http://localhost:8080/processors/1");
+            final Entity entity = new ProcessorEntity();
+
+            // set the user
+            final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
+
+            // We should get back the same response object
+            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+
+            assertEquals(HttpMethod.GET, response.getMethod());
+            assertEquals(nodeIds, response.getNodesInvolved());
+
+            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+
+            final NodeResponse nodeResponse = response.awaitMergedResponse(3, TimeUnit.SECONDS);
+            assertEquals(8000, nodeResponse.getNodeId().getApiPort());
+            assertEquals(ClientResponse.Status.FORBIDDEN.getStatusCode(), nodeResponse.getStatus());
+
+            assertNull(replicator.getClusterResponse(response.getRequestIdentifier()));
+        }, Status.FORBIDDEN, 0L, null);
+    }
+
     /**
      * If we replicate a request, whenever we obtain the merged response from
      * the AsyncClusterResponse object, the response should no longer be
