@@ -213,7 +213,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
 
         if (attributes.size() > 0) {
             FlowFile updatedFlowFile = session.putAllAttributes(originalFlowFile, attributes);
-            logger.info("Extracted {} into {} files", new Object[]{attributes.size(), updatedFlowFile});
+            logger.info("Extracted {} headers into {} file", new Object[]{attributes.size(), updatedFlowFile});
             processedFlowFilesList.add(updatedFlowFile);
         }
 
