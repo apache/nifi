@@ -25,7 +25,7 @@ import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     @Override
     public String getName() {
-        return "MS SQL";
+        return "MS SQL 2012+";
     }
 
     @Override
