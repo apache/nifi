@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * This class provide a protocol for Wait and Notify processors to work together.
@@ -51,8 +53,16 @@ public class WaitNotifyProtocol {
     private final Deserializer<String> stringDeserializer = input -> new String(input, StandardCharsets.UTF_8);
 
     public static class Signal {
+
+        /*
+         * Getter and Setter methods are needed to (de)serialize JSON even if it's not used from app code.
+         */
+
+        transient private String identifier;
+        transient private long revision = -1;
         private Map<String, Long> counts = new HashMap<>();
         private Map<String, String> attributes = new HashMap<>();
+        private int releasableCount = 0;
 
         public Map<String, Long> getCounts() {
             return counts;
@@ -84,6 +94,54 @@ public class WaitNotifyProtocol {
             return count != null ? count : 0;
         }
 
+        public int getReleasableCount() {
+            return releasableCount;
+        }
+
+        public void setReleasableCount(int releasableCount) {
+            this.releasableCount = releasableCount;
+        }
+
+        /**
+         * <p>Consume accumulated notification signals to let some waiting candidates get released.</p>
+         *
+         * <p>This method updates state of this instance, but does not update cache storage.
+         * Caller of this method is responsible for updating cache storage after processing released and waiting candidates
+         * by calling {@link #replace(Signal)}. Caller should rollback what it processed with these candidates if complete call failed.</p>
+         *
+         * @param _counterName signal counter name to consume from.
+         * @param requiredCountForPass number of required signals to acquire a pass.
+         * @param releasableCandidateCountPerPass number of releasable candidate per pass.
+         * @param candidates candidates waiting for being allowed to pass.
+         * @param released function to process allowed candidates to pass.
+         * @param waiting function to process candidates those should remain in waiting queue.
+         * @param <E> Type of candidate
+         */
+        public <E> void releaseCandidatese(final String _counterName, final long requiredCountForPass,
+                                           final int releasableCandidateCountPerPass, final List<E> candidates,
+                                           final Consumer<List<E>> released, final Consumer<List<E>> waiting) {
+
+            // counterName is mandatory otherwise, we can't decide which counter to convert into pass count.
+            final String counterName = _counterName == null || _counterName.length() == 0 ? DEFAULT_COUNT_NAME : _counterName;
+
+            final int candidateSize = candidates.size();
+            if (releasableCount < candidateSize) {
+                // If current passCount is not enough for the candidate size, then try to get more.
+                // Convert notification signals to pass ticket.
+                final long signalCount = getCount(counterName);
+                releasableCount += (signalCount / requiredCountForPass) * releasableCandidateCountPerPass;
+                final long reducedSignalCount = signalCount % requiredCountForPass;
+                counts.put(counterName, reducedSignalCount);
+            }
+
+            int releaseCount = Math.min(releasableCount, candidateSize);
+
+            released.accept(candidates.subList(0, releaseCount));
+            waiting.accept(candidates.subList(releaseCount, candidateSize));
+
+            releasableCount -= releaseCount;
+        }
+
     }
 
     private final AtomicDistributedMapCacheClient cache;
@@ -95,7 +153,7 @@ public class WaitNotifyProtocol {
     /**
      * Notify a signal to increase a counter.
      * @param signalId a key in the underlying cache engine
-     * @param deltas a map containing counterName and delta entries
+     * @param deltas a map containing counterName and delta entries, 0 has special meaning, clears the counter back to 0
      * @param attributes attributes to save in the cache entry
      * @return A Signal instance, merged with an existing signal if any
      * @throws IOException thrown when it failed interacting with the cache engine
@@ -106,10 +164,9 @@ public class WaitNotifyProtocol {
 
         for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
 
-            final CacheEntry<String, String> existingEntry = cache.fetch(signalId, stringSerializer, stringDeserializer);
-
             final Signal existingSignal = getSignal(signalId);
             final Signal signal = existingSignal != null ? existingSignal : new Signal();
+            signal.identifier = signalId;
 
             if (attributes != null) {
                 signal.attributes.putAll(attributes);
@@ -117,15 +174,11 @@ public class WaitNotifyProtocol {
 
             deltas.forEach((counterName, delta) -> {
                 long count = signal.counts.containsKey(counterName) ? signal.counts.get(counterName) : 0;
-                count += delta;
+                count = delta == 0 ? 0 : count + delta;
                 signal.counts.put(counterName, count);
             });
 
-            final String signalJson = objectMapper.writeValueAsString(signal);
-            final long revision = existingEntry != null ? existingEntry.getRevision() : -1;
-
-
-            if (cache.replace(signalId, signalJson, stringSerializer, stringSerializer, revision)) {
+            if (replace(signal)) {
                 return signal;
             }
 
@@ -148,7 +201,7 @@ public class WaitNotifyProtocol {
      * Notify a signal to increase a counter.
      * @param signalId a key in the underlying cache engine
      * @param counterName specify count to update
-     * @param delta delta to update a counter
+     * @param delta delta to update a counter, 0 has special meaning, clears the counter back to 0
      * @param attributes attributes to save in the cache entry
      * @return A Signal instance, merged with an existing signal if any
      * @throws IOException thrown when it failed interacting with the cache engine
@@ -184,12 +237,16 @@ public class WaitNotifyProtocol {
         final String value = entry.getValue();
 
         try {
-            return objectMapper.readValue(value, Signal.class);
+            final Signal signal = objectMapper.readValue(value, Signal.class);
+            signal.identifier = signalId;
+            signal.revision = entry.getRevision();
+            return signal;
         } catch (final JsonParseException jsonE) {
             // Try to read it as FlowFileAttributes for backward compatibility.
             try {
                 final Map<String, String> attributes = new FlowFileAttributesSerializer().deserialize(value.getBytes(StandardCharsets.UTF_8));
                 final Signal signal = new Signal();
+                signal.identifier = signalId;
                 signal.setAttributes(attributes);
                 signal.getCounts().put(DEFAULT_COUNT_NAME, 1L);
                 return signal;
@@ -208,5 +265,12 @@ public class WaitNotifyProtocol {
      */
     public void complete(final String signalId) throws IOException {
         cache.remove(signalId, stringSerializer);
+    }
+
+    public boolean replace(final Signal signal) throws IOException {
+
+        final String signalJson = objectMapper.writeValueAsString(signal);
+        return cache.replace(signal.identifier, signalJson, stringSerializer, stringSerializer, signal.revision);
+
     }
 }
