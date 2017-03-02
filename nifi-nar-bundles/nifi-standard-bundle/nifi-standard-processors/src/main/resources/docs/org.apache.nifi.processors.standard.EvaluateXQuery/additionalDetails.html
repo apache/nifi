@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+          Licensed to the Apache Software Foundation (ASF) under one or more
+          contributor license agreements.  See the NOTICE file distributed with
+          this work for additional information regarding copyright ownership.
+          The ASF licenses this file to You under the Apache License, Version 2.0
+          (the "License"); you may not use this file except in compliance with
+          the License.  You may obtain a copy of the License at
+              http://www.apache.org/licenses/LICENSE-2.0
+          Unless required by applicable law or agreed to in writing, software
+          distributed under the License is distributed on an "AS IS" BASIS,
+          WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+          See the License for the specific language governing permissions and
+          limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>EvaluateXQuery</title>
+        <link rel="stylesheet" href="../../css/component-usage.css"
+              type="text/css" />
+    </head>
+
+
+    <body>
+
+        <!-- Processor Documentation ================================================== -->
+
+
+        <p>
+            <strong>Examples:</strong>
+        </p>
+
+        <p>This processor produces one attribute or FlowFile per
+            XQueryResult. If only one attribute or FlowFile is desired, the
+            following examples demonstrate how this can be achieved using the
+            XQuery language. The examples below reference the following sample
+            XML:</p>
+
+        <pre>
+		<code>
+  &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+  &lt;?xml-stylesheet type="text/xsl" href="foo.xsl"?&gt;
+  &lt;ns:fruitbasket xmlns:ns="http://namespace/1"&gt;
+    &lt;fruit taste="crisp"&gt;    
+      &lt;!-- Apples are my favorite--&gt;   
+      &lt;name&gt;apple&lt;/name&gt;   
+      &lt;color&gt;red&lt;/color&gt;  
+    &lt;/fruit&gt;  
+    &lt;fruit&gt;   
+      &lt;name&gt;apple&lt;/name&gt;   
+      &lt;color&gt;green&lt;/color&gt;  
+    &lt;/fruit&gt;  
+    &lt;fruit&gt;   
+      &lt;name&gt;banana&lt;/name&gt;   
+      &lt;color&gt;yellow&lt;/color&gt;  
+    &lt;/fruit&gt;  
+    &lt;fruit taste="sweet"&gt;   
+      &lt;name&gt;orange&lt;/name&gt;   
+      &lt;color&gt;orange&lt;/color&gt;  
+    &lt;/fruit&gt;  
+    &lt;fruit&gt;   
+      &lt;name&gt;blueberry&lt;/name&gt;   
+      &lt;color&gt;blue&lt;/color&gt;  
+    &lt;/fruit&gt;  
+      &lt;fruit taste="tart"&gt;   
+      &lt;name&gt;raspberry&lt;/name&gt;   
+      &lt;color&gt;red&lt;/color&gt;  
+    &lt;/fruit&gt;  
+    &lt;fruit&gt;   
+      &lt;name&gt;none&lt;/name&gt;    
+      &lt;color/&gt;  
+    &lt;/fruit&gt;
+  &lt;/ns:fruitbasket&gt;
+</code>
+        </pre>
+
+        <p>
+        <ul>
+            <li>XQuery to return all "fruit" nodes individually (7 Results):
+                <ul>
+                    <li>//fruit</li>
+                </ul>
+            </li>
+            <li>XQuery to return only the first "fruit" node (1 Result):
+                <ul>
+                    <li>//fruit[1]</li>
+                </ul>
+            </li>
+            <li>XQuery to return only the last "fruit" node (1 Result):
+                <ul>
+                    <li>//fruit[count(//fruit)]</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" nodes, wrapped in a "basket" tag
+                (1 Result):
+                <ul>
+                    <li>&lt;basket&gt;{//fruit}&lt;/basket&gt;</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" names individually (7 Results):
+                <ul>
+                    <li>//fruit/text()</li>
+                </ul>
+            </li>
+            <li>XQuery to return only the first "fruit" name (1 Result):
+                <ul>
+                    <li>//fruit[1]/text()</li>
+                </ul>
+            </li>
+            <li>XQuery to return only the last "fruit" name (1 Result):
+                <ul>
+                    <li>//fruit[count(//fruit)]/text()</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" names as a comma separated list
+                (1 Result):
+                <ul>
+                    <li>string-join((for $x in //fruit return $x/name/text()), ',
+                        ')</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" colors and names as a comma
+                separated list (1 Result):
+                <ul>
+                    <li>string-join((for $y in (for $x in //fruit return
+                        string-join(($x/color/text() , $x/name/text()), ' ')) return $y),
+                        ', ')</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" colors and names as a comma
+                separated list (1 Result):
+                <ul>
+                    <li>string-join((for $y in (for $x in //fruit return
+                        string-join(($x/color/text() , $x/name/text()), ' ')) return $y),
+                        ', ')</li>
+                </ul>
+            </li>
+            <li>XQuery to return all "fruit" colors and names as a new line
+                separated list (1 Result):
+                <ul>
+                    <li>string-join((for $y in (for $x in //fruit return
+                        string-join(($x/color/text() , $x/name/text()), ' ')) return $y),
+                        '\n')</li>
+                </ul>
+            </li>
+        </ul>
+    </body>
+</html>

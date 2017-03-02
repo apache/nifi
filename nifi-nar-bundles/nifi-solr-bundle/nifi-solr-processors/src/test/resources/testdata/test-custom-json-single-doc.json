@@ -1,0 +1,15 @@
+{
+  "first": "John",
+  "last": "Doe",
+  "grade": 8,
+  "exams": [
+      {
+        "subject": "Math",
+        "test"   : "term1",
+        "marks":90},
+        {
+         "subject": "Biology",
+         "test"   : "term1",
+         "marks":86}
+      ]
+}

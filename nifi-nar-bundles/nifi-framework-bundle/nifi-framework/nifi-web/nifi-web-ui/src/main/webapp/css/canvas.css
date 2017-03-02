@@ -1,0 +1,48 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@import url(processor-configuration.css);
+@import url(processor-details.css);
+@import url(process-group-configuration.css);
+@import url(policy-management.css);
+@import url(queue-listing.css);
+@import url(remote-process-group-configuration.css);
+@import url(controller-service.css);
+@import url(component-state.css);
+@import url(reporting-task.css);
+@import url(port-configuration.css);
+@import url(port-details.css);
+@import url(label-configuration.css);
+@import url(connection-configuration.css);
+@import url(connection-details.css);
+@import url(shell.css);
+@import url(dialog.css);
+@import url(new-processor-dialog.css);
+@import url(new-controller-service-dialog.css);
+@import url(new-reporting-task-dialog.css);
+@import url(graph.css);
+@import url(header.css);
+@import url(main.css);
+@import url(banner.css);
+@import url(navigation.css);
+@import url(flow-status.css);
+@import url(settings.css);
+@import url(about.css);
+@import url(message-pane.css);
+@import url(common-ui.css);
+@import url(status-history.css);
+@import url(../fonts/flowfont/flowfont.css);
+@import url(../assets/font-awesome/css/font-awesome.css);

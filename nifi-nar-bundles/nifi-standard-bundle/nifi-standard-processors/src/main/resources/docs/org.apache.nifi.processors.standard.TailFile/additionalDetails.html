@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>TailFile</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h3>Modes</h3>
+        <p>
+            This processor is used to tail a file or multiple files according to multiple modes. The 
+            mode to choose depends of the logging pattern followed by the file(s) to tail. In any case, if there
+            is a rolling pattern, the rolling files must be plain text files (compression is not supported at 
+            the moment).
+        </p>
+        <ul>
+        	<li><b>Single file</b>: the processor will tail the file with the path given in 'File(s) to tail' property.</li>
+        	<li><b>Multiple files</b>: the processor will look for files into the 'Base directory'. It will look for file recursively
+        	according to the 'Recursive lookup' property and will tail all the files matching the regular expression
+        	provided in the 'File(s) to tail' property.</li>
+        </ul>
+        <h3>Rolling filename pattern</h3>
+        <p>
+        	In case the 'Rolling filename pattern' property is used, when the processor detects that the file to tail has rolled over, the
+        	processor will look for possible missing messages in the rolled file. To do so, the processor will use the pattern to find the 
+        	rolling files in the same directory as the file to tail.
+        </p>
+        <p>
+        	In order to keep this property available in the 'Multiple files' mode when multiples files to tail are in the same directory, 
+        	it is possible to use the ${filename} tag to reference the name (without extension) of the file to tail. For example, if we have:
+        </p>
+       	<p>
+        	<code>
+	        	/my/path/directory/my-app.log.1<br />
+	        	/my/path/directory/my-app.log<br />
+	        	/my/path/directory/application.log.1<br />
+	        	/my/path/directory/application.log
+        	</code>
+       	</p>
+       	<p>
+       		the 'rolling filename pattern' would be <i>${filename}.log.*</i>.
+       	</p>
+        <h3>Descriptions for different modes and strategies</h3>
+        <p>
+        	The '<b>Single file</b>' mode assumes that the file to tail has always the same name even if there is a rolling pattern.
+        	Example:
+        </p>
+       	<p>
+        	<code>
+	        	/my/path/directory/my-app.log.2<br />
+	        	/my/path/directory/my-app.log.1<br />
+	        	/my/path/directory/my-app.log
+        	</code>
+       	</p>
+       	<p>
+        	and new log messages are always appended in my-app.log file.
+        </p>
+        <p>
+        	In case recursivity is set to 'true'. The regular expression for the files to tail must embrace the possible intermediate directories 
+        	between the base directory and the files to tail. Example:
+        </p>
+        <p>
+        	<code>
+	        	/my/path/directory1/my-app1.log<br />
+	        	/my/path/directory2/my-app2.log<br />
+	        	/my/path/directory3/my-app3.log
+        	</code>
+       	</p>
+        <p>
+        	<code>
+	        	Base directory: /my/path<br />
+	        	Files to tail: directory[1-3]/my-app[1-3].log<br />
+	        	Recursivity: true
+        	</code>
+       	</p>
+        <p>
+        	In the '<b>Multiple files</b>' mode, it is possible to specify if the file to tail has always the same name or not. It is done through
+        	the property 'Rolling strategy'. The strategy can be 'Fixed name' in case the files to tail have always the same name (see example above) 
+        	or can be 'Changing name' in case the files to tail do not always have the same name. Example:
+        </p>
+       	<p>
+        	<code>
+	        	/my/path/directory/my-app-2016-09-06.log<br />
+	        	/my/path/directory/my-app-2016-09-07.log<br />
+	        	/my/path/directory/my-app-2016-09-08.log
+        	</code>
+       	</p>
+       	<p>
+        	and new log messages are always appended in log file of the current day.
+        </p>
+        <p>
+        	If the processor is configured with '<b>Multiple files</b>' mode and '<b>Fixed name</b>' rolling strategy, the processor will list the 
+        	files to tail in the 'Base directory' (recursively or not) and matching the regular expression. This listing will only occur once when 
+        	the processor is started. In this configuration, the processor will act as in 'Single file' mode for all files listed by the processor 
+        	when started.
+        </p>
+        <p>
+        	If the processor is configured with '<b>Multiple files</b>' mode and '<b>Changing name</b>' rolling strategy, two new properties are 
+        	mandatory:
+        </p>
+        <ul>
+        	<li><b>Lookup frequency</b>: specifies the minimum duration the processor will wait before listing again the files to tail.</li>
+        	<li><b>Maximum age</b>: specifies the necessary minimum duration to consider that no new messages will be appended in a file 
+        	regarding its last modification date.</li>
+        </ul>
+        <p>
+        	It is necessary to pay attention to 'Lookup frequency' and 'Maximum age' properties as well as the frequency at which the processor is 
+        	triggered in order to keep good performances. It is recommended to keep 'Maximum age' > 'Lookup frequency' > processor scheduling 
+        	frequency to avoid loosing messages. It also recommended not to set 'Maximum Age' too low because if messages are appended in a file 
+        	after this file has been considered "too old", all the messages in the file may be read again leading to data duplication.
+        </p>
+        <p>
+        	Besides, if the processor is configured with '<b>Multiple files</b>' mode and '<b>Changing name</b>' rolling strategy, the 'Rolling 
+        	filename pattern' property must be specific enough to ensure that only the rolling files will be listed and not other currently tailed
+        	files in the same directory (this can be achieved using ${filename} tag).
+        </p>
+    </body>
+</html>

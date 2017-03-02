@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>ConsumeAMQP</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This processor consumes messages from AMQP messaging queue and converts them to a FlowFile to be routed to the next component in the flow.
+    At the time of writing this document the supported AMQP protocol version is v0.9.1.
+</p>
+<p>
+	The component is based on <a href="https://www.rabbitmq.com/api-guide.html">RabbitMQ Client API</a>
+	<a href="https://www.rabbitmq.com/getstarted.html">The following guide and tutorial</a> may also help you to brush up on some of the AMQP basics.
+</p>
+<p>
+    This processor does two things. It constructs FlwFile by extracting information from the consumed AMQP message (both body and attributes). 
+    Once message is consumed a FlowFile is constructed. The message body is written to a FlowFile and its <i>com.rabbitmq.client.AMQP.BasicProperties</i>
+    are transfered into the FlowFile as attributes. AMQP attribute names are prefixed with <i>amqp$</i> prefix.
+</p>
+<h2>AMQP Properties</h2>
+<p>
+    The following is the list of available standard AMQP properties which may come with the message: <i>("amqp$contentType", "amqp$contentEncoding",
+            "amqp$headers", "amqp$deliveryMode", "amqp$priority", "amqp$correlationId", "amqp$replyTo",
+            "amqp$expiration", "amqp$messageId", "amqp$timestamp", "amqp$type", "amqp$userId", "amqp$appId",
+            "amqp$clusterId")</i>
+</p>
+<h2>Configuration Details</h2>
+<p>
+    At the time of writing this document it only defines the essential configuration properties which are suitable for most cases. 
+    Other properties will be defined later as this component progresses.
+    Configuring PublishAMQP:
+</p>
+<ol>
+    <li><b>Queue</b> - [REQUIRED] the name of AMQP queue the messages will retrieved from. Usually provided by administrator (e.g., 'amq.direct')
+    </li>
+    <li><b>Host Name</b> - [REQUIRED] the name of the host where AMQP broker is running. 
+    Usually provided by administrator (e.g., 'myhost.com'). Defaults to 'localhost'.
+    </li>
+    <li><b>Port</b> - [REQUIRED] the port number where AMQP broker is running. 
+    Usually provided by the administrator (e.g., '2453'). Defaults to '5672'.
+    </li>
+    <li><b>User Name</b> - [REQUIRED] user name to connect to AMQP broker. 
+    Usually provided by the administrator (e.g., 'me'). Defaults to 'guest'.
+    </li>
+    <li><b>Password</b> - [REQUIRED] password to use with user name to connect to AMQP broker. 
+    Usually provided by the administrator. Defaults to 'guest'.
+    </li>
+    <li><b>Virtual Host</b> - [OPTIONAL] Virtual Host name which segregates AMQP system for enhanced security.
+    Please refer to <a href="http://blog.dtzq.com/2012/06/rabbitmq-users-and-virtual-hosts.html">this blog</a> for more details on Virtual Host.
+    </li>
+</ol>
+
+</body>
+</html>

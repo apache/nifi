@@ -1,0 +1,528 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Status Styles
+*/
+
+#provenance {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+#provenance-header-and-filter{
+    height: 111px;
+}
+
+#provenance-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 15px;
+    height: 118px;
+}
+
+#provenance-refresh-container {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    left: 0px;
+}
+
+#provenance-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#provenance-last-refreshed {
+    font-weight: 500;
+}
+
+#provenance-header {
+    padding-top: 10px;
+}
+
+div.provenance-panel {
+    bottom: 0px;
+    left: 0px;
+    overflow: hidden;
+    position: absolute;
+    right: 0px;
+    top: 40px;
+}
+
+/* filter controls */
+
+#provenance-filter-container {
+    height: 24px;
+    width: 100%;
+}
+
+#provenance-filter {
+    width: 173px;
+    margin-right: 3px;
+    float: left;
+}
+
+#provenance-filter-type {
+    float: left;
+}
+
+#oldest-event-message {
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
+}
+
+/* provenance search controls */
+
+#provenance-search-container {
+    position: absolute;
+    right: 0;
+    top: 38px;
+}
+
+#provenance-search-button {
+    float: right;
+}
+
+#provenance-search-overview {
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
+}
+
+#clear-provenance-search {
+    display: none;
+}
+
+/* provenance search dialog */
+
+#searchable-fields-container {
+    min-height: 185px;
+    padding: 5px;
+    overflow: auto;
+}
+
+div.searchable-field {
+    margin-bottom: 5px;
+}
+
+div.searchable-field-name {
+    width: 25%;
+    float: left;
+    line-height: 26px;
+}
+
+div.searchable-field-value {
+    float: left;
+    width: 75%;
+}
+
+.start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
+    float: left;
+    width: 49%;
+}
+
+.start-date-setting, .end-date-setting {
+    margin-right: 2%;
+    width: 49%;
+}
+
+.provenance-small-input {
+    width: 183px;
+}
+
+.provenance-time-input {
+    width: 215px;
+}
+
+#provenance-search-location-container {
+    display: none;
+}
+
+/* event details dialog */
+
+div.flowfile-container {
+    width: 282px;
+    overflow: auto;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    line-height:1.4
+}
+
+#child-flowfiles {
+    margin-top: 20px;
+}
+
+div.event-header {
+    color: #728e9b;
+    font-size: 15px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
+}
+
+div.detail-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.detail-value {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+div.attribute-detail {
+    margin-bottom: 15px;
+}
+
+div.attribute-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.attribute-value {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+#attributes-header {
+    float: left;
+}
+
+#modified-attribute-toggle-container {
+    float: right;
+}
+
+#modified-attribute-toggle-label {
+    float: left;
+    font-size:13px;
+    line-height: 20px;
+}
+
+#modified-attribute-toggle {
+    float: left;
+    margin-right: 5px;
+    margin-left: 0;
+    margin-top: 3px;
+}
+
+div.modified-attribute-label {
+    float: left;
+    margin-left: 10px;
+    width: 50px;
+    font-style: italic;
+    font-weight: normal;
+    color: #666;
+}
+
+div.modified-attribute-value {
+    float: left;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: normal;
+    color: #ad9897;
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+div.event-detail {
+    margin-bottom: 15px;
+}
+
+#input-content-download, #output-content-download, #replay-content {
+    float: left;
+    margin: 0;
+}
+
+#replay-content-message {
+    font-size: 13px;
+}
+
+#input-content-view, #output-content-view {
+    float: left;
+    margin-left: 10px;
+}
+
+div.content-detail-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.content-detail-value {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+#replay-details {
+    margin-top: 20px;
+}
+
+/* provenance/lineage query dialog */
+
+#provenance-percent-complete, #lineage-percent-complete {
+    border-radius: 0;
+}
+
+#provenance-percent-complete .ui-progressbar-value, #lineage-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+/* provenance table */
+
+#provenance-table {
+    position: absolute;
+    top: 88px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#provenance-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+/* provenance lineage */
+
+#provenance-lineage {
+    border: 1px solid #e5ebed;
+    background-color: #f9fafb;
+}
+
+#provenance-lineage-loading-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+#provenance-lineage-loading {
+    background-color: transparent;
+    height: 16px;
+    width: 16px;
+}
+
+#provenance-lineage-container {
+    height: 100%;
+    width: 100%;
+}
+
+#provenance-lineage-close-container {
+    position: absolute;
+    right: 1px;
+    top: 2px;
+}
+
+#provenance-lineage-downloader {
+    float: left;
+    height: 16px;
+    width: 16px;
+    font-size: 16px;
+    color: #004849;
+    cursor: pointer;
+    margin-right: 4px;
+    margin-top: 2px;
+}
+
+#provenance-lineage-closer {
+    float: left;
+    height: 16px;
+    width: 16px;
+    font-size: 16px;
+    color: #004849;
+    cursor: pointer;
+    margin-right: 5px;
+    margin-top: 2px;
+}
+
+#provenance-lineage-slider-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 350px;
+    height: 35px;
+}
+
+#provenance-lineage-slider-container {
+    margin-left: 10px;
+}
+
+#provenance-lineage-slider {
+    border-radius: 0;
+}
+
+#provenance-lineage-slider .ui-slider-handle {
+    border-radius: 0;
+    border: 1px solid #999;
+    outline: none;
+}
+
+#event-timeline {
+    margin-top: 4px;
+    color: #775351;
+    line-height: normal;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+#event-time {
+    float: left;
+}
+
+#event-timezone {
+    float: left;
+}
+
+div.lineage-view-event:before {
+    font-family: FontAwesome;
+    content: "\f05a";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.lineage-view-parents:before {
+    font-family: FontAwesome;
+    content: "\f1e5";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.lineage-collapse-parents:before {
+    font-family: FontAwesome;
+    content: "\f147";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.lineage-view-children:before {
+    font-family: FontAwesome;
+    content: "\f0fe";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.lineage-collapse-children:before {
+    font-family: FontAwesome;
+    content: "\f146";
+    font-size: 16px;
+    color: #004849;
+}
+
+path.link.selected {
+    stroke: #ba554a;
+}
+
+g.event {
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+g.event circle.selected {
+    fill: #ba554a;
+}
+
+text.event-type {
+    font-family: Roboto;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: normal;
+}
+
+text.event-type.expand-parents, text.event-type.expand-children {
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-size: 13px;
+}
+
+g.flowfile {
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+g.flowfile circle.context, g.event circle.context {
+    stroke: #004849;
+    stroke-width: 1.5px;
+}
+
+.flowfile-icon {
+    font-family: flowfont;
+    content: "\e808";
+    font-size: 16px;
+    color: #ad9897;
+}
+
+#child-flowfile-count {
+    font-weight: normal;
+}
+
+#parent-flowfile-count {
+    font-weight: normal;
+}

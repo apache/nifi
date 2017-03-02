@@ -1,0 +1,7 @@
+red 		apple
+orange 		orange
+yellow 		banana
+green		grape
+blue		blueberry
+purple		plum
+

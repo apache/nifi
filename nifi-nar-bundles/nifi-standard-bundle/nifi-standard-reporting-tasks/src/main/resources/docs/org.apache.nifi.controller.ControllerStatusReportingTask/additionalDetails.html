@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ControllerStatusReportingTask</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Description:</h2>
+
+        <p>
+            Reporting Task that creates a log message for each Processor and each Connection in the flow.
+
+            For Processors, the following information is included (sorted by descending Processing Timing):
+        </p>
+        <ul>
+            <li>Processor Name</li>
+            <li>Processor ID</li>
+            <li>Processor Type</li>
+            <li>Run Status</li>
+            <li>Flow Files In (5 mins)</li>
+            <li>FlowFiles Out (5 mins)</li>
+            <li>Bytes Read from Disk (5 mins)</li>
+            <li>Bytes Written to Disk (5 mins)</li>
+            <li>Number of Tasks Completed (5 mins)</li>
+            <li>Processing Time (5 mins)</li>
+        </ul>
+
+        <p>
+            For Connections, the following information is included (sorted by descending size of queued FlowFiles):
+        </p>
+        <ul>
+            <li>Connection Name</li>
+            <li>Connection ID</li>
+            <li>Source Component Name</li>
+            <li>Destination Component Name</li>
+            <li>Flow Files In (5 mins)</li>
+            <li>FlowFiles Out (5 mins)</li>
+            <li>FlowFiles Queued</li>
+        </ul>
+
+        <p>
+            If may be convenient to redirect the logging output of this ReportingTask to a separate log file than the typical application log.
+            This can be accomplished by modified the logback.xml file in the NiFi conf/ directory such that a logger with the name
+            <code>org.apache.nifi.controller.ControllerStatusReportingTask</code> is configured to write to a separate log.
+        </p>
+
+        <p>
+            Additionally, it may be convenient to disable logging for Processors or for Connections or to split them into separate log files. This
+            can be accomplished by using the loggers named 
+            <code>org.apache.nifi.controller.ControllerStatusReportingTask.Processors</code> and 
+            <code>org.apache.nifi.controller.ControllerStatusReportingTask.Connections</code>, respectively.
+        </p>
+    </body>
+</html>

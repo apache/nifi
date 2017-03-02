@@ -1,0 +1,90 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* 
+    New controller service dialog.
+*/
+
+#new-controller-service-dialog {
+    min-height:620px;
+    height: 620px;
+    width: 760px;
+    min-width: 760px;
+}
+
+#new-controller-service-dialog span.link {
+    cursor: pointer;
+    color: #004849;
+    font-weight: bold;
+    display: inline-block;
+    background-color: #E3E8EB;
+    border-radius: 2px;
+    padding: 1px 4px;
+}
+
+#controller-service-tag-cloud-container {
+    padding: 0px;
+}
+
+#controller-service-types-container {
+    padding: 0px;
+}
+
+#controller-service-type-name {
+    min-height: 15px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#controller-service-type-name-title {
+    font-family: Roboto Slab;
+    padding: 20px 0 5px 0;
+    font-size: 12px;
+}
+
+#controller-service-type-description {
+    height: 62px;
+    font-size: 13px;
+    line-height: 17px;
+    padding-top: 10px;
+}
+
+#controller-service-types-table {
+    min-height: 150px;
+    overflow: hidden;
+    height: 70%;
+    width: 100%;
+}
+
+#controller-service-types-table-container th {
+    vertical-align: middle;
+}
+
+/*
+    Processor type table filter
+*/
+
+#controller-service-type-filter-controls {
+    min-height: 32px;
+    padding: 0px;
+    margin: 0px;
+}
+
+#controller-service-type-filter {
+    width: 200px;
+}

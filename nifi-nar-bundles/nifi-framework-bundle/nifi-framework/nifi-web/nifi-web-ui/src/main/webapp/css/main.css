@@ -1,0 +1,286 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    font-size: 62.5%;
+}
+
+#splash {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    background: #7098AD;
+    z-index: 2000;
+}
+
+#splash-img {
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 10%;
+    right: 10%;
+    background: transparent url(../images/nifi-drop-splash.svg) no-repeat center center;
+}
+
+div.context-menu-provenance {
+    background-position: top left;
+}
+
+#user-links-container {
+    float: left;
+    z-index: 1300;
+    margin-left: 20px;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ellipsis.multiline {
+    white-space: normal;
+}
+
+.collapsed:before {
+    font-family: FontAwesome;
+    content: "\f0da";
+    font-size: 16px;
+    color: #004849;
+    float: left;
+    margin-right: 3px;
+}
+
+.expanded:before {
+    font-family: FontAwesome;
+    content: "\f0d7";
+    font-size: 16px;
+    color: #004849;
+    float: left;
+}
+
+#new-template-description {
+    position: absolute;
+    top: 81px;
+    bottom: 0px;
+    height: inherit;
+    min-height: 32px;
+}
+
+/* processor status styles */
+
+.disabled {
+    float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.enabled {
+    float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    margin-left: 3px;
+    margin-right: -3px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stopped {
+    float: left;
+    color: #d18686 !important;
+    fill: #d18686 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stopped:before {
+    content: "\f04d";
+    font-family: FontAwesome;
+}
+
+.running {
+    float: left;
+    color: #7dc7a0 !important;
+    fill: #7dc7a0 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.running:before {
+    content: "\f04b";
+    font-family: FontAwesome;
+}
+
+.has-errors, .invalid {
+    float: left;
+    color: #cf9f5d !important;
+    fill: #cf9f5d !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.has-errors:before, .invalid:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    color: #cf9f5d;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.transmitting {
+    float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.not-transmitting {
+    float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+div.valid {
+    float: left;
+    background-color: transparent;
+}
+
+div.has-bulletins {
+    color: #ba554a !important;
+}
+
+.zero {
+    color: #aabec7 !important;
+    fill: #aabec7 !important;
+    text-shadow: none !important;
+}
+
+/*
+    Styles for status/history/user tables.
+*/
+
+span.label, div.label {
+    font-weight: bold;
+}
+
+div.inline-details {
+    margin-top: 10px;
+    margin-bottom: 3px;
+}
+
+div.inline-details div {
+    margin: 2px 0;
+}
+
+tr.alt-row {
+    background: #f5f5f5 none;
+}
+
+span.details-title {
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: underline;
+}
+
+.last-refreshed-container {
+    float: left;
+    font-weight: normal;
+    margin-top: 8px;
+    margin-left: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+.refresh-toggle {
+    float: left;
+    margin: 0px 20px 0px 0px !important;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+/* new template */
+
+#new-template-description {
+    height: 210px;
+}
+
+/* upload */
+
+#select-template-container {
+}
+
+#template-browse-container {
+    display: block;
+    height: 20px;
+}
+
+#select-template-label {
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 28px;
+}
+
+#select-template-button {
+    position: absolute;
+    top: 0px;
+    left: 135px;
+    height: 28px;
+}
+
+#template-file-field {
+    display: none;
+}
+
+#submit-template-container {
+    margin-top: 20px;
+}
+
+#selected-template-name {
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+#upload-template-status {
+    margin-top: 10px;
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #ba554a;
+}
+
+#upload-template-container button {
+    float: right;
+    font-size: 16px;
+    line-height: 14px;
+    margin-left: 1px;
+}
+
+#upload-template-button {
+    color: #004849;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#template-file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 300px;
+}

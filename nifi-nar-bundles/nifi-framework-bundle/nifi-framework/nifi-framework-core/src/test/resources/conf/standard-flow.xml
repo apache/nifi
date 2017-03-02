@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <maxThreadCount>100</maxThreadCount>
+    <rootGroup>
+        <id>1234</id>
+        <name>Root Group</name>
+        <position x="0.0" y="0.0"/>
+        <style>style</style>
+        <comment />
+        <processGroup>
+            <id>4321</id>
+            <name>Child Group</name>
+            <position x="0.0" y="0.0"/>
+            <style></style>
+            <comment />
+            <processor>
+                <id>0000</id>
+                <name>Data Generator</name>
+                <position x="0.0" y="0.0"/>
+                <style>style</style>
+                <comment></comment>
+                <class>org.apache.nifi.processors.standard.LocalSelectionFileProcessor</class>
+                <maxConcurrentTasks>5</maxConcurrentTasks>
+                <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+                <maxWorkQueueSize>500</maxWorkQueueSize>
+                <running>true</running>
+                <property>
+                    <name>root.directory.path</name>
+                    <value>C:/temp/youMayDeleteMe/lotsOf2MBFiles</value>
+                </property>
+                <property>
+                    <name>keep.original</name>
+                    <value>true</value>
+                </property>
+                <property>
+                    <name>polling.interval.secs</name>
+                    <value>0</value>
+                </property>
+            </processor>
+            <processor>
+                <id>1111</id>
+                <name>Data Destroyer</name>
+                <position x="0.0" y="0.0"/>
+                <style>style</style>
+                <comment></comment>
+                <class>org.apache.nifi.processors.standard.TerminationFileProcessor</class>
+                <maxConcurrentTasks>5</maxConcurrentTasks>
+                <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+                <maxWorkQueueSize>20000</maxWorkQueueSize>
+                <running>true</running>
+            </processor>
+            <outputPort>
+                <id>5555</id>
+                <name>Output Port</name>
+                <position x="0.0" y="0.0"/>
+                <style></style>
+            </outputPort>
+            <connection>
+                <id>7777</id>
+                <name>success</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style></style>
+                <sourceId>0000</sourceId>
+                <sourceGroupId>4321</sourceGroupId>
+                <sourceType>PROCESSOR</sourceType>
+                <destinationId>1111</destinationId>
+                <destinationGroupId>4321</destinationGroupId>
+                <destinationType>PROCESSOR</destinationType>
+                <countFlowFiles>true</countFlowFiles>
+                <countBytes>true</countBytes>
+                <relationship>success</relationship>
+            </connection>
+            <connection>
+                <id>8888</id>
+                <name>to.other.group</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style></style>
+                <sourceId>0000</sourceId>
+                <sourceGroupId>4321</sourceGroupId>
+                <sourceType>PROCESSOR</sourceType>
+                <destinationId>5555</destinationId>
+                <destinationGroupId>4321</destinationGroupId>
+                <destinationType>OUTPUT_PORT</destinationType>
+                <countFlowFiles>true</countFlowFiles>
+                <countBytes>true</countBytes>
+                <relationship>success</relationship>
+            </connection>
+        </processGroup>
+        <processGroup>
+            <id>9999</id>
+            <name>Second Group</name>
+            <position x="0.0" y="0.0"/>
+            <style></style>
+            <comment />
+            <processor>
+                <id>2222</id>
+                <name>Logger</name>
+                <position x="0.0" y="0.0"/>
+                <style>style</style>
+                <comment></comment>
+                <class>org.apache.nifi.processors.standard.AttributeLoggerProcessor</class>
+                <maxConcurrentTasks>5</maxConcurrentTasks>
+                <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+                <maxWorkQueueSize>500</maxWorkQueueSize>
+                <running>true</running>
+            </processor>
+            <processor>
+                <id>3333</id>
+                <name>Second Terminator</name>
+                <position x="0.0" y="0.0"/>
+                <style>style</style>
+                <comment></comment>
+                <class>org.apache.nifi.processors.standard.TerminationFileProcessor</class>
+                <maxConcurrentTasks>5</maxConcurrentTasks>
+                <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+                <maxWorkQueueSize>20000</maxWorkQueueSize>
+                <running>true</running>
+            </processor>
+            <inputPort>
+                <id>32874</id>
+                <name>Input Port</name>
+                <position x="0.0" y="0.0"/>
+                <style></style>
+            </inputPort>
+            <connection>
+                <id>12378461946123976329</id>
+                <name>success</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style></style>
+                <sourceId>2222</sourceId>
+                <sourceGroupId>9999</sourceGroupId>
+                <sourceType>PROCESSOR</sourceType>
+                <destinationId>3333</destinationId>
+                <destinationGroupId>9999</destinationGroupId>
+                <destinationType>PROCESSOR</destinationType>
+                <countFlowFiles>true</countFlowFiles>
+                <countBytes>true</countBytes>
+                <relationship>success</relationship>
+            </connection>
+            <connection>
+                <id>2347892</id>
+                <name>Input Port Connection</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style></style>
+                <sourceId>32874</sourceId>
+                <sourceGroupId>9999</sourceGroupId>
+                <sourceType>INPUT_PORT</sourceType>
+                <destinationId>2222</destinationId>
+                <destinationGroupId>9999</destinationGroupId>
+                <destinationType>PROCESSOR</destinationType>
+                <countFlowFiles>true</countFlowFiles>
+                <countBytes>true</countBytes>
+                <relationship></relationship>
+            </connection>
+        </processGroup>
+        <connection>
+            <id>47823</id>
+            <name>Output Port Connection</name>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style></style>
+            <sourceId>5555</sourceId>
+            <sourceGroupId>4321</sourceGroupId>
+            <sourceType>OUTPUT_PORT</sourceType>
+            <destinationId>32874</destinationId>
+            <destinationGroupId>9999</destinationGroupId>
+            <destinationType>INPUT_PORT</destinationType>
+            <countFlowFiles>true</countFlowFiles>
+            <countBytes>true</countBytes>
+            <relationship></relationship>
+        </connection>
+    </rootGroup>
+</flowController>

@@ -1,0 +1,12 @@
+
+bad data should be skipped
+
+# this is a comment
+  2.2.2.2  # this is another comment ####
+3.3.3.3/8
+
+4.4.4.4/24
+
+5.5.5.255/31
+
+more bad data

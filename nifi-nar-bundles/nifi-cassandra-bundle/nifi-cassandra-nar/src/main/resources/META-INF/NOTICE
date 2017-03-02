@@ -1,0 +1,17 @@
+nifi-cassandra-nar
+Copyright 2016 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Avro
+      The following NOTICE information applies:
+        Apache Avro
+        Copyright 2009-2013 The Apache Software Foundation
+

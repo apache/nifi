@@ -1,0 +1,66 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Processor details styles. Uses many styles from the processor configuration stylesheet.
+*/
+
+#processor-details {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#processor-details div.details-tab {
+    display: none;
+}
+
+#read-only-processor-comments {
+    height: 100%;
+}
+
+#read-only-auto-terminate-relationship-names {
+    border: 0 solid #CCCCCC;
+    height: 290px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2px 2px 0;
+}
+
+#processor-details div.relationship-name {
+    display: inline-block;
+    line-height: normal;
+    width: 340px;
+}
+
+div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.penalty-duration-setting, div.yield-duration-setting, div.scheduling-strategy-setting, div.execution-node-setting, div.bulletin-setting {
+    float: left;
+    width: 40%;
+}
+
+div.scheduling-period-setting, div.yield-duration-setting {
+    margin-left: 20%;
+}
+
+div.relationship-description {
+    color: #888;
+    margin-left: 16px;
+    margin-top: 2px;
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>JMSConnectionFactoryProvider</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Description:</h2>
+        <p>
+            This ControllerService serves as a general factory service to serving vendor specific 
+            instances of the <i>javax.jms.ConnectionFactory</i>. It does so by allowing user to 
+            configure vendor specific properties as well as point to the location of the vendor 
+            provided JMS client libraries so the correct implementation of the <i>javax.jms.ConnectionFactory</i>
+            can be found, loaded, instantiated and served to the dependent Processors (see PublishJMS, ConsumeJMS).
+        </p>
+        <p>
+            To accommodate variety of JMS vendors and their implementation of the <i>ConnectionFactory</i> 
+            this ControllerService exposes only 3 static configuration properties that are common across many implementations 
+            of the <i>ConnectionFactory</i>. The rest of the configuration properties are set following 
+            <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm">Java Beans</a> convention (see below).
+	    </p>
+	    <p>
+        The 3 static configuration properties are:
+        <ul>
+  		  <li><b>MQ ConnectionFactory Implementation</b> - A fully qualified name of the JMS ConnectionFactory implementation 
+  		         class (i.e., org.apache.activemq.ActiveMQConnectionFactory)</li>
+          <li><b>MQ Client Libraries path</b> - Path to the directory with additional resources (i.e., JARs, configuration files etc.) to be added 
+							to the classpath. Such resources typically represent target MQ client libraries for the ConnectionFactory 
+							implementation. It is optional if you are using Apache ActiveMQ since its libraries are distributed with this component.</li>
+          <li><b>Broker URI</b> - URI pointing to the network location of the JMS Message broker. For example, 'tcp://myhost:61616' for ActiveMQ or simply 'myhost:1414'.</li>
+        </ul>
+        The rest of the properties are set as Dynamic Properties following <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm">Java Beans</a> 
+        convention where a property name is derived from the <i>set*</i> method of the vendor specific ConnectionFactory's implementation.
+        For example, <i>com.ibm.mq.jms.MQConnectionFactory.setChannel(String)</i> would imply 'channel' property and 
+        <i>com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)</i> would imply 'transportType' property.
+        For the list of available properties please consult vendor provided documentation. Here is an example for 
+        <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQQueueConnectionFactory.html">IBM's com.ibm.mq.jms.MQConnectionFactory</a>
+        </p>
+    </body>
+</html>

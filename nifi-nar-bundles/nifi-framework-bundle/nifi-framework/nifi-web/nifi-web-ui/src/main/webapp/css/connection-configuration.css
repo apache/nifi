@@ -1,0 +1,125 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#connection-configuration {
+    z-index: 1301;
+    display: none;
+    width: 700px;
+    height: 400px;
+}
+
+#connection-configuration div.configuration-tab {
+    overflow: auto;
+    display: none;
+}
+
+/*
+    Connection details.
+*/
+
+div.connection-terminal-label {
+    height: 26px;
+}
+
+/*
+    Connection settings.
+*/
+
+#relationship-names-container {
+    height: 160px;
+    padding-right: 0;
+}
+
+#relationship-names {
+    padding: 2px;
+    height: 150px;
+    overflow-y: auto;
+    overflow-x: hidden; 
+    border: 0 solid #cccccc;
+    padding: 2px;
+    padding-bottom: 0;
+}
+
+div.available-relationship-container {
+    margin-bottom: 4px;
+}
+
+#connection-configuration div.relationship-name {
+    display: inline-block;
+    line-height: normal;
+}
+
+#connection-name-container {
+    clear: left;
+    float: left;
+    margin-top: 10px;
+    width: 180px;
+}
+
+div.undefined {
+    color: #aaa;
+    font-style: italic;
+}
+
+/* prioritizers */
+
+#prioritizer-available, #prioritizer-selected {
+    list-style-type: none;
+    margin: 0px;
+    background: #eaeef0;
+    min-height: 32px;
+    margin-bottom: 5px;
+    padding: 2px;
+}
+
+#prioritizer-available li, #prioritizer-selected li {
+    margin: 2px;
+    padding: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    height: 12px;
+    overflow: hidden;
+}
+
+#prioritizer-available li {
+    background: #fff;
+    border-top: 1px solid #CCDADB;
+    border-right: 1px solid #CCDADB;
+    border-bottom: 1px solid #CCDADB;
+    border-left: 1px solid #CCDADB;
+    color: #004849;
+    font-weight: 500;
+    cursor: grab;
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+    box-shadow:0 1px 1px rgba(0,0,0,0.4);
+}
+
+#prioritizer-selected li {
+    background: #355B6A;
+    border-top: 1px solid #AAC1CE;
+    border-right: 1px solid #85A6B8;
+    border-bottom: 1px solid #618BA3;
+    border-left: 1px solid #85A6B8;
+    color: #fff;
+    font-weight: bold;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+}

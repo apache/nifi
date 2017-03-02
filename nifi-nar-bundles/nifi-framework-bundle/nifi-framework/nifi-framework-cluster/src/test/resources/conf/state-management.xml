@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!--
+  This file provides a mechanism for defining and configuring the State Providers
+  that should be used for storing state locally and across a NiFi cluster. In order
+  to use a specific provider, it must be configured here and its identifier
+  must be specified in the nifi.properties file.
+-->
+<stateManagement>
+    <!--
+        State Provider that stores state locally in a configurable directory. This Provider requires the following properties:
+
+        Directory - the directory to store components' state in. If the directory being used is a sub-directory of the NiFi installation, it
+                    is important that the directory be copied over to the new version when upgrading NiFi.
+     -->
+    <local-provider>
+        <id>local-provider</id>
+        <class>org.apache.nifi.cluster.integration.NopStateProvider</class>
+    </local-provider>
+
+    <!--
+        State Provider that is used to store state in ZooKeeper. This Provider requires the following properties:
+
+        Root Node - the root node in ZooKeeper where state should be stored. The default is '/nifi', but it is advisable to change this to a different value if not using
+                   the embedded ZooKeeper server and if multiple NiFi instances may all be using the same ZooKeeper Server.
+
+        Connect String - A comma-separated list of host:port pairs to connect to ZooKeeper. For example, myhost.mydomain:2181,host2.mydomain:5555,host3:6666
+
+        Session Timeout - Specifies how long this instance of NiFi is allowed to be disconnected from ZooKeeper before creating a new ZooKeeper Session. Default value is "30 seconds"
+
+        Access Control - Specifies which Access Controls will be applied to the ZooKeeper ZNodes that are created by this State Provider. This value must be set to one of:
+                            - Open  : ZNodes will be open to any ZooKeeper client.
+                            - CreatorOnly  : ZNodes will be accessible only by the creator. The creator will have full access to create children, read, write, delete, and administer the ZNodes.
+                                             This option is available only if access to ZooKeeper is secured via Kerberos or if a Username and Password are set.
+    -->
+    <cluster-provider>
+        <id>zk-provider</id>
+        <class>org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider</class>
+        <property name="Connect String">localhost:8320</property>
+        <property name="Root Node">/nifi</property>
+        <property name="Session Timeout">10 seconds</property>
+        <property name="Access Control">Open</property>
+    </cluster-provider>
+</stateManagement>

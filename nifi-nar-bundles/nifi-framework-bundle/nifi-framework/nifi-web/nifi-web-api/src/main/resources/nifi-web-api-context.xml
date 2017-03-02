@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<beans default-lazy-init="true"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+
+    <!-- controller service / reporting task -->
+    <bean id="controllerServiceProvider" class="org.apache.nifi.web.spring.ControllerServiceProviderFactoryBean" depends-on="flowController" />
+    <bean id="reportingTaskProvider" class="org.apache.nifi.web.spring.ReportingTaskProviderFactoryBean" depends-on="flowController" />
+
+    <!-- component state -->
+    <bean id="stateManagerProvider" class="org.apache.nifi.web.spring.StateManagerProviderFactoryBean" depends-on="flowController" />
+
+    <!-- revision manager -->
+    <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager">
+    </bean>
+    
+    <!-- content access -->
+    <bean id="contentAccess" class="org.apache.nifi.web.StandardNiFiContentAccess">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator" />
+        <property name="requestReplicator" ref="requestReplicator" />
+    </bean>
+
+    <!-- entity factory -->
+    <bean id="entityFactory" class="org.apache.nifi.web.api.dto.EntityFactory"></bean>
+
+    <!-- dto factory -->
+    <bean id="dtoFactory" class="org.apache.nifi.web.api.dto.DtoFactory">
+        <property name="controllerServiceProvider" ref="controllerServiceProvider" />
+        <property name="entityFactory" ref="entityFactory"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- snippet utils -->
+    <bean id="snippetUtils" class="org.apache.nifi.web.util.SnippetUtils">
+        <property name="dtoFactory" ref="dtoFactory"/>
+        <property name="flowController" ref="flowController"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
+    </bean>
+
+    <!-- nifi component dao initialization -->
+    <bean id="processGroupDAO" class="org.apache.nifi.web.dao.impl.StandardProcessGroupDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="remoteProcessGroupDAO" class="org.apache.nifi.web.dao.impl.StandardRemoteProcessGroupDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="labelDAO" class="org.apache.nifi.web.dao.impl.StandardLabelDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="funnelDAO" class="org.apache.nifi.web.dao.impl.StandardFunnelDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="inputPortDAO" class="org.apache.nifi.web.dao.impl.StandardInputPortDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="outputPortDAO" class="org.apache.nifi.web.dao.impl.StandardOutputPortDAO">
+        <property name="flowController" ref="flowController"/>
+    </bean>
+    <bean id="connectionDAO" class="org.apache.nifi.web.dao.impl.StandardConnectionDAO">
+        <property name="flowController" ref="flowController"/>
+        <property name="authorizer" ref="authorizer"/>
+    </bean>
+    <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
+        <property name="flowController" ref="flowController"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+    </bean>
+    <bean id="controllerServiceDAO" class="org.apache.nifi.web.dao.impl.StandardControllerServiceDAO">
+        <property name="serviceProvider" ref="controllerServiceProvider"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
+        <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+    </bean>
+    <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
+        <property name="stateManagerProvider" ref="stateManagerProvider"/>
+    </bean>
+    <bean id="templateDAO" class="org.apache.nifi.web.dao.impl.StandardTemplateDAO">
+        <property name="flowController" ref="flowController"/>
+        <property name="snippetUtils" ref="snippetUtils"/>
+    </bean>
+    <bean id="snippetDAO" class="org.apache.nifi.web.dao.impl.StandardSnippetDAO">
+        <property name="flowController" ref="flowController"/>
+        <property name="snippetUtils" ref="snippetUtils"/>
+    </bean>
+    <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
+        <constructor-arg ref="authorizer"/>
+    </bean>
+    <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="flowController" ref="flowController"/>
+        <property name="flowService" ref="flowService"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="dtoFactory" ref="dtoFactory"/>
+        <property name="variableRegistry" ref="variableRegistry"/>
+    </bean>
+    <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
+        <property name="controllerFacade" ref="controllerFacade"/>
+        <property name="processorDAO" ref="processorDAO"/>
+        <property name="inputPortDAO" ref="inputPortDAO"/>
+        <property name="outputPortDAO" ref="outputPortDAO"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+        <property name="remoteProcessGroupDAO" ref="remoteProcessGroupDAO"/>
+        <property name="labelDAO" ref="labelDAO"/>
+        <property name="funnelDAO" ref="funnelDAO"/>
+        <property name="connectionDAO" ref="connectionDAO"/>
+        <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
+        <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="templateDAO" ref="templateDAO"/>
+        <property name="snippetDAO" ref="snippetDAO"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
+    </bean>
+    <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
+        <property name="authorizableLookup" ref="authorizableLookup" />
+        <property name="properties" ref="nifiProperties"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="controllerFacade" ref="controllerFacade"/>
+        <property name="processorDAO" ref="processorDAO"/>
+        <property name="inputPortDAO" ref="inputPortDAO"/>
+        <property name="outputPortDAO" ref="outputPortDAO"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+        <property name="remoteProcessGroupDAO" ref="remoteProcessGroupDAO"/>
+        <property name="labelDAO" ref="labelDAO"/>
+        <property name="funnelDAO" ref="funnelDAO"/>
+        <property name="connectionDAO" ref="connectionDAO"/>
+        <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
+        <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="templateDAO" ref="templateDAO"/>
+        <property name="snippetDAO" ref="snippetDAO"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="userGroupDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="userDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="snippetUtils" ref="snippetUtils"/>
+        <property name="revisionManager" ref="revisionManager" />
+        <property name="dtoFactory" ref="dtoFactory"/>
+        <property name="entityFactory" ref="entityFactory"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="heartbeatMonitor" ref="heartbeatMonitor" />
+        <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="leaderElectionManager" ref="leaderElectionManager" />
+    </bean>
+    
+    <!-- component ui extension configuration context -->
+    <bean id="nifiWebConfigurationContext" class="org.apache.nifi.web.StandardNiFiWebConfigurationContext">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator" />
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="auditService" ref="auditService"/>
+        <property name="controllerServiceProvider" ref="controllerServiceProvider"/>
+        <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="variableRegistry" ref="variableRegistry"/>
+    </bean>
+
+    <!-- rest endpoints -->
+    <bean id="flowResource" class="org.apache.nifi.web.api.FlowResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="processorResource" ref="processorResource"/>
+        <property name="inputPortResource" ref="inputPortResource"/>
+        <property name="outputPortResource" ref="outputPortResource"/>
+        <property name="funnelResource" ref="funnelResource"/>
+        <property name="labelResource" ref="labelResource"/>
+        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
+        <property name="connectionResource" ref="connectionResource"/>
+        <property name="templateResource" ref="templateResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="reportingTaskResource" ref="reportingTaskResource"/>
+        <property name="processGroupResource" ref="processGroupResource"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="resourceResource" class="org.apache.nifi.web.api.ResourceResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="controllerResource" class="org.apache.nifi.web.api.ControllerResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="reportingTaskResource" ref="reportingTaskResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="siteToSiteResource" class="org.apache.nifi.web.api.SiteToSiteResource" scope="singleton">
+        <constructor-arg ref="nifiProperties"/>
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="dataTransferResource" class="org.apache.nifi.web.api.DataTransferResource" scope="singleton">
+        <constructor-arg ref="nifiProperties"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="snippetResource" class="org.apache.nifi.web.api.SnippetResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="templateResource" class="org.apache.nifi.web.api.TemplateResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="controllerServiceResource" class="org.apache.nifi.web.api.ControllerServiceResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="requestReplicator" ref="requestReplicator"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="reportingTaskResource" class="org.apache.nifi.web.api.ReportingTaskResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="processGroupResource" class="org.apache.nifi.web.api.ProcessGroupResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="processorResource" ref="processorResource"/>
+        <property name="inputPortResource" ref="inputPortResource"/>
+        <property name="outputPortResource" ref="outputPortResource"/>
+        <property name="funnelResource" ref="funnelResource"/>
+        <property name="labelResource" ref="labelResource"/>
+        <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
+        <property name="connectionResource" ref="connectionResource"/>
+        <property name="templateResource" ref="templateResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="connectionResource" class="org.apache.nifi.web.api.ConnectionResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="flowfileQueueResource" class="org.apache.nifi.web.api.FlowFileQueueResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="remoteProcessGroupResource" class="org.apache.nifi.web.api.RemoteProcessGroupResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="inputPortResource" class="org.apache.nifi.web.api.InputPortResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="outputPortResource" class="org.apache.nifi.web.api.OutputPortResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="labelResource" class="org.apache.nifi.web.api.LabelResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="funnelResource" class="org.apache.nifi.web.api.FunnelResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer" />
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="provenanceResource" class="org.apache.nifi.web.api.ProvenanceResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="provenanceEventResource" class="org.apache.nifi.web.api.ProvenanceEventResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="countersResource" class="org.apache.nifi.web.api.CountersResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
+        <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
+        <property name="certificateExtractor" ref="certificateExtractor"/>
+        <property name="principalExtractor" ref="principalExtractor"/>
+        <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
+        <property name="jwtService" ref="jwtService"/>
+        <property name="otpService" ref="otpService"/>
+        <property name="kerberosService" ref="kerberosService"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="flowController" ref="flowController" />
+    </bean>
+    <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="flowController" />
+    </bean>
+    <bean id="tenantsResource" class="org.apache.nifi.web.api.TenantsResource" scope="singleton">
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="flowController" />
+    </bean>
+
+    <!-- configuration for jaxb serialization -->
+    <bean class="org.apache.nifi.web.util.ObjectMapperResolver" scope="singleton"/>
+
+    <!-- exception mapping -->
+    <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.ClusterExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalClusterResourceRequestExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalClusterStateExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalNodeDeletionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalNodeDisconnectionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalNodeReconnectionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.IllegalStateExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.InvalidRevisionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.JsonMappingExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.JsonParseExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.MutableRequestExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NiFiCoreExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NoConnectedNodesExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NoClusterCoordinatorExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NoResponseFromNodesExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NodeDisconnectionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NotFoundExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.UnknownNodeExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.ValidationExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.WebApplicationExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.ThrowableMapper" scope="singleton"/>
+
+    <!-- enable aop -->
+    <!-- 
+        By setting '-target-class' to 'true' Spring will use CGLIB for
+        proxying instead of JDK dynamic proxy.  CGLIB uses class extension so
+        at runtime we can cast to the concrete class.  With JDK dynamic proxy,
+        we lose the ability to cast to the concrete class.
+    -->
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+
+    <!-- NiFi auditing -->
+    <bean id="controllerAuditor" class="org.apache.nifi.audit.ControllerAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="relationshipAuditor" class="org.apache.nifi.audit.RelationshipAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="processorAuditor" class="org.apache.nifi.audit.ProcessorAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="processGroupAuditor" class="org.apache.nifi.audit.ProcessGroupAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="portAuditor" class="org.apache.nifi.audit.PortAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="funnelAuditor" class="org.apache.nifi.audit.FunnelAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="remoteProcessGroupAuditor" class="org.apache.nifi.audit.RemoteProcessGroupAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="snippetAuditor" class="org.apache.nifi.audit.SnippetAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+        <property name="inputPortDAO" ref="inputPortDAO"/>
+        <property name="outputPortDAO" ref="outputPortDAO"/>
+        <property name="remoteProcessGroupDAO" ref="remoteProcessGroupDAO"/>
+        <property name="processorDAO" ref="processorDAO"/>
+        <property name="funnelDAO" ref="funnelDAO"/>
+        <property name="connectionDAO" ref="connectionDAO"/>
+        <property name="portAuditor" ref="portAuditor"/>
+        <property name="funnelAuditor" ref="funnelAuditor"/>
+        <property name="remoteProcessGroupAuditor" ref="remoteProcessGroupAuditor"/>
+        <property name="processGroupAuditor" ref="processGroupAuditor"/>
+        <property name="processorAuditor" ref="processorAuditor"/>
+        <property name="relationshipAuditor" ref="relationshipAuditor"/>
+    </bean>
+    <bean id="controllerServiceAuditor" class="org.apache.nifi.audit.ControllerServiceAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="reportingTaskAuditor" class="org.apache.nifi.audit.ReportingTaskAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="componentStateAuditor" class="org.apache.nifi.audit.ComponentStateAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="policyAuditor" class="org.apache.nifi.audit.AccessPolicyAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="userAuditor" class="org.apache.nifi.audit.UserAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="userGroupAuditor" class="org.apache.nifi.audit.UserGroupAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    
+    <!-- NiFi locking -->
+    <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
+
+</beans>

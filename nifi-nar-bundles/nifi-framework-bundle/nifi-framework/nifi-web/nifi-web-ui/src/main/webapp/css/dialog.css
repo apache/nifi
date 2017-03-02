@@ -1,0 +1,236 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Specific dialog settings.
+*/
+
+#new-remote-process-group-transport-protocol-combo {
+    width: 160px;
+}
+
+#fill-color-dialog {
+    display: none;
+    width: 240px;
+    height: 470px;
+}
+
+#fill-color-value {
+    width: 175px;
+}
+
+#fill-color-processor-preview {
+    width: 173px;
+    height: 66px;
+    border-width: 1px;
+    border-style: solid;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#fill-color-processor-preview-icon {
+    float: left;
+    width: 25px;
+    height: 25px;
+}
+
+#fill-color-processor-preview-icon:before {
+    margin-top: 5px;
+    margin-left: 4px;
+    font-size: 15px;
+}
+
+#fill-color-processor-preview-name {
+    margin-left: 35px;
+    line-height: 25px;
+    font-size: 12px;
+    height: 25px;
+}
+
+#fill-color-label-preview {
+    width: 83px;
+    height: 83px;
+    font-weight: bold;
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#fill-color-label-preview-value {
+    margin-left: 10px;
+    margin-top: 10px;
+    float: left;
+    font-size: 12px;
+}
+
+div.connections-component-name {
+    float: left;
+    width: 390px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#connections-dialog {
+    height: 400px;
+    width: 680px;
+}
+
+#connections-context {
+    padding: 5px;
+}
+
+#connections-source {
+    float: left;
+}
+
+#connections-destination {
+    float: left;
+    margin-left: 360px;
+}
+
+#connections-container {
+    width: 612px;
+    padding: 5px;
+    overflow-y: auto;
+}
+
+div.source-destination-connection {
+    margin-bottom: 10px;
+}
+
+div.connection-entry {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.connection-entry-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-component {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.destination-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-input-port {
+    margin-left: 20px;
+}
+
+div.destination-input-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-component {
+    float: left;
+    width: 190px;
+}
+
+div.source-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-output-port {
+    margin-left: 20px;
+}
+
+div.source-output-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.go-to-link {
+    color: #264c58;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#drop-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#drop-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+#listing-request-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#listing-request-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+div.progress-label {
+    color: #000000;
+    display: block;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 4px;
+}
+
+/*
+    General dialog styles.
+*/
+
+ul.result {
+    list-style-type: disc;
+    margin-left: 15px;
+}
+
+ul.result li {
+    padding: 3px 0px;
+}
+
+.dialog-content div.settings-left {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.settings-right {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.spacer {
+    float: left;
+    width: 2%;
+}

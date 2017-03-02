@@ -1,0 +1,319 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* styles for the graph pan/zoom controls */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* general graph control styles */
+
+#graph-controls {
+    position: absolute;
+    left: 0;
+    top: 110px;
+    z-index: 2;
+}
+
+#graph-controls .icon {
+    font-size: 18px;
+    line-height: 23px;
+    margin-left: -2px;
+}
+
+#graph-controls .fa {
+    font-size: 18px;
+    margin-left: -1px;
+}
+
+.graph-control-header-icon.fa {
+    color: #004849; /*link-color*/
+    margin-left: 7px !important;
+}
+
+div.graph-control {
+    box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+    background-color: rgba(249, 250, 251, 0.9);
+    border-top: 1px solid #aabbc3;
+    border-right: 1px solid #aabbc3;
+    border-bottom: 1px solid #aabbc3;
+    margin-bottom: 2px;
+}
+
+.graph-control-content {
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.docked {
+    height: 32px;
+    width: 32px;
+}
+
+div.graph-control-docked {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+    line-height: 34px;
+    color: #004849;
+}
+
+.docked:hover {
+    border-top: 1px solid #004849; /*tint base-color 60%*/
+    border-right: 1px solid #004849; /*tint base-color 60%*/
+    border-bottom: 1px solid #004849; /*tint base-color 60%*/
+}
+
+div.graph-control button {
+    line-height: 28px;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    background-color: rgba(249,250,251,1);
+    color: #004849;
+}
+
+div.graph-control button:hover {
+    border: 1px solid #004849; /*link-color*/
+}
+
+div.graph-control button:disabled {
+    color: #CCDADB; /*tint link-color 80%*/
+    cursor: not-allowed;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+}
+
+div.graph-control div.graph-control-expansion {
+    color: #728E9B;
+    line-height: 34px;
+    margin-left: 9px !important;
+}
+
+div.graph-control-header-icon {
+    float: left;
+    margin: 8px 10px 0px 0px;
+}
+
+div.graph-control-header {
+    float: left;
+    font-size: 12px;
+    font-family: 'Roboto Slab';
+    color: #262626;
+    letter-spacing: 0.05rem;
+    margin: 10px 0px;
+}
+
+div.graph-control-header-action {
+    float: right;
+    height: 32px;
+    width: 32px;
+}
+
+.graph-control-header-container:hover {
+    background: linear-gradient(90deg, rgba(227,232,235,0) 254px, rgba(227,232,235,1) 32px);
+}
+
+/* navigate buttons */
+
+#navigation-buttons {
+    margin-bottom: 5px;
+    margin-top: 10px;
+}
+
+#operation-context {
+    margin-top: 10px;
+}
+
+#operation-context-logo {
+    float: left;
+}
+
+#operation-context-logo i.icon {
+    font-size: 32px;
+    font-family: flowfont;
+    color: #ad9897;
+}
+
+#operation-context-details-container {
+    float: left;
+    padding-left: 10px;
+}
+
+#operation-context-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    width: 230px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#operation-context-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+}
+
+#operation-context-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    margin-top: 10px;
+}
+
+#operation-context-type.invisible, #operation-context-id.invisible {
+    visibility: hidden;
+}
+
+#operation-buttons {
+    margin-top: 10px;
+}
+
+div.action-button {
+    float: left;
+}
+
+#operate-delete button {
+    width: inherit;
+    padding: 0 7px;
+}
+
+#operate-delete button span{
+    padding-left: 5px;
+    font-size: 12px;
+    text-transform:uppercase;
+ }
+
+div.graph-control div.icon-disabled {
+    color: #ddd;
+}
+
+div.button-spacer-small {
+    float: left;
+    width: 2px;
+}
+
+div.button-spacer-large {
+    float: left;
+    width: 12px;
+}
+
+/* outline/birdseye */
+
+#birdseye svg, #birdseye canvas {
+    position: absolute;
+    overflow: hidden;
+}
+
+#birdseye {
+    width: 264px;
+    height: 150px;
+    background: #fff;
+    z-index: 1001;
+    overflow: hidden;
+    border: 1px solid #e5ebed;
+}
+
+.brush .extent {
+    stroke: #666;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}
+
+rect.birdseye-brush {
+    stroke: #7098ad;
+    fill: transparent;
+}
+
+/* styles for the breadcrumbs bar */
+
+#breadcrumbs {
+    position: absolute;
+    bottom: 0px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    background-color: rgba(249, 250, 251, 0.9);
+    border-top: 1px solid #aabbc3;
+    color: #598599;
+    z-index: 3;
+    height: 31px;
+    width: 100%;
+}
+
+#cluster-indicator {
+    width: 49px;
+    height: 15px;
+    background-color: transparent;
+    display: none;
+    position: absolute;
+    left: 59px;
+    top: 8px;
+}
+
+#breadcrumbs-left-border {
+    position: absolute;
+    left: 0;
+    width: 10px;
+    height: 14px;
+    z-index: 3;
+    background-color: transparent;
+    background: linear-gradient(to right, rgba(249, 250, 251, 0.97), rgba(255, 255, 255, 0));
+    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=1, startColorstr=#ffffffff, endColorstr=#00ffffff);
+}
+
+#breadcrumbs-right-border {
+    position: absolute;
+    right: 0px;
+    width: 10px;
+    height: 14px;
+    z-index: 3;
+    background-color: transparent;
+    background: linear-gradient(to left, rgba(249, 250, 251, 0.97), rgba(255, 255, 255, 0));
+    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=1, startColorstr=#00ffffff, endColorstr=#ffffffff);
+}
+
+#data-flow-title-viewport {
+    overflow: hidden;
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    right: 5px;
+    z-index: 4;
+}
+
+#data-flow-title-container {
+    font-size: 13px;
+    color: #000;
+    position: relative;
+    float: left;
+    white-space: nowrap;
+    line-height: normal;
+}

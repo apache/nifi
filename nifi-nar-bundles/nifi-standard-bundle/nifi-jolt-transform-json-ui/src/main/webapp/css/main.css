@@ -1,0 +1,186 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+
+
+div.code-mirror-editor.trans {
+    opacity: 0.4;
+    filter: alpha(opacity=40); /* For IE8 and earlier */
+}
+
+.large-label {
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
+    float: left;
+}
+
+
+.CodeMirror {
+    border: 1px solid #eee;
+    height: 40vh;
+}
+
+.info {
+    font-style: italic;
+    font-size: 75%;
+}
+
+
+div.scrollable{
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 200px;
+    border-color: rgba(0,0,0,0.12);
+    border-style: solid;
+    border-width: 1px 0 1px 0;
+}
+
+#mainView{
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 22px;
+}
+
+#addButton {
+    font-size: 60%;
+}
+
+#variableList {
+    word-wrap: break-word;
+}
+
+.primary-button , .secondary-button {
+    height: 32px;
+    width: 90px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 33px;
+    text-align: center;
+    border: 0;
+    position: relative;
+    color: #fff;
+    cursor: pointer;
+}
+
+.primary-button{
+    background: #728e9b;
+}
+
+.primary-button:hover:not(.disabled-button){
+    background: rgb(0,72,73);
+}
+
+.secondary-button{
+    background: rgb(227, 232, 235); color: rgb(0, 72, 73);
+
+}
+
+.secondary-button:hover:not(.disabled-button){
+    background: rgb(199, 210, 215);
+    border-color: rgb(199, 210, 215);
+    color: rgb(0, 72, 73);
+}
+
+button.small-button {
+    height: 100%;
+    width: 28px;
+}
+
+div.md-toolbar-tools{
+    height: 35px;
+    padding: 0 0px;
+}
+
+.md-subheader .md-subheader-inner{
+    padding: 0px 0px 16px 0px;
+}
+
+md-toolbar {
+    min-height: 30px;
+}
+
+md-list-item.md-2-line{
+    padding: 0px 0px 16px 0px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    min-height: 30px;
+}
+
+button.modal-button {
+    width: 28px;
+}
+
+.modal-header-label {
+    color: #fff;
+    font-size: 18px;
+    font-family: Roboto Slab;
+    font-style: normal;
+    font-weight: bold;
+    line-height: 56px;
+    padding-left: 20px;
+    text-overflow: ellipsis;
+}
+
+.modal-label {
+    font-size: 14px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    text-transform: capitalize;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+md-dialog .md-actions, md-dialog md-dialog-actions {
+    padding-right: 0px;
+    min-height: 0px;
+}
+
+md-option {
+    height: 32px;
+    padding: 0px 10px 0px 10px;
+    background-color:rgb(255, 255, 255);
+    border-color: rgb(234, 238, 240)
+}
+
+md-select .md-select-value {
+    font-size: 9pt;
+    font-style: normal;
+    font-weight: normal;
+    background-color:rgb(234, 238, 240);
+    border-bottom-color: rgb(234, 238, 240);
+}
+
+md-option .md-text{
+    font-size: 9pt;
+    font-style: normal;
+    font-weight: normal;
+    color: rgb(38, 38, 38);
+}

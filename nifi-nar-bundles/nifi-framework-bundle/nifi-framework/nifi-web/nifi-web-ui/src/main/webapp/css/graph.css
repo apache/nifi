@@ -1,0 +1,451 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Graph Styles
+*/
+
+#canvas-container {
+    position: absolute;
+    top: 88px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    background-color: #f9fafb;
+    background-size: 14px 14px;
+    background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px), linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.tooltip {
+    padding: 10px;
+    display: none;
+    position: absolute;
+    z-index: 1000;
+}
+
+/* svg styles */
+
+text.unset {
+    font-style: italic;
+    font-weight: normal;
+    fill: #aaa;
+}
+
+.moveable {
+    cursor: pointer;
+}
+
+/*
+    All components
+*/
+
+g.component {
+    font-family: Roboto;
+}
+
+g.component rect.body {
+    fill: #ffffff;
+}
+
+g.component rect.body.unauthorized {
+    fill: #f4f6f7;
+}
+
+g.component rect.border {
+    stroke: rgba(0,0,0,0.25);
+    stroke-width: 1;
+}
+
+g.component rect.border.unauthorized {
+    stroke-width: 1.5;
+    stroke: #ba554a !important;
+    stroke-dasharray: 3,3;
+}
+
+g.component rect.processor-icon-container.unauthorized {
+    fill: #f4f6f7 !important;
+}
+
+g.component.selected rect.border {
+    stroke: #004849 !important;
+    stroke-width: 3;
+}
+
+text.stats-label {
+    fill: #262626;
+    font-size: 12px;
+    font-family: Roboto Slab;
+}
+
+text.stats-value {
+    fill: #775351;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+text.stats-value tspan.size, text.stats-value tspan.size {
+    font-weight: normal;
+}
+
+text.stats-info {
+    fill: #728E9B;
+    font-size: 12px;
+}
+
+text.bulletin-icon {
+    font-size: 13px;
+    font-family: FontAwesome;
+    fill: #ffffff;
+}
+
+rect.bulletin-background {
+    fill: #ba554a;
+}
+
+text.active-thread-count-icon {
+    font-family: flowfont;
+    font-size: 12px;
+    fill: #728e9b;
+    text-anchor: end;
+}
+
+text.active-thread-count {
+    fill: #775351;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/*
+    Selection
+*/
+
+g.component.connectable-destination rect.border {
+    stroke: #00ff00;
+    stroke-width: 3;
+}
+
+rect.selection, rect.drag-selection, rect.label-drag {
+    stroke: #444444;
+    stroke-opacity: 0.5;
+    fill: transparent;
+}
+
+text.add-connect {
+    cursor: pointer;
+    font-family: flowfont;
+    font-size: 28px;
+    fill: #004849;
+}
+
+/*
+    Processor
+*/
+
+text.processor-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.processor-type {
+    fill: #728e9b;
+    font-size: 12px;
+}
+
+rect.processor-icon-container {
+    fill: #ffffff;
+}
+
+text.processor-icon {
+    font-family: flowfont;
+    font-size: 30px;
+}
+
+circle.restricted-background {
+    visibility: hidden;
+    fill: rgba(255, 255, 255, 0.90);
+}
+
+text.restricted {
+    visibility: hidden;
+    font-family: FontAwesome;
+    font-size: 12px;
+    fill: #ba554a;
+}
+
+text.run-status-icon {
+    font-size: 13px;
+}
+
+/*
+    Connection
+*/
+
+g.connection {
+    font-family: Roboto;
+}
+
+g.connection rect.body {
+    fill: #ffffff;
+}
+
+g.connection rect.body.unauthorized {
+    fill: #f4f6f7;
+}
+
+g.connection rect.border.unauthorized {
+    stroke-width: 1.5;
+    stroke: #ba554a;
+    stroke-dasharray: 3,3;
+}
+
+g.connection rect.border.full {
+    stroke: rgba(186, 85, 74, 0.65);
+    stroke-width: 1;
+}
+
+g.connection.selected rect.border {
+    /*stroke: #004849;*/
+    stroke: #ffcc00;
+    stroke-width: 3;
+}
+
+path.connector {
+    fill: none;
+    pointer-events: none;
+    stroke: #ff0000;
+    stroke-width: 3;
+    stroke-opacity: 0.5;
+    stroke-dasharray: 2;
+}
+
+path.connector.connectable {
+    stroke: #00ff00;
+    stroke-width: 3;
+    stroke-dasharray: 4;
+}
+
+g.connection path.connection-path {
+    fill: none;
+    stroke: #000000;
+    stroke-width: 2;
+    cursor: pointer;
+}
+
+g.connection path.connection-path.full {
+    stroke: #ba554a;
+}
+
+g.connection path.connection-path.unauthorized {
+    stroke: #ba554a;
+    stroke-dasharray: 3,3;
+}
+
+text.connection-from-run-status, text.connection-to-run-status, text.expiration-icon {
+    fill: #728e9b;
+    font-family: FontAwesome;
+    font-size: 10px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
+    fill: #cf9f5d;
+}
+
+g.connection rect.backpressure-tick {
+    fill: #3e3e3e;
+}
+
+g.connection rect.backpressure-tick.not-configured {
+    fill: #acacac;
+}
+
+g.connection rect.backpressure-object, g.connection rect.backpressure-data-size {
+    fill: #d8d8d8;
+}
+
+g.connection rect.backpressure-object.not-configured, g.connection rect.backpressure-data-size.not-configured {
+    fill: transparent;
+}
+
+g.connection rect.backpressure-percent {
+    fill: #67b796;
+    pointer-events: none;
+}
+
+g.connection rect.backpressure-percent.warning {
+    fill: #cea958;
+}
+
+g.connection rect.backpressure-percent.error {
+    fill: #ba554a;
+}
+
+/* grouped connection */
+
+g.connection.grouped path.connection-path, g.connection.grouped rect.connection-label {
+    stroke-width: 3;
+}
+
+/* ghost connection */
+
+g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label {
+    stroke: #aaaaaa;
+    stroke-dasharray: 4;
+}
+
+g.connection path.connection-selection-path {
+    visibility: hidden;
+    stroke-width: 1;
+    stroke: #ffcc00;
+    fill: none;
+}
+
+g.connection path.connection-path-selectable {
+    visibility: hidden;
+    stroke-width: 20;
+    fill: none;
+    cursor: pointer;
+}
+
+g.connection.selected path.connection-selection-path {
+    visibility: visible;
+}
+
+g.connection rect.linepoint {
+    visibility: hidden;
+    stroke-width: 1;
+}
+
+g.connection.selected rect.linepoint {
+    visibility: visible;
+}
+
+g.connection rect.startpoint {
+    stroke: #ff0000;
+    fill: #ff0000;
+}
+
+g.connection rect.midpoint {
+    stroke: #ffcc00;
+    fill: #ffcc00;
+    cursor: pointer;
+}
+
+g.connection rect.endpoint {
+    stroke: #0000ff;
+    fill: #0000ff;
+    cursor: pointer;
+}
+
+/* labels */
+
+g.label rect.labelpoint {
+    display: none;
+    stroke-width: 1;
+    stroke: #ffcc00;
+    fill: #ffcc00;
+    cursor: se-resize;
+}
+
+g.label.selected rect.labelpoint {
+    display: block;
+}
+
+/* funnels */
+
+text.funnel-icon {
+    fill: #ad9897;
+    font-family: flowfont;
+    font-size: 30px;
+}
+
+/* ports */
+
+text.port-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.port-icon {
+    fill: #ad9897;
+    font-family: flowfont;
+    font-size: 30px;
+}
+
+text.port-transmission-icon {
+    font-size: 15px;
+    fill: #728e9b
+}
+
+/* active thread count */
+
+text.active-thread-count {
+    font-size: 10px;
+}
+
+/* process groups */
+
+text.process-group-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.process-group-contents-count {
+    fill: #775351;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: Roboto, sans-serif;
+}
+
+g.process-group.drop rect.border {
+    stroke: #0000ff;
+    stroke-width: 3;
+}
+
+text.process-group-contents-icon {
+    font-size: 15px;
+    fill: #728e9b;
+}
+
+/* remote process group */
+
+text.remote-process-group-name {
+    fill: #262626;
+    font-size: 14px;
+}
+
+text.remote-process-group-uri {
+    fill: #004849;
+    font-size: 12px;
+}
+
+text.remote-process-group-transmission-status {
+    font-size: 15px;
+    fill: #728e9b
+}
+
+text.remote-process-group-transmission-secure {
+    font-family: FontAwesome;
+    font-size: 13px;
+    fill: #004849;
+}
+
+text.remote-process-group-last-refresh {
+    fill: #728e9b;
+    text-anchor: end;
+}

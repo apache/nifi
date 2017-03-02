@@ -1,0 +1,6 @@
+red			really red
+orange		crazy orange
+yellow		banana
+green		ultra green
+blue		super blue
+purple		plum

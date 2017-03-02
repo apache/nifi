@@ -1,0 +1,183 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Processor configuration styles.
+*/
+
+#processor-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+}
+
+#processor-configuration-advanced {
+    display: none;
+}
+
+#processor-name {
+    width: 70%;
+    float: left;
+}
+
+#processor-enabled {
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 4px;
+}
+
+#processor-name-container {
+    height: 32px;
+}
+
+div.processor-enabled-container {
+    float: left;
+    margin-top: 8px;
+    margin-left: 10px;
+    width: 20%;
+}
+
+#event-driven-warning {
+    padding-top: 22px;
+    color: #f00;
+    float: left;
+    float: left;
+    margin-left: 10px;
+}
+
+div.processor-configuration-warning-icon {
+    float: left;
+    margin-top: -2px;
+    margin-right: 8px;
+    width: 18px;
+    height: 16px;
+}
+
+div.processor-configuration-warning-icon:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    font-size: 16px;
+}
+
+#auto-terminate-relationship-names {
+    border: 0 solid #CCCCCC;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2px;
+}
+
+div.processor-relationship-container {
+    margin-bottom: 7px;
+}
+
+#processor-configuration div.relationship-name {
+    display: inline-block;
+    line-height: normal;
+}
+
+#run-duration-container {
+    height: 20px;
+    width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#run-duration-slider {
+    margin-top: 5px;
+    border-radius: 0;
+    margin-right: 2px;
+}
+
+#run-duration-slider .ui-slider-handle {
+    border-radius: 0;
+    border: 1px solid #999;
+    outline: none;
+}
+
+#run-duration-zero {
+    float: left;
+}
+
+#run-duration-one {
+    float: left;
+    margin-left: 11px;
+}
+
+#run-duration-two {
+    float: left;
+    margin-left: 15px;
+}
+
+#run-duration-three {
+    float: left;
+    margin-left: 12px;
+}
+
+#run-duration-four {
+    float: left;
+    margin-left: 11px;
+}
+
+#run-duration-five {
+    float: left;
+    margin-left: 9px;
+}
+
+#run-duration-six {
+    float: left;
+    margin-left: 21px;
+}
+
+#run-duration-seven {
+    float: right;
+}
+
+#run-duration-explanation {
+    margin-top: 5px;
+    font-size: 9px;
+    font-weight: bold;
+    line-height: normal;
+}
+
+#run-duration-data-loss {
+    margin-top: 15px;
+    color: #f00;
+}
+
+#run-duration-data-loss div.processor-configuration-warning-icon {
+    margin-top: 4px;
+}
+
+#min-run-duration-explanation {
+    float: left;
+}
+
+#max-run-duration-explanation {
+    float: right;
+}
+
+/*
+    Comments
+*/
+
+#processor-comments {
+    height: 100%;
+}

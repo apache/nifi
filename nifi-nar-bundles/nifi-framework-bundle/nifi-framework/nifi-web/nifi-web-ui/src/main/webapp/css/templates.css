@@ -1,0 +1,97 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Templates Styles
+*/
+
+#templates {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    height: 100%;
+    overflow: auto;
+}
+
+#templates-header-and-filter {
+    height: 108px;
+}
+
+#templates-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
+}
+
+#templates-refresh-container {
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+}
+
+#templates-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#templates-last-refreshed {
+    font-weight: 500;
+}
+
+#templates-header {
+    padding-top: 10px;
+}
+
+/* filter controls */
+
+#templates-filter-container {
+    height: 32px;
+    width: 100%;
+}
+
+#templates-filter {
+    width: 173px;
+    margin-right: 3px;
+    float: left;
+}
+
+#templates-filter-type {
+    float: left;
+}
+
+/* templates table */
+
+#templates-table {
+    position: absolute;
+    top: 98px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#templates-table div.slick-viewport {
+    overflow-x: hidden !important;
+}

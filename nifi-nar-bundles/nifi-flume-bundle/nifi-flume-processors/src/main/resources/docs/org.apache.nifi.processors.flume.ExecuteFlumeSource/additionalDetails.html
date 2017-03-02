@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>ExecuteFlumeSource</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Data Model</h2>
+<p>
+    This processor executes an Apache Flume source. Each Flume Event is turned into
+    a FlowFile. The content of the FlowFile is set to the body of the Event and
+    the Event headers become FlowFile attributes.
+</p>
+<h2>Configuration Details</h2>
+<p>
+    This processor is designed to execute arbitrary Flume sources. Most of the details
+    of configuring the source is deferred to Flume's built-in configuration system.
+    For details on the available settings for each source type, refer to the Flume
+    <a href="http://flume.apache.org/FlumeUserGuide.html#flume-sources">User Guide</a>.
+    Configuring the Flume source is a four step process:
+</p>
+<ol>
+    <li>Set the Source Type property to a valid Flume source type.</li>
+    <li>
+        Set the Agent Name property to the name of the agent in your
+        Flume configuration. This is the prefix of the properties in the Flume
+        configuration file. Example: <code>tier1</code>
+    </li>
+    <li>
+        Set the Source Name property to the name of the source in your Flume
+        configuration. If Agent Name is <code>tier1</code>, then the Source Name
+        is the value of the <code>tier1.sources</code> property. Example: <code>src-1</code>
+    </li>
+    <li>
+        Copy and paste the configuration for the source from your Flume configuration
+        file into the Flume Configuration property. Assuming you're using
+        the same Agent Name and Source Name as in the examples above, this will be all
+        of the properties that start with <code>tier1.sources.src-1</code>.
+        Do not copy the <code>tier1.sources.src-1.type</code> or
+        <code>tier1.sources.src-1.channel</code> properties.
+    </li>
+</ol>
+<h2>Usage Example</h2>
+<p>
+    Assuming you had the following existing Flume configuration file:
+</p>
+    <pre>
+a1.sources = r1
+a1.sinks = k1
+a1.channels = c1
+
+a1.sources.r1.type = multiport_syslogtcp
+a1.sources.r1.channels = c1
+a1.sources.r1.host = 0.0.0.0
+a1.sources.r1.ports = 10001 10002 10003
+a1.sources.r1.portHeader = port
+
+a1.sinks.k1.type = logger
+
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
+
+a1.sources.r1.channels = c1
+a1.sinks.k1.channel = c1</pre>
+<p>
+    Then you'd configure the ExecuteFlumeSource as follows:
+</p>
+<table id="example">
+    <tr>
+        <th>Property</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td>Source Type</td>
+        <td>multiport_syslogtcp</td>
+    </tr>
+    <tr>
+        <td>Agent Name</td>
+        <td>a1</td>
+    </tr>
+    <tr>
+        <td>Source Name</td>
+        <td>r1</td>
+    </tr>
+    <tr>
+        <td>Flume Configuration</td>
+        <td>
+            <code>
+                a1.sources.r1.host = 0.0.0.0<br>
+                a1.sources.r1.ports = 10001 10002 10003<br>
+                a1.sources.r1.portHeader = port
+            </code>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

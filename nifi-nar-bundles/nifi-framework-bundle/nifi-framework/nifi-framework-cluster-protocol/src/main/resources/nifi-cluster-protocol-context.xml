@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- marked as lazy so that cluster protocol beans are not created when applications runs in standalone mode -->
+<beans default-lazy-init="true"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd">
+
+    <!-- protocol context -->
+    <bean id="protocolContext" class="org.apache.nifi.cluster.protocol.jaxb.JaxbProtocolContext">
+        <constructor-arg>
+            <util:constant static-field="org.apache.nifi.cluster.protocol.jaxb.message.JaxbProtocolUtils.JAXB_CONTEXT"/>
+        </constructor-arg>
+    </bean>
+    
+    <!-- socket configuration -->
+    <bean id="protocolSocketConfiguration" class="org.apache.nifi.cluster.protocol.spring.SocketConfigurationFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+    
+    <!-- server socket configuration -->
+    <bean id="protocolServerSocketConfiguration" class="org.apache.nifi.cluster.protocol.spring.ServerSocketConfigurationFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+    
+    <!-- cluster manager protocol sender -->
+    <bean id="clusterCoordinationProtocolSender" class="org.apache.nifi.cluster.protocol.impl.StandardClusterCoordinationProtocolSender">
+        <constructor-arg ref="protocolSocketConfiguration"/>
+        <constructor-arg ref="protocolContext"/>
+        <constructor-arg>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+        </constructor-arg>
+        <property name="handshakeTimeout">
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
+        </property>
+    </bean>
+    
+    <!-- cluster manager sender/listener -->
+    <bean id="clusterCoordinationProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener">
+        <constructor-arg ref="clusterCoordinationProtocolSender"/>
+        <constructor-arg ref="protocolListener"/>
+    </bean>
+    
+    <!-- node protocol sender -->
+    <!--
+    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender">
+        <constructor-arg ref="protocolSocketConfiguration"/>
+        <constructor-arg ref="protocolContext"/>
+        <constructor-arg ref="nifiProperties"/>
+    </bean>
+    -->
+    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender">
+        <constructor-arg ref="protocolSocketConfiguration"/>
+        <constructor-arg ref="protocolContext"/>
+        <constructor-arg ref="leaderElectionManager"/>
+    </bean>
+    
+    <!-- protocol listener -->
+    <bean id="protocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
+        <constructor-arg index="0">
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+        </constructor-arg>
+        <constructor-arg index="1">
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolPort"/>
+        </constructor-arg>
+        <constructor-arg ref="protocolServerSocketConfiguration" index="2"/>
+        <constructor-arg ref="protocolContext" index="3"/>
+    </bean>
+    
+    <!-- node sender/listener -->
+    <bean id="nodeProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener">
+        <constructor-arg ref="nodeProtocolSender"/>
+        <constructor-arg ref="protocolListener"/>
+    </bean>
+</beans>
