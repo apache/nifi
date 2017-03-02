@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +40,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -165,6 +167,29 @@ public class TestPutSQL {
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
     }
 
+    @Test
+    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+            runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+        }
+    }
+
 
     @Test
     public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
@@ -191,8 +216,41 @@ public class TestPutSQL {
 
         runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+
     }
 
+    @Test
+    public void testFailInMiddleWithBadParameterTypeRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.VARCHAR));
+        badAttributes.put("sql.args.1.value", "hello");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+            runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+        }
+    }
 
     @Test
     public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
@@ -230,6 +288,48 @@ public class TestPutSQL {
                 assertEquals(1, rs.getInt(1));
                 assertEquals("Mark", rs.getString(2));
                 assertEquals(84, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testFailInMiddleWithBadParameterValueRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        recreateTable("PERSONS_AI",createPersonsAutoId);
+
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "9999");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+            runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+        }
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS_AI");
                 assertFalse(rs.next());
             }
         }
@@ -666,6 +766,8 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
+        recreateTable("PERSONS", createPersons);
+
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
                 "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
@@ -686,6 +788,47 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testMultipleStatementsWithinFlowFileRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        recreateTable("PERSONS", createPersons);
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+
+        attributes.put("sql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("sql.args.2.value", "Mark");
+
+        attributes.put("sql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.3.value", "84");
+
+        attributes.put("sql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -766,6 +909,47 @@ public class TestPutSQL {
         }
     }
 
+    @Test
+    public void testInvalidStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        recreateTable("PERSONS", createPersons);
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE SOME_RANDOM_TABLE NAME='George' WHERE ID=?; ";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+
+        attributes.put("sql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("sql.args.2.value", "Mark");
+
+        attributes.put("sql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.3.value", "84");
+
+        attributes.put("sql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertFalse(rs.next());
+            }
+        }
+    }
+
 
     @Test
     public void testRetryableFailure() throws InitializationException, ProcessException, SQLException, IOException {
@@ -798,6 +982,42 @@ public class TestPutSQL {
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 1);
     }
 
+    @Test
+    public void testRetryableFailureRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        final DBCPService service = new SQLExceptionService(null);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+
+        attributes.put("sql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("sql.args.2.value", "Mark");
+
+        attributes.put("sql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.3.value", "84");
+
+        attributes.put("sql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            // Should not be routed to retry.
+            runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 0);
+        }
+
+    }
 
     @Test
     public void testMultipleFlowFilesSuccessfulInTransaction() throws InitializationException, ProcessException, SQLException, IOException {
@@ -857,6 +1077,38 @@ public class TestPutSQL {
         }
     }
 
+    @Test
+    public void testMultipleFlowFilesSuccessfulInTransactionRollBackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(PutSQL.BATCH_SIZE, "1");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        recreateTable("PERSONS", createPersons);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+
+        attributes.put("sql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("sql.args.2.value", "Mark");
+
+        attributes.put("sql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.3.value", "84");
+
+        attributes.put("fragment.identifier", "1");
+        attributes.put("fragment.count", "2");
+        attributes.put("fragment.index", "0");
+        runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?)".getBytes(), attributes);
+        // ProcessException should not be thrown in this case, because the input FlowFiles are simply differed.
+        runner.run();
+
+        // No FlowFiles should be transferred because there were not enough flowfiles with the same fragment identifier
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 0);
+
+    }
 
     @Test
     public void testTransactionTimeout() throws InitializationException, ProcessException, SQLException, IOException {
@@ -893,6 +1145,81 @@ public class TestPutSQL {
 
         // No FlowFiles should be transferred because there were not enough flowfiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testTransactionTimeoutRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutSQL.TRANSACTION_TIMEOUT, "5 secs");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("fragment.identifier", "1");
+        attributes.put("fragment.count", "2");
+        attributes.put("fragment.index", "0");
+
+        final MockFlowFile mff = new MockFlowFile(0L) {
+            @Override
+            public Long getLastQueueDate() {
+                return System.currentTimeMillis() - 10000L; // return 10 seconds ago
+            }
+
+            @Override
+            public Map<String, String> getAttributes() {
+                return attributes;
+            }
+
+            @Override
+            public String getAttribute(final String attrName) {
+                return attributes.get(attrName);
+            }
+        };
+
+        runner.enqueue(mff);
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testNullFragmentCountRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutSQL.TRANSACTION_TIMEOUT, "5 secs");
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+        final Map<String, String> attribute1 = new HashMap<>();
+        attribute1.put("fragment.identifier", "1");
+        attribute1.put("fragment.count", "2");
+        attribute1.put("fragment.index", "0");
+
+        final Map<String, String> attribute2 = new HashMap<>();
+        attribute2.put("fragment.identifier", "1");
+//        attribute2.put("fragment.count", null);
+        attribute2.put("fragment.index", "1");
+
+        runner.enqueue(new byte[]{}, attribute1);
+        runner.enqueue(new byte[]{}, attribute2);
+
+
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
     }
 
     /**
@@ -985,4 +1312,5 @@ public class TestPutSQL {
         byte[] bBinary = RandomUtils.nextBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
     }
+
 }

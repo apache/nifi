@@ -19,9 +19,8 @@ package org.apache.nifi.processors.hive;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -30,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.sql.SQLDataException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Date;
@@ -45,7 +45,7 @@ import java.util.regex.Pattern;
 /**
  * An abstract base class for HiveQL processors to share common data, methods, etc.
  */
-public abstract class AbstractHiveQLProcessor extends AbstractProcessor {
+public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProcessor {
 
     protected static final Pattern HIVEQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("hiveql\\.args\\.(\\d+)\\.type");
     protected static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
@@ -112,7 +112,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractProcessor {
                     if (parameterIndex >= base && parameterIndex < base + paramCount) {
                         final boolean isNumeric = NUMBER_PATTERN.matcher(entry.getValue()).matches();
                         if (!isNumeric) {
-                            throw new ProcessException("Value of the " + key + " attribute is '" + entry.getValue() + "', which is not a valid JDBC numeral jdbcType");
+                            throw new SQLDataException("Value of the " + key + " attribute is '" + entry.getValue() + "', which is not a valid JDBC numeral jdbcType");
                         }
 
                         final String valueAttrName = "hiveql.args." + parameterIndex + ".value";
@@ -139,7 +139,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractProcessor {
             try {
                 setParameter(stmt, ph.attributeName, index, ph.value, ph.jdbcType);
             } catch (final NumberFormatException nfe) {
-                throw new ProcessException("The value of the " + ph.attributeName + " is '" + ph.value + "', which cannot be converted into the necessary data jdbcType", nfe);
+                throw new SQLDataException("The value of the " + ph.attributeName + " is '" + ph.value + "', which cannot be converted into the necessary data jdbcType", nfe);
             }
         }
         return base + paramCount;
