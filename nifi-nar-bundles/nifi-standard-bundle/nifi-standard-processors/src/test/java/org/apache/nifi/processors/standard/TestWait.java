@@ -19,12 +19,22 @@ package org.apache.nifi.processors.standard;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -180,14 +190,15 @@ public class TestWait {
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[]{}, props);
-        runner.run();
-
-        //Expect the processor to receive an IO exception from the cache service and route to failure
-        runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
-        runner.assertTransferCount(Wait.REL_FAILURE, 1);
-        runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists("wait.counter.total");
-
-        service.setFailOnCalls(false);
+        try {
+            runner.run();
+            fail("Expect the processor to receive an IO exception from the cache service and throws ProcessException.");
+        } catch (final AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            assertTrue(e.getCause().getCause() instanceof IOException);
+        } finally {
+            service.setFailOnCalls(false);
+        }
     }
 
     @Test
@@ -360,7 +371,6 @@ public class TestWait {
         assertNull("The key no longer exist", protocol.getSignal("key"));
     }
 
-
     @Test
     public void testWaitForSpecificCount() throws InitializationException, IOException {
         Map<String, String> cachedAttributes = new HashMap<>();
@@ -455,4 +465,222 @@ public class TestWait {
 
     }
 
+    private class TestIteration {
+        final List<MockFlowFile> released = new ArrayList<>();
+        final List<MockFlowFile> waiting = new ArrayList<>();
+        final List<MockFlowFile> failed = new ArrayList<>();
+
+        final List<String> expectedReleased = new ArrayList<>();
+        final List<String> expectedWaiting = new ArrayList<>();
+        final List<String> expectedFailed = new ArrayList<>();
+
+        void run() {
+            released.clear();
+            waiting.clear();
+            failed.clear();
+
+            runner.run();
+
+            released.addAll(runner.getFlowFilesForRelationship(Wait.REL_SUCCESS));
+            waiting.addAll(runner.getFlowFilesForRelationship(Wait.REL_WAIT));
+            failed.addAll(runner.getFlowFilesForRelationship(Wait.REL_FAILURE));
+
+            assertEquals(expectedReleased.size(), released.size());
+            assertEquals(expectedWaiting.size(), waiting.size());
+            assertEquals(expectedFailed.size(), failed.size());
+
+            final BiConsumer<List<String>, List<MockFlowFile>> assertContents = (expected, actual) -> {
+                for (int i = 0; i < expected.size(); i++) {
+                    actual.get(i).assertContentEquals(expected.get(i));
+                }
+            };
+
+            assertContents.accept(expectedReleased, released);
+            assertContents.accept(expectedWaiting, waiting);
+            assertContents.accept(expectedFailed, failed);
+
+            runner.clearTransferState();
+            expectedReleased.clear();
+            expectedWaiting.clear();
+            expectedFailed.clear();
+        }
+    }
+
+    @Test
+    public void testWaitBufferCount() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("notified", "notified-value");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "${targetSignalCount}");
+        runner.setProperty(Wait.SIGNAL_COUNTER_NAME, "${signalCounterName}");
+        runner.setProperty(Wait.WAIT_BUFFER_COUNT, "2");
+
+        final Map<String, String> waitAttributesA = new HashMap<>();
+        waitAttributesA.put("releaseSignalAttribute", "key-A");
+        waitAttributesA.put("targetSignalCount", "1");
+        waitAttributesA.put("signalCounterName", "counter");
+
+        final Map<String, String> waitAttributesB = new HashMap<>();
+        waitAttributesB.put("releaseSignalAttribute", "key-B");
+        waitAttributesB.put("targetSignalCount", "3");
+        waitAttributesB.put("signalCounterName", "counter");
+
+        final Map<String, String> waitAttributesBInvalid = new HashMap<>();
+        waitAttributesBInvalid.putAll(waitAttributesB);
+        waitAttributesBInvalid.remove("releaseSignalAttribute");
+
+        final TestIteration testIteration = new TestIteration();
+
+        // Enqueue multiple wait FlowFiles.
+        runner.enqueue("1".getBytes(), waitAttributesB); // Should be picked at 1st and 2nd itr
+        runner.enqueue("2".getBytes(), waitAttributesA); // Should be picked at 3rd itr
+        runner.enqueue("3".getBytes(), waitAttributesBInvalid);
+        runner.enqueue("4".getBytes(), waitAttributesA); // Should be picked at 3rd itr
+        runner.enqueue("5".getBytes(), waitAttributesB); // Should be picked at 1st
+        runner.enqueue("6".getBytes(), waitAttributesB); // Should be picked at 2nd itr
+
+        /*
+         * 1st run:
+         * pick 1 key-B
+         * skip 2 cause key-A
+         * skip 3 cause invalid
+         * skip 4 cause key-A
+         * pick 5 key-B
+         */
+        testIteration.expectedWaiting.addAll(Arrays.asList("1", "5")); // Picked, but not enough counter.
+        testIteration.expectedFailed.add("3"); // invalid.
+        testIteration.run();
+
+        /*
+         * 2nd run:
+         * pick 6 key-B
+         * pick 1 key-B
+         */
+        protocol.notify("key-B", "counter", 3, cachedAttributes);
+        testIteration.expectedReleased.add("6");
+        testIteration.expectedWaiting.add("1"); // Picked but only one FlowFile can be released.
+        // enqueue waiting, simulating wait relationship back to self
+        testIteration.waiting.forEach(f -> runner.enqueue(f));
+        testIteration.run();
+
+    }
+
+    @Test
+    public void testReleaseMultipleFlowFiles() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("notified", "notified-value");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "${targetSignalCount}");
+        runner.setProperty(Wait.SIGNAL_COUNTER_NAME, "${signalCounterName}");
+        runner.setProperty(Wait.WAIT_BUFFER_COUNT, "2");
+        runner.setProperty(Wait.RELEASABLE_FLOWFILE_COUNT, "${fragmentCount}");
+
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("targetSignalCount", "3");
+        waitAttributes.put("signalCounterName", "counter");
+        waitAttributes.put("fragmentCount", "6");
+
+        final TestIteration testIteration = new TestIteration();
+
+        // Enqueue 6 wait FlowFiles. 1,2,3,4,5,6
+        IntStream.range(1, 7).forEach(i -> runner.enqueue(String.valueOf(i).getBytes(), waitAttributes));
+
+        /*
+         * 1st run
+         */
+        testIteration.expectedWaiting.addAll(Arrays.asList("1", "2"));
+        testIteration.run();
+
+        WaitNotifyProtocol.Signal signal = protocol.getSignal("key");
+        assertNull(signal);
+
+        /*
+         * 2nd run
+         */
+        protocol.notify("key", "counter", 3, cachedAttributes);
+        testIteration.expectedReleased.addAll(Arrays.asList("3", "4"));
+        testIteration.waiting.forEach(f -> runner.enqueue(f));
+        testIteration.run();
+
+        signal = protocol.getSignal("key");
+        assertEquals(0, signal.getCount("count"));
+        assertEquals(4, signal.getReleasableCount());
+
+        /*
+         * 3rd run
+         */
+        testIteration.expectedReleased.addAll(Arrays.asList("5", "6"));
+        testIteration.waiting.forEach(f -> runner.enqueue(f));
+        testIteration.run();
+
+        signal = protocol.getSignal("key");
+        assertEquals(0, signal.getCount("count"));
+        assertEquals(2, signal.getReleasableCount());
+    }
+
+    @Test
+    public void testOpenGate() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("notified", "notified-value");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "${targetSignalCount}");
+        runner.setProperty(Wait.SIGNAL_COUNTER_NAME, "${signalCounterName}");
+        runner.setProperty(Wait.WAIT_BUFFER_COUNT, "2");
+        runner.setProperty(Wait.RELEASABLE_FLOWFILE_COUNT, "0"); // Leave gate open
+
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("targetSignalCount", "3");
+        waitAttributes.put("signalCounterName", "counter");
+
+        final TestIteration testIteration = new TestIteration();
+
+        // Enqueue 6 wait FlowFiles. 1,2,3,4,5,6
+        IntStream.range(1, 7).forEach(i -> runner.enqueue(String.valueOf(i).getBytes(), waitAttributes));
+
+        /*
+         * 1st run
+         */
+        testIteration.expectedWaiting.addAll(Arrays.asList("1", "2"));
+        testIteration.run();
+
+        WaitNotifyProtocol.Signal signal = protocol.getSignal("key");
+        assertNull(signal);
+
+        /*
+         * 2nd run
+         */
+        protocol.notify("key", "counter", 3, cachedAttributes);
+        testIteration.expectedReleased.addAll(Arrays.asList("3", "4"));
+        testIteration.waiting.forEach(f -> runner.enqueue(f));
+        testIteration.run();
+
+        signal = protocol.getSignal("key");
+        assertEquals(3, signal.getCount("counter"));
+        assertEquals(0, signal.getReleasableCount());
+
+        /*
+         * 3rd run
+         */
+        testIteration.expectedReleased.addAll(Arrays.asList("5", "6"));
+        testIteration.waiting.forEach(f -> runner.enqueue(f));
+        testIteration.run();
+
+        signal = protocol.getSignal("key");
+        assertEquals(3, signal.getCount("counter"));
+        assertEquals(0, signal.getReleasableCount());
+    }
 }
