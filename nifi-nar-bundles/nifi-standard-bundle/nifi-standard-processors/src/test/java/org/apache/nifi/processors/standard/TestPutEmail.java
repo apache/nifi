@@ -17,83 +17,64 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage.RecipientType;
-import javax.mail.internet.MimeMultipart;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
-import org.apache.commons.io.IOUtils;
+import org.apache.nifi.processors.email.ExtractEmailAttachments;
+import org.apache.nifi.processors.email.ExtractEmailHeaders;
+import org.apache.nifi.processors.email.ListenSMTP;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+
+
 public class TestPutEmail {
 
-    /**
-     * Extension to PutEmail that stubs out the calls to
-     * Transport.sendMessage().
-     *
-     * <p>
-     * All sent messages are records in a list available via the
-     * {@link #getMessages()} method.</p>
-     * <p> Calling
-     * {@link #setException(MessagingException)} will cause the supplied exception to be
-     * thrown when sendMessage is invoked.
-     * </p>
-     */
-    private static final class PutEmailExtension extends PutEmail {
-        private MessagingException e;
-        private ArrayList<Message> messages = new ArrayList<>();
-
-        @Override
-        protected void send(Message msg) throws MessagingException {
-            messages.add(msg);
-            if (this.e != null) {
-                throw e;
-            }
-        }
-
-        void setException(final MessagingException e) {
-            this.e = e;
-        }
-
-        List<Message> getMessages() {
-            return messages;
-        }
-    }
-
-    PutEmailExtension processor;
     TestRunner runner;
+    TestRunner smtpRunner;
+    TestRunner extractHeadersRunner;
+    TestRunner extractAttachmentsRunner;
+    int port;
 
     @Before
     public void setup() {
-        processor = new PutEmailExtension();
-        runner = TestRunners.newTestRunner(processor);
+        runner = TestRunners.newTestRunner(PutEmail.class);
+        smtpRunner = TestRunners.newTestRunner(ListenSMTP.class);
+        extractHeadersRunner = TestRunners.newTestRunner(ExtractEmailHeaders.class);
+        extractAttachmentsRunner = TestRunners.newTestRunner(ExtractEmailAttachments.class);
+
+        port = NetworkUtils.availablePort();
+        smtpRunner.setProperty("SMTP_PORT", String.valueOf(port));
+        smtpRunner.setProperty("SMTP_MAXIMUM_CONNECTIONS", "3");
+        smtpRunner.setProperty("SMTP_TIMEOUT", "10 seconds");
+        smtpRunner.run(1,false);
+
     }
+
+
 
     @Test
     public void testExceptionWhenSending() {
         // verifies that files are routed to failure when Transport.send() throws a MessagingException
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "host-doesnt-exist123");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
-        runner.setProperty(PutEmail.TO, "test@apache.org");
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "host-doesnt-exist123-att-all");
+        runner.setProperty(PutEmail.FROM, "test@nifi.apache.org");
+        runner.setProperty(PutEmail.TO, "test@nifi.apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
 
-        processor.setException(new MessagingException("Forced failure from send()"));
+        //
 
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue("Some Text".getBytes(), attributes);
@@ -102,17 +83,20 @@ public class TestPutEmail {
 
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
-        assertEquals("Expected an attempt to send a single message", 1, processor.getMessages().size());
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutEmail.REL_FAILURE);
+        assertEquals("Expected an attempt to send a single message", 1, results.size());
     }
 
     @Test
     public void testOutgoingMessage() throws Exception {
         // verifies that are set on the outgoing Message correctly
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.SMTP_AUTH, "false");
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "localhost");
+        runner.setProperty(PutEmail.SMTP_PORT, String.valueOf(port));
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.FROM, "test@nifi.apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@nifi.apache.org");
 
         runner.enqueue("Some Text".getBytes());
 
@@ -121,21 +105,24 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
+
+        // Get the results from the ListenSMTP
+        List<MockFlowFile> results = smtpRunner.getFlowFilesForRelationship(PutEmail.REL_SUCCESS);
+
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
-        Message message = processor.getMessages().get(0);
-        assertEquals("test@apache.org", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
-        assertEquals("Message Body", message.getContent());
-        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
-        assertNull(message.getRecipients(RecipientType.BCC));
-        assertNull(message.getRecipients(RecipientType.CC));
+        assertEquals("Expected a single message to be sent", 1, results.size());
+        MockFlowFile result = results.get(0);
+
+        assertEquals("test@nifi.apache.org", result.getAttribute("smtp.from"));
+        assertEquals("recipient@nifi.apache.org", result.getAttribute("smtp.recipient.0"));
     }
 
     @Test
     public void testOutgoingMessageWithOptionalProperties() throws Exception {
         // verifies that optional attributes are set on the outgoing Message correctly
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.SMTP_AUTH, "false");
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "localhost");
+        runner.setProperty(PutEmail.SMTP_PORT, String.valueOf(port));
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "${from}");
         runner.setProperty(PutEmail.MESSAGE, "${message}");
@@ -144,11 +131,11 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CC, "${cc}");
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("from", "test@apache.org <NiFi>");
+        attributes.put("from", "test@nifi.apache.org <NiFi>");
         attributes.put("message", "the message body");
-        attributes.put("to", "to@apache.org");
-        attributes.put("bcc", "bcc@apache.org");
-        attributes.put("cc", "cc@apache.org");
+        attributes.put("to", "to@nifi.apache.org");
+        attributes.put("bcc", "bcc@nifi.apache.org");
+        attributes.put("cc", "cc@nifi.apache.org");
         runner.enqueue("Some Text".getBytes(), attributes);
 
         runner.run();
@@ -156,18 +143,25 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
+        // Get the results from the ListenSMTP
+        List<MockFlowFile> results = smtpRunner.getFlowFilesForRelationship(PutEmail.REL_SUCCESS);
+
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
-        Message message = processor.getMessages().get(0);
-        assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
-        assertEquals("the message body", message.getContent());
-        assertEquals(1, message.getRecipients(RecipientType.TO).length);
-        assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
-        assertEquals(1, message.getRecipients(RecipientType.BCC).length);
-        assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
-        assertEquals(1, message.getRecipients(RecipientType.CC).length);
-        assertEquals("cc@apache.org",message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("Expected a single message to be sent", 1, results.size());
+        MockFlowFile result = results.get(0);
+
+        // Insert into ExtractEmailHeaders to process desired fields
+        extractHeadersRunner.enqueue(result);
+        extractHeadersRunner.run();
+        // get results of extraction
+        results = extractHeadersRunner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
+        assertEquals("Expected the message to be properly parsed", 1, results.size());
+        result = results.get(0);
+
+        assertEquals("\"test@nifi.apache.org\" <NiFi>", result.getAttribute("email.headers.from.0"));
+        assertEquals("X-Mailer Header", "TestingNiFi", result.getAttribute("email.headers.x-mailer"));
+        result.equals("the message body");
+        assertEquals("to@nifi.apache.org", result.getAttribute("email.headers.to.0"));
     }
 
     @Test
@@ -175,9 +169,9 @@ public class TestPutEmail {
         // verifies that unparsable addresses lead to the flow file being routed to failure
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org <invalid");
+        runner.setProperty(PutEmail.FROM, "test@nifi.apache.org <invalid");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@nifi.apache.org");
 
         runner.enqueue("Some Text".getBytes());
 
@@ -186,7 +180,7 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
 
-        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+        assertEquals("Expected no messages to be sent", 1, runner.getFlowFilesForRelationship(PutEmail.REL_FAILURE).size());
     }
 
     @Test
@@ -197,7 +191,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "${MISSING_PROPERTY}");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@nifi.apache.org");
 
         runner.enqueue("Some Text".getBytes());
 
@@ -206,7 +200,7 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
 
-        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+        assertEquals("Expected no messages to be sent", 1, runner.getFlowFilesForRelationship(PutEmail.REL_FAILURE).size());
         final LogMessage logMessage = runner.getLogger().getErrorMessages().get(0);
         assertTrue(((String)logMessage.getArgs()[2]).contains("Required property 'From' evaluates to an empty string"));
     }
@@ -214,13 +208,15 @@ public class TestPutEmail {
     @Test
     public void testOutgoingMessageAttachment() throws Exception {
         // verifies that are set on the outgoing Message correctly
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.SMTP_AUTH, "false");
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "localhost");
+        runner.setProperty(PutEmail.SMTP_PORT, String.valueOf(port));
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
-        runner.setProperty(PutEmail.MESSAGE, "Message Body");
+        runner.setProperty(PutEmail.FROM, "test@nifi.apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "This is the message body");
         runner.setProperty(PutEmail.ATTACH_FILE, "true");
         runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@nifi.apache.org");
 
         runner.enqueue("Some text".getBytes());
 
@@ -230,27 +226,44 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
-        Message message = processor.getMessages().get(0);
-        assertEquals("test@apache.org", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
-        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
+        assertEquals("Expected a single message to be sent", 1, smtpRunner.getFlowFilesForRelationship(PutEmail.REL_SUCCESS).size());
 
-        assertTrue(message.getContent() instanceof MimeMultipart);
+        MockFlowFile message;
 
-        final MimeMultipart multipart = (MimeMultipart) message.getContent();
-        final BodyPart part = multipart.getBodyPart(0);
-        final InputStream is = part.getDataHandler().getInputStream();
-        final String decodedText = StringUtils.newStringUtf8(Base64.decodeBase64(IOUtils.toString(is, "UTF-8")));
-        assertEquals("Message Body", decodedText);
+        message = smtpRunner.getFlowFilesForRelationship(PutEmail.REL_SUCCESS).get(0);
 
-        final BodyPart attachPart = multipart.getBodyPart(1);
-        final InputStream attachIs = attachPart.getDataHandler().getInputStream();
-        final String text = IOUtils.toString(attachIs, "UTF-8");
-        assertEquals("Some text", text);
+        extractHeadersRunner.enqueue(message);
+        extractHeadersRunner.run(1, false);
+        extractHeadersRunner.shutdown();
 
-        assertNull(message.getRecipients(RecipientType.BCC));
-        assertNull(message.getRecipients(RecipientType.CC));
+        message = extractHeadersRunner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS).get(0);
+
+        assertEquals("test@nifi.apache.org", message.getAttribute("email.headers.from.0"));
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getAttribute("email.headers.x-mailer"));
+
+        message = extractHeadersRunner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS).get(0);
+
+        // Because TestRunner isn't happy to process another TestRunner, convert the message content into byte array and
+        // submit to the next stage
+        extractAttachmentsRunner.enqueue(message.toByteArray());
+        extractAttachmentsRunner.run();
+
+        final List<MockFlowFile> attachments = extractAttachmentsRunner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
+
+        // Assert the attachment was properly coded and extracted
+        attachments.get(0).assertContentEquals("Some text");
+
+
+        String encodedBody;
+
+        // Confirm positive match
+        encodedBody = StringUtils.newStringUtf8(Base64.encodeBase64("This is the message body".getBytes()));
+        Assert.assertThat(new String(message.toByteArray()), CoreMatchers.containsString(encodedBody));
+
+        // Double check
+        encodedBody = StringUtils.newStringUtf8(Base64.encodeBase64("This is NOT the message body".getBytes()));
+        Assert.assertThat(new String(message.toByteArray()), CoreMatchers.not(CoreMatchers.containsString(encodedBody)));
+
     }
 
 }
