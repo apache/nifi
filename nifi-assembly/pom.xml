@@ -529,6 +529,7 @@ language governing permissions and limitations under the License. -->
                                     <mappings>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
+                                            <defaultDirmode>0550</defaultDirmode>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
@@ -550,7 +551,7 @@ language governing permissions and limitations under the License. -->
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/bin</directory>
-                                            <filemode>750</filemode>
+                                            <filemode>550</filemode>
                                             <sources>
                                                 <source>
                                                     <location>${project.build.directory}/generated-resources/bin/nifi.sh</location>
@@ -567,6 +568,7 @@ language governing permissions and limitations under the License. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/conf</directory>
                                             <configuration>true</configuration>
+                                            <filemode>660</filemode>
                                             <sources>
                                                 <source>
                                                     <location>${project.build.directory}/generated-resources/conf</location>
@@ -583,6 +585,7 @@ language governing permissions and limitations under the License. -->
                                         being those which we want in bootstrap and NOT in lib. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
+                                            <filemode>440</filemode>
                                             <dependency>
                                                 <excludes>
                                                     <exclude>org.bouncycastle:bcprov-jdk15on</exclude>

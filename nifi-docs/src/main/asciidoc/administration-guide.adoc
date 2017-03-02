@@ -163,6 +163,27 @@ the web server will REQUIRE certificate based client authentication.
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
 
+Directory and File Permissions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to minimise the likelihood of unauthorised modifications to your NiFi instance, upon installing NiFi, you should ensure the following directory permissions are configured:
+[options="header"]
+|==================================================================================================================================================
+| Directory | Owner | Directory POSIX Permissions | Files POSIX Permissions
+|`$NIFI_HOME/` | `root` | `550` | `550`
+|`$NIFI_HOME/bin` | `root` | `550` | `550`
+|`$NIFI_HOME/conf` | `nifi-user` | `700 | `600`
+|`$NIFI_HOME/content_repository` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/database_repository` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/docs` | `root` | `550` | `400`
+|`$NIFI_HOME/flowfile_repository` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/lib` | `root` | `550` | `400`
+|`$NIFI_HOME/logs` | `nifi-user` | `700 | `N/A`
+|`$NIFI_HOME/provenance_repository` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/work` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/state` | `nifi-user` | `700` | `600`
+|`$NIFI_HOME/run` | `nifi-user` | `700` | `600`
+|==================================================================================================================================================
+
 
 TLS Generation Toolkit
 ~~~~~~~~~~~~~~~~~~~~~~

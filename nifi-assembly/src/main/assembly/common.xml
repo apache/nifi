@@ -96,22 +96,94 @@
             <source>./README.md</source>
             <outputDirectory>./</outputDirectory>
             <destName>README</destName>
-            <fileMode>0644</fileMode>
+            <fileMode>0444</fileMode>
             <filtered>true</filtered>
         </file>
         <file>
             <source>./LICENSE</source>
             <outputDirectory>./</outputDirectory>
             <destName>LICENSE</destName>
-            <fileMode>0644</fileMode>
+            <fileMode>0444</fileMode>
             <filtered>true</filtered>
         </file>
         <file>
             <source>./NOTICE</source>
             <outputDirectory>./</outputDirectory>
             <destName>NOTICE</destName>
-            <fileMode>0644</fileMode>
+            <fileMode>0444</fileMode>
             <filtered>true</filtered>
         </file>
     </files>
+    <!-- The following filesets are used to ensure the NIFI_HOME directory
+     contains all directories required to run, allowing NIFI_HOME permissions
+     to be more restrictive.
+
+     Note how all contents are excluded in order to create empty directories -->
+
+    <fileSets>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./content_repository</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./database_repository</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./flowfile_repository</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./logs</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./provenance_repository</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./provenance_repository</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./run</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./state</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>./work</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+
+    </fileSets>
 </component>
