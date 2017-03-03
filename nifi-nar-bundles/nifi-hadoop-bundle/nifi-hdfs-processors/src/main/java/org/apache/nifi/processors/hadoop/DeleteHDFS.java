@@ -47,10 +47,10 @@ import java.util.regex.Pattern;
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem", "restricted" })
-@CapabilityDescription("Deletes a file from HDFS. The file can be provided as an attribute from an incoming FlowFile, "
-        + "or a statically set file that is periodically removed. If this processor has an incoming connection, it"
+@CapabilityDescription("Deletes one or more files or directories from HDFS. The path can be provided as an attribute from an incoming FlowFile, "
+        + "or a statically set path that is periodically removed. If this processor has an incoming connection, it"
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "
-        + "Optionally, you may specify use a wildcard character to match multiple files or directories.")
+        + "Note that you may use a wildcard character to match multiple files or directories.")
 @Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 public class DeleteHDFS extends AbstractHadoopProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -141,20 +141,33 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             }
 
             Map<String, String> attributes = Maps.newHashMapWithExpectedSize(2);
+            boolean foundMissingFile = false;
             for (Path path : pathList) {
                 attributes.put("filename", path.getName());
                 attributes.put("path", path.getParent().toString());
                 if (fileSystem.exists(path)) {
                     fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
+
                     if (!context.hasIncomingConnection()) {
                         flowFile = session.create();
+                        session.transfer(session.putAllAttributes(flowFile, attributes), REL_SUCCESS);
                     }
-                    session.transfer(session.putAllAttributes(flowFile, attributes), REL_SUCCESS);
+
                 } else {
                     getLogger().warn("File (" + path + ") does not exist");
+
                     if (!context.hasIncomingConnection()) {
                         flowFile = session.create();
+                        session.transfer(session.putAllAttributes(flowFile, attributes), REL_FAILURE);
                     }
+
+                }
+            }
+            if (context.hasIncomingConnection()) {
+                // TODO we only put the last path deleted, change the semantic of the processor?
+                if (!foundMissingFile) {
+                    session.transfer(session.putAllAttributes(flowFile, attributes), REL_SUCCESS);
+                } else {
                     session.transfer(session.putAllAttributes(flowFile, attributes), REL_FAILURE);
                 }
             }

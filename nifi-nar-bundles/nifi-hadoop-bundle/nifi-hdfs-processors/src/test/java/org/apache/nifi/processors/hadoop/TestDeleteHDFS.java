@@ -168,6 +168,31 @@ public class TestDeleteHDFS {
         }
     }
 
+    @Test
+    public void testGlobDeleteFromIncomingFlowFile() throws Exception {
+        Path glob = new Path("/data/for/2017/08/05/*");
+        int fileCount = 300;
+        FileStatus[] fileStatuses = new FileStatus[fileCount];
+        for (int i = 0; i < fileCount; i++) {
+            Path file = new Path("/data/for/2017/08/05/file" + i);
+            FileStatus fileStatus = mock(FileStatus.class);
+            when(fileStatus.getPath()).thenReturn(file);
+            fileStatuses[i] = fileStatus;
+        }
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setIncomingConnection(true);
+        Map<String, String> attributes = Maps.newHashMap();
+        runner.enqueue("foo", attributes);
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_SUCCESS);
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
+    }
+
     private static class TestableDeleteHDFS extends DeleteHDFS {
         private KerberosProperties testKerberosProperties;
         private FileSystem mockFileSystem;
