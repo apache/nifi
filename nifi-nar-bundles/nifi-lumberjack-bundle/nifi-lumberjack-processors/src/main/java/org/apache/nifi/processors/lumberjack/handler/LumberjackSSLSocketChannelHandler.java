@@ -38,6 +38,7 @@ import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 /**
  * A Lumberjack implementation of SSLSocketChannelHandler.
  */
+@Deprecated
 public class LumberjackSSLSocketChannelHandler<E extends Event<SocketChannel>> extends SSLSocketChannelHandler<E> {
 
     private LumberjackDecoder decoder;

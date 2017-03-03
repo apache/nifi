@@ -275,7 +275,7 @@ public class Wait extends AbstractProcessor {
                     .asTimePeriod(TimeUnit.MILLISECONDS);
             long now = System.currentTimeMillis();
             if (now > (lWaitStartTimestamp + expirationDuration)) {
-                logger.warn("FlowFile {} expired after {}ms", new Object[] {flowFile, (now - lWaitStartTimestamp)});
+                logger.info("FlowFile {} expired after {}ms", new Object[] {flowFile, (now - lWaitStartTimestamp)});
                 flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
                 session.transfer(flowFile, REL_EXPIRED);
                 return;

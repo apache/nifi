@@ -20,6 +20,7 @@ package org.apache.nifi.processors.lumberjack.frame;
 /**
  * A Lumberjack frame received from a channel.
  */
+@Deprecated
 public class LumberjackFrame {
 
     public static final byte DELIMITER = 10;

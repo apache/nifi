@@ -19,6 +19,7 @@ package org.apache.nifi.processors.lumberjack.frame;
 /**
  * The parts of a Lumberjack frame.
  */
+@Deprecated
 public enum LumberjackState {
 
     VERSION,

@@ -124,7 +124,7 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("File Filter")
-            .description("Only files whose names match the given regular expression will be extracted (tar/zip only)")
+            .description("Only files contained in the archive whose names match the given regular expression will be extracted (tar/zip only)")
             .required(true)
             .defaultValue(".*")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)

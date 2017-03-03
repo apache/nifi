@@ -42,6 +42,7 @@ import com.google.gson.Gson;
 /**
  * Encapsulates the logic to handle a LumberjackFrame once it has been read from the channel.
  */
+@Deprecated
 public class LumberjackFrameHandler<E extends Event<SocketChannel>> {
 
     private final Charset charset;
