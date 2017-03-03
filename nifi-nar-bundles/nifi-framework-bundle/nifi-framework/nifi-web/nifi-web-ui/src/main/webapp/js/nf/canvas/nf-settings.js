@@ -376,11 +376,7 @@
         if (matchesFilter && matchesTags) {
             var bundleGroup = $('#reporting-task-bundle-group-combo').combo('getSelectedOption');
             if (nf.Common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
-                if (nf.Common.isDefinedAndNotNull(item.bundle)) {
-                    matchesGroup = (item.bundle.group === bundleGroup.value);
-                } else {
-                    matchesGroup = false;
-                }
+                matchesGroup = (item.bundle.group === bundleGroup.value);
             }
         }
 
@@ -565,10 +561,7 @@
                     }
 
                     var bundle = nf.Common.formatBundle(reportingTaskType.bundle);
-                    var type = reportingTaskType.label;
-                    if (nf.Common.isDefinedAndNotNull(reportingTaskType.bundle)) {
-                        type += (' ' + reportingTaskType.bundle.version);
-                    }
+                    var type = reportingTaskType.label + ' ' + reportingTaskType.bundle.version
 
                     // populate the dom
                     $('#reporting-task-type-name').text(type).attr('title', type);
@@ -649,9 +642,7 @@
             // go through each reporting task type
             $.each(response.reportingTaskTypes, function (i, documentedType) {
                 // record the group
-                if (nf.Common.isDefinedAndNotNull(documentedType.bundle)) {
-                    groups.add(documentedType.bundle.group);
-                }
+                groups.add(documentedType.bundle.group);
 
                 // add the documented type
                 reportingTaskTypesData.addItem({

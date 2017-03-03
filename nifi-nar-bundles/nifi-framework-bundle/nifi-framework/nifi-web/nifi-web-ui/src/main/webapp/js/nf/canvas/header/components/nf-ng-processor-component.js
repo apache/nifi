@@ -138,11 +138,7 @@
             if (matchesFilter && matchesTags) {
                 var bundleGroup = $('#processor-bundle-group-combo').combo('getSelectedOption');
                 if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
-                    if (nfCommon.isDefinedAndNotNull(item.bundle)) {
-                        matchesGroup = (item.bundle.group === bundleGroup.value);
-                    } else {
-                        matchesGroup = false;
-                    }
+                    matchesGroup = (item.bundle.group === bundleGroup.value);
                 }
             }
 
@@ -472,9 +468,7 @@
                                 var type = documentedType.type;
 
                                 // record the group
-                                if (nfCommon.isDefinedAndNotNull(documentedType.bundle)) {
-                                    groups.add(documentedType.bundle.group);
-                                }
+                                groups.add(documentedType.bundle.group);
 
                                 // create the row for the processor type
                                 processorTypesData.addItem({

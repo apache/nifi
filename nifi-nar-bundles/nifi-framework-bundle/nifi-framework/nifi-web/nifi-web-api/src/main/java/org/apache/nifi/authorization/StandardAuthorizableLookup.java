@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -41,6 +42,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -624,12 +626,25 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         if (snippet.getProcessors() != null) {
-            processors.addAll(snippet.getProcessors().stream().map(processor -> getProcessorByType(processor.getType(), processor.getBundle())).collect(Collectors.toSet()));
+            snippet.getProcessors().forEach(processor -> {
+                try {
+                    final BundleCoordinate bundle = BundleUtils.getCompatibleBundle(processor.getType(), processor.getBundle());
+                    processors.add(getProcessorByType(processor.getType(), new BundleDTO(bundle.getGroup(), bundle.getId(), bundle.getVersion())));
+                } catch (final IllegalStateException e) {
+                    // no compatible bundles... no additional auth checks necessary... if created, will be ghosted
+                }
+            });
         }
 
         if (snippet.getControllerServices() != null) {
-            controllerServices.addAll(snippet.getControllerServices().stream().map(
-                    controllerService -> getControllerServiceByType(controllerService.getType(), controllerService.getBundle())).collect(Collectors.toSet()));
+            snippet.getControllerServices().forEach(controllerService -> {
+                try {
+                    final BundleCoordinate bundle = BundleUtils.getCompatibleBundle(controllerService.getType(), controllerService.getBundle());
+                    controllerServices.add(getControllerServiceByType(controllerService.getType(), new BundleDTO(bundle.getGroup(), bundle.getId(), bundle.getVersion())));
+                } catch (final IllegalStateException e) {
+                    // no compatible bundles... no additional auth checks necessary... if created, will be ghosted
+                }
+            });
         }
 
         if (snippet.getProcessGroups() != null) {

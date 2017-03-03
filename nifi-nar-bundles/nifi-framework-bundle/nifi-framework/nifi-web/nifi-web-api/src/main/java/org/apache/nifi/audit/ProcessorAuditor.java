@@ -26,6 +26,7 @@ import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -69,6 +70,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String SCHEDULING_PERIOD = "Run Schedule";
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
     private static final String EXECUTION_NODE = "Execution Node";
+    private static final String EXTENSION_VERSION = "Extension Version";
 
     /**
      * Audits the creation of processors via createProcessor().
@@ -314,6 +316,10 @@ public class ProcessorAuditor extends NiFiAuditor {
 
         if (processorDTO.getName() != null) {
             values.put(NAME, processor.getName());
+        }
+        if (processorDTO.getBundle() != null) {
+            final BundleCoordinate bundle = processor.getBundleCoordinate();
+            values.put(EXTENSION_VERSION, formatExtensionVersion(processor.getComponentType(), bundle));
         }
         if (processorDTO.getConfig() != null) {
             ProcessorConfigDTO newConfig = processorDTO.getConfig();

@@ -275,8 +275,8 @@
         sortType: function (sortDetails, data) {
             // compares two bundles
             var compareBundle = function (a, b) {
-                var aBundle = nfCommon.formatBundle(a[sortDetails.columnId]);
-                var bBundle = nfCommon.formatBundle(b[sortDetails.columnId]);
+                var aBundle = nfCommon.formatBundle(a.bundle);
+                var bBundle = nfCommon.formatBundle(b.bundle);
                 return aBundle === bBundle ? 0 : aBundle > bBundle ? 1 : -1;
             };
 
@@ -339,11 +339,7 @@
          * @returns {string}
          */
         typeBundleFormatter: function (row, cell, value, columnDef, dataContext) {
-            if (nfCommon.isDefinedAndNotNull(dataContext.bundle)) {
-                return nfCommon.escapeHtml(nfCommon.formatBundle(dataContext.bundle));
-            } else {
-                return 'NA';
-            }
+            return nfCommon.escapeHtml(nfCommon.formatBundle(dataContext.bundle));
         },
 
         /**
@@ -417,7 +413,7 @@
          */
         formatType: function (dataContext) {
             var typeString = nfCommon.substringAfterLast(dataContext.type, '.');
-            if (nfCommon.isDefinedAndNotNull(dataContext.bundle) && dataContext.bundle.version !== 'unversioned') {
+            if (dataContext.bundle.version !== 'unversioned') {
                 typeString += (' ' + dataContext.bundle.version);
             }
             return typeString;
@@ -429,15 +425,11 @@
          * @param bundle
          */
         formatBundle: function (bundle) {
-            if (nfCommon.isDefinedAndNotNull(bundle)) {
-                if (bundle.missing === true) {
-                    return 'Bundle Missing';
-                } else {
-                    return bundle.group + ' - ' + bundle.artifact;
-                }
-            } else {
-                return 'NA';
+            var groupString = '';
+            if (bundle.group !== 'default') {
+                groupString = bundle.group + ' - ';
             }
+            return groupString + bundle.artifact;
         },
 
         /**

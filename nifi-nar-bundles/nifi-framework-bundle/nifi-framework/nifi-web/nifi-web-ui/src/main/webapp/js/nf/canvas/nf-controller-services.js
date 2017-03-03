@@ -192,11 +192,7 @@
         if (matchesFilter && matchesTags) {
             var bundleGroup = $('#controller-service-bundle-group-combo').combo('getSelectedOption');
             if (nf.Common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
-                if (nf.Common.isDefinedAndNotNull(item.bundle)) {
-                    matchesGroup = (item.bundle.group === bundleGroup.value);
-                } else {
-                    matchesGroup = false;
-                }
+                matchesGroup = (item.bundle.group === bundleGroup.value);
             }
         }
 
@@ -418,10 +414,7 @@
                     }
 
                     var bundle = nf.Common.formatBundle(controllerServiceType.bundle);
-                    var type = controllerServiceType.label;
-                    if (nf.Common.isDefinedAndNotNull(controllerServiceType.bundle)) {
-                        type += (' ' + controllerServiceType.bundle.version);
-                    }
+                    var type = controllerServiceType.label + ' ' + controllerServiceType.bundle.version;
 
                     // populate the dom
                     $('#controller-service-type-name').text(type).attr('title', type);
@@ -525,9 +518,7 @@
             // go through each controller service type
             $.each(response.controllerServiceTypes, function (i, documentedType) {
                 // record the group
-                if (nf.Common.isDefinedAndNotNull(documentedType.bundle)) {
-                    groups.add(documentedType.bundle.group);
-                }
+                groups.add(documentedType.bundle.group);
 
                 // add the documented type
                 controllerServiceTypesData.addItem({
