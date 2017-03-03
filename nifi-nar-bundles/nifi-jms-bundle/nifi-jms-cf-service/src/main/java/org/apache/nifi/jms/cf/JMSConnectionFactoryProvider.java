@@ -181,7 +181,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     if (context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue().startsWith("org.apache.activemq")) {
                         this.setProperty("brokerURL", brokerValue);
                     } else {
-                        String[] hostPort = entry.getValue().split(":");
+                        String[] hostPort = brokerValue.split(":");
                         if (hostPort.length == 2) {
                             this.setProperty("hostName", hostPort[0]);
                             this.setProperty("port", hostPort[1]);
