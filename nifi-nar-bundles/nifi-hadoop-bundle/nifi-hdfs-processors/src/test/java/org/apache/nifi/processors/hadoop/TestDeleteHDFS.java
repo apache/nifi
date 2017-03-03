@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
@@ -25,15 +24,12 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -55,6 +51,7 @@ public class TestDeleteHDFS {
         mockFileSystem = mock(FileSystem.class);
     }
 
+    //Tests the case where a file is found and deleted but there was no incoming connection
     @Test
     public void testSuccessfulDelete() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
@@ -66,11 +63,8 @@ public class TestDeleteHDFS {
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, filePath.toString());
         runner.assertValid();
         runner.run();
-        runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_SUCCESS);
-        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
-        assertEquals(filePath.getName(), flowFile.getAttribute("filename"));
-        assertEquals(filePath.getParent().toString(), flowFile.getAttribute("path"));
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
     }
 
     @Test
@@ -86,9 +80,6 @@ public class TestDeleteHDFS {
         runner.run();
         runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_SUCCESS);
         runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
-        assertEquals(filePath.getName(), flowFile.getAttribute("filename"));
-        assertEquals(filePath.getParent().toString(), flowFile.getAttribute("path"));
     }
 
     @Test
@@ -102,9 +93,7 @@ public class TestDeleteHDFS {
         attributes.put("hdfs.file", filePath.toString());
         runner.enqueue("foo", attributes);
         runner.run();
-        runner.assertQueueNotEmpty();
-        runner.assertPenalizeCount(1);
-        assertEquals(1, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
     }
 
     @Test
@@ -131,11 +120,7 @@ public class TestDeleteHDFS {
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, filePath.toString());
         runner.assertValid();
         runner.run();
-        runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_FAILURE);
-        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_FAILURE).get(0);
-        assertEquals(filePath.getName(), flowFile.getAttribute("filename"));
-        assertEquals(filePath.getParent().toString(), flowFile.getAttribute("path"));
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
     }
 
     @Test
@@ -158,14 +143,32 @@ public class TestDeleteHDFS {
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
         runner.assertValid();
         runner.run();
-        runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_SUCCESS);
-        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, fileCount);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS);
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testGlobDeleteFromIncomingFlowFile() throws Exception {
+        Path glob = new Path("/data/for/2017/08/05/*");
+        int fileCount = 300;
+        FileStatus[] fileStatuses = new FileStatus[fileCount];
         for (int i = 0; i < fileCount; i++) {
-            FlowFile flowFile = flowFiles.get(i);
-            assertEquals("file" + i, flowFile.getAttribute("filename"));
-            assertEquals("/data/for/2017/08/05", flowFile.getAttribute("path"));
+            Path file = new Path("/data/for/2017/08/05/file" + i);
+            FileStatus fileStatus = mock(FileStatus.class);
+            when(fileStatus.getPath()).thenReturn(file);
+            fileStatuses[i] = fileStatus;
         }
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setIncomingConnection(true);
+        Map<String, String> attributes = Maps.newHashMap();
+        runner.enqueue("foo", attributes);
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DeleteHDFS.REL_SUCCESS);
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
     }
 
     private static class TestableDeleteHDFS extends DeleteHDFS {
