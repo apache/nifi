@@ -50,8 +50,8 @@
 }(this, function ($, d3, nfCommon, nfDialog, nfErrorHandler, nfClient, nfCanvasUtils) {
     'use strict';
 
-    var nfCanvas;
     var nfSelectable;
+    var nfConnectionConfiguration;
     var nfContextMenu;
 
     // the dimensions for the connection label
@@ -1546,9 +1546,10 @@
          * @param nfSelectableRef   The nfSelectable module.
          * @param nfContextMenuRef   The nfContextMenu module.
          */
-        init: function (nfSelectableRef, nfContextMenuRef) {
+        init: function (nfSelectableRef, nfContextMenuRef, nfConnectionConfigurationRef) {
             nfSelectable = nfSelectableRef;
             nfContextMenu = nfContextMenuRef;
+            nfConnectionConfiguration = nfConnectionConfigurationRef;
 
             connectionMap = d3.map();
             removedCache = d3.map();
