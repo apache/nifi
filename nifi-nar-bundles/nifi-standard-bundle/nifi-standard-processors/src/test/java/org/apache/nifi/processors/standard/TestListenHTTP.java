@@ -146,7 +146,7 @@ public class TestListenHTTP {
                 Thread.sleep(100);
             }
 
-            runner.assertTransferCount(ListenTCP.REL_SUCCESS, messages.size());
+            runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
 
     }
 
@@ -161,7 +161,7 @@ public class TestListenHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
         return sslContextService;
     }
 
