@@ -44,6 +44,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -76,7 +77,8 @@ public class ScanAttribute extends AbstractProcessor {
     public static final String MATCH_CRITERIA_ANY = "At Least 1 Must Match";
 
     public static final PropertyDescriptor MATCHING_CRITERIA = new PropertyDescriptor.Builder()
-            .name("Match Criteria")
+            .name("match-criteria")
+            .displayName("Match Criteria")
             .description("If set to All Must Match, then FlowFiles will be routed to 'matched' only if all specified "
                     + "attributes' values are found in the dictionary. If set to At Least 1 Must Match, FlowFiles will "
                     + "be routed to 'matched' if any attribute specified is found in the dictionary")
@@ -85,20 +87,23 @@ public class ScanAttribute extends AbstractProcessor {
             .defaultValue(MATCH_CRITERIA_ANY)
             .build();
     public static final PropertyDescriptor ATTRIBUTE_PATTERN = new PropertyDescriptor.Builder()
-            .name("Attribute Pattern")
+            .name("attribute-pattern")
+            .displayName("Attribute Pattern")
             .description("Regular Expression that specifies the names of attributes whose values will be matched against the terms in the dictionary")
             .required(true)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .defaultValue(".*")
             .build();
     public static final PropertyDescriptor DICTIONARY_FILE = new PropertyDescriptor.Builder()
-            .name("Dictionary File")
+            .name("dictionary-file")
+            .displayName("Dictionary File")
             .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
-            .name("Dictionary Filter Pattern")
+            .name("dictionary-filter-pattern")
+            .displayName("Dictionary Filter Pattern")
             .description("A Regular Expression that will be applied to each line in the dictionary file. If the regular expression does not "
                     + "match the line, the line will not be included in the list of terms to search for. If a Matching Group is specified, only the "
                     + "portion of the term that matches that Matching Group will be used instead of the entire term. If not specified, all terms in "
@@ -107,11 +112,15 @@ public class ScanAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.createRegexValidator(0, 1, false))
             .defaultValue(null)
             .build();
+
+    private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
+
     public static final PropertyDescriptor DICTIONARY_ENTRY_METADATA_DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("Dictionary Entry Metadata Demarcator")
+            .name("dictionary-entry-metadata-demarcator")
+            .displayName("Dictionary Entry Metadata Demarcator")
             .description("A single character used to demarcate the dictionary entry string between dictionary value and metadata.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(characterValidator)
             .defaultValue(null)
             .build();
 
@@ -265,10 +274,7 @@ public class ScanAttribute extends AbstractProcessor {
                 attributeNameMatches.add(attribute.getKey());
 
                 if (dictionary.containsKey(attribute.getValue())) {
-                    hitCounter++;
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
+                    hitCounter = setDictionaryTermMatch(dictionary, dictionaryTermMatches, hitCounter, attribute);
                 }
             }
         }
@@ -286,10 +292,7 @@ public class ScanAttribute extends AbstractProcessor {
                 attributeNameMatches.add(attribute.getKey());
 
                 if (dictionary.containsKey(attribute.getValue())) {
-                    hitCounter++;
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
-                    dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
+                    hitCounter = setDictionaryTermMatch(dictionary, dictionaryTermMatches, hitCounter, attribute);
                 } else {
                     //if one attribute value is not found in the dictionary then no need to continue since this is a matchAll scenario.
                     dictionaryTermMatches.clear();
@@ -298,5 +301,13 @@ public class ScanAttribute extends AbstractProcessor {
             }
         }
         return dictionaryTermMatches;
+    }
+
+    private int setDictionaryTermMatch(Map<String, String> dictionary, Map<String, String> dictionaryTermMatches, int hitCounter, Map.Entry<String, String> attribute) {
+        hitCounter++;
+        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
+        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
+        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
+        return hitCounter;
     }
 }
