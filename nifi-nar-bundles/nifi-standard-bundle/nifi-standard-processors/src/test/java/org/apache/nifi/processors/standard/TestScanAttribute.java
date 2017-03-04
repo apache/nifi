@@ -85,7 +85,8 @@ public class TestScanAttribute {
         runner.enqueue(new byte[0], attributes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        //if no attributes match the attribute pattern then the file should go to unmatched...not matched.
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
         runner.clearTransferState();
 
         attributes.put("abc", "world");
@@ -166,11 +167,11 @@ public class TestScanAttribute {
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"banana");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "yellow fruit");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"banana");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "yellow fruit");
 
         runner.clearTransferState();
 
@@ -189,11 +190,11 @@ public class TestScanAttribute {
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"cherry");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "red fruit");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"cherry");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "red fruit");
         runner.clearTransferState();
 
         runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "c.*");
@@ -223,18 +224,19 @@ public class TestScanAttribute {
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"banana");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "yellow fruit");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"banana");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "yellow fruit");
 
         runner.clearTransferState();
 
+        //if no attributes match the attribute pattern then the file should go to unmatched...not matched.
         attributes.remove("produce_name");
         runner.enqueue(new byte[0], attributes);
         runner.run();
-        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
         runner.clearTransferState();
 
         attributes.put("produce_name", "banana");
@@ -252,17 +254,17 @@ public class TestScanAttribute {
 
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"banana");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "yellow fruit");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"banana");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "yellow fruit");
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.2.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.2.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.2");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.2");
 
-        assertEquals(f.getAttribute("dictionary.hit.2.term") ,"corn");
-        assertEquals(f.getAttribute("dictionary.hit.2.metadata"), "yellow vegetable");
+        assertEquals(f.getAttribute("dictionary.hit.term.2") ,"corn");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.2"), "yellow vegetable");
     }
 
     @Test
@@ -304,14 +306,14 @@ public class TestScanAttribute {
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"banana");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "yellow fruit");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"banana");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "yellow fruit");
         runner.clearTransferState();
 
-        attributes.put("produce_name", "tomatoe");
+        attributes.put("produce_name", "tomato");
         runner.enqueue(new byte[0], attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
@@ -324,11 +326,11 @@ public class TestScanAttribute {
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
         f = runner.getFlowFilesForRelationship(ScanAttribute.REL_MATCHED).get(0);
 
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.term");
-        runner.assertAllFlowFilesContainAttribute("dictionary.hit.1.metadata");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.term.1");
+        runner.assertAllFlowFilesContainAttribute("dictionary.hit.metadata.1");
 
-        assertEquals(f.getAttribute("dictionary.hit.1.term") ,"tomatoe");
-        assertEquals(f.getAttribute("dictionary.hit.1.metadata"), "red vegetable");
+        assertEquals(f.getAttribute("dictionary.hit.term.1") ,"tomato");
+        assertEquals(f.getAttribute("dictionary.hit.metadata.1"), "red vegetable");
 
 
         runner.clearTransferState();

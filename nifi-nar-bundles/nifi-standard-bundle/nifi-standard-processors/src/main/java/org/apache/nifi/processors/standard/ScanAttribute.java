@@ -65,9 +65,12 @@ import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 @CapabilityDescription("Scans the specified attributes of FlowFiles, checking to see if any of their values are "
         + "present within the specified dictionary of terms")
 @WritesAttributes({
-        @WritesAttribute(attribute = "dictionary.hit.{n}.attribute", description = "The attribute name that had a value hit on the dictionary file."),
-        @WritesAttribute(attribute = "dictionary.hit.{n}.term", description = "The term that had a hit on the dictionary file."),
-        @WritesAttribute(attribute = "dictionary.hit.{n}.metadata", description = "The metadata returned from the dictionary file associated with the term hit.")
+        @WritesAttribute(attribute = "dictionary.hit.attribute.{n}", description = "The attribute name that had a value hit on the dictionary file. "
+                + "{n} is a one-up number that indicates the sequence of the hit in situations where multiple dictionary terms are hit."),
+        @WritesAttribute(attribute = "dictionary.hit.term.{n}", description = "The term that had a hit on the dictionary file. "
+                + "{n} is a one-up number that indicates the sequence of the hit in situations where multiple dictionary terms are hit."),
+        @WritesAttribute(attribute = "dictionary.hit.metadata.{n}", description = "The metadata returned from the dictionary file associated with the term hit. "
+                + "{n} is a one-up number that indicates the sequence of the hit in situations where multiple dictionary terms are hit.")
 })
 
 
@@ -77,8 +80,7 @@ public class ScanAttribute extends AbstractProcessor {
     public static final String MATCH_CRITERIA_ANY = "At Least 1 Must Match";
 
     public static final PropertyDescriptor MATCHING_CRITERIA = new PropertyDescriptor.Builder()
-            .name("match-criteria")
-            .displayName("Match Criteria")
+            .name("Match Criteria")
             .description("If set to All Must Match, then FlowFiles will be routed to 'matched' only if all specified "
                     + "attributes' values are found in the dictionary. If set to At Least 1 Must Match, FlowFiles will "
                     + "be routed to 'matched' if any attribute specified is found in the dictionary")
@@ -87,24 +89,21 @@ public class ScanAttribute extends AbstractProcessor {
             .defaultValue(MATCH_CRITERIA_ANY)
             .build();
     public static final PropertyDescriptor ATTRIBUTE_PATTERN = new PropertyDescriptor.Builder()
-            .name("attribute-pattern")
-            .displayName("Attribute Pattern")
+            .name("Attribute Pattern")
             .description("Regular Expression that specifies the names of attributes whose values will be matched against the terms in the dictionary")
             .required(true)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .defaultValue(".*")
             .build();
     public static final PropertyDescriptor DICTIONARY_FILE = new PropertyDescriptor.Builder()
-            .name("dictionary-file")
-            .displayName("Dictionary File")
+            .name("Dictionary File")
             .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.  The contents of "
                     + "the text file are loaded into memory when the processor is scheduled and reloaded when the contents are modified.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
-            .name("dictionary-filter-pattern")
-            .displayName("Dictionary Filter Pattern")
+            .name("Dictionary Filter Pattern")
             .description("A Regular Expression that will be applied to each line in the dictionary file. If the regular expression does not "
                     + "match the line, the line will not be included in the list of terms to search for. If a Matching Group is specified, only the "
                     + "portion of the term that matches that Matching Group will be used instead of the entire term. If not specified, all terms in "
@@ -114,14 +113,15 @@ public class ScanAttribute extends AbstractProcessor {
             .defaultValue(null)
             .build();
 
-    private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
+    private static final Validator CHARACTER_VALIDATOR = new StandardValidators.StringLengthValidator(1, 1);
 
     public static final PropertyDescriptor DICTIONARY_ENTRY_METADATA_DEMARCATOR = new PropertyDescriptor.Builder()
             .name("dictionary-entry-metadata-demarcator")
             .displayName("Dictionary Entry Metadata Demarcator")
-            .description("A single character used to demarcate the dictionary entry string between dictionary value and metadata.")
+            .description("A single character used to demarcate the dictionary entry string between dictionary value and metadata. "
+                    + "If no demarcator is specified then there will be no hit metadata and the entire dictionary term will be matched.")
             .required(false)
-            .addValidator(characterValidator)
+            .addValidator(CHARACTER_VALIDATOR)
             .defaultValue(null)
             .build();
 
@@ -132,7 +132,6 @@ public class ScanAttribute extends AbstractProcessor {
     private volatile Pattern attributePattern = null;
     private volatile String dictionaryEntryMetadataDemarcator = null;
     private volatile Map<String,String> dictionaryTerms = null;
-    private volatile Set<String> attributeNameMatches = null;
 
     private volatile SynchronousFileWatcher fileWatcher = null;
 
@@ -187,13 +186,8 @@ public class ScanAttribute extends AbstractProcessor {
     }
 
     private Map<String,String> createDictionary(final ProcessContext context) throws IOException {
-        final Map<String,String> termsMeta = new HashMap<String, String>();
+        final Map<String,String> termsMeta = new HashMap<>();
         this.dictionaryEntryMetadataDemarcator = context.getProperty(DICTIONARY_ENTRY_METADATA_DEMARCATOR).getValue();
-
-        String[] termMeta;
-        String term;
-        String meta;
-
 
         final File file = new File(context.getProperty(DICTIONARY_FILE).getValue());
         try (final InputStream fis = new FileInputStream(file);
@@ -205,8 +199,11 @@ public class ScanAttribute extends AbstractProcessor {
                     continue;
                 }
 
+                final String term;
+                final String meta;
+
                 if(dictionaryEntryMetadataDemarcator != null && line.contains(dictionaryEntryMetadataDemarcator)) {
-                    termMeta = line.split(dictionaryEntryMetadataDemarcator);
+                    final String[] termMeta = line.split(dictionaryEntryMetadataDemarcator);
                     term = termMeta[0];
                     meta = termMeta[1];
                 } else {
@@ -237,7 +234,7 @@ public class ScanAttribute extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = session.get(50);
+        final List<FlowFile> flowFiles = session.get(50);
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -254,10 +251,14 @@ public class ScanAttribute extends AbstractProcessor {
         final boolean matchAll = context.getProperty(MATCHING_CRITERIA).getValue().equals(MATCH_CRITERIA_ALL);
 
         for  (FlowFile flowFile : flowFiles) {
-            final Map<String,String> matched = (matchAll ? matchAll(flowFile, attributePattern, dictionaryTerms) : matchAny(flowFile, attributePattern, dictionaryTerms));
-            flowFile = session.putAllAttributes(flowFile, matched);
 
-            final Relationship relationship = (((matched.size() == (attributeNameMatches.size() * 3) && matchAll) || (matched.size() > 0 && !matchAll))) ? REL_MATCHED : REL_UNMATCHED;
+            final Map<String,String> dictionaryHits = (matchAll ? matchAll(flowFile, attributePattern, dictionaryTerms) : matchAny(flowFile, attributePattern, dictionaryTerms));
+
+            //now we apply the new attributes assigned during dictionary lookup.
+            flowFile = session.putAllAttributes(flowFile, dictionaryHits);
+
+            final Relationship relationship = dictionaryHits.isEmpty() ? REL_UNMATCHED : REL_MATCHED;
+
             session.getProvenanceReporter().route(flowFile, relationship);
             session.transfer(flowFile, relationship);
             logger.info("Transferred {} to {}", new Object[]{flowFile, relationship});
@@ -265,17 +266,13 @@ public class ScanAttribute extends AbstractProcessor {
     }
 
     private Map<String,String> matchAny(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {
-        Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
-        attributeNameMatches = new HashSet<String>();
-
-        int hitCounter = 0;
-
+        final Map<String,String> dictionaryTermMatches = new HashMap<>();
+        int dictionaryTermHitCounter = 0; //keep track of the count of each attribute that hits a dictionary term
         for (final Map.Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             if (attributePattern == null || attributePattern.matcher(attribute.getKey()).matches()) {
-                attributeNameMatches.add(attribute.getKey());
-
                 if (dictionary.containsKey(attribute.getValue())) {
-                    hitCounter = setDictionaryTermMatch(dictionary, dictionaryTermMatches, hitCounter, attribute);
+                    dictionaryTermHitCounter++;
+                    setDictionaryTermMatch(dictionary, dictionaryTermMatches, dictionaryTermHitCounter, attribute);
                 }
             }
         }
@@ -283,17 +280,13 @@ public class ScanAttribute extends AbstractProcessor {
     }
 
     private Map<String,String> matchAll(final FlowFile flowFile, final Pattern attributePattern, final Map<String,String> dictionary) {
-        Map<String,String> dictionaryTermMatches = new HashMap<String,String>();
-        attributeNameMatches = new HashSet<String>();
-
-        int hitCounter = 0;
-
+        Map<String,String> dictionaryTermMatches = new HashMap<>();
+        int dictionaryTermHitCounter = 0; //keep track of the count of each attribute that hits a dictionary term
         for (final Map.Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             if (attributePattern == null || attributePattern.matcher(attribute.getKey()).matches()) {
-                attributeNameMatches.add(attribute.getKey());
-
                 if (dictionary.containsKey(attribute.getValue())) {
-                    hitCounter = setDictionaryTermMatch(dictionary, dictionaryTermMatches, hitCounter, attribute);
+                    dictionaryTermHitCounter++;
+                    setDictionaryTermMatch(dictionary, dictionaryTermMatches, dictionaryTermHitCounter, attribute);
                 } else {
                     //if one attribute value is not found in the dictionary then no need to continue since this is a matchAll scenario.
                     dictionaryTermMatches.clear();
@@ -304,11 +297,9 @@ public class ScanAttribute extends AbstractProcessor {
         return dictionaryTermMatches;
     }
 
-    private int setDictionaryTermMatch(Map<String, String> dictionary, Map<String, String> dictionaryTermMatches, int hitCounter, Map.Entry<String, String> attribute) {
-        hitCounter++;
-        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".attribute", attribute.getKey());
-        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".term", attribute.getValue());
-        dictionaryTermMatches.put("dictionary.hit." + hitCounter + ".metadata", dictionary.get(attribute.getValue()));
-        return hitCounter;
+    private void setDictionaryTermMatch(final Map<String, String> dictionary, final Map<String, String> dictionaryTermMatches, final int dictionaryTermHitCounter, final Map.Entry<String, String> attribute) {
+        dictionaryTermMatches.put("dictionary.hit.attribute." + dictionaryTermHitCounter, attribute.getKey());
+        dictionaryTermMatches.put("dictionary.hit.term." + dictionaryTermHitCounter, attribute.getValue());
+        dictionaryTermMatches.put("dictionary.hit.metadata." + dictionaryTermHitCounter, dictionary.get(attribute.getValue()));
     }
 }
