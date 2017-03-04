@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -30,7 +31,6 @@ import org.junit.Test;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.ServerSocket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +58,7 @@ public class TestListenHTTP {
     public void setup() throws IOException {
         proc = new ListenHTTP();
         runner = TestRunners.newTestRunner(proc);
-        availablePort = findAvailablePort();
+        availablePort = NetworkUtils.availablePort();;
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
         runner.setVariable(BASEPATH_VARIABLE,HTTP_BASE_PATH);
 
@@ -148,13 +148,6 @@ public class TestListenHTTP {
 
             runner.assertTransferCount(ListenTCP.REL_SUCCESS, messages.size());
 
-    }
-
-    private int findAvailablePort() throws IOException {
-        try (ServerSocket socket = new ServerSocket(0)) {
-            socket.setReuseAddress(true);
-            return socket.getLocalPort();
-        }
     }
 
     private SSLContextService configureProcessorSslContextService() throws InitializationException {
