@@ -87,7 +87,7 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
     ConnectionFactory getConnectionFactory();
 
     /**
-     * {@link Validator} that that ensures that brokerURI's length > 0 after EL evaluation
+     * {@link Validator} that ensures that brokerURI's length > 0 after EL evaluation
      */
     static class NonEmptyBrokerURIValidator implements Validator {
 
