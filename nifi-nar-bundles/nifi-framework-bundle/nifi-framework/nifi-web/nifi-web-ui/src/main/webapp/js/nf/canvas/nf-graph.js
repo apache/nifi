@@ -30,13 +30,14 @@
                 'nf.ProcessGroup',
                 'nf.Processor',
                 'nf.Connection',
+                'nf.ConnectionConfiguration',
                 'nf.CanvasUtils',
                 'nf.Connectable',
                 'nf.Draggable',
                 'nf.Selectable',
                 'nf.ContextMenu'],
-            function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
-                return (nf.Graph = factory($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu));
+            function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
+                return (nf.Graph = factory($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Graph =
@@ -51,6 +52,7 @@
                 require('nf.ProcessGroup'),
                 require('nf.Processor'),
                 require('nf.Connection'),
+                require('nf.ConnectionConfiguration'),
                 require('nf.CanvasUtils'),
                 require('nf.Connectable'),
                 require('nf.Draggable'),
@@ -68,13 +70,14 @@
             root.nf.ProcessGroup,
             root.nf.Processor,
             root.nf.Connection,
+            root.nf.ConnectionConfiguration,
             root.nf.CanvasUtils,
             root.nf.Connectable,
             root.nf.Draggable,
             root.nf.Selectable,
             root.nf.ContextMenu);
     }
-}(this, function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
+}(this, function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
     'use strict';
 
     var combinePorts = function (contents) {
@@ -201,7 +204,7 @@
             nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
             nfProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
             nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
-            nfConnection.init(nfSelectable, nfContextMenu);
+            nfConnection.init(nfSelectable, nfContextMenu, nfConnectionConfiguration);
 
             // load the graph
             return nfProcessGroup.enterGroup(nfCanvasUtils.getGroupId());

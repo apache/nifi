@@ -318,7 +318,9 @@ public class SimpleIndexManager implements IndexManager {
 
     // This method exists solely for unit testing purposes.
     protected void close(final IndexWriterCount count) throws IOException {
+        logger.debug("Closing Index Writer for {}...", count.getWriter().getDirectory());
         count.close();
+        logger.debug("Finished closing Index Writer for {}...", count.getWriter().getDirectory());
     }
 
     protected int getWriterCount() {
