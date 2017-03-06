@@ -176,7 +176,7 @@ class StandardHttpResponseMapperSpec extends Specification {
                 // expectedEntity
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
                         status: new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 1000,
-                                input: '0 (1,000 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
+                                input: "0 (${NumberFormat.instance.format(1000)} bytes)", output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
         "nifi-api/process-groups/${UUID.randomUUID()}/labels" | 'get'      | [
                 new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())] as Set),
                 new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))] as Set),
