@@ -289,8 +289,10 @@
 
     /**
      * Marshals the data that will be used to update the processor's configuration.
+     *
+     * @param {object} processor
      */
-    var marshalDetails = function () {
+    var marshalDetails = function (processor) {
         // create the config dto
         var processorConfigDto = {};
 
@@ -333,7 +335,7 @@
         processorConfigDto['comments'] = $('#processor-comments').val();
 
         // run duration
-        if ($('#run-duration-setting-container').is(':visible')) {
+        if (processor.supportsBatching === true) {
             var runDurationIndex = $('#run-duration-slider').slider('value');
             processorConfigDto['runDurationMillis'] = RUN_DURATION_VALUES[runDurationIndex];
         }
@@ -484,7 +486,7 @@
      */
     var saveProcessor = function (processor) {
         // marshal the settings and properties and update the processor
-        var updatedProcessor = marshalDetails();
+        var updatedProcessor = marshalDetails(processor);
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
