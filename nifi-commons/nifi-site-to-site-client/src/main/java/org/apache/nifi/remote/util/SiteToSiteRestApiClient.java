@@ -245,7 +245,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         if (localAddress != null) {
             requestConfigBuilder.setLocalAddress(localAddress);
         }
-        
+
         if (proxy != null) {
             requestConfigBuilder.setProxy(proxy.getHttpHost());
         }
@@ -1347,7 +1347,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     public void setCompress(final boolean compress) {
         this.compress = compress;
     }
-    
+
     public void setLocalAddress(final InetAddress localAddress) {
         this.localAddress = localAddress;
     }
