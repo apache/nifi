@@ -99,7 +99,7 @@ public class TestStandardProcessScheduler {
 
         // load the system bundle
         systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         scheduler = new StandardProcessScheduler(Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, variableRegistry, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));

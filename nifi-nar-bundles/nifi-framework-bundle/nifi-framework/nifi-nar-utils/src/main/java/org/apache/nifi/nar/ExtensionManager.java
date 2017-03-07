@@ -61,6 +61,9 @@ public class ExtensionManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionManager.class);
 
+    public static final BundleCoordinate SYSTEM_BUNDLE_COORDINATE = new BundleCoordinate(
+            BundleCoordinate.DEFAULT_GROUP, "system", BundleCoordinate.DEFAULT_VERSION);
+
     // Maps a service definition (interface) to those classes that implement the interface
     private static final Map<Class, Set<Class>> definitionMap = new HashMap<>();
 
@@ -88,14 +91,19 @@ public class ExtensionManager {
 
     /**
      * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class types that can be found on the bootstrap classloader and by creating classloaders for all NARs found within the classpath.
-     * @param bundles the bundles to scan through in search of extensions
+     * @param narBundles the bundles to scan through in search of extensions
      */
-    public static void discoverExtensions(final Set<Bundle> bundles) {
+    public static void discoverExtensions(final Bundle systemBundle, final Set<Bundle> narBundles) {
         // get the current context class loader
         ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
 
+        // load the system bundle first so that any extensions found in JARs directly in lib will be registered as
+        // being from the system bundle and not from all the other NARs
+        loadExtensions(systemBundle);
+        bundleCoordinateBundleLookup.put(systemBundle.getBundleDetails().getCoordinate(), systemBundle);
+
         // consider each nar class loader
-        for (final Bundle bundle : bundles) {
+        for (final Bundle bundle : narBundles) {
             // Must set the context class loader to the nar classloader itself
             // so that static initialization techniques that depend on the context class loader will work properly
             final ClassLoader ncl = bundle.getClassLoader();
@@ -127,12 +135,9 @@ public class ExtensionManager {
             throw new IllegalStateException("Unable to create system bundle because " + NiFiProperties.NAR_LIBRARY_DIRECTORY + " was null or empty");
         }
 
-        final BundleCoordinate systemBundleCoordinate = new BundleCoordinate(
-                BundleCoordinate.DEFAULT_GROUP, "system", BundleCoordinate.DEFAULT_VERSION);
-
         final BundleDetails systemBundleDetails = new BundleDetails.Builder()
                 .workingDir(new File(narLibraryDirectory))
-                .coordinate(systemBundleCoordinate)
+                .coordinate(SYSTEM_BUNDLE_COORDINATE)
                 .build();
 
         return new Bundle(systemBundleDetails, systemClassLoader);
@@ -169,30 +174,76 @@ public class ExtensionManager {
 
         // get the bundles that have already been registered for the class name
         List<Bundle> registeredBundles = classNameBundleMap.get(className);
+
         if (registeredBundles == null) {
             registeredBundles = new ArrayList<>();
             classNameBundleMap.put(className, registeredBundles);
         }
 
-        // check if any of the bundles for the given class name have the same coordinate as the current bundle we are processing
-        Bundle registeredBundle = null;
-        for (Bundle b : registeredBundles) {
-            if (b.getBundleDetails().getCoordinate().equals(bundle.getBundleDetails().getCoordinate())) {
-                registeredBundle = b;
+        // extensions found in JARs directly in the lib directory will show up in the system bundle and also in every NAR,
+        // so we need to determine if the reason we are finding the current type is because we are seeing it through the ancestor
+        // system bundle, or if it really is a new bundle that has the same type, it is also possible that discoverExtensions is
+        // called multiple times with the same bundle and we don't want to register if it is already registered to the same bundle
+
+        boolean alreadyRegistered = false;
+        final ClassLoader typeClassLoader = type.getClassLoader();
+
+        for (final Bundle registeredBundle : registeredBundles) {
+            final BundleCoordinate registeredCoordinate = registeredBundle.getBundleDetails().getCoordinate();
+
+            // if the incoming bundle has the same coordinate as one of the registered bundles then consider it already registered
+            if (registeredCoordinate.equals(bundle.getBundleDetails().getCoordinate())) {
+                alreadyRegistered = true;
                 break;
+            }
+
+            // different coordinates so now check if the already registered bundle is an ancestor of type
+            boolean loadedFromAncestor = false;
+
+            ClassLoader ancestorClassLoader = typeClassLoader;
+            while (ancestorClassLoader != null) {
+                if (ancestorClassLoader == registeredBundle.getClassLoader()) {
+                    loadedFromAncestor = true;
+                    break;
+                }
+                ancestorClassLoader = ancestorClassLoader.getParent();
+            }
+
+            // if the type was already loaded from an ancestor then we don't want to register it again
+            if (loadedFromAncestor) {
+                alreadyRegistered = true;
+                break;
+            }
+
+            // if the type wasn't loaded from an ancestor, and the type isn't a processor, cs, or reporting task, then
+            // fail registration because we don't support multiple versions of any other types
+            if (!multipleVersionsAllowed(type)) {
+                throw new IllegalStateException("Attempt was made to load " + className + " from "
+                        + bundle.getBundleDetails().getCoordinate().getCoordinate()
+                        + " but that class name is already loaded/registered from " + registeredBundle.getBundleDetails().getCoordinate()
+                        + " and multiple versions are not supported for this type"
+                );
             }
         }
 
-        // there was no matching bundle then add the bundle to the registered bundles for the given class
-        if (registeredBundle == null) {
+        // if none of the above was true then register the new bundle
+        if (!alreadyRegistered) {
             registeredBundles.add(bundle);
             classes.add(type);
 
-            // keep track of which classes require a class loader per component instance
             if (type.isAnnotationPresent(RequiresInstanceClassLoading.class)) {
                 requiresInstanceClassLoading.add(className);
             }
         }
+
+    }
+
+    /**
+     * @param type a Class that we found from a service loader
+     * @return true if the given class is a processor, controller service, or reporting task
+     */
+    private static boolean multipleVersionsAllowed(Class<?> type) {
+        return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type);
     }
 
     /**

@@ -25,7 +25,6 @@
     <description>NiFi Standard Extensions Bundle</description>
     <modules>
         <module>nifi-standard-processors</module>
-        <module>nifi-standard-prioritizers</module>
         <module>nifi-standard-reporting-tasks</module>
         <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
@@ -37,11 +36,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.2.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-standard-prioritizers</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>

@@ -44,7 +44,7 @@ class StandardFlowSynchronizerSpec extends Specification {
 
         def niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
         systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     def teardownSpec() {

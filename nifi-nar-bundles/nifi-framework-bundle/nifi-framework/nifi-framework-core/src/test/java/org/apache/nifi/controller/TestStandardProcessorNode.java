@@ -413,7 +413,7 @@ public class TestStandardProcessorNode {
         final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
 
         final Bundle systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         ExtensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle);
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);

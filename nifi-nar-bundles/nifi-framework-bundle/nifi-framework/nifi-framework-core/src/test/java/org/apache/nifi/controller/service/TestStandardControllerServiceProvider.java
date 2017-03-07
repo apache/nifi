@@ -94,7 +94,7 @@ public class TestStandardControllerServiceProvider {
 
         // load the system bundle
         systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     private StandardProcessScheduler createScheduler() {

@@ -152,7 +152,7 @@ public class MonitorMemoryTest {
 
         // build the system bundle
         final Bundle bundle = ExtensionManager.createSystemBundle(nifiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(bundle));
+        ExtensionManager.discoverExtensions(bundle, Collections.emptySet());
 
         return new Tuple<>(FlowController.createStandaloneInstance(
                 mock(FlowFileEventRepository.class),

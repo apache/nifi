@@ -31,7 +31,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
 
 public class StandardControllerServiceProviderTest {
 
@@ -46,12 +45,12 @@ public class StandardControllerServiceProviderTest {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
         nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
 
+        NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
+
         // load the system bundle
         systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
-        NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getBundles());
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
     }
 

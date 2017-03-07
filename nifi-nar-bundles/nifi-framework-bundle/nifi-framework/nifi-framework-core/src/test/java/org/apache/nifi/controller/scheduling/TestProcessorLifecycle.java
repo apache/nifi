@@ -732,7 +732,7 @@ public class TestProcessorLifecycle {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         final Bundle systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),

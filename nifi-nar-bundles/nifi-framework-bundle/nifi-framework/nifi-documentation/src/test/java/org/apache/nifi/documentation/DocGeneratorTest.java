@@ -17,6 +17,7 @@
 package org.apache.nifi.documentation;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -46,11 +47,12 @@ public class DocGeneratorTest {
                 NiFiProperties.COMPONENT_DOCS_DIRECTORY,
                 temporaryFolder.getRoot().getAbsolutePath());
 
-        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties);
+        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getBundles());
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
         DocGenerator.generate(properties, mapping);
 

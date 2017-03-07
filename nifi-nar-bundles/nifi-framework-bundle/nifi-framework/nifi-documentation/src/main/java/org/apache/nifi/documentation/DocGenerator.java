@@ -83,7 +83,13 @@ public class DocGenerator {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
                 final String extensionClassName = extensionClass.getCanonicalName();
 
-                for (final BundleCoordinate coordinate : coordinateAccessor.apply(extensionClassName)) {
+                final Set<BundleCoordinate> coordinates = coordinateAccessor.apply(extensionClassName);
+                if (coordinates == null) {
+                    logger.warn("No coordinate found for {}, skipping...", new Object[] {extensionClassName});
+                    continue;
+                }
+
+                for (final BundleCoordinate coordinate : coordinates) {
                     final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
                     final File componentDirectory = new File(explodedNiFiDocsDir, path);
                     componentDirectory.mkdirs();

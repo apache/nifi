@@ -126,8 +126,10 @@ public class NiFi {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
+        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+
         // expand the nars
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         // load the extensions classloaders
         NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
@@ -138,12 +140,9 @@ public class NiFi {
             throw new IllegalStateException("Unable to find the framework NAR ClassLoader.");
         }
 
-        // get the NAR bundles and add a system bundle to represent anything in lib that is not a NAR
-        final Set<Bundle> bundles = NarClassLoaders.getInstance().getBundles();
-        bundles.add(ExtensionManager.createSystemBundle(properties));
-
         // discover the extensions
-        ExtensionManager.discoverExtensions(bundles);
+        final Set<Bundle> narBundles = NarClassLoaders.getInstance().getBundles();
+        ExtensionManager.discoverExtensions(systemBundle, narBundles);
         ExtensionManager.logClassLoaderMapping();
 
         DocGenerator.generate(properties, extensionMapping);
@@ -154,7 +153,7 @@ public class NiFi {
         Constructor<?> jettyConstructor = jettyServer.getConstructor(NiFiProperties.class, Set.class);
 
         final long startTime = System.nanoTime();
-        nifiServer = (NiFiServer) jettyConstructor.newInstance(properties, bundles);
+        nifiServer = (NiFiServer) jettyConstructor.newInstance(properties, narBundles);
         nifiServer.setExtensionMapping(extensionMapping);
 
         if (shutdown) {

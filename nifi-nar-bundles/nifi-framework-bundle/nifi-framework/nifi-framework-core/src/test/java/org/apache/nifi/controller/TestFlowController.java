@@ -112,7 +112,7 @@ public class TestFlowController {
 
         // use the system bundle
         systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
-        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();

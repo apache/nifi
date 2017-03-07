@@ -21,6 +21,8 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.Comparator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,8 +194,12 @@ public class NarClassLoader extends URLClassLoader {
         }
         addURL(dependencies.toURI().toURL());
         if (dependencies.isDirectory()) {
-            for (File libJar : dependencies.listFiles(JAR_FILTER)) {
-                addURL(libJar.toURI().toURL());
+            final File[] jarFiles = dependencies.listFiles(JAR_FILTER);
+            if (jarFiles != null) {
+                Arrays.sort(jarFiles, Comparator.comparing(File::getName));
+                for (File libJar : jarFiles) {
+                    addURL(libJar.toURI().toURL());
+                }
             }
         }
     }

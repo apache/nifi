@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -63,7 +64,7 @@ public final class NarUnpacker {
         }
     };
 
-    public static ExtensionMapping unpackNars(final NiFiProperties props) {
+    public static ExtensionMapping unpackNars(final NiFiProperties props, final Bundle systemBundle) {
         final List<Path> narLibraryDirs = props.getNarLibraryDirectories();
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
@@ -172,6 +173,10 @@ public final class NarUnpacker {
 
             final ExtensionMapping extensionMapping = new ExtensionMapping();
             mapExtensions(unpackedNars, docsWorkingDir, extensionMapping);
+
+            // unpack docs for the system bundle which will catch any JARs directly in the lib directory that might have docs
+            unpackBundleDocs(docsWorkingDir, extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
+
             return extensionMapping;
         } catch (IOException e) {
             logger.warn("Unable to load NAR library bundles due to " + e + " Will proceed without loading any further Nar bundles");
@@ -190,12 +195,16 @@ public final class NarUnpacker {
 
             final File bundledDependencies = new File(unpackedNar, "META-INF/bundled-dependencies");
 
-            final File[] directoryContents = bundledDependencies.listFiles();
-            if (directoryContents != null) {
-                for (final File file : directoryContents) {
-                    if (file.getName().toLowerCase().endsWith(".jar")) {
-                        unpackDocumentation(bundleCoordinate, file, docsDirectory, mapping);
-                    }
+            unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        }
+    }
+
+    private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
+        final File[] directoryContents = bundledDirectory.listFiles();
+        if (directoryContents != null) {
+            for (final File file : directoryContents) {
+                if (file.getName().toLowerCase().endsWith(".jar")) {
+                    unpackDocumentation(bundleCoordinate, file, docsDirectory, mapping);
                 }
             }
         }
