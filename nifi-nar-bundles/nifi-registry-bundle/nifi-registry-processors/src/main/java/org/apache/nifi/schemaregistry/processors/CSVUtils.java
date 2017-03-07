@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -157,7 +158,9 @@ class CSVUtils {
                         NumberFormat numberFormat = DecimalFormat.getInstance();
                         numberFormat.setGroupingUsed(false);
                         normalizeNumberFormat(numberFormat, scale, precision);
-                        final String rawValue  = new String(((ByteBuffer)fieldValue).array());
+                        String rawValue = new String(((ByteBuffer)fieldValue).array());
+                        // raw value needs to be parsed to ensure that BigDecimal will not throw an exception for specific locale
+                        rawValue = numberFormat.parse(rawValue).toString();
                         out.write(numberFormat.format(new BigDecimal(rawValue)).getBytes(StandardCharsets.UTF_8));
                     } else {
                         out.write(fieldValue.toString().getBytes(StandardCharsets.UTF_8));
@@ -167,7 +170,7 @@ class CSVUtils {
                     delimiterToUse = String.valueOf(delimiter);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | ParseException e) {
             throw new IllegalStateException("Failed to parse AVRO Record", e);
         }
     }
