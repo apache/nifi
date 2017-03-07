@@ -127,7 +127,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         @Override
         public Object createWebSocket(ServletUpgradeRequest servletUpgradeRequest, ServletUpgradeResponse servletUpgradeResponse) {
             final URI requestURI = servletUpgradeRequest.getRequestURI();
-            final int port = requestURI.getPort();
+            final int port = servletUpgradeRequest.getLocalPort();
             final JettyWebSocketServer service = portToControllerService.get(port);
 
             if (service == null) {
