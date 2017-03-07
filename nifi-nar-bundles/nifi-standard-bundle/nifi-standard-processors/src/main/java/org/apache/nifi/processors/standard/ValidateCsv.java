@@ -250,15 +250,17 @@ public class ValidateCsv extends AbstractProcessor {
 
     private String setProcessor(String remaining, List<CellProcessor> processorsList) {
         StringBuffer buffer = new StringBuffer();
+        String inputString = remaining;
         int i = 0;
         int opening = 0;
         int closing = 0;
-        while(buffer.length() != remaining.length()) {
+        while(buffer.length() != inputString.length()) {
             char c = remaining.charAt(i);
             i++;
 
             if(opening == 0 && c == ',') {
                 if(i == 1) {
+                    inputString = inputString.substring(1);
                     continue;
                 }
                 break;
