@@ -44,12 +44,13 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
             final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
             final RequestCompletionCallback requestCompletionCallback = applicationContext.getBean("clusterCoordinator", RequestCompletionCallback.class);
 
-            final int numThreads = nifiProperties.getClusterNodeProtocolThreads();
+            final int corePoolSize = nifiProperties.getClusterNodeProtocolCorePoolSize();
+            final int maxPoolSize = nifiProperties.getClusterNodeProtocolMaxPoolSize();
             final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(nifiProperties));
             final String connectionTimeout = nifiProperties.getClusterNodeConnectionTimeout();
             final String readTimeout = nifiProperties.getClusterNodeReadTimeout();
 
-            replicator = new ThreadPoolRequestReplicator(numThreads, jerseyClient, clusterCoordinator,
+            replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, jerseyClient, clusterCoordinator,
                 connectionTimeout, readTimeout, requestCompletionCallback, eventReporter, nifiProperties);
         }
 

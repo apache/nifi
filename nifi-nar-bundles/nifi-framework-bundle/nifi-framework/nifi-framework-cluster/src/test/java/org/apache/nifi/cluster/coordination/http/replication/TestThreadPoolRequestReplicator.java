@@ -231,8 +231,8 @@ public class TestThreadPoolRequestReplicator {
         Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final ThreadPoolRequestReplicator replicator
-                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, new Client(), coordinator, "1 sec", "1 sec", null, null, props) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
                     final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
@@ -303,8 +303,8 @@ public class TestThreadPoolRequestReplicator {
         nodeMap.put(NodeConnectionState.CONNECTING, otherState);
 
         Mockito.when(coordinator.getConnectionStates()).thenReturn(nodeMap);
-        final ThreadPoolRequestReplicator replicator
-                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, new Client(), coordinator, "1 sec", "1 sec", null, null, props) {
             @Override
             public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
                                                   boolean indicateReplicated, boolean verify) {
@@ -361,8 +361,8 @@ public class TestThreadPoolRequestReplicator {
 
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final ThreadPoolRequestReplicator replicator
-                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, new Client(), coordinator, "1 sec", "1 sec", null, null, props) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
                     final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
@@ -572,7 +572,7 @@ public class TestThreadPoolRequestReplicator {
     private void withReplicator(final WithReplicator function, final Status status, final long delayMillis, final RuntimeException failure, final String expectedRequestChain) {
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, null);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, nifiProps) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, 5, new Client(), coordinator, "1 sec", "1 sec", null, null, nifiProps) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
                 final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
