@@ -1449,7 +1449,13 @@ For each Node, the minimum properties to configure are as follows:
 ** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
 ** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root).
 ** nifi.cluster.node.protocol.threads - The number of threads that should be used to communicate with other nodes in the cluster. This property
-   defaults to 10, but for large clusters, this value may need to be larger.
+   defaults to 10. A thread pool is used for replicating requests to all nodes, and the
+   thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
+   property.
+** nifi.cluster.node.protocol.max.threads - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
+	defaults to 50. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
+	`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
+	set by this property.
 ** nifi.zookeeper.connect.string - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separted list
    of hostname:port pairs. For example, localhost:2181,localhost:2182,localhost:2183. This should contain a list of all ZooKeeper
    instances in the ZooKeeper quorum.

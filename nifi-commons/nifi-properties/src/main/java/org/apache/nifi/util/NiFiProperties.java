@@ -174,6 +174,7 @@ public abstract class NiFiProperties {
     public static final String CLUSTER_NODE_ADDRESS = "nifi.cluster.node.address";
     public static final String CLUSTER_NODE_PROTOCOL_PORT = "nifi.cluster.node.protocol.port";
     public static final String CLUSTER_NODE_PROTOCOL_THREADS = "nifi.cluster.node.protocol.threads";
+    public static final String CLUSTER_NODE_PROTOCOL_MAX_THREADS = "nifi.cluster.node.protocol.max.threads";
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
@@ -245,7 +246,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT = "5 sec";
 
     // cluster node defaults
-    public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 2;
+    public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 10;
+    public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS = 50;
     public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
     public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
 
@@ -678,11 +680,27 @@ public abstract class NiFiProperties {
         }
     }
 
+    /**
+     * @deprecated Use getClusterNodeProtocolCorePoolSize() and getClusterNodeProtocolMaxPoolSize() instead
+     */
+    @Deprecated()
     public int getClusterNodeProtocolThreads() {
+        return getClusterNodeProtocolCorePoolSize();
+    }
+
+    public int getClusterNodeProtocolCorePoolSize() {
         try {
             return Integer.parseInt(getProperty(CLUSTER_NODE_PROTOCOL_THREADS));
         } catch (NumberFormatException nfe) {
             return DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS;
+        }
+    }
+
+    public int getClusterNodeProtocolMaxPoolSize() {
+        try {
+            return Integer.parseInt(getProperty(CLUSTER_NODE_PROTOCOL_MAX_THREADS));
+        } catch (NumberFormatException nfe) {
+            return DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS;
         }
     }
 

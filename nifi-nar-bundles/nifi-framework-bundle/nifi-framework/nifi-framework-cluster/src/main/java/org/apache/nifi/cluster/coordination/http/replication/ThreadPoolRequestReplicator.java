@@ -23,6 +23,36 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.LongSummaryStatistics;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response.Status;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -48,35 +78,6 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response.Status;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.LongSummaryStatistics;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
@@ -104,35 +105,39 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     /**
      * Creates an instance using a connection timeout and read timeout of 3 seconds
      *
-     * @param numThreads         the number of threads to use when parallelizing requests
-     * @param client             a client for making requests
+     * @param corePoolSize core size of the thread pool
+     * @param maxPoolSize the max number of threads in the thread pool
+     * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
-     * @param callback           a callback that will be called whenever all of the responses have been gathered for a request. May be null.
-     * @param eventReporter      an EventReporter that can be used to notify users of interesting events. May be null.
-     * @param nifiProperties     properties
+     * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
+     * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
+     * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
+    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final Client client, final ClusterCoordinator clusterCoordinator,
                                        final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        this(numThreads, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
+        this(corePoolSize, maxPoolSize, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
     }
 
     /**
      * Creates an instance.
      *
-     * @param numThreads         the number of threads to use when parallelizing requests
-     * @param client             a client for making requests
+     * @param corePoolSize core size of the thread pool
+     * @param maxPoolSize the max number of threads in the thread pool
+     * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
-     * @param connectionTimeout  the connection timeout specified in milliseconds
-     * @param readTimeout        the read timeout specified in milliseconds
-     * @param callback           a callback that will be called whenever all of the responses have been gathered for a request. May be null.
-     * @param eventReporter      an EventReporter that can be used to notify users of interesting events. May be null.
-     * @param nifiProperties     properties
+     * @param connectionTimeout the connection timeout specified in milliseconds
+     * @param readTimeout the read timeout specified in milliseconds
+     * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
+     * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
+     * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
+    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final Client client, final ClusterCoordinator clusterCoordinator,
                                        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback,
                                        final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        if (numThreads <= 0) {
-            throw new IllegalArgumentException("The number of threads must be greater than zero.");
+        if (corePoolSize <= 0) {
+            throw new IllegalArgumentException("The Core Pool Size must be greater than zero.");
+        } else if (maxPoolSize < corePoolSize) {
+            throw new IllegalArgumentException("Max Pool Size must be >= Core Pool Size.");
         } else if (client == null) {
             throw new IllegalArgumentException("Client may not be null.");
         }
@@ -150,12 +155,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         client.getProperties().put(ClientConfig.PROPERTY_FOLLOW_REDIRECTS, Boolean.TRUE);
 
         final AtomicInteger threadId = new AtomicInteger(0);
-        executorService = Executors.newFixedThreadPool(numThreads, r -> {
+        final ThreadFactory threadFactory = r -> {
             final Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
             t.setName("Replicate Request Thread-" + threadId.incrementAndGet());
             return t;
-        });
+        };
+
+        executorService = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), threadFactory);
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
