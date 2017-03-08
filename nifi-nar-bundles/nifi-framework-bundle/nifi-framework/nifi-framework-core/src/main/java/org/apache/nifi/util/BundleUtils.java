@@ -33,7 +33,7 @@ public final class BundleUtils {
         if (bundles.isEmpty()) {
             throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
         } else if (bundles.size() > 1) {
-            throw new IllegalStateException(String.format("Multiple versions of %s exist. Please specify the desired bundle.", type));
+            throw new IllegalStateException(String.format("Multiple versions of %s exist.", type));
         } else {
             return bundles.get(0).getBundleDetails().getCoordinate();
         }

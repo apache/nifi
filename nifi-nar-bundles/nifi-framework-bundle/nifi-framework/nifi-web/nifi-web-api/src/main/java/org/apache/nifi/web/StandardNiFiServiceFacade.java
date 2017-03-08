@@ -1795,10 +1795,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateId, final String idGenerationSeed) {
+    public FlowEntity createTemplateInstance(final String groupId, final Double originX, final Double originY, final String templateEncodingVersion,
+                                             final FlowSnippetDTO requestSnippet, final String idGenerationSeed) {
+
         // instantiate the template - there is no need to make another copy of the flow snippet since the actual template
         // was copied and this dto is only used to instantiate it's components (which as already completed)
-        final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId, idGenerationSeed);
+        final FlowSnippetDTO snippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateEncodingVersion, requestSnippet, idGenerationSeed);
 
         // save the flow
         controllerFacade.save();

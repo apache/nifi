@@ -18,6 +18,7 @@ package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 public interface AuthorizableLookup {
 
@@ -185,7 +186,15 @@ public interface AuthorizableLookup {
      * @param id template id
      * @return authorizable
      */
-    TemplateAuthorizable getTemplate(String id);
+    Authorizable getTemplate(String id);
+
+    /**
+     * Get the authorizable Template contents.
+     *
+     * @param snippet the template contents
+     * @return authorizable
+     */
+    TemplateContentsAuthorizable getTemplateContents(FlowSnippetDTO snippet);
 
     /**
      * Get the authorizable connectable. Note this does not include RemoteGroupPorts.

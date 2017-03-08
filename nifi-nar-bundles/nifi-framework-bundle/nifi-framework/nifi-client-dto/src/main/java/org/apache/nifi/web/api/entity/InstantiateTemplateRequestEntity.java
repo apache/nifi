@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -26,12 +27,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "instantiateTemplateRequestEntity")
 public class InstantiateTemplateRequestEntity extends Entity {
 
-    private String templateId;
     private Double originX;
     private Double originY;
 
+    private String templateId;
+    private String encodingVersion;
+    private FlowSnippetDTO snippet;
+
     @ApiModelProperty(
-        value = "The identifier of the template."
+            value = "The identifier of the template."
     )
     public String getTemplateId() {
         return templateId;
@@ -42,7 +46,7 @@ public class InstantiateTemplateRequestEntity extends Entity {
     }
 
     @ApiModelProperty(
-        value = "The x coordinate of the origin of the bounding box where the new components will be placed."
+            value = "The x coordinate of the origin of the bounding box where the new components will be placed."
     )
     public Double getOriginX() {
         return originX;
@@ -53,7 +57,7 @@ public class InstantiateTemplateRequestEntity extends Entity {
     }
 
     @ApiModelProperty(
-        value = "The y coordinate of the origin of the bounding box where the new components will be placed."
+            value = "The y coordinate of the origin of the bounding box where the new components will be placed."
     )
     public Double getOriginY() {
         return originY;
@@ -61,5 +65,32 @@ public class InstantiateTemplateRequestEntity extends Entity {
 
     public void setOriginY(Double originY) {
         this.originY = originY;
+    }
+
+    @ApiModelProperty(
+            value = "The encoding version of the flow snippet. If not specified, this is automatically "
+                    + "populated by the node receiving the user request. If the snippet is specified, the version "
+                    + "will be the latest. If the snippet is not specified, the version will come from the underlying "
+                    + "template. These details need to be replicated throughout the cluster to ensure consistency."
+    )
+    public String getEncodingVersion() {
+        return encodingVersion;
+    }
+
+    public void setEncodingVersion(String encodingVersion) {
+        this.encodingVersion = encodingVersion;
+    }
+
+    @ApiModelProperty(
+            value = "A flow snippet of the template contents. If not specified, this is automatically "
+                    + "populated by the node receiving the user request. These details need to be replicated "
+                    + "throughout the cluster to ensure consistency."
+    )
+    public FlowSnippetDTO getSnippet() {
+        return snippet;
+    }
+
+    public void setSnippet(FlowSnippetDTO snippet) {
+        this.snippet = snippet;
     }
 }

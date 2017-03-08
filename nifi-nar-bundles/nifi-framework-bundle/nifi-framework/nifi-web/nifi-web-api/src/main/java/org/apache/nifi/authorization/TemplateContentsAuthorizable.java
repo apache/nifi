@@ -16,21 +16,12 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.resource.Authorizable;
-
 import java.util.Set;
 
 /**
  * Authorizable for a Template.
  */
-public interface TemplateAuthorizable {
-    /**
-     * Returns the authorizable for this template. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
+public interface TemplateContentsAuthorizable {
     /**
      * Returns temporary instances of all encapsulated processors. Non null
      *

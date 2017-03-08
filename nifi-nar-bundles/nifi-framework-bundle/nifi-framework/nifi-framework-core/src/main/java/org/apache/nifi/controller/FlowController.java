@@ -224,6 +224,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1695,18 +1696,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Controller Services
             //
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                BundleCoordinate bundleCoordinate;
-                try {
-                    bundleCoordinate = BundleUtils.getCompatibleBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
-                } catch (final IllegalStateException e) {
-                    final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
-                    if (bundleDTO == null) {
-                        bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
-                    } else {
-                        bundleCoordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
-                    }
-                }
-
+                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                 final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, true);
 
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
@@ -1794,18 +1784,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate the processors
             //
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
-                BundleCoordinate bundleCoordinate;
-                try {
-                    bundleCoordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
-                } catch (final IllegalStateException e) {
-                    final BundleDTO bundleDTO = processorDTO.getBundle();
-                    if (bundleDTO == null) {
-                        bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
-                    } else {
-                        bundleCoordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
-                    }
-                }
-
+                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle());
                 final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
 
                 procNode.setPosition(toPosition(processorDTO.getPosition()));
@@ -2042,43 +2021,81 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
-        // validate that all Processor Types and Prioritizer Types are valid
-        final Set<String> processorClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
-            processorClasses.add(c.getName());
+    private void verifyBundleInSnippet(final BundleDTO requiredBundle, final Set<BundleCoordinate> supportedBundles) {
+        final BundleCoordinate requiredCoordinate = new BundleCoordinate(requiredBundle.getGroup(), requiredBundle.getArtifact(), requiredBundle.getVersion());
+        if (!supportedBundles.contains(requiredCoordinate)) {
+            throw new IllegalStateException("Unsupported bundle: " + requiredCoordinate);
         }
+    }
+
+    private void verifyProcessorsInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (templateContents.getProcessors() != null) {
+            templateContents.getProcessors().forEach(processor -> {
+                if (processor.getBundle() == null) {
+                    throw new IllegalArgumentException("Processor bundle must be specified.");
+                }
+
+                if (supportedTypes.containsKey(processor.getType())) {
+                    verifyBundleInSnippet(processor.getBundle(), supportedTypes.get(processor.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
+                }
+            });
+        }
+
+        if (templateContents.getProcessGroups() != null) {
+            templateContents.getProcessGroups().forEach(processGroup -> {
+                verifyProcessorsInSnippet(processGroup.getContents(), supportedTypes);
+            });
+        }
+    }
+
+    private void verifyControllerServicesInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (templateContents.getControllerServices() != null) {
+            templateContents.getControllerServices().forEach(controllerService -> {
+                if (supportedTypes.containsKey(controllerService.getType())) {
+                    if (controllerService.getBundle() == null) {
+                        throw new IllegalArgumentException("Controller Service bundle must be specified.");
+                    }
+
+                    verifyBundleInSnippet(controllerService.getBundle(), supportedTypes.get(controllerService.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Controller Service Type: " + controllerService.getType());
+                }
+            });
+        }
+
+        if (templateContents.getProcessGroups() != null) {
+            templateContents.getProcessGroups().forEach(processGroup -> {
+                verifyControllerServicesInSnippet(processGroup.getContents(), supportedTypes);
+            });
+        }
+    }
+
+    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
+        final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
+            final String name = c.getName();
+            processorClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyProcessorsInSnippet(templateContents, processorClasses);
+
+        final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+            final String name = c.getName();
+            controllerServiceClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyControllerServicesInSnippet(templateContents, controllerServiceClasses);
+
         final Set<String> prioritizerClasses = new HashSet<>();
         for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
             prioritizerClasses.add(c.getName());
         }
-        final Set<String> controllerServiceClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
-            controllerServiceClasses.add(c.getName());
-        }
 
-        final Set<ProcessorDTO> allProcs = new HashSet<>();
         final Set<ConnectionDTO> allConns = new HashSet<>();
-        allProcs.addAll(templateContents.getProcessors());
         allConns.addAll(templateContents.getConnections());
         for (final ProcessGroupDTO childGroup : templateContents.getProcessGroups()) {
-            allProcs.addAll(findAllProcessors(childGroup));
             allConns.addAll(findAllConnections(childGroup));
-        }
-
-        for (final ProcessorDTO proc : allProcs) {
-            if (!processorClasses.contains(proc.getType())) {
-                throw new IllegalStateException("Invalid Processor Type: " + proc.getType());
-            }
-        }
-
-        final Set<ControllerServiceDTO> controllerServices = templateContents.getControllerServices();
-        if (controllerServices != null) {
-            for (final ControllerServiceDTO service : controllerServices) {
-                if (!controllerServiceClasses.contains(service.getType())) {
-                    throw new IllegalStateException("Invalid Controller Service Type: " + service.getType());
-                }
-            }
         }
 
         for (final ConnectionDTO conn : allConns) {
@@ -2133,24 +2150,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         verifyComponentTypesInSnippet(templateContents);
-    }
-
-    /**
-     * Recursively finds all ProcessorDTO's
-     *
-     * @param group group
-     * @return processor dto set
-     */
-    private Set<ProcessorDTO> findAllProcessors(final ProcessGroupDTO group) {
-        final Set<ProcessorDTO> procs = new HashSet<>();
-        for (final ProcessorDTO dto : group.getContents().getProcessors()) {
-            procs.add(dto);
-        }
-
-        for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
-            procs.addAll(findAllProcessors(childGroup));
-        }
-        return procs;
     }
 
     /**

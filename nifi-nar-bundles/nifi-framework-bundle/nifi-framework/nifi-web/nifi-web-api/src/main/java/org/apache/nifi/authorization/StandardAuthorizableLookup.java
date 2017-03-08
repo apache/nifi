@@ -35,7 +35,6 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
@@ -46,7 +45,6 @@ import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -514,7 +512,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getReportingTask(componentId).getAuthorizable();
                 break;
             case Template:
-                authorizable = getTemplate(componentId).getAuthorizable();
+                authorizable = getTemplate(componentId);
                 break;
         }
 
@@ -653,23 +651,20 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public TemplateAuthorizable getTemplate(final String id) {
-        final Template template = templateDAO.getTemplate(id);
-        final TemplateDTO contents = template.getDetails();
+    public Authorizable getTemplate(String id) {
+        return templateDAO.getTemplate(id);
+    }
 
+    @Override
+    public TemplateContentsAuthorizable getTemplateContents(final FlowSnippetDTO snippet) {
         // templates are immutable so we can pre-compute all encapsulated processors and controller services
         final Set<ConfigurableComponentAuthorizable> processors = new HashSet<>();
         final Set<ConfigurableComponentAuthorizable> controllerServices = new HashSet<>();
 
         // find all processors and controller services
-        createTemporaryProcessorsAndControllerServices(contents.getSnippet(), processors, controllerServices);
+        createTemporaryProcessorsAndControllerServices(snippet, processors, controllerServices);
 
-        return new TemplateAuthorizable() {
-            @Override
-            public Authorizable getAuthorizable() {
-                return template;
-            }
-
+        return new TemplateContentsAuthorizable() {
             @Override
             public Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors() {
                 return processors;

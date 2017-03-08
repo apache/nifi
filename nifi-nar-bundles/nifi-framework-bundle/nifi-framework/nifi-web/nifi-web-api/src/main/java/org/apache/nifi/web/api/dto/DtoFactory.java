@@ -2789,7 +2789,7 @@ public final class DtoFactory {
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
-        copy.setBundle(original.getBundle());
+        copy.setBundle(copy(original.getBundle()));
         copy.setExtensionMissing(original.getExtensionMissing());
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setPersistsState(original.getPersistsState());
@@ -2838,6 +2838,18 @@ public final class DtoFactory {
         }
     }
 
+    public BundleDTO copy(final BundleDTO original) {
+        if (original == null) {
+            return null;
+        }
+
+        final BundleDTO copy = new BundleDTO();
+        copy.setGroup(original.getGroup());
+        copy.setArtifact(original.getArtifact());
+        copy.setVersion(original.getVersion());
+        return copy;
+    }
+
     public ProcessorDTO copy(final ProcessorDTO original) {
         final ProcessorDTO copy = new ProcessorDTO();
         copy.setConfig(copy(original.getConfig()));
@@ -2850,7 +2862,7 @@ public final class DtoFactory {
         copy.setState(original.getState());
         copy.setStyle(copy(original.getStyle()));
         copy.setType(original.getType());
-        copy.setBundle(original.getBundle());
+        copy.setBundle(copy(original.getBundle()));
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());

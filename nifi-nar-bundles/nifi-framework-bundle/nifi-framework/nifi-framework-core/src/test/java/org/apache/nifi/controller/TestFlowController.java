@@ -50,6 +50,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -555,8 +556,8 @@ public class TestFlowController {
 
     }
 
-    @Test
-    public void testInstantiateSnippetWhenProcessorMissingBundle() throws ProcessorInstantiationException {
+    @Test(expected = IllegalArgumentException.class)
+    public void testInstantiateSnippetWhenProcessorMissingBundle() throws Exception {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ProcessorNode processorNode = controller.createProcessor(DummyProcessor.class.getName(), id, coordinate);
@@ -606,10 +607,63 @@ public class TestFlowController {
         // instantiate the snippet
         assertEquals(0, controller.getRootGroup().getProcessors().size());
         controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
-        assertEquals(1, controller.getRootGroup().getProcessors().size());
     }
 
     @Test
+    public void testInstantiateSnippetWithProcessor() throws ProcessorInstantiationException {
+        final String id = UUID.randomUUID().toString();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ProcessorNode processorNode = controller.createProcessor(DummyProcessor.class.getName(), id, coordinate);
+
+        // create a processor dto
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
+        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setStyle(processorNode.getStyle());
+        processorDTO.setParentGroupId("1234");
+        processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
+        processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
+
+        processorDTO.setType(processorNode.getCanonicalClassName());
+        processorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+        processorDTO.setName(processorNode.getName());
+        processorDTO.setState(processorNode.getScheduledState().toString());
+
+        processorDTO.setRelationships(new ArrayList<>());
+
+        processorDTO.setDescription("description");
+        processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
+        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
+        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+
+        ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
+        configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
+        configDTO.setPenaltyDuration(processorNode.getPenalizationPeriod());
+        configDTO.setYieldDuration(processorNode.getYieldPeriod());
+        configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+        configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
+        configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setComments(processorNode.getComments());
+        configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
+        configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
+        configDTO.setExecutionNode(processorNode.getExecutionNode().name());
+        configDTO.setAnnotationData(processorNode.getAnnotationData());
+
+        processorDTO.setConfig(configDTO);
+
+        // create the snippet with the processor
+        final FlowSnippetDTO flowSnippetDTO = new FlowSnippetDTO();
+        flowSnippetDTO.setProcessors(Collections.singleton(processorDTO));
+
+        // instantiate the snippet
+        assertEquals(0, controller.getRootGroup().getProcessors().size());
+        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getRootGroup().getProcessors().size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
@@ -638,7 +692,37 @@ public class TestFlowController {
         // instantiate the snippet
         assertEquals(0, controller.getRootGroup().getControllerServices(false).size());
         controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
-        assertEquals(1, controller.getRootGroup().getControllerServices(false).size());
     }
 
+    @Test
+    public void testInstantiateSnippetWithControllerService() throws ProcessorInstantiationException {
+        final String id = UUID.randomUUID().toString();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, true);
+
+        // create the controller service dto
+        final ControllerServiceDTO csDto = new ControllerServiceDTO();
+        csDto.setId(UUID.randomUUID().toString()); // use a different id
+        csDto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
+        csDto.setName(controllerServiceNode.getName());
+        csDto.setType(controllerServiceNode.getCanonicalClassName());
+        csDto.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+        csDto.setState(controllerServiceNode.getState().name());
+        csDto.setAnnotationData(controllerServiceNode.getAnnotationData());
+        csDto.setComments(controllerServiceNode.getComments());
+        csDto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
+        csDto.setRestricted(controllerServiceNode.isRestricted());
+        csDto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
+        csDto.setDescriptors(new LinkedHashMap<>());
+        csDto.setProperties(new LinkedHashMap<>());
+
+        // create the snippet with the controller service
+        final FlowSnippetDTO flowSnippetDTO = new FlowSnippetDTO();
+        flowSnippetDTO.setControllerServices(Collections.singleton(csDto));
+
+        // instantiate the snippet
+        assertEquals(0, controller.getRootGroup().getControllerServices(false).size());
+        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getRootGroup().getControllerServices(false).size());
+    }
 }

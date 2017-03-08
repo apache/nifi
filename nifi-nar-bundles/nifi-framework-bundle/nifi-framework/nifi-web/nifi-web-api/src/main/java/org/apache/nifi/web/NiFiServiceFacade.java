@@ -153,6 +153,8 @@ public interface NiFiServiceFacade {
      */
     Set<Revision> getRevisionsFromSnippet(String snippetId);
 
+
+
     // ----------------------------------------
     // Controller methods
     // ----------------------------------------
@@ -413,13 +415,14 @@ public interface NiFiServiceFacade {
      * Instantiate the corresponding template.
      *
      * @param groupId group id
-     * @param templateId template id
      * @param originX x
      * @param originY y
+     * @param templateEncodingVersion template encoding version
+     * @param snippet template snippet
      * @param idGenerationSeed the ID to use for generating UUID's. May be null.
      * @return snapshot
      */
-    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed);
+    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateEncodingVersion, FlowSnippetDTO snippet, String idGenerationSeed);
 
     /**
      * Gets the template with the specified id.
