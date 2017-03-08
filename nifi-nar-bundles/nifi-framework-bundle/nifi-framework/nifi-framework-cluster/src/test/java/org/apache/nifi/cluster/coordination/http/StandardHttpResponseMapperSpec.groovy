@@ -41,6 +41,8 @@ import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import java.text.NumberFormat
+
 @Unroll
 class StandardHttpResponseMapperSpec extends Specification {
 
