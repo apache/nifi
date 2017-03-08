@@ -2879,6 +2879,7 @@ public final class DtoFactory {
         copy.setProxyPort(original.getProxyPort());
         copy.setProxyUser(original.getProxyUser());
         copy.setProxyPassword(original.getProxyPassword());
+        copy.setLocalNetworkInterface(original.getLocalNetworkInterface());
 
         copy.setContents(copyContents);
 
