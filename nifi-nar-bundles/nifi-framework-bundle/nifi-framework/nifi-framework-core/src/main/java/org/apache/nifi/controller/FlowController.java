@@ -108,6 +108,7 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -3162,12 +3163,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         }
 
+        // take the invocation handler that was created for new proxy and is set to look at the new node,
+        // and set it to look at the existing node
+        final ControllerServiceInvocationHandler invocationHandler = newNode.getInvocationHandler();
+        invocationHandler.setServiceNode(existingNode);
+
         // create LoggableComponents for the proxy and implementation
         final LoggableComponent<ControllerService> loggableProxy = new LoggableComponent<>(newNode.getProxiedControllerService(), bundleCoordinate, newNode.getLogger());
         final LoggableComponent<ControllerService> loggableImplementation = new LoggableComponent<>(newNode.getControllerServiceImplementation(), bundleCoordinate, newNode.getLogger());
 
-        // set the new proxy and impl into the existing node
-        existingNode.setControllerServiceAndProxy(loggableProxy, loggableImplementation);
+        // set the new impl, proxy, and invocation handler into the existing node
+        existingNode.setControllerServiceAndProxy(loggableImplementation, loggableProxy, invocationHandler);
     }
 
     @Override

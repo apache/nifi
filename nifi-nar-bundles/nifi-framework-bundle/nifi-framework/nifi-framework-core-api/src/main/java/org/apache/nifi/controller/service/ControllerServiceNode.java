@@ -53,6 +53,11 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     ControllerService getProxiedControllerService();
 
     /**
+     * @return the invocation handler being used by the proxy
+     */
+    ControllerServiceInvocationHandler getInvocationHandler();
+
+    /**
      * Returns the list of services that are required to be enabled before this
      * service is enabled. The returned list is flattened and contains both
      * immediate and transient dependencies.
@@ -172,10 +177,12 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     /**
      * Sets a new proxy and implementation for this node.
      *
-     * @param proxiedControllerService the proxied controller service
      * @param implementation the actual implementation controller service
+     * @param proxiedControllerService the proxied controller service
+     * @param invocationHandler the invocation handler being used by the proxy
      */
-    void setControllerServiceAndProxy(final LoggableComponent<ControllerService> proxiedControllerService,
-                                      final LoggableComponent<ControllerService> implementation);
+    void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
+                                      final LoggableComponent<ControllerService> proxiedControllerService,
+                                      final ControllerServiceInvocationHandler invocationHandler);
 
 }

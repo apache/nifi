@@ -324,6 +324,9 @@ public class ExtensionManager {
      * @return true if the class is found in the set of classes requiring instance level class loading, false otherwise
      */
     public static boolean requiresInstanceClassLoading(final String classType) {
+        if (classType == null) {
+            throw new IllegalArgumentException("Class type cannot be null");
+        }
         return requiresInstanceClassLoading.contains(classType);
     }
 
@@ -334,6 +337,9 @@ public class ExtensionManager {
      * @return the list of bundles that contain an extension with the given class name
      */
     public static List<Bundle> getBundles(final String classType) {
+        if (classType == null) {
+            throw new IllegalArgumentException("Class type cannot be null");
+        }
         final List<Bundle> bundles = classNameBundleLookup.get(classType);
         return bundles == null ? Collections.emptyList() : new ArrayList<>(bundles);
     }
@@ -345,6 +351,9 @@ public class ExtensionManager {
      * @return the bundle with the given coordinate, or null if none exists
      */
     public static Bundle getBundle(final BundleCoordinate bundleCoordinate) {
+        if (bundleCoordinate == null) {
+            throw new IllegalArgumentException("BundleCoordinate cannot be null");
+        }
         return bundleCoordinateBundleLookup.get(bundleCoordinate);
     }
 
@@ -355,10 +364,16 @@ public class ExtensionManager {
      * @return the bundle for the given class loader
      */
     public static Bundle getBundle(final ClassLoader classLoader) {
+        if (classLoader == null) {
+            throw new IllegalArgumentException("ClassLoader cannot be null");
+        }
         return classLoaderBundleLookup.get(classLoader);
     }
 
     public static Set<Class> getExtensions(final Class<?> definition) {
+        if (definition == null) {
+            throw new IllegalArgumentException("Class cannot be null");
+        }
         final Set<Class> extensions = definitionMap.get(definition);
         return (extensions == null) ? Collections.<Class>emptySet() : extensions;
     }

@@ -77,21 +77,21 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     private final AtomicBoolean active;
 
-    public StandardControllerServiceNode(final LoggableComponent<ControllerService> proxiedControllerService, final LoggableComponent<ControllerService> implementation,
-                                         final String id, final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                         final VariableRegistry variableRegistry) {
+    public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
+                                         final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
+                                         final ControllerServiceProvider serviceProvider, final VariableRegistry variableRegistry) {
 
-        this(proxiedControllerService, implementation, id, validationContextFactory, serviceProvider,
+        this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider,
             implementation.getComponent().getClass().getSimpleName(), implementation.getComponent().getClass().getCanonicalName(), variableRegistry, false);
     }
 
-    public StandardControllerServiceNode(final LoggableComponent<ControllerService> proxiedControllerService, final LoggableComponent<ControllerService> implementation,
-                                         final String id, final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                         final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
-                                         final boolean isExtensionMissing) {
+    public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
+                                         final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
+                                         final ControllerServiceProvider serviceProvider, final String componentType, final String componentCanonicalClass,
+                                         final VariableRegistry variableRegistry, final boolean isExtensionMissing) {
 
         super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, isExtensionMissing);
-        setControllerServiceAndProxy(proxiedControllerService, implementation);
+        setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
 
@@ -143,18 +143,25 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public ControllerService getProxiedControllerService() {
-        return controllerServiceHolder.get().getProxiedControllerService();
-    }
-
-    @Override
     public ControllerService getControllerServiceImplementation() {
         return controllerServiceHolder.get().getImplementation();
     }
 
     @Override
-    public void setControllerServiceAndProxy(final LoggableComponent<ControllerService> proxiedControllerService, final LoggableComponent<ControllerService> implementation) {
-        final ControllerServiceDetails controllerServiceDetails = new ControllerServiceDetails(proxiedControllerService, implementation);
+    public ControllerService getProxiedControllerService() {
+        return controllerServiceHolder.get().getProxiedControllerService();
+    }
+
+    @Override
+    public ControllerServiceInvocationHandler getInvocationHandler() {
+        return controllerServiceHolder.get().getInvocationHandler();
+    }
+
+    @Override
+    public void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
+                                             final LoggableComponent<ControllerService> proxiedControllerService,
+                                             final ControllerServiceInvocationHandler invocationHandler) {
+        final ControllerServiceDetails controllerServiceDetails = new ControllerServiceDetails(implementation, proxiedControllerService, invocationHandler);
         this.controllerServiceHolder.set(controllerServiceDetails);
     }
 
@@ -479,12 +486,16 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         private final ControllerService implementation;
         private final ComponentLog componentLog;
         private final BundleCoordinate bundleCoordinate;
+        private final ControllerServiceInvocationHandler invocationHandler;
 
-        public ControllerServiceDetails(final LoggableComponent<ControllerService> proxiedControllerService, LoggableComponent<ControllerService> implementation) {
+        public ControllerServiceDetails(final LoggableComponent<ControllerService> implementation,
+                                        final LoggableComponent<ControllerService> proxiedControllerService,
+                                        final ControllerServiceInvocationHandler invocationHandler) {
             this.proxiedControllerService = proxiedControllerService.getComponent();
             this.implementation = implementation.getComponent();
             this.componentLog = implementation.getLogger();
             this.bundleCoordinate = implementation.getBundleCoordinate();
+            this.invocationHandler = invocationHandler;
         }
 
         public ControllerService getProxiedControllerService() {
@@ -501,6 +512,10 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
         public BundleCoordinate getBundleCoordinate() {
             return bundleCoordinate;
+        }
+
+        public ControllerServiceInvocationHandler getInvocationHandler() {
+            return invocationHandler;
         }
     }
 }

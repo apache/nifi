@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.DummyReportingTask;
@@ -89,7 +90,6 @@ public class TestFlowController {
 
     private FlowController controller;
     private AbstractPolicyBasedAuthorizer authorizer;
-    private StandardFlowSynchronizer standardFlowSynchronizer;
     private FlowFileEventRepository flowFileEventRepo;
     private AuditService auditService;
     private StringEncryptor encryptor;
@@ -156,8 +156,6 @@ public class TestFlowController {
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
-
-        standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
     }
 
     @After
@@ -167,6 +165,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
@@ -228,6 +228,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
@@ -265,6 +267,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreEqual() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
@@ -277,6 +281,8 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
@@ -288,6 +294,8 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
 
@@ -296,6 +304,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenCurrentAuthorizationsAreEmptyAndProposedAreNot() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
@@ -312,31 +322,35 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
 
-        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
-        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
     }
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
 
         // first sync should work because we are syncing to an empty flow controller
-        syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-1.xml");
+        syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
 
         // second sync should fail because the bundle of the processor is different
         try {
-            syncFlow("src/test/resources/nifi/fingerprint/flow3-with-bundle-2.xml");
+            syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.xml", standardFlowSynchronizer);
             Assert.fail("Should have thrown UninheritableFlowException");
         } catch (UninheritableFlowException e) {
             //e.printStackTrace();
         }
     }
 
-    private void syncFlow(String flowXmlFile) throws IOException {
+    private void syncFlow(String flowXmlFile, FlowSynchronizer standardFlowSynchronizer) throws IOException {
         String flowString = null;
         try (final InputStream in = new FileInputStream(flowXmlFile)) {
             flowString = IOUtils.toString(in, StandardCharsets.UTF_8);
@@ -725,4 +739,5 @@ public class TestFlowController {
         controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
         assertEquals(1, controller.getRootGroup().getControllerServices(false).size());
     }
+
 }

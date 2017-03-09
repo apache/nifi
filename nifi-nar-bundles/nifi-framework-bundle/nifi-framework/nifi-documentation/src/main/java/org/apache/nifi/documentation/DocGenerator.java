@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
@@ -40,7 +41,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Uses the ExtensionManager to get a list of Processor, ControllerService, and
@@ -64,9 +64,9 @@ public class DocGenerator {
 
         logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
 
-        documentConfigurableComponent(ExtensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, name -> extensionMapping.getProcessorNames().get(name));
-        documentConfigurableComponent(ExtensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, name -> extensionMapping.getControllerServiceNames().get(name));
-        documentConfigurableComponent(ExtensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir, name -> extensionMapping.getReportingTaskNames().get(name));
+        documentConfigurableComponent(ExtensionManager.getExtensions(Processor.class), explodedNiFiDocsDir);
+        documentConfigurableComponent(ExtensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir);
+        documentConfigurableComponent(ExtensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir);
     }
 
     /**
@@ -74,33 +74,29 @@ public class DocGenerator {
      *
      * @param extensionClasses types of a configurable component
      * @param explodedNiFiDocsDir base directory of component documentation
-     * @param coordinateAccessor accessor for coordinates of a type of a configurable component
      */
-    private static void documentConfigurableComponent(
-            final Set<Class> extensionClasses, final File explodedNiFiDocsDir, final Function<String, Set<BundleCoordinate>> coordinateAccessor) {
-
+    private static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir) {
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
                 final String extensionClassName = extensionClass.getCanonicalName();
 
-                final Set<BundleCoordinate> coordinates = coordinateAccessor.apply(extensionClassName);
-                if (coordinates == null) {
+                final Bundle bundle = ExtensionManager.getBundle(extensionClass.getClassLoader());
+                if (bundle == null) {
                     logger.warn("No coordinate found for {}, skipping...", new Object[] {extensionClassName});
                     continue;
                 }
+                final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
 
-                for (final BundleCoordinate coordinate : coordinates) {
-                    final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
-                    final File componentDirectory = new File(explodedNiFiDocsDir, path);
-                    componentDirectory.mkdirs();
+                final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+                final File componentDirectory = new File(explodedNiFiDocsDir, path);
+                componentDirectory.mkdirs();
 
-                    final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
-                    try {
-                        logger.debug("Documenting: " + componentClass);
-                        document(componentDirectory, componentClass);
-                    } catch (Exception e) {
-                        logger.warn("Unable to document: " + componentClass, e);
-                    }
+                final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
+                try {
+                    logger.debug("Documenting: " + componentClass);
+                    document(componentDirectory, componentClass);
+                } catch (Exception e) {
+                    logger.warn("Unable to document: " + componentClass, e);
                 }
             }
         }

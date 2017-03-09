@@ -50,8 +50,6 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -62,7 +60,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
 
@@ -71,24 +68,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceProvider.class);
 
     private final ProcessScheduler processScheduler;
-    private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
     private final VariableRegistry variableRegistry;
     private final FlowController flowController;
     private final NiFiProperties nifiProperties;
-
-    static {
-        // methods that are okay to be called when the service is disabled.
-        final Set<Method> validMethods = new HashSet<>();
-        for (final Method method : ControllerService.class.getMethods()) {
-            validMethods.add(method);
-        }
-        for (final Method method : Object.class.getMethods()) {
-            validMethods.add(method);
-        }
-        validDisabledMethods = Collections.unmodifiableSet(validMethods);
-    }
 
     public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
             final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties) {
@@ -153,38 +137,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
 
             final ControllerService originalService = controllerServiceClass.newInstance();
-            final AtomicReference<ControllerServiceNode> serviceNodeHolder = new AtomicReference<>(null);
-            final InvocationHandler invocationHandler = new InvocationHandler() {
-                @Override
-                public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-
-                    final String methodName = method.getName();
-                    if ("initialize".equals(methodName) || "onPropertyModified".equals(methodName)) {
-                        throw new UnsupportedOperationException(method + " may only be invoked by the NiFi framework");
-                    }
-
-                    final ControllerServiceNode node = serviceNodeHolder.get();
-                    final ControllerServiceState state = node.getState();
-                    final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
-                    if (disabled && !validDisabledMethods.contains(method)) {
-                        // Use nar class loader here because we are implicitly calling toString() on the original implementation.
-                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
-                            throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
-                                    + " because the Controller Service is disabled");
-                        } catch (final Throwable e) {
-                            throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service with identifier " + id + " because the Controller Service is disabled");
-                        }
-                    }
-
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
-                        return method.invoke(originalService, args);
-                    } catch (final InvocationTargetException e) {
-                        // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want
-                        // to instead re-throw what the ControllerService threw, so we pull it out of the InvocationTargetException.
-                        throw e.getCause();
-                    }
-                }
-            };
+            final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(originalService);
 
             final ControllerService proxiedService;
             if (cl == null) {
@@ -202,10 +155,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, serviceLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, serviceLogger);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(
-                    proxiedLoggableComponent, originalLoggableComponent, id, validationContextFactory, this, variableRegistry);
-            serviceNodeHolder.set(serviceNode);
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
+                    id, validationContextFactory, this, variableRegistry);
             serviceNode.setName(rawClass.getSimpleName());
+
+            invocationHandler.setServiceNode(serviceNode);
 
             if (firstTimeAdded) {
                 try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
@@ -226,7 +180,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private ControllerServiceNode createGhostControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate) {
-        final InvocationHandler invocationHandler = new InvocationHandler() {
+        final ControllerServiceInvocationHandler invocationHandler = new ControllerServiceInvocationHandler() {
             @Override
             public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
                 final String methodName = method.getName();
@@ -263,6 +217,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     throw new IllegalStateException("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found");
                 }
             }
+            @Override
+            public void setServiceNode(ControllerServiceNode serviceNode) {
+                // nothing to do
+            }
         };
 
         final ControllerService proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -273,7 +231,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
 
-        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, id,
+        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
                 new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, true);
         return serviceNode;
     }

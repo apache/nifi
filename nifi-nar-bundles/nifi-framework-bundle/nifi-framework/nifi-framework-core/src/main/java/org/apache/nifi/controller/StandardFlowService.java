@@ -710,6 +710,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             throw new FlowSynchronizationException("Failed to load flow because unable to connect to cluster and local flow is empty");
         }
 
+
+
         final List<Template> templates = loadTemplates();
         for (final Template template : templates) {
             final Template existing = rootGroup.getTemplate(template.getIdentifier());
