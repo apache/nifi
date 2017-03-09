@@ -386,7 +386,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
-            .name("Original")
+            .name("Success Request")
             .description("The original FlowFile will be routed upon success (2xx status codes). It will have new attributes detailing the "
                     + "success of the request.")
             .build();
@@ -398,19 +398,19 @@ public final class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder()
-            .name("Retry")
+            .name("Retry Request")
             .description("The original FlowFile will be routed on any status code that can be retried (5xx status codes). It will have new "
                     + "attributes detailing the request.")
             .build();
 
     public static final Relationship REL_NO_RETRY = new Relationship.Builder()
-            .name("No Retry")
+            .name("No Retry Request")
             .description("The original FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).  "
                     + "It will have new attributes detailing the request.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("Failure")
+            .name("Failure Request")
             .description("The original FlowFile will be routed on any type of connection failure, timeout or general exception. "
                     + "It will have new attributes detailing the request.")
             .build();
