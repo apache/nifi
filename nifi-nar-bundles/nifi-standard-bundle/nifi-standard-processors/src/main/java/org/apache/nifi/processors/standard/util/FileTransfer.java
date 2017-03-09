@@ -67,6 +67,7 @@ public interface FileTransfer extends Closeable {
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
+        .expressionLanguageSupported(true)
         .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
         .name("Password")
@@ -74,6 +75,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(Validator.VALID)
         .required(false)
         .sensitive(true)
+        .expressionLanguageSupported(true)
         .build();
     public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Data Timeout")
