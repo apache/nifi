@@ -55,14 +55,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-query-language</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
         </dependency>
-        
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.2</version>
+        </dependency>
         <dependency>
             <groupId>ca.uhn.hapi</groupId>
             <artifactId>hapi-base</artifactId>
             <version>2.2</version>
-        </dependency>       
+        </dependency>
         <dependency>
             <groupId>ca.uhn.hapi</groupId>
             <artifactId>hapi-structures-v21</artifactId>
@@ -103,7 +106,7 @@
             <artifactId>hapi-structures-v26</artifactId>
             <version>2.2</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
