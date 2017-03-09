@@ -161,6 +161,16 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor FILENAME_EXPRESSION = new PropertyDescriptor.Builder()
+            .name("filenameExpression")
+            .displayName("Filename Attribute Expression")
+            .description("If set, flowfile attribute filename will be overwritten when writing the file with the results of expression language evaluation")
+            .required(true)
+            .defaultValue("${filename}")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .build();
+
     private static final Set<Relationship> relationships;
 
     static {
@@ -182,6 +192,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .fromPropertyDescriptor(DIRECTORY)
                 .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
+        props.add(FILENAME_EXPRESSION);
         props.add(CONFLICT_RESOLUTION);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
@@ -250,9 +261,18 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     final CompressionCodec codec = getCompressionCodec(context, configuration);
 
+                    // Extract dynamic filename from property
+                    final String dynamicFilename;
+                    if (context.getProperty(FILENAME_EXPRESSION).isSet()) {
+                        dynamicFilename = context.getProperty(FILENAME_EXPRESSION).evaluateAttributeExpressions(flowFile).getValue();
+                    } else {
+                        dynamicFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+                    }
+
+                    // From here filename value is derived from dynamicFilename
                     final String filename = codec != null
-                            ? putFlowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
-                            : putFlowFile.getAttribute(CoreAttributes.FILENAME.key());
+                            ? dynamicFilename + codec.getDefaultExtension()
+                            : dynamicFilename;
 
                     final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
                     final Path copyFile = new Path(configuredRootDirPath, filename);
