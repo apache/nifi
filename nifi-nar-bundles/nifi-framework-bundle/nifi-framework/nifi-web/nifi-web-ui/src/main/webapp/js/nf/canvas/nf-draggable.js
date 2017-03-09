@@ -121,10 +121,12 @@
 
     /**
      * Updates the parent group of all selected components.
+     *
+     * @param {selection} the destination group
      */
-    var updateComponentsGroup = function () {
-        var selection = d3.selectAll('g.component.selected, g.connection.selected');
-        var group = d3.select('g.drop');
+    var updateComponentsGroup = function (group) {
+        // get the selection and deselect the components being moved
+        var selection = d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
 
         if (nfCanvasUtils.canModify(selection) === false) {
             nfDialog.showOkDialog({
@@ -230,11 +232,15 @@
                         return;
                     }
 
+                    // get the destination group if applicable... remove the drop flag if necessary to prevent
+                    // subsequent drop events from triggering prior to this move's completion
+                    var group = d3.select('g.drop').classed('drop', false);
+
                     // either move or update the selections group as appropriate
-                    if (d3.select('g.drop').empty()) {
+                    if (group.empty()) {
                         updateComponentsPosition(dragSelection);
                     } else {
-                        updateComponentsGroup();
+                        updateComponentsGroup(group);
                     }
 
                     // remove the drag selection
