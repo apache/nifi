@@ -99,6 +99,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
             .addValidator(createMultipleFilesExistValidator())
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -133,6 +134,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .dynamicallyModifiesClasspath(true)
             .build();
 
+    public static final PropertyDescriptor REMOTE_USER = new PropertyDescriptor.Builder()
+            .name("Remote User")
+            .description("Impersonate the user of the HDFS file to this value as it is written.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
     private static final Object RESOURCES_LOCK = new Object();
 
     private long kerberosReloginThreshold;
@@ -161,6 +169,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(KERBEROS_RELOGIN_PERIOD);
         props.add(ADDITIONAL_CLASSPATH_RESOURCES);
+        props.add(REMOTE_USER);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -175,7 +184,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
         final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
 
@@ -222,7 +231,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+                if(null != configResources) {
+                    getLogger().debug("Setting HDF Resources using the following config: ", new Object[]{configResources});
+                }
                 resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
@@ -292,7 +304,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
                 fs = getFileSystemAsUser(config, ugi);
                 lastKerberosReloginTime = System.currentTimeMillis() / 1000;
-            } else {
+            } else if (context.getProperty(REMOTE_USER).isSet()){
+                config.set("hadoop.security.authentication", "simple");
+                ugi = UserGroupInformation.createRemoteUser(context.getProperty(REMOTE_USER).evaluateAttributeExpressions().getValue());
+                fs = getFileSystemAsUser(config, ugi);
+            }else  {
                 config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                 config.set("hadoop.security.authentication", "simple");
                 ugi = SecurityUtil.loginSimple(config);
