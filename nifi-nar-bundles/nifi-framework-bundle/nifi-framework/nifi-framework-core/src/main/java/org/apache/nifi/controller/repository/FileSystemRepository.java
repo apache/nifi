@@ -27,6 +27,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -199,13 +200,14 @@ public class FileSystemRepository implements ContentRepository {
             for (final Map.Entry<String, Path> container : containers.entrySet()) {
                 final String containerName = container.getKey();
 
-                final long capacity = Files.getFileStore(container.getValue()).getTotalSpace();
+                final long capacity = //Files.getFileStore(container.getValue()).getTotalSpace();// Seems buggy JDK:1.8.0_121:
+                		container.getValue().toFile().getTotalSpace();
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
                 minUsableContainerBytesForArchive.put(container.getKey(), Long.valueOf(maxArchiveBytes));
                 LOG.info("Maximum Threshold for Container {} set to {} bytes; if volume exceeds this size, archived data will be deleted until it no longer exceeds this size",
                         containerName, maxArchiveBytes);
 
-                final long backPressureBytes = (long) (Files.getFileStore(container.getValue()).getTotalSpace() * archiveBackPressureRatio);
+                final long backPressureBytes = (long) (container.getValue().toFile().getTotalSpace() * archiveBackPressureRatio);
                 final ContainerState containerState = new ContainerState(containerName, true, backPressureBytes, capacity);
                 containerStateMap.put(containerName, containerState);
             }
@@ -383,7 +385,7 @@ public class FileSystemRepository implements ContentRepository {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
 
-        return Files.getFileStore(path).getTotalSpace();
+        return path.toFile().getTotalSpace();
     }
 
     @Override
@@ -393,7 +395,7 @@ public class FileSystemRepository implements ContentRepository {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
 
-        return Files.getFileStore(path).getUsableSpace();
+        return path.toFile().getUsableSpace();
     }
 
     @Override
