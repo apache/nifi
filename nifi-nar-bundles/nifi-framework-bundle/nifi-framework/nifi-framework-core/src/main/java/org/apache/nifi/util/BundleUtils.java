@@ -28,12 +28,16 @@ import java.util.List;
  */
 public final class BundleUtils {
 
-    private static BundleCoordinate findBundleForType(final String type) {
+    private static BundleCoordinate findBundleForType(final String type, final BundleCoordinate desiredCoordinate) {
         final List<Bundle> bundles = ExtensionManager.getBundles(type);
         if (bundles.isEmpty()) {
             throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
         } else if (bundles.size() > 1) {
-            throw new IllegalStateException(String.format("Multiple versions of %s exist.", type));
+            if (desiredCoordinate == null) {
+                throw new IllegalStateException(String.format("Multiple versions of %s exist.", type));
+            } else {
+                throw new IllegalStateException(String.format("Multiple versions of %s exist. No exact match for %s.", type, desiredCoordinate));
+            }
         } else {
             return bundles.get(0).getBundleDetails().getCoordinate();
         }
@@ -45,9 +49,9 @@ public final class BundleUtils {
 
         if (bundle == null) {
             if (allowCompatibleBundle) {
-                return findBundleForType(type);
+                return findBundleForType(type, coordinate);
             } else {
-                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
+                throw new IllegalStateException(String.format("%s from %s is not known to this NiFi instance.", type, coordinate));
             }
         } else {
             return bundle.getBundleDetails().getCoordinate();
@@ -79,7 +83,7 @@ public final class BundleUtils {
      */
     public static BundleCoordinate getBundle(final String type, final BundleDTO bundleDTO) {
         if (bundleDTO == null) {
-            return findBundleForType(type);
+            return findBundleForType(type, null);
         } else {
             return findCompatibleBundle(type, bundleDTO, false);
         }
@@ -116,7 +120,7 @@ public final class BundleUtils {
      */
     public static BundleCoordinate getCompatibleBundle(final String type, final BundleDTO bundleDTO) {
         if (bundleDTO == null) {
-            return findBundleForType(type);
+            return findBundleForType(type, null);
         } else {
             return findCompatibleBundle(type, bundleDTO, true);
         }
