@@ -191,7 +191,7 @@
         var matchesGroup = true;
         if (matchesFilter && matchesTags) {
             var bundleGroup = $('#controller-service-bundle-group-combo').combo('getSelectedOption');
-            if (nf.Common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+            if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
                 matchesGroup = (item.bundle.group === bundleGroup.value);
             }
         }
@@ -376,7 +376,7 @@
         controllerServiceTypesData.setFilter(filterControllerServiceTypes);
 
         // initialize the sort
-        nf.Common.sortType({
+        nfCommon.sortType({
             columnId: 'type',
             sortAsc: true
         }, controllerServiceTypesData);
@@ -387,7 +387,7 @@
         controllerServiceTypesGrid.registerPlugin(new Slick.AutoTooltips());
         controllerServiceTypesGrid.setSortColumn('type', true);
         controllerServiceTypesGrid.onSort.subscribe(function (e, args) {
-            nf.Common.sortType({
+            nfCommon.sortType({
                 columnId: args.sortCol.field,
                 sortAsc: args.sortAsc
             }, controllerServiceTypesData);
@@ -413,8 +413,8 @@
                             .ellipsis();
                     }
 
-                    var bundle = nf.Common.formatBundle(controllerServiceType.bundle);
-                    var type = controllerServiceType.label + ' ' + controllerServiceType.bundle.version;
+                    var bundle = nfCommon.formatBundle(controllerServiceType.bundle);
+                    var type = nfCommon.formatType(controllerServiceType);
 
                     // populate the dom
                     $('#controller-service-type-name').text(type).attr('title', type);
@@ -906,14 +906,14 @@
             {
                 id: 'type',
                 name: 'Type',
-                formatter: nf.Common.instanceTypeFormatter,
+                formatter: nfCommon.instanceTypeFormatter,
                 sortable: true,
                 resizable: true
             },
             {
                 id: 'bundle',
                 name: 'Bundle',
-                formatter: nf.Common.instanceBundleFormatter,
+                formatter: nfCommon.instanceBundleFormatter,
                 sortable: true,
                 resizable: true
             },

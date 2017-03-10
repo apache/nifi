@@ -389,10 +389,7 @@
                                     }
 
                                     var bundle = nfCommon.formatBundle(processorType.bundle);
-                                    var type = processorType.label;
-                                    if (nfCommon.isDefinedAndNotNull(processorType.bundle)) {
-                                        type += (' ' + processorType.bundle.version);
-                                    }
+                                    var type = nfCommon.formatType(processorType);
 
                                     // populate the dom
                                     $('#processor-type-name').text(type).attr('title', type);

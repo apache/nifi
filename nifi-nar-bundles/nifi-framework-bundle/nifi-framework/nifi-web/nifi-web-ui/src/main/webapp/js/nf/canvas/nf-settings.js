@@ -375,7 +375,7 @@
         var matchesGroup = true;
         if (matchesFilter && matchesTags) {
             var bundleGroup = $('#reporting-task-bundle-group-combo').combo('getSelectedOption');
-            if (nf.Common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+            if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
                 matchesGroup = (item.bundle.group === bundleGroup.value);
             }
         }
@@ -499,7 +499,7 @@
                 id: 'version',
                 name: 'Version',
                 field: 'version',
-                formatter: nf.Common.typeVersionFormatter,
+                formatter: nfCommon.typeVersionFormatter,
                 sortable: true,
                 resizable: true
             },
@@ -523,7 +523,7 @@
         reportingTaskTypesData.setFilter(filterReportingTaskTypes);
 
         // initialize the sort
-        nf.Common.sortType({
+        nfCommon.sortType({
             columnId: 'type',
             sortAsc: true
         }, reportingTaskTypesData);
@@ -534,7 +534,7 @@
         reportingTaskTypesGrid.registerPlugin(new Slick.AutoTooltips());
         reportingTaskTypesGrid.setSortColumn('type', true);
         reportingTaskTypesGrid.onSort.subscribe(function (e, args) {
-            nf.Common.sortType({
+            nfCommon.sortType({
                 columnId: args.sortCol.field,
                 sortAsc: args.sortAsc
             }, reportingTaskTypesData);
@@ -560,8 +560,8 @@
                             .ellipsis();
                     }
 
-                    var bundle = nf.Common.formatBundle(reportingTaskType.bundle);
-                    var type = reportingTaskType.label + ' ' + reportingTaskType.bundle.version
+                    var bundle = nfCommon.formatBundle(reportingTaskType.bundle);
+                    var type = nfCommon.formatType(reportingTaskType);
 
                     // populate the dom
                     $('#reporting-task-type-name').text(type).attr('title', type);
