@@ -374,6 +374,11 @@ The following binary components are provided under the Apache Software License v
       Apache Commons Math
       Copyright 2001-2012 The Apache Software Foundation
 
+  (ASLv2) Java Native Access Platform
+    The following NOTICE information applies:
+      Java Native Access Platform
+      Copyright 2013 Timothy Wall, Matthias Bläsing
+
       This product includes software developed by
       The Apache Software Foundation (http://www.apache.org/).
 
@@ -1298,6 +1303,7 @@ The MIT License
 The following binary components are provided under the MIT License.  See project link for details.
 
   (MIT License) EWS Java API (com.microsoft.ews-java-api:ews-java-api:2.0 - https://github.com/OfficeDev/ews-java-api)
+  (MIT License) libffi (libffi-3.2.1 - http://sourceware.org/libffi/)
 
 *****************
 Mozilla Public License v2.0
