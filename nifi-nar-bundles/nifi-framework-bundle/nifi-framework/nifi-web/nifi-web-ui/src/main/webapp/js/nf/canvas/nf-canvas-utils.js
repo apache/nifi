@@ -21,17 +21,19 @@
         define(['d3',
                 'jquery',
                 'nf.Common',
+                'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Clipboard',
                 'nf.Storage'],
-            function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
-                return (nf.CanvasUtils = factory(d3, $, nfCommon, nfDialog, nfClipboard, nfStorage));
+            function (d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage) {
+                return (nf.CanvasUtils = factory(d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CanvasUtils = factory(
             require('d3'),
             require('jquery'),
             require('nf.Common'),
+            require('nf.ErrorHandler'),
             require('nf.Dialog'),
             require('nf.Clipboard'),
             require('nf.Storage')));
@@ -40,11 +42,12 @@
             root.d3,
             root.$,
             root.nf.Common,
+            root.nf.ErrorHandler,
             root.nf.Dialog,
             root.nf.Clipboard,
             root.nf.Storage);
     }
-}(this, function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
+}(this, function (d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage) {
     'use strict';
 
     var nfCanvas;
@@ -87,8 +90,10 @@
 
     var moveComponents = function (components, groupId) {
         return $.Deferred(function (deferred) {
+            var parentGroupId = nfCanvasUtils.getGroupId();
+
             // create a snippet for the specified components
-            var snippet = nfSnippet.marshal(components);
+            var snippet = nfSnippet.marshal(components, parentGroupId);
             nfSnippet.create(snippet).done(function (response) {
                 // move the snippet into the target
                 nfSnippet.move(response.snippet.id, groupId).done(function () {
@@ -116,10 +121,10 @@
                     nfBirdseye.refresh();
 
                     deferred.resolve();
-                }).fail(nfCommon.handleAjaxError).fail(function () {
+                }).fail(nfErrorHandler.handleAjaxError).fail(function () {
                     deferred.reject();
                 });
-            }).fail(nfCommon.handleAjaxError).fail(function () {
+            }).fail(nfErrorHandler.handleAjaxError).fail(function () {
                 deferred.reject();
             });
         }).promise();

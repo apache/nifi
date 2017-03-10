@@ -54,10 +54,11 @@
          * Marshals snippet from the specified selection.
          *
          * @argument {selection} selection      The selection to marshal
+         * @argument {string} parentGroupId     The parent group id
          */
-        marshal: function (selection) {
+        marshal: function (selection, parentGroupId) {
             var snippet = {
-                parentGroupId: nfCanvasUtils.getGroupId(),
+                parentGroupId: parentGroupId,
                 processors: {},
                 funnels: {},
                 inputPorts: {},
@@ -118,8 +119,9 @@
          *
          * @argument {string} snippetId         The snippet id
          * @argument {object} origin            The origin
+         * @argument {string} destinationGroupId    The destination group id
          */
-        copy: function (snippetId, origin) {
+        copy: function (snippetId, origin, destinationGroupId) {
             var copySnippetRequestEntity = {
                 'snippetId': snippetId,
                 'originX': origin.x,
@@ -128,7 +130,7 @@
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/snippet-instance',
+                url: config.urls.processGroups + '/' + encodeURIComponent(destinationGroupId) + '/snippet-instance',
                 data: JSON.stringify(copySnippetRequestEntity),
                 dataType: 'json',
                 contentType: 'application/json'
