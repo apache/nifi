@@ -1133,7 +1133,7 @@ public class RunNiFi {
 
                     pid = OSUtil.getProcessId(process, defaultLogger);
                     if (pid == null) {
-                        cmdLogger.error("Launched Apache NiFi but could not obtain the Process ID");
+                        cmdLogger.warn("Launched Apache NiFi but could not obtain the Process ID");
                     } else {
                         nifiPid = pid;
                         final Properties pidProperties = new Properties();
