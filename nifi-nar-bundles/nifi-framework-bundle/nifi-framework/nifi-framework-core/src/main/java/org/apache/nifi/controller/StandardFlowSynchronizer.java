@@ -65,6 +65,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -544,6 +545,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             docFactory.setSchema(schema);
 
             final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
 
             // parse flow
             return (flow == null || flow.length == 0) ? null : docBuilder.parse(new ByteArrayInputStream(flow));

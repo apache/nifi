@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
@@ -105,6 +106,7 @@ public class FingerprintFactory {
         try {
             documentBuilderFactory.setSchema(schema);
             flowConfigDocBuilder = documentBuilderFactory.newDocumentBuilder();
+            flowConfigDocBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
