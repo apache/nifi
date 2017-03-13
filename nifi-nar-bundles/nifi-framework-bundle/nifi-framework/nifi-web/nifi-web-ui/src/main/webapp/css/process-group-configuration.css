@@ -44,6 +44,7 @@
     position: absolute;
     bottom: 20px;
     left: 0px;
+    right: 0px;
     height: 32px;
 }
 
@@ -63,6 +64,14 @@
 #process-group-configuration-last-refreshed {
     color: #775351;
     font-weight: 500;
+}
+
+#flow-cs-availability {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
 }
 
 /* general */

@@ -288,6 +288,7 @@
 
                     var tab = $(this).text();
                     if (tab === 'General') {
+                        $('#flow-cs-availability').hide();
                         $('#add-process-group-configuration-controller-service').hide();
 
                         if (canWrite) {
@@ -296,6 +297,7 @@
                             $('#process-group-configuration-save').hide();
                         }
                     } else {
+                        $('#flow-cs-availability').show();
                         $('#process-group-configuration-save').hide();
 
                         if (canWrite) {

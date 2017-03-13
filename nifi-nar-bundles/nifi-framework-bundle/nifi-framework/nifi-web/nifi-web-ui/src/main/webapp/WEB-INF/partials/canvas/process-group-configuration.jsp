@@ -61,5 +61,7 @@
             Last updated:&nbsp;<span id="process-group-configuration-last-refreshed" class="last-refreshed"></span>
         </div>
         <div id="process-group-configuration-loading-container" class="loading-container"></div>
+        <div id="flow-cs-availability" class="hidden">Listed services are available to all descendant Processors and services of this Process Group.</div>
+        <div class="clear"></div>
     </div>
 </div>
