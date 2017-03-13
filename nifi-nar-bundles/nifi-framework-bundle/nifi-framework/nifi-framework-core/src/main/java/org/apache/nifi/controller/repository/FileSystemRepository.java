@@ -200,6 +200,9 @@ public class FileSystemRepository implements ContentRepository {
                 final String containerName = container.getKey();
 
                 final long capacity = container.getValue().toFile().getTotalSpace();
+                if(capacity==0) {
+                    throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
+                }
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
                 minUsableContainerBytesForArchive.put(container.getKey(), Long.valueOf(maxArchiveBytes));
                 LOG.info("Maximum Threshold for Container {} set to {} bytes; if volume exceeds this size, archived data will be deleted until it no longer exceeds this size",
@@ -382,8 +385,12 @@ public class FileSystemRepository implements ContentRepository {
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
+        long capacity = path.toFile().getTotalSpace();
+        if(capacity==0) {
+            throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
+        }
 
-        return path.toFile().getTotalSpace();
+        return capacity;
     }
 
     @Override
@@ -392,8 +399,11 @@ public class FileSystemRepository implements ContentRepository {
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
-
-        return path.toFile().getUsableSpace();
+        long usableSpace=path.toFile().getUsableSpace();
+        if(usableSpace==0) {
+            throw new RuntimeException("System returned usable space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
+        }
+        return usableSpace;
     }
 
     @Override
