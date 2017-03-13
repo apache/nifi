@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,7 @@ public class PersistentMapCache implements MapCache {
                 records.add(new MapWaliRecord(UpdateType.DELETE, evicted.getKey(), evicted.getValue()));
             }
 
-            wali.update(Collections.singletonList(record), false);
+            wali.update(records, false);
 
             final long modCount = modifications.getAndIncrement();
             if ( modCount > 0 && modCount % 100000 == 0 ) {
