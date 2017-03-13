@@ -558,7 +558,31 @@
         }
 
         if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
-            return dataContext.component.parentGroupId;
+            // see if this listing is based off a selected process group
+            var selection = nfCanvasUtils.getSelection();
+            if (selection.empty() === false) {
+                var selectedData = selection.datum();
+                if (selectedData.id === dataContext.component.parentGroupId) {
+                    if (selectedData.permissions.canRead) {
+                        return selectedData.component.name;
+                    } else {
+                        return selectedData.id;
+                    }
+                }
+            }
+
+            // there's either no selection or the service is defined in an ancestor component
+            var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+
+            var processGroupLabel = dataContext.component.parentGroupId;
+            $.each(breadcrumbs, function (_, breadcrumbEntity) {
+                if (breadcrumbEntity.id === dataContext.component.parentGroupId) {
+                    processGroupLabel = breadcrumbEntity.label;
+                    return false;
+                }
+            });
+
+            return processGroupLabel;
         } else {
             return 'Controller';
         }
@@ -571,9 +595,18 @@
      * @returns {boolean} whether the user has write permissions for the parent of the controller service
      */
     var canWriteControllerServiceParent = function (dataContext) {
-        // we know the process group for this controller service is part
-        // of the current breadcrumb trail
+        // we know the process group for this controller service is part of the current breadcrumb trail
         var canWriteProcessGroupParent = function (processGroupId) {
+            // see if this listing is based off a selected process group
+            var selection = nfCanvasUtils.getSelection();
+            if (selection.empty() === false) {
+                var datum = selection.datum();
+                if (datum.id === processGroupId) {
+                    return datum.permissions.canWrite;
+                }
+            }
+
+            // there's either no selection or the service is defined in an ancestor component
             var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
 
             var isAuthorized = false;
@@ -783,7 +816,7 @@
             },
             {
                 id: 'parentGroupId',
-                name: 'Process Group',
+                name: 'Scope',
                 formatter: groupIdFormatter,
                 sortable: true,
                 resizeable: true
