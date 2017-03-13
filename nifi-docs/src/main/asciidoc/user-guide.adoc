@@ -47,6 +47,8 @@ Browser Support
 Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if
 the current stable release is 45.X then the officially supported versions will be 45.X and 44.X.
 
+For Safari, which releases major versions much less frequently, Current and Current - 1 simply represent the two latest releases.
+
 The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested
 against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
 

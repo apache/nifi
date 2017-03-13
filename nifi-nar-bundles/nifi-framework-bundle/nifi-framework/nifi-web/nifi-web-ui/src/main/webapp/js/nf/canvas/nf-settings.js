@@ -1146,6 +1146,7 @@
                 select: function () {
                     var tab = $(this).text();
                     if (tab === 'General') {
+                        $('#controller-cs-availability').hide();
                         $('#new-service-or-task').hide();
                         $('#settings-save').show();
                     } else {
@@ -1172,6 +1173,12 @@
                         } else {
                             $('#new-service-or-task').hide();
                             $('div.controller-settings-table').css('top', '0');
+                        }
+
+                        if (tab === 'Controller Services') {
+                            $('#controller-cs-availability').show();
+                        } else if (tab === 'Reporting Tasks') {
+                            $('#controller-cs-availability').hide();
                         }
 
                         // resize the table
