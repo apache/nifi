@@ -168,6 +168,9 @@
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
                     $('#process-group-comments').removeClass('unset').val(processGroup.comments);
 
+                    // populate the header
+                    $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
+
                     setEditable(true);
 
                     // register the click listener for the save button
@@ -179,6 +182,9 @@
                         // populate the process group settings
                         $('#read-only-process-group-name').removeClass('unset').text(response.component.name);
                         $('#read-only-process-group-comments').removeClass('unset').text(response.component.comments);
+
+                        // populate the header
+                        $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
                     } else {
                         setUnauthorizedText();
                     }
@@ -249,6 +255,9 @@
         // reset the fields
         $('#process-group-name').val('');
         $('#process-group-comments').val('');
+
+        // reset the header
+        $('#process-group-configuration-header-text').text('Process Group Configuration');
     };
 
     var nfProcessGroupConfiguration = {
