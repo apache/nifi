@@ -26,7 +26,6 @@ import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
@@ -243,7 +242,7 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
      * @throws InterruptedException
      */
     @Test
-    @Ignore("Not yet implemented")
+//    @Ignore("Not yet implemented")
     void testWriteAheadProvenanceRepositoryShouldRegisterAndRetrieveEvents() throws IOException, InterruptedException {
         // Arrange
         config = createConfiguration()
@@ -262,9 +261,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         RECORD_COUNT.times {
             repo.registerEvent(record)
         }
-
-        // Sleep to let the journal merge occur
-        Thread.sleep(1000L)
 
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
 
