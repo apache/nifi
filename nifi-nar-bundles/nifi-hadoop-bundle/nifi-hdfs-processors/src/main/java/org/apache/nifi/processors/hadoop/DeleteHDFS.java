@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,6 +33,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -33,15 +43,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.apache.nifi.annotation.documentation.SeeAlso;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -65,6 +68,11 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("When an incoming flowfile is used and there is a failure while deleting then the flowfile will route here.")
+            .build();
+
+    public static final Relationship REL_PERMISSION_DENIED = new Relationship.Builder()
+            .name("permission.denied")
+            .description("FlowFiles will be routed here if deleting the file specified from HDFS fails specifically because of permission issues")
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
@@ -95,6 +103,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         final Set<Relationship> relationshipSet = new HashSet<>();
         relationshipSet.add(REL_SUCCESS);
         relationshipSet.add(REL_FAILURE);
+        relationshipSet.add(REL_PERMISSION_DENIED);
         relationships = Collections.unmodifiableSet(relationshipSet);
     }
 
@@ -146,8 +155,21 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
             for (Path path : pathList) {
                 if (fileSystem.exists(path)) {
-                    fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
-                    getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
+                    try {
+                        fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
+                        getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
+                    } catch (IOException ioe) {
+                        // This is a generalization assuming that the IOException is permissions based since it would be impractical to check every possible
+                        // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
+                        getLogger().warn("Failed to delete file or directory", ioe);
+
+                        Map<String, String> attributes = Maps.newHashMapWithExpectedSize(3);
+                        attributes.put("filename", path.getName());
+                        attributes.put("path", path.getParent().toString());
+                        attributes.put("error.message", ioe.getMessage());      //Helpful in understanding at a flowfile level which ACL is denying the operation.
+
+                        session.transfer(session.putAllAttributes(originalFlowFile, attributes), REL_PERMISSION_DENIED);
+                    }
                 }
             }
             if (originalFlowFile != null) {
