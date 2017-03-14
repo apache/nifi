@@ -28,6 +28,7 @@
                 <div id="general-process-group-configuration">
                     <div class="setting">
                         <div class="setting-name">Process group name</div>
+                        <span id="process-group-id" class="hidden"></span>
                         <div class="editable setting-field">
                             <input type="text" id="process-group-name" class="setting-input"/>
                         </div>
