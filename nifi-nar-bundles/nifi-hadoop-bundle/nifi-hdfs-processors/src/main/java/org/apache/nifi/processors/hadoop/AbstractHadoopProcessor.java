@@ -136,7 +136,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor REMOTE_USER = new PropertyDescriptor.Builder()
             .name("Remote User")
-            .description("Impersonate the user of the HDFS file to this value as it is written.")
+            .description("The login name that should be used for HDFS activity, this login name must already exist in Hadoop. " +
+                         "It is not required that the login name specified with this property has super user privileges. This property does not apply and will be ignoreed " +
+                         "when accessing HDFS with kerberos as all HDFS activity will be done using the kerberos principal. " +
+                         "This property is also not the same as using a Proxy User, whereby the user doing the proxying" +
+                         "needs to have super user privileges as documented here: https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/Superusers.html.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
@@ -213,6 +217,15 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                         .explanation("Could not load Hadoop Configuration resources")
                         .build());
             }
+        }
+        //Check to see if the REMOTE_USER and Kerberos are configured.
+        if(null != principal && validationContext.getProperty(REMOTE_USER).isSet()){
+
+            results.add(new ValidationResult.Builder()
+                                .valid(false)
+                                .subject(this.getClass().getSimpleName())
+                                .explanation("Kerberos and Remote User should not be used together.")
+                                .build());
         }
 
         return results;
@@ -304,14 +317,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
                 fs = getFileSystemAsUser(config, ugi);
                 lastKerberosReloginTime = System.currentTimeMillis() / 1000;
-            } else if (context.getProperty(REMOTE_USER).isSet()){
-                config.set("hadoop.security.authentication", "simple");
-                ugi = UserGroupInformation.createRemoteUser(context.getProperty(REMOTE_USER).evaluateAttributeExpressions().getValue());
-                fs = getFileSystemAsUser(config, ugi);
-            }else  {
+            } else {
                 config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                 config.set("hadoop.security.authentication", "simple");
-                ugi = SecurityUtil.loginSimple(config);
+                if (context.getProperty(REMOTE_USER).isSet()) {
+                    ugi = UserGroupInformation.createRemoteUser(context.getProperty(REMOTE_USER).evaluateAttributeExpressions().getValue());
+                } else {
+                    ugi = SecurityUtil.loginSimple(config);
+                }
                 fs = getFileSystemAsUser(config, ugi);
             }
         }
