@@ -85,7 +85,14 @@ import java.util.stream.IntStream;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message.")
+        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
+        @WritesAttribute(attribute = "generatetablefetch.tableName", description = "The name of the database table to be queried."),
+        @WritesAttribute(attribute = "generatetablefetch.columnNames", description = "The comma-separated list of column names used in the query."),
+        @WritesAttribute(attribute = "generatetablefetch.whereClause", description = "Where clause used in the query to get the expected rows."),
+        @WritesAttribute(attribute = "generatetablefetch.maxColumnNames", description = "The comma-separated list of column names used to keep track of data "
+                    + "that has been returned since the processor started running."),
+        @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
+        @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
@@ -140,6 +147,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         return super.customValidate(validationContext);
     }
 
+    @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
         // Pre-fetch the column types if using a static table name and max-value columns
@@ -291,9 +299,24 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 for (long i = 0; i < numberOfFetches; i++) {
                     long limit = partitionSize == 0 ? null : partitionSize;
                     long offset = partitionSize == 0 ? null : i * partitionSize;
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                    final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset);
                     FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.tableName", tableName);
+                    if (columnNames != null) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.columnNames", columnNames);
+                    }
+                    if (StringUtils.isNotBlank(whereClause)) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
+                    }
+                    if (StringUtils.isNotBlank(maxColumnNames)) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.maxColumnNames", maxColumnNames);
+                    }
+                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.limit", String.valueOf(limit));
+                    if (partitionSize != 0) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.offset", String.valueOf(offset));
+                    }
                     session.transfer(sqlFlowFile, REL_SUCCESS);
                 }
 
