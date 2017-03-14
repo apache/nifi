@@ -16,14 +16,26 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -33,15 +45,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.apache.nifi.annotation.documentation.SeeAlso;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -54,6 +59,11 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 @Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+@WritesAttributes({
+        @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted"),
+        @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request"),
+        @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
+})
 @SeeAlso({ListHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
 
@@ -146,8 +156,22 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
             for (Path path : pathList) {
                 if (fileSystem.exists(path)) {
-                    fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
-                    getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
+                    try {
+                        fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
+                        getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
+                    } catch (IOException ioe) {
+                        // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
+                        // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
+                        getLogger().warn("Failed to delete file or directory", ioe);
+
+                        Map<String, String> attributes = Maps.newHashMapWithExpectedSize(3);
+                        attributes.put("hdfs.filename", path.getName());
+                        attributes.put("hdfs.path", path.getParent().toString());
+                        // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
+                        attributes.put("hdfs.error.message", ioe.getMessage());
+
+                        session.transfer(session.putAllAttributes(session.clone(originalFlowFile), attributes), REL_FAILURE);
+                    }
                 }
             }
             if (originalFlowFile != null) {
