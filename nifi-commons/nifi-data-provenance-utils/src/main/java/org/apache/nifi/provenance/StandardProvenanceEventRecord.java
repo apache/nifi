@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
@@ -30,7 +29,7 @@ import org.apache.nifi.processor.Relationship;
 /**
  * Holder for provenance relevant information
  */
-public final class StandardProvenanceEventRecord implements ProvenanceEventRecord {
+public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
     private final long eventTime;
     private final long entryDate;
@@ -69,7 +68,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
 
     private volatile long eventId = -1L;
 
-    private StandardProvenanceEventRecord(final Builder builder) {
+    StandardProvenanceEventRecord(final Builder builder) {
         this.eventTime = builder.eventTime;
         this.entryDate = builder.entryDate;
         this.eventType = builder.eventType;
@@ -100,14 +99,19 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         contentClaimOffset = builder.contentClaimOffset;
         contentSize = builder.contentSize;
 
-        previousAttributes = builder.previousAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
-        updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
+        previousAttributes = builder.previousAttributes == null ? Collections.emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
+        updatedAttributes = builder.updatedAttributes == null ? Collections.emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
 
         if (builder.eventId != null) {
             eventId = builder.eventId;
         }
+    }
+
+    public static StandardProvenanceEventRecord copy(StandardProvenanceEventRecord other) {
+        Builder builder = new Builder().fromEvent(other);
+        return new StandardProvenanceEventRecord(builder);
     }
 
     public String getStorageFilename() {
@@ -199,12 +203,12 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
 
     @Override
     public List<String> getParentUuids() {
-        return parentUuids == null ? Collections.<String>emptyList() : parentUuids;
+        return parentUuids == null ? Collections.emptyList() : parentUuids;
     }
 
     @Override
     public List<String> getChildUuids() {
-        return childrenUuids == null ? Collections.<String>emptyList() : childrenUuids;
+        return childrenUuids == null ? Collections.emptyList() : childrenUuids;
     }
 
     @Override
@@ -299,8 +303,8 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         }
 
         return -37423 + 3 * componentId.hashCode() + (transitUri == null ? 0 : 41 * transitUri.hashCode())
-            + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
-            + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
+                + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
+                + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
     }
 
     @Override
@@ -417,6 +421,23 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
                 + ", sourceSystemFlowFileIdentifier=" + sourceSystemFlowFileIdentifier
                 + ", parentUuids=" + parentUuids
                 + ", alternateIdentifierUri=" + alternateIdentifierUri + "]";
+    }
+
+    /**
+     * Returns a unique identifier for the record. By default, it uses
+     * {@link ProvenanceEventRecord#getEventId()} but if it has not been persisted to the
+     * repository, this is {@code -1}, so it constructs a String of the format
+     * {@code <event type>_on_<flowfile UUID>_by_<component UUID>_at_<event time>}.
+     *
+     * @return a String identifying the record for later analysis
+     */
+    @Override
+    public String getBestEventIdentifier() {
+        if (getEventId() != -1) {
+            return Long.toString(getEventId());
+        } else {
+            return getEventType().name() + "_on_" + getFlowFileUuid() + "_by_" + getComponentId() + "_at_" + getEventTime();
+        }
     }
 
     public static class Builder implements ProvenanceEventBuilder {
@@ -733,7 +754,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         public ProvenanceEventBuilder fromFlowFile(final FlowFile flowFile) {
             setFlowFileEntryDate(flowFile.getEntryDate());
             setLineageStartDate(flowFile.getLineageStartDate());
-            setAttributes(Collections.<String, String>emptyMap(), flowFile.getAttributes());
+            setAttributes(Collections.emptyMap(), flowFile.getAttributes());
             uuid = flowFile.getAttribute(CoreAttributes.UUID.key());
             this.contentSize = flowFile.getSize();
             return this;

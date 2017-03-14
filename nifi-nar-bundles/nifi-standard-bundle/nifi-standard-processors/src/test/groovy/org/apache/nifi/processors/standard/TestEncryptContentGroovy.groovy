@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.standard
 
 import org.apache.nifi.components.ValidationResult
-import org.apache.nifi.processors.standard.util.crypto.CipherUtility
-import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
+import org.apache.nifi.security.util.crypto.CipherUtility
+import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockProcessContext
 import org.apache.nifi.util.TestRunner
