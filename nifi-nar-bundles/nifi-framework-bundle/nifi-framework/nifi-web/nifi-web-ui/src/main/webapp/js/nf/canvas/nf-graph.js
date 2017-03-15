@@ -206,8 +206,8 @@
             nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
             nfConnection.init(nfSelectable, nfContextMenu, nfConnectionConfiguration);
 
-            // load the graph
-            return nfProcessGroup.enterGroup(nfCanvasUtils.getGroupId());
+            // display the deep link
+            return nfCanvasUtils.showDeepLink(true);
         },
 
         /**
@@ -389,6 +389,9 @@
         updateVisibility: function () {
             updateComponentVisibility();
             nfGraph.pan();
+
+            // update URL deep linking params
+            nfCanvasUtils.setURLParameters();
         },
 
         /**

@@ -1279,6 +1279,10 @@
                         transition: true
                     });
                 }
+
+                // update URL deep linking params
+                nfCanvasUtils.setURLParameters(groupId, d3.select());
+
             }).fail(function () {
                 nfDialog.showOkDialog({
                     headerText: 'Process Group',
