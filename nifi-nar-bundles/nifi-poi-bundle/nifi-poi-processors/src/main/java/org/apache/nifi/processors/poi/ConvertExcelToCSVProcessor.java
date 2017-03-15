@@ -240,6 +240,7 @@ public class ConvertExcelToCSVProcessor
                 ff = session.putAttribute(ff, SHEET_NAME, sName);
             } else {
                 ff = session.putAttribute(ff, SHEET_NAME, handler.getSheetName());
+                sName = handler.getSheetName();
             }
 
             ff = session.putAttribute(ff, ROW_NUM, new Long(handler.getRowCount()).toString());
@@ -252,7 +253,7 @@ public class ConvertExcelToCSVProcessor
 
             //Update the CoreAttributes.FILENAME to have the .csv extension now. Also update MIME.TYPE
             ff = session.putAttribute(ff, CoreAttributes.FILENAME.key(), updateFilenameToCSVExtension(ff.getAttribute(CoreAttributes.UUID.key()),
-                    ff.getAttribute(CoreAttributes.FILENAME.key()), handler.getSheetName()));
+                    ff.getAttribute(CoreAttributes.FILENAME.key()), sName));
             ff = session.putAttribute(ff, CoreAttributes.MIME_TYPE.key(), CSV_MIME_TYPE);
 
             session.transfer(ff, SUCCESS);
