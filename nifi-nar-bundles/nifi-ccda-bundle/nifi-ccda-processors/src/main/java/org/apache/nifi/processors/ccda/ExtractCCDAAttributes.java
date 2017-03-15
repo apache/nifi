@@ -19,6 +19,7 @@ package org.apache.nifi.processors.ccda;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,7 +97,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile is routed to this relationship if it is properly parsed as CDA and its content stored in FlowFile")
+            .description("A FlowFile is routed to this relationship if it is properly parsed as CDA and its contents extracted as attributes.")
             .build();
 
     /**
@@ -104,7 +105,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is routed to this relationship if it cannot be parse CDA and store content to FlowFile.")
+            .description("A FlowFile is routed to this relationship if it cannot be parsed as CDA or its contents extracted as attributes.")
             .build();
 
     @Override
@@ -119,13 +120,14 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(_relationships);
 
-        relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-
-        properties = new ArrayList<>();
-        properties.add(SKIP_VALIDATION);
+        final List<PropertyDescriptor> _properties = new ArrayList<>();
+        _properties.add(SKIP_VALIDATION);
+        this.properties = Collections.unmodifiableList(_properties);
     }
 
     @OnScheduled
@@ -173,7 +175,13 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
 
-        ClinicalDocument cd = loadDocument(session.read(flowFile), skipValidation); // Load and optionally validate CDA document
+        ClinicalDocument cd = null;
+        try {
+            cd = loadDocument(session.read(flowFile), skipValidation); // Load and optionally validate CDA document
+        } catch (ProcessException e) {
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         getLogger().debug("Loaded document for {} in {}", new Object[] {flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS)});
 
@@ -183,7 +191,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         stopWatch.stop();
-        getLogger().info("Successfully processed {} in {}", new Object[] {flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        getLogger().debug("Successfully processed {} in {}", new Object[] {flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS)});
         if(getLogger().isDebugEnabled()){
             for (Entry<String, String> entry : attributes.entrySet()) {
                 getLogger().debug("Attribute: {}={}", new Object[] {entry.getKey(), entry.getValue()});
@@ -200,9 +208,10 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      * For List, the processList method is called to iterate and process
      * For an Object this method is called recursively
      * While adding to the attributes the key is prefixed by parent
-     * @param parent    Parent key for this element, used as a prefix for attribute key
-     * @param element   Element to be processed
-     * @return          Map of processed data, value can contain String or Map of Strings
+     * @param parent       parent key for this element, used as a prefix for attribute key
+     * @param element      element to be processed
+     * @param attributes   map of attributes to populate
+     * @return             map of processed data, value can contain String or Map of Strings
      */
     protected Map<String, Object> processElement(String parent, Object element, Map<String, String> attributes) {
         final StopWatch stopWatch = new StopWatch(true);
@@ -257,9 +266,10 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
     /**
      * Iterate through the list and calls processElement to process each element
-     * @param key       key used while calling processElement
-     * @param value     value is the individual Object being processed
-     * @return          list of elements
+     * @param key          key used while calling processElement
+     * @param value        value is the individual Object being processed
+     * @param attributes   map of attributes to populate
+     * @return             list of elements
      */
     protected List<Object> processList(String key, List value, Map<String, String> attributes) {
         List<Object> items = new ArrayList<Object>();
