@@ -48,6 +48,7 @@ public abstract class NiFiProperties {
 
     // core properties
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
+    public static final String FLOW_CONFIGURATION_IMPLEMENTATION = "nifi.flow.configuration.implementation";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_ENABLED = "nifi.flow.configuration.archive.enabled";
     public static final String FLOW_CONFIGURATION_ARCHIVE_DIR = "nifi.flow.configuration.archive.dir";

@@ -25,10 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -43,9 +40,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
@@ -82,13 +76,11 @@ import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
-import org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO;
 import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
@@ -103,7 +95,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private static final String NODE_UUID = "Node UUID";
 
     private final FlowController controller;
-    private final Path flowXml;
     private final FlowConfigurationDAO dao;
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
@@ -177,12 +168,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         this.nifiProperties = nifiProperties;
         this.controller = controller;
-        flowXml = Paths.get(nifiProperties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
 
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = nifiProperties.getAutoResumeState();
 
-        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor, nifiProperties);
+        dao = controller.getFlowConfigurationDAO();
         this.clusterCoordinator = clusterCoordinator;
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);
@@ -246,9 +236,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void overwriteFlow(final InputStream is) throws IOException {
         writeLock.lock();
-        try (final OutputStream output = Files.newOutputStream(flowXml, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-                final OutputStream gzipOut = new GZIPOutputStream(output);) {
-            FileUtils.copy(is, gzipOut);
+        try{
+            dao.overwriteFlow(is);
         } finally {
             writeLock.unlock();
         }
@@ -909,14 +898,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public void copyCurrentFlow(final OutputStream os) throws IOException {
         readLock.lock();
         try {
-            if (!Files.exists(flowXml) || Files.size(flowXml) == 0) {
-                return;
-            }
-
-            try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
-                    final InputStream gzipIn = new GZIPInputStream(in)) {
-                FileUtils.copy(gzipIn, os);
-            }
+            dao.copyCurrentFlow(os);
         } finally {
             readLock.unlock();
         }

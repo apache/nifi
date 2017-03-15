@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -42,15 +43,19 @@ import org.slf4j.LoggerFactory;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
-    private final Path flowXmlPath;
-    private final StringEncryptor encryptor;
-    private final FlowConfigurationArchiveManager archiveManager;
-    private final NiFiProperties nifiProperties;
+    private Path flowXmlPath;
+    private StringEncryptor encryptor;
+    private FlowConfigurationArchiveManager archiveManager;
+    private NiFiProperties nifiProperties;
+    private Path flowXml;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
-    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties) throws IOException {
+    @Override
+    public void initialize(final StringEncryptor encryptor, final NiFiProperties nifiProperties) throws IOException {
         this.nifiProperties = nifiProperties;
+
+        flowXml = Paths.get(nifiProperties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
         final File flowXmlFile = flowXml.toFile();
         if (!flowXmlFile.exists()) {
             // createDirectories would throw an exception if the directory exists but is a symbolic link
@@ -118,7 +123,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     @Override
     public synchronized void save(final InputStream is) throws IOException {
         try (final OutputStream outStream = Files.newOutputStream(flowXmlPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-                final OutputStream gzipOut = new GZIPOutputStream(outStream)) {
+             final OutputStream gzipOut = new GZIPOutputStream(outStream)) {
             FileUtils.copy(is, gzipOut);
         }
     }
@@ -181,4 +186,23 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
 
+    @Override
+    public void overwriteFlow(InputStream is) throws IOException {
+        try (final OutputStream output = Files.newOutputStream(flowXml, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+             final OutputStream gzipOut = new GZIPOutputStream(output)) {
+            FileUtils.copy(is, gzipOut);
+        }
+    }
+
+    @Override
+    public void copyCurrentFlow(OutputStream os) throws IOException {
+        if (!Files.exists(flowXml) || Files.size(flowXml) == 0) {
+            return;
+        }
+
+        try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
+             final InputStream gzipIn = new GZIPInputStream(in)) {
+            FileUtils.copy(gzipIn, os);
+        }
+    }
 }
