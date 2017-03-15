@@ -226,6 +226,10 @@
                                         <!-- reset.css -->
                                         <include>reset.css/reset.css</include>
                                         <include>reset.css/README.md</include>
+                                        <!-- URLSearchParams Polyfill -->
+                                        <include>url-search-params/build/url-search-params.js</include>
+                                        <include>url-search-params/README.md</include>
+                                        <include>url-search-params/LICENSE.txt</include>
                                     </includes>
                                 </resource>
                             </resources>

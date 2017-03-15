@@ -310,6 +310,9 @@
             .on('mousedown.selection', function () {
                 // select the connection when clicking the selectable path
                 nfSelectable.select(d3.select(this.parentNode));
+
+                // update URL deep linking params
+                nfCanvasUtils.setURLParameters();
             })
             .call(nfContextMenu.activate);
     };
@@ -630,6 +633,9 @@
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
                             nfSelectable.select(d3.select(this.parentNode));
+
+                            // update URL deep linking params
+                            nfCanvasUtils.setURLParameters();
                         })
                         .call(nfContextMenu.activate);
 
@@ -660,6 +666,9 @@
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
                             nfSelectable.select(d3.select(this.parentNode));
+
+                            // update URL deep linking params
+                            nfCanvasUtils.setURLParameters();
                         })
                         .call(nfContextMenu.activate);
 
@@ -740,6 +749,9 @@
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
                             nfSelectable.select(d3.select(this.parentNode));
+
+                            // update URL deep linking params
+                            nfCanvasUtils.setURLParameters();
                         })
                         .call(nfContextMenu.activate);
 
@@ -777,6 +789,9 @@
                             .on('mousedown.selection', function () {
                                 // select the connection when clicking the label
                                 nfSelectable.select(d3.select(this.parentNode));
+
+                                // update URL deep linking params
+                                nfCanvasUtils.setURLParameters();
                             })
                             .call(nfContextMenu.activate);
 

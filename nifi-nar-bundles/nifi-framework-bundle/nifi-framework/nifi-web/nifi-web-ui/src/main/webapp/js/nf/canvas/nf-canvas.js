@@ -284,6 +284,9 @@
                     // since the context menu event propagated back to the canvas, clear the selection
                     nfCanvasUtils.getSelection().classed('selected', false);
 
+                    // update URL deep linking params
+                    nfCanvasUtils.setURLParameters();
+
                     // show the context menu on the canvas
                     nfContextMenu.show();
 
@@ -553,9 +556,15 @@
 
                         // remove the selection box
                         selectionBox.remove();
+
+                        // update URL deep linking params
+                        nfCanvasUtils.setURLParameters();
                     } else if (panning === false) {
                         // deselect as necessary if we are not panning
                         nfCanvasUtils.getSelection().classed('selected', false);
+
+                        // update URL deep linking params
+                        nfCanvasUtils.setURLParameters();
                     }
 
                     // inform Angular app values have changed
@@ -697,6 +706,10 @@
                     } else if (evt.keyCode === 65) {
                         // ctrl-a
                         nfActions.selectAll();
+
+                        // update URL deep linking params
+                        nfCanvasUtils.setURLParameters();
+
                         nfNgBridge.digest();
 
                         // only want to prevent default if the action was performed, otherwise default select all would be overridden
