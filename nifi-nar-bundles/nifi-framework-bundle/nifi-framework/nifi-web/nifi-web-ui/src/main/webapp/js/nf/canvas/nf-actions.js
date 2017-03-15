@@ -51,10 +51,11 @@
                 'nf.Label',
                 'nf.Processor',
                 'nf.RemoteProcessGroupPorts',
+                'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -90,6 +91,7 @@
                 require('nf.Label'),
                 require('nf.Processor'),
                 require('nf.RemoteProcessGroupPorts'),
+                require('nf.ComponentVersion'),
                 require('nf.QueueListing'),
                 require('nf.StatusHistory')));
     } else {
@@ -125,10 +127,11 @@
             root.nf.Label,
             root.nf.Processor,
             root.nf.RemoteProcessGroupPorts,
+            root.nf.ComponentVersion,
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -1236,7 +1239,7 @@
          * @param {selection} selection
          */
         changeVersion: function (selection) {
-            if (selection.size() !== 1 || !nf.CanvasUtils.isProcessor(selection)) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isProcessor(selection)) {
                 return;
             }
 
@@ -1244,7 +1247,7 @@
             var processor = selection.datum();
 
             // attempt to change the version of the specified component
-            nf.ComponentVersion.promptForVersionChange(processor);
+            nfComponentVersion.promptForVersionChange(processor);
         },
 
         /**

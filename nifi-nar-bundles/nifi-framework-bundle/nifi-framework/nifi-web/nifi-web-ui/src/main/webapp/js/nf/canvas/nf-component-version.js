@@ -27,9 +27,10 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils',
+                'nf.ProcessGroupConfiguration',
                 'nf.ng.Bridge'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge) {
-                return (nf.ComponentState = factory($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge));
+            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
+                return (nf.ComponentState = factory($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -38,6 +39,7 @@
                 require('nf.Common',
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
+                require('nf.ProcessGroupConfiguration'),
                 require('nf.ng.Bridge'))));
     } else {
         nf.ComponentVersion = factory(root.$,
@@ -45,14 +47,14 @@
             root.nf.Common,
             root.nf.Client,
             root.nf.CanvasUtils,
+            root.nf.ProcessGroupConfiguration,
             root.nf.ng.Bridge);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge) {
+}(this, function ($, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfProcessGroupConfiguration, nfNgBridge) {
     'use strict';
 
     var versionMap;
     var nfSettings;
-    var nfProcessGroupConfiguration;
 
     /**
      * Gets the URI for retrieving available types/bundles
@@ -143,10 +145,9 @@
     };
 
     return {
-        init: function (settings, processGroupConfiguration) {
+        init: function (settings) {
             versionMap = d3.map();
             nfSettings = settings;
-            nfProcessGroupConfiguration = processGroupConfiguration;
 
             // initialize the component version dialog
             $('#component-version-dialog').modal({

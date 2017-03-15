@@ -16,39 +16,10 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
@@ -93,6 +64,36 @@ import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -973,9 +974,15 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         @Override
         public void run() {
-            final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
-            final ClassLoader cl = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
-            Thread.currentThread().setContextClassLoader(cl);
+            ClassLoader currentCl = null;
+
+            final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+            if (frameworkBundle != null) {
+                currentCl = Thread.currentThread().getContextClassLoader();
+                final ClassLoader cl = frameworkBundle.getClassLoader();
+                Thread.currentThread().setContextClassLoader(cl);
+            }
+
             try {
                 //Hang onto the SaveHolder here rather than setting it to null because if the save fails we will try again
                 final SaveHolder holder = StandardFlowService.this.saveHolder.get();

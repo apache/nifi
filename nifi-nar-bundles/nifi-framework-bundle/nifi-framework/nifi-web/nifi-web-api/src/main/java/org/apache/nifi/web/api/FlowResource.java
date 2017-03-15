@@ -1180,16 +1180,18 @@ public class FlowResource extends ApplicationResource {
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
         final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
-        final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
+        if (frameworkBundle != null) {
+            final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
 
-        // set the version
-        aboutDTO.setVersion(frameworkDetails.getCoordinate().getVersion());
+            // set the version
+            aboutDTO.setVersion(frameworkDetails.getCoordinate().getVersion());
 
-        // Get build info
-        aboutDTO.setBuildTag(frameworkDetails.getBuildTag());
-        aboutDTO.setBuildRevision(frameworkDetails.getBuildRevision());
-        aboutDTO.setBuildBranch(frameworkDetails.getBuildBranch());
-        aboutDTO.setBuildTimestamp(frameworkDetails.getBuildTimestampDate());
+            // Get build info
+            aboutDTO.setBuildTag(frameworkDetails.getBuildTag());
+            aboutDTO.setBuildRevision(frameworkDetails.getBuildRevision());
+            aboutDTO.setBuildBranch(frameworkDetails.getBuildBranch());
+            aboutDTO.setBuildTimestamp(frameworkDetails.getBuildTimestampDate());
+        }
 
         // create the response entity
         final AboutEntity entity = new AboutEntity();

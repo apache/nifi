@@ -342,7 +342,7 @@
                     nfActions.init();
                     nfQueueListing.init();
                     nfComponentState.init();
-                    nfComponentVersion.init(nfSettings, nfProcessGroupConfiguration);
+                    nfComponentVersion.init(nfSettings);
 
                     // initialize the component behaviors
                     nfDraggable.init();

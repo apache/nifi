@@ -939,6 +939,13 @@
     /**
      * Gets the available controller services that implement the specified type and
      * prompts the user to create one.
+     *
+     * @param {jQuery} gridContainer The grid container
+     * @param {slickgrid} grid The grid
+     * @param {object} item The item
+     * @param {string} serviceType The type of service to create
+     * @param {object} bundle The bundle the service impl should implement
+     * @param {object} configurationOptions The configuration options
      */
     var promptForNewControllerService = function (gridContainer, grid, item, serviceType, bundle, configurationOptions) {
         $.ajax({
