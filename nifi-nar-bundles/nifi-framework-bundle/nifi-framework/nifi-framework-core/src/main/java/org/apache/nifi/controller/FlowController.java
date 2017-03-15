@@ -1209,6 +1209,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // set the new processor in the existing node
         final LoggableComponent<Processor> newProcessor = new LoggableComponent<>(newNode.getProcessor(), newNode.getBundleCoordinate(), newNode.getLogger());
         existingNode.setProcessor(newProcessor);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     /**
@@ -3059,6 +3060,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // set the new reporting task into the existing node
         final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), newNode.getLogger());
         existingNode.setReportingTask(newReportingTask);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     @Override
@@ -3174,6 +3176,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // set the new impl, proxy, and invocation handler into the existing node
         existingNode.setControllerServiceAndProxy(loggableImplementation, loggableProxy, invocationHandler);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     @Override

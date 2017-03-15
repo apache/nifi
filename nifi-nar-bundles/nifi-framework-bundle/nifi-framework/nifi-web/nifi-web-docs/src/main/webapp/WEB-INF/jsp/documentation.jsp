@@ -80,7 +80,14 @@
                                                 <span class="bundle-version hidden">${bundleEntry.version}</span>
                                                 <span class="extension-class hidden">${entry.value}</span>
                                                 <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
-                                                    ${entry.key} ${bundleEntry.version}
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </a>
                                             </li>
                                         </c:forEach>
@@ -107,9 +114,16 @@
                                                 <span class="bundle-artifact hidden">${bundleEntry.id}</span>
                                                 <span class="bundle-version hidden">${bundleEntry.version}</span>
                                                 <span class="extension-class hidden">${entry.value}</span>
-                                                <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html"
-                                                   target="component-usage">
-                                                    ${entry.key} ${bundleEntry.version}
+                                                <a class="component-link"
+                                                   href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </a>
                                             </li>
                                         </c:forEach>
@@ -137,7 +151,14 @@
                                                 <span class="bundle-version hidden">${bundleEntry.version}</span>
                                                 <span class="extension-class hidden">${entry.value}</span>
                                                 <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
-                                                    ${entry.key} ${bundleEntry.version}
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </a>
                                             </li>
                                         </c:forEach>
