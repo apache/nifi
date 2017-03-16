@@ -142,6 +142,28 @@ public class TestHandleHttpResponse {
         assertEquals(1, contextMap.getCompletionCount());
     }
 
+    @Test
+    public void testStatusCodeEmpty() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap("my-id", "");
+        runner.addControllerService("http-context-map", contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, "my-id");
+        attributes.put("my-attr", "hello");
+
+        runner.enqueue("hello".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_FAILURE, 1);
+        assertEquals(0, contextMap.getCompletionCount());
+    }
+
     private static class MockHttpContextMap extends AbstractControllerService implements HttpContextMap {
 
         private final String id;
