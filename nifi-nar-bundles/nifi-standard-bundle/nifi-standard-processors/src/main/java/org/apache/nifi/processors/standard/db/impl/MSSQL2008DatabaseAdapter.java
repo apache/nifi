@@ -61,8 +61,10 @@ public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
             query.append(columnNames);
         }
 
-        if (limit != null && offset != null) {
-            query.append(", ROW_NUMBER() OVER(ORDER BY ID asc) rnum");
+        if (limit != null && offset != null && orderByClause != null) {
+            query.append(", ROW_NUMBER() OVER(ORDER BY ");
+            query.append(orderByClause);
+            query.append(" asc) rnum");
         }
         query.append(" FROM ");
         query.append(tableName);

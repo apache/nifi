@@ -65,17 +65,17 @@ public class TestMSSQL2008DatabaseAdapter {
     @Test
     public void testPagingQuery() throws Exception {
         String sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "contain", 100L, 0L);
-        String expected1 = "SELECT * FROM (SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY ID asc) rnum FROM database.tablename ORDER BY contain) A "
-                + "WHERE rnum > 0 AND rnum <= 100";
+        String expected1 = "SELECT * FROM (SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY contain asc) "
+                + "rnum FROM database.tablename ORDER BY contain) A WHERE rnum > 0 AND rnum <= 100";
         Assert.assertEquals(expected1, sql);
 
         sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "contain", 10000L, 123456L);
-        String expected2 = "SELECT * FROM (SELECT TOP 133456 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY ID asc) rnum FROM database.tablename ORDER BY contain) A "
-                + "WHERE rnum > 123456 AND rnum <= 133456";
+        String expected2 = "SELECT * FROM (SELECT TOP 133456 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY contain asc) "
+                + "rnum FROM database.tablename ORDER BY contain) A WHERE rnum > 123456 AND rnum <= 133456";
         Assert.assertEquals(expected2, sql);
 
         sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "methods='strange'", "contain", 10000L, 123456L);
-        String expected3 = "SELECT * FROM (SELECT TOP 133456 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY ID asc) rnum FROM database.tablename "
+        String expected3 = "SELECT * FROM (SELECT TOP 133456 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY contain asc) rnum FROM database.tablename "
                 + "WHERE methods='strange' ORDER BY contain) A WHERE rnum > 123456 AND rnum <= 133456";
         Assert.assertEquals(expected3, sql);
     }
