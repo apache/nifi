@@ -59,17 +59,13 @@ public class WebSocketMessageRouters {
 
     public synchronized void deregisterProcessor(final String endpointId, final Processor processor) throws WebSocketConfigurationException {
         final WebSocketMessageRouter router = getRouterOrFail(endpointId);
+        routers.remove(endpointId);
         router.deregisterProcessor(processor);
     }
 
     public void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException {
         final WebSocketMessageRouter router = getRouterOrFail(endpointId);
         router.sendMessage(sessionId, sendMessage);
-    }
-
-    public void disconnect(final String endpointId, final String sessionId, final String reason) throws IOException, WebSocketConfigurationException {
-        final WebSocketMessageRouter router = getRouterOrFail(endpointId);
-        router.disconnect(sessionId, reason);
     }
 
 }

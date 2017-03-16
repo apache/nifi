@@ -45,6 +45,4 @@ public interface WebSocketService extends ControllerService {
 
     void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException;
 
-    void disconnect(final String endpointId, final String sessionId, final String reason) throws Exception;
-
 }

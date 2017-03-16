@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.websocket;
+package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.websocket.WebSocketService;
 import org.junit.Test;
 
 
