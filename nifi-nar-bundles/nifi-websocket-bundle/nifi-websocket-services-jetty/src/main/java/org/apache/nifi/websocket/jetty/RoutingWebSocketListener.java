@@ -33,7 +33,11 @@ public class RoutingWebSocketListener extends WebSocketAdapter {
     @Override
     public void onWebSocketConnect(final Session session) {
         super.onWebSocketConnect(session);
-        sessionId = UUID.randomUUID().toString();
+        if (sessionId == null || sessionId.isEmpty()) {
+            // If sessionId is already assigned to this instance, don't publish new one.
+            // So that existing sesionId can be reused when reconnecting.
+            sessionId = UUID.randomUUID().toString();
+        }
         final JettyWebSocketSession webSocketSession = new JettyWebSocketSession(sessionId, session);
         router.captureSession(webSocketSession);
     }
@@ -52,5 +56,13 @@ public class RoutingWebSocketListener extends WebSocketAdapter {
     @Override
     public void onWebSocketBinary(final byte[] payload, final int offset, final int len) {
         router.onWebSocketBinary(sessionId, payload, offset, len);
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public String getSessionId() {
+        return sessionId;
     }
 }
