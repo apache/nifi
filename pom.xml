@@ -92,7 +92,6 @@ language governing permissions and limitations under the License. -->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.12</org.slf4j.version>
-        <!--<jetty.version>9.3.9.v20160517</jetty.version>-->
         <jetty.version>9.4.2.v20170220</jetty.version>
         <lucene.version>4.10.4</lucene.version>
         <spring.version>4.2.4.RELEASE</spring.version>
