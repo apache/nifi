@@ -76,11 +76,17 @@ class TestGetHTTPGroovy extends GroovyTestCase {
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
     private static final String GET_URL = "${HTTPS_URL}/GetHandler.groovy"
 
+    private static final String MOZILLA_INTERMEDIATE_URL = "https://mozilla-intermediate.badssl.com/"
+    private static final String TLS_1_URL = "https://nifi.apache.org/"
+    private static final String TLS_1_1_URL = "https://nifi.apache.org/"
+
     private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
     private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
+    private static final String CACERTS_PATH = "/Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/jre/lib/security/cacerts"
 
     private static final String KEYSTORE_PASSWORD = "localtest"
     private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String CACERTS_PASSWORD = "changeit"
 
     private static Server server
     private static X509TrustManager nullTrustManager
@@ -174,8 +180,8 @@ class TestGetHTTPGroovy extends GroovyTestCase {
 
         nullHostnameVerifier = [
                 verify: { String hostname, session ->
-                    // Will always return true if the hostname is "localhost"
-                    hostname.equalsIgnoreCase(DEFAULT_HOSTNAME)
+                    // Will always return true if the hostname is "localhost" or the Mozilla intermediate site
+                    hostname.equalsIgnoreCase(DEFAULT_HOSTNAME) || hostname.equalsIgnoreCase(new URL(MOZILLA_INTERMEDIATE_URL).host)
                 }
         ] as HostnameVerifier
 
@@ -350,11 +356,11 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         assert selectedProtocol == TLSv1_2
     }
 
-    private static void enableContextServiceProtocol(TestRunner runner, String protocol) {
+    private static void enableContextServiceProtocol(TestRunner runner, String protocol, String truststorePath = TRUSTSTORE_PATH, String truststorePassword = TRUSTSTORE_PASSWORD) {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
@@ -363,26 +369,20 @@ class TestGetHTTPGroovy extends GroovyTestCase {
     }
 
     /**
-     * This test creates a server that supports TLSv1. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. All three context services should be able to communicate successfully.
+     * This test connects to a server running TLSv1/1.1/1.2. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. All three context services should be able to communicate successfully.
      */
     @Test
-    @Ignore("Ignore until embeddable test HTTPS server that supports TLSv1 is available")
     void testGetHTTPShouldConnectToServerWithTLSv1() {
         // Arrange
-        final String MSG = "This is a test message"
 
-        // Configure server with TLSv1 only
-        server = createServer([TLSv1])
-
-        // Start server
-        server.start()
+        // Connect to a server that still runs TLSv1/1.1/1.2
+        runner.setProperty(GetHTTP.URL, TLS_1_URL)
 
         // Act
         [TLSv1, TLSv1_1, TLSv1_2].each { String tlsVersion ->
             logger.info("Set context service protocol to ${tlsVersion}")
-            enableContextServiceProtocol(runner, tlsVersion)
+            enableContextServiceProtocol(runner, tlsVersion, CACERTS_PATH, CACERTS_PASSWORD)
             runner.assertQueueEmpty()
-//            runner.enqueue(MSG.getBytes())
             logger.info("Queue size (before run): ${runner.queueSize}")
             runner.run()
 
@@ -398,7 +398,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
      * This test creates a server that supports TLSv1.1. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. The context service with TLSv1 should not be able to communicate with a server that does not support it, but TLSv1.1 and TLSv1.2 should be able to communicate successfully.
      */
     @Test
-    @Ignore("Ignore until embeddable test HTTPS server that supports TLSv1.1 is available")
+    @Ignore("Ignore until embeddable test HTTPS server that only supports TLSv1.1 is available")
     void testGetHTTPShouldConnectToServerWithTLSv1_1() {
         // Arrange
         final String MSG = "This is a test message"
