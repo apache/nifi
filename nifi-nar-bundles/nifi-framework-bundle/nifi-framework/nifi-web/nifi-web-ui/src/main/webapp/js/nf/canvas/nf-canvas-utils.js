@@ -115,7 +115,7 @@
                     // refresh all component types as necessary (handle components that have been removed)
                     componentMap.forEach(function (type, ids) {
                         nfCanvasUtils.getComponentByType(type).remove(ids);
-                    });  
+                    });
 
                     // refresh the birdseye
                     nfBirdseye.refresh();

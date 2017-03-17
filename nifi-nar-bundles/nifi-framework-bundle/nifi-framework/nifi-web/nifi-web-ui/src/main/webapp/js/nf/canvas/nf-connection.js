@@ -1931,7 +1931,7 @@
          *
          * @argument {selection} selection          The selection
          */
-        isDisconnected: function (selection) { 
+        isDisconnected: function (selection) {
 
             // if nothing is selected return
             if (selection.empty()) {
@@ -1939,20 +1939,20 @@
             }
             var connections = d3.map();
             var components = d3.map();
-            var isDisconnected = true;  
+            var isDisconnected = true;
 
             // include connections
             selection.filter(function (d) {
                 return d.type === 'Connection';
             }).each(function (d) {
                 connections.set(d.id, d);
-            });  
+            });
 
             // include components and ensure their connections are included
             selection.filter(function (d) {
                 return d.type !== 'Connection';
             }).each(function (d) {
-                components.set(d.id, d.component);  
+                components.set(d.id, d.component);
 
                 // check all connections of this component
                 $.each(nfConnection.getComponentConnections(d.id), function (_, connection) {
@@ -1962,11 +1962,11 @@
                     }
                 });
             });
-            if (isDisconnected) { 
+            if (isDisconnected) {
 
                 // go through each connection to ensure its source and destination are included
                 connections.forEach(function (id, connection) {
-                    if (isDisconnected) { 
+                    if (isDisconnected) {
 
                         // determine whether this connection and its components are included within the selection
                         isDisconnected = components.has(nfCanvasUtils.getConnectionSourceComponentId(connection)) && components.has(nfCanvasUtils.getConnectionDestinationComponentId(connection));
