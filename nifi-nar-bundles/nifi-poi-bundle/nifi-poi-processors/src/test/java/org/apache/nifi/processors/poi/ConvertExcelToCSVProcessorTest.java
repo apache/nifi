@@ -19,11 +19,14 @@ package org.apache.nifi.processors.poi;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.List;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -144,5 +147,24 @@ public class ConvertExcelToCSVProcessorTest {
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);  //We aren't expecting any output to success here because the sheet doesn't exist
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+    }
+
+    /**
+     * Tests for graceful handling and error messaging of unsupported .XLS files.
+     */
+    @Test
+    public void testHandleUnsupportedXlsFile() throws Exception {
+
+        testRunner.enqueue(new File("src/test/resources/Unsupported.xls").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 0);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 1);
+
+        List<LogMessage> errorMessages = testRunner.getLogger().getErrorMessages();
+        Assert.assertEquals(2, errorMessages.size());
+        String messageText = errorMessages.get(0).getMsg();
+        Assert.assertTrue(messageText.contains("Excel") && messageText.contains("supported"));
     }
 }

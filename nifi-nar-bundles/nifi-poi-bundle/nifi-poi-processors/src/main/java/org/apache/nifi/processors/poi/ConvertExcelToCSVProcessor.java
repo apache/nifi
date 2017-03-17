@@ -192,23 +192,20 @@ public class ConvertExcelToCSVProcessor
                         }
                     } catch (InvalidFormatException ife) {
                         getLogger().error("Only .xlsx Excel 2007 OOXML files are supported", ife);
-                        FlowFile ff = session.putAttribute(flowFile,
-                                ConvertExcelToCSVProcessor.class.getName() + ".error", "Only .xlsx Excel 2007 file format documents are supported: " +
-                                        ife.getMessage());
-                        session.transfer(ff, FAILURE);
+                        throw new UnsupportedOperationException("Only .xlsx Excel 2007 OOXML files are supported", ife);
                     } catch (OpenXML4JException e) {
                         getLogger().error("Error occurred while processing Excel document metadata", e);
                     }
                 }
             });
 
-        } catch (Exception ex) {
-            getLogger().error("Failed to process incoming Excel document", ex);
-            FlowFile ff = session.putAttribute(flowFile,
-                    ConvertExcelToCSVProcessor.class.getName() + ".error", ex.getMessage());
-            session.transfer(ff, FAILURE);
-        } finally {
             session.transfer(flowFile, ORIGINAL);
+
+        } catch (RuntimeException ex) {
+            getLogger().error("Failed to process incoming Excel document", ex);
+            FlowFile failedFlowFile = session.putAttribute(flowFile,
+                    ConvertExcelToCSVProcessor.class.getName() + ".error", ex.getMessage());
+            session.transfer(failedFlowFile, FAILURE);
         }
     }
 
@@ -320,7 +317,7 @@ public class ConvertExcelToCSVProcessor
                     nextIsString = false;
                 }
             } else if (name.equals(SAX_ROW_REF)) {
-               firstColInRow = true;
+                firstColInRow = true;
             } else if (name.equals(SAX_SHEET_NAME_REF)) {
                 sheetName = attributes.getValue(0);
             }
