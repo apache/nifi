@@ -121,14 +121,14 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         }] as EventReporter
     }
 
-    private void closeRepo(PersistentProvenanceRepository repo = this.repo, RepositoryConfiguration config = this.config) throws IOException {
+    private void closeRepo(ProvenanceRepository repo = this.repo, RepositoryConfiguration config = this.config) throws IOException {
         if (repo == null) {
             return
         }
 
         try {
             repo.close()
-        } catch (final IOException ioe) {
+        } catch (IOException ioe) {
         }
 
         // Delete all of the storage files. We do this in order to clean up the tons of files that
@@ -141,7 +141,7 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
                     try {
                         FileUtils.deleteFile(storageDir, true)
                         break
-                    } catch (final IOException ioe) {
+                    } catch (IOException ioe) {
                         // if there is a virus scanner, etc. running in the background we may not be able to
                         // delete the file. Wait a sec and try again.
                         if (i == 2) {
@@ -222,7 +222,7 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
 
         logger.info("Recovered ${recoveredRecords.size()} events: ")
-        recoveredRecords.each { logger.info("\t${it}")}
+        recoveredRecords.each { logger.info("\t${it}") }
 
         // Assert
         assert recoveredRecords.size() == RECORD_COUNT
@@ -246,7 +246,9 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     void testWriteAheadProvenanceRepositoryShouldRegisterAndRetrieveEvents() throws IOException, InterruptedException {
         // Arrange
         config = createConfiguration()
-        config.setMaxEventFileCapacity(1L)
+        // Needed until NIFI-3605 is implemented
+//        config.setMaxEventFileCapacity(1L)
+        config.setMaxEventFileCount(1)
         config.setMaxEventFileLife(1, TimeUnit.SECONDS)
         repo = new WriteAheadProvenanceRepository(config)
         repo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
@@ -263,6 +265,9 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
         }
 
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
+
+        logger.info("Recovered ${recoveredRecords.size()} events: ")
+        recoveredRecords.each { logger.info("\t${it}") }
 
         // Assert
         assert recoveredRecords.size() == RECORD_COUNT
@@ -289,11 +294,11 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     }
 
     private static class ReportedEvent {
-         final Severity severity
-         final String category
-         final String message
+        final Severity severity
+        final String category
+        final String message
 
-         ReportedEvent(final Severity severity, final String category, final String message) {
+        ReportedEvent(final Severity severity, final String category, final String message) {
             this.severity = severity
             this.category = category
             this.message = message
