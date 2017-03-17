@@ -43,6 +43,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
@@ -58,7 +60,9 @@ import org.xml.sax.helpers.XMLReaderFactory;
 @Tags({"excel", "csv", "poi"})
 @CapabilityDescription("Consumes a Microsoft Excel document and converts each worksheet to csv. Each sheet from the incoming Excel " +
         "document will generate a new Flowfile that will be output from this processor. Each output Flowfile's contents will be formatted as a csv file " +
-        "where the each row from the excel sheet is output as a newline in the csv file.")
+        "where the each row from the excel sheet is output as a newline in the csv file. This processor is currently only capable of processing .xlsx " +
+        "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents. This processor also expects well formatted " +
+        "CSV content and will not escape cell's containing invalid content such as newlines or additional commas.")
 @WritesAttributes({@WritesAttribute(attribute="sheetname", description="The name of the Excel sheet that this particular row of data came from in the Excel document"),
         @WritesAttribute(attribute="numrows", description="The number of rows in this Excel Sheet"),
         @WritesAttribute(attribute="sourcefilename", description="The name of the Excel document file that this data originated from"),
@@ -80,6 +84,7 @@ public class ConvertExcelToCSVProcessor
     private static final String SAX_SHEET_NAME_REF = "sheetPr";
     private static final String DESIRED_SHEETS_DELIMITER = ",";
     private static final String UNKNOWN_SHEET_NAME = "UNKNOWN";
+    private static final String SAX_PARSER = "org.apache.xerces.parsers.SAXParser";
 
     public static final PropertyDescriptor DESIRED_SHEETS = new PropertyDescriptor
             .Builder().name("extract-sheets")
@@ -185,15 +190,23 @@ public class ConvertExcelToCSVProcessor
                                 handleExcelSheet(session, flowFile, sst, iter.next(), iter.getSheetName());
                             }
                         }
-                    } catch (Exception ex) {
-                        getLogger().error(ex.getMessage());
+                    } catch (InvalidFormatException ife) {
+                        getLogger().error("Only .xlsx Excel 2007 OOXML files are supported", ife);
+                        FlowFile ff = session.putAttribute(flowFile,
+                                ConvertExcelToCSVProcessor.class.getName() + ".error", "Only .xlsx Excel 2007 file format documents are supported: " +
+                                        ife.getMessage());
+                        session.transfer(ff, FAILURE);
+                    } catch (OpenXML4JException e) {
+                        getLogger().error("Error occurred while processing Excel document metadata", e);
                     }
                 }
             });
 
         } catch (Exception ex) {
-            getLogger().error(ex.getMessage());
-            session.transfer(flowFile, FAILURE);
+            getLogger().error("Failed to process incoming Excel document", ex);
+            FlowFile ff = session.putAttribute(flowFile,
+                    ConvertExcelToCSVProcessor.class.getName() + ".error", ex.getMessage());
+            session.transfer(ff, FAILURE);
         } finally {
             session.transfer(flowFile, ORIGINAL);
         }
@@ -207,14 +220,14 @@ public class ConvertExcelToCSVProcessor
      *  The NiFi ProcessSession instance for the current invocation.
      */
     private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF,
-            SharedStringsTable sst, final InputStream sheetInputStream, String sName) {
+            SharedStringsTable sst, final InputStream sheetInputStream, String sName) throws IOException {
 
         FlowFile ff = session.create();
         try {
 
             XMLReader parser =
                     XMLReaderFactory.createXMLReader(
-                            "org.apache.xerces.parsers.SAXParser"
+                            SAX_PARSER
                     );
             ExcelSheetRowHandler handler = new ExcelSheetRowHandler(sst);
             parser.setContentHandler(handler);
@@ -223,14 +236,15 @@ public class ConvertExcelToCSVProcessor
                 @Override
                 public void process(OutputStream out) throws IOException {
                     InputSource sheetSource = new InputSource(sheetInputStream);
+                    ExcelSheetRowHandler eh = null;
                     try {
-                        ExcelSheetRowHandler eh = (ExcelSheetRowHandler) parser.getContentHandler();
+                        eh = (ExcelSheetRowHandler) parser.getContentHandler();
                         eh.setFlowFileOutputStream(out);
                         parser.setContentHandler(eh);
                         parser.parse(sheetSource);
                         sheetInputStream.close();
-                    } catch (Exception ex) {
-                        getLogger().error(ex.getMessage());
+                    } catch (SAXException se) {
+                        getLogger().error("Error occurred while processing Excel sheet {}", new Object[]{eh.getSheetName()}, se);
                     }
                 }
             });
@@ -259,16 +273,12 @@ public class ConvertExcelToCSVProcessor
             session.transfer(ff, SUCCESS);
 
         } catch (SAXException saxE) {
-            getLogger().error(saxE.getMessage());
+            getLogger().error("Failed to create instance of SAXParser {}", new Object[]{SAX_PARSER}, saxE);
             ff = session.putAttribute(ff,
                     ConvertExcelToCSVProcessor.class.getName() + ".error", saxE.getMessage());
             session.transfer(ff, FAILURE);
         } finally {
-            try {
-                sheetInputStream.close();
-            } catch (IOException ioe) {
-                //nothing further can be done...
-            }
+            sheetInputStream.close();
         }
     }
 
@@ -277,7 +287,7 @@ public class ConvertExcelToCSVProcessor
      * Extracts every row from an Excel Sheet and generates a corresponding JSONObject whose key is the Excel CellAddress and value
      * is the content of that CellAddress converted to a String
      */
-    private static class ExcelSheetRowHandler
+    private class ExcelSheetRowHandler
             extends DefaultHandler {
 
         private SharedStringsTable sst;
@@ -333,13 +343,15 @@ public class ConvertExcelToCSVProcessor
                     try {
                         outputStream.write(currentContent.getBytes());
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        getLogger().error("IO error encountered while writing content of parsed cell " +
+                                "value from sheet {}", new Object[]{getSheetName()}, e);
                     }
                 } else {
                     try {
                         outputStream.write(("," + currentContent).getBytes());
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        getLogger().error("IO error encountered while writing content of parsed cell " +
+                                "value from sheet {}", new Object[]{getSheetName()}, e);
                     }
                 }
             }
@@ -351,7 +363,7 @@ public class ConvertExcelToCSVProcessor
                         rowCount++;
                         outputStream.write("\n".getBytes());
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        getLogger().error("IO error encountered while writing new line indicator", e);
                     }
                 }
             }
