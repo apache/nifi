@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
@@ -30,7 +29,7 @@ import org.apache.nifi.processor.Relationship;
 /**
  * Holder for provenance relevant information
  */
-public final class StandardProvenanceEventRecord implements ProvenanceEventRecord {
+public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
     private final long eventTime;
     private final long entryDate;
@@ -69,7 +68,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
 
     private volatile long eventId = -1L;
 
-    private StandardProvenanceEventRecord(final Builder builder) {
+    StandardProvenanceEventRecord(final Builder builder) {
         this.eventTime = builder.eventTime;
         this.entryDate = builder.entryDate;
         this.eventType = builder.eventType;
