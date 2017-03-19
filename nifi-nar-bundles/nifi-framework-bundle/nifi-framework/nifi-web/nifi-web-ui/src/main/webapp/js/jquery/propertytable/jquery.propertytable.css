@@ -1,0 +1,122 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Styles for the property table.
+*/
+
+div.required-property-note {
+    font-weight: bold;
+    font-size: 12px;
+    float: left;
+    height: 28px;
+    line-height: 28px;
+    margin-left: 6px;
+}
+
+div.add-property {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+div.add-property-text {
+    float: left;
+    margin-left: 5px;
+    height: 19px;
+    line-height: 19px;
+    color: #262626;
+}
+
+div.property-table {
+    position: absolute;
+    top: 42px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    min-height: 150px;
+}
+
+.property-table .fa {
+    float: right;
+    color: #004849;
+    line-height: 18px;
+}
+
+/*
+    New property dialog
+*/
+
+div.new-property-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+
+/*
+    Styles for the property editor.
+*/
+
+div.slickgrid-nfel-editor .nfel-editor, div.property-detail .nfel-editor {
+    margin-bottom: 5px;
+    margin-top: 10px;
+}
+
+div.edit-property-value {
+    height: 20px;
+    padding-right: 60px;
+}
+
+textarea.value-field {
+    float: left;
+    width: 95%;
+    height: 26px;
+    font-size: 11px !important;
+    resize: vertical;
+    overflow-y: auto;
+
+}
+
+div.string-check-container {
+    line-height: 20px;
+}
+
+div.string-check {
+    width: 12px;
+    height: 12px;
+    margin-top: 3px;
+}
+
+span.string-check-label {
+    font-size: 13px;
+    font-weight: normal;
+    color: #262626;
+}
+
+div.value pre {
+    overflow: hidden;
+}
+
+/*
+    Table styles
+*/
+
+td.right-border {
+    border-right: 1px solid #aaa;
+}
