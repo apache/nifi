@@ -1014,37 +1014,27 @@
          *
          * @param {selection} removed
          */
-        var removeTooltips = function (removed) {
-            removed.each(function (d) {
-                // remove any associated tooltips
-                $('#bulletin-tip-' + d.id).remove();
-            });
-        };
-    
-      var nfProcessGroup = {
-            /**
-             * Initializes of the Process Group handler.
-           *
-           * @param nfConnectableRef   The nfConnectable module.
-           * @param nfDraggableRef   The nfDraggable module.
-           * @param nfSelectableRef   The nfSelectable module.
-           * @param nfContextMenuRef   The nfContextMenu module.
-             */
-          init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
-              nfConnectable = nfConnectableRef;
-              nfDraggable = nfDraggableRef;
-              nfSelectable = nfSelectableRef;
-              nfContextMenu = nfContextMenuRef;
-  
-                processGroupMap = d3.map();
-              removedCache = d3.map();
-              addedCache = d3.map();
-    
-                // create the process group container
-                processGroupContainer = d3.select('#canvas').append('g')
-                    .attr({
-                        'pointer-events': 'all',
-                        'class': 'process-groups'
+        enterGroup: function (groupId) {
+
+            // hide the context menu
+            nfContextMenu.hide();
+
+            // set the new group id
+            nfCanvasUtils.setGroupId(groupId);
+
+            // reload the graph
+            return nfCanvasUtils.reload().done(function () {
+
+                // attempt to restore the view
+                var viewRestored = nfCanvasUtils.restoreUserView();
+
+                // if the view was not restore attempt to fit
+                if (viewRestored === false) {
+                    nfCanvasUtils.fitCanvasView();
+
+                    // refresh the canvas
+                    nfCanvasUtils.refreshCanvasView({
+                        transition: true
                     });
             },
     
