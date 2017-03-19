@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="login-progress-container" class="login-container hidden">
     <div id="login-progress-spinner" class="loading-container"></div>
     <div id="login-progress-label"></div>

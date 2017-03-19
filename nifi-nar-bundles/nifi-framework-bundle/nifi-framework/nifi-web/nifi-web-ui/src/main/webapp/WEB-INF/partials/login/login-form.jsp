@@ -15,18 +15,21 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="login-container" class="hidden">
-    <div class="login-title">Log In</div>
+    <div class="login-title"><fmt:message key="paritals.login.login-form.login-title"/></div>
     <div class="setting">
-        <div class="setting-name">User</div>
+        <div class="setting-name"><fmt:message key="paritals.login.login-form.Username"/></div>
         <div class="setting-field">
-            <input type="text" placeholder="user" id="username"/>
+        	<fmt:message key="paritals.login.login-form.User" var="user"/>
+            <input type="text" placeholder="${user}" id="username"/>
         </div>
     </div>
     <div class="setting">
-        <div class="setting-name">Password</div>
+        <div class="setting-name"><fmt:message key="paritals.login.login-form.Password"/></div>
         <div class="setting-field">
-            <input type="password" placeholder="password" id="password"/>
+        	<fmt:message key="paritals.login.login-form.Password" var="password"/>
+            <input type="password" placeholder="${password}" id="password"/>
         </div>
     </div>
 </div>

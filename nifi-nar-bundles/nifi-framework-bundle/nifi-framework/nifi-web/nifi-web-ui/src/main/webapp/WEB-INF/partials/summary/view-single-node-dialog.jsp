@@ -15,10 +15,11 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="view-single-node-dialog" class="hidden small-dialog">
     <div class="dialog-content">
         <input id="cluster-search-field" type="text"/>
-        <div id="cluster-search-example">(e.g.&nbsp;my.host:80)</div>
+        <div id="cluster-search-example">(<fmt:message key="partials.summary.view-single-node-dialog.cluster-search-example"/>&nbsp;my.host:80)</div>
     </div>
 </div>
 <div id="search-cluster-results"></div>

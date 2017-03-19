@@ -15,35 +15,37 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="component-state-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Name</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.component-state-dialog.Name"/></div>
             <div class="setting-field">
                 <div id="component-state-name"></div>
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Description</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.component-state-dialog.Description"/></div>
             <div id="component-state-description" class="ellipsis multiline"></div>
         </div>
         <div>
             <div id="component-state-partial-results-container" class="hidden">
-                Showing partial results
+                <fmt:message key="partials.canvas.component-state-dialog.component-state-partial-results-container"/>
             </div>
             <div id="component-state-filter-controls">
                 <div id="component-state-filter-status" class="filter-status">
-                    Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
+                    <fmt:message key="partials.canvas.component-state-dialog.component-state-filter-status1"/>&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;<fmt:message key="partials.canvas.component-state-dialog.component-state-filter-status2"/>&nbsp;<span id="total-component-state-entries"></span>
                 </div>
                 <div id="component-state-filter-container">
-                    <input type="text" id="component-state-filter" placeholder="Filter"/>
+                <fmt:message key="partials.canvas.component-state-dialog.component-state-filter" var="filter"/>
+                    <input type="text" id="component-state-filter" placeholder="${filter}"/>
                 </div>
             </div>
             <div class="clear"></div>
         </div>
         <div id="component-state-table"></div>
         <div id="clear-link-container">
-            <span id="clear-link" class="link">Clear state</span>
+            <span id="clear-link" class="link"><fmt:message key="partials.canvas.component-state-dialog.clear-link"/></span>
         </div>
     </div>
 </div>

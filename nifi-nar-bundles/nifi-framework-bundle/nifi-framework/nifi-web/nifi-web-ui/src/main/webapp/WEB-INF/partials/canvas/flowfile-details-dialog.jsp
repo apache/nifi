@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="flowfile-details-dialog" layout="column" class="hidden large-dialog">
     <div id="flowfile-details-dialog-content" class="dialog-content">
         <div id="flowfile-details-tabs" class="tab-container"></div>
@@ -24,39 +25,39 @@
                 <span id="flowfile-cluster-node-id" class="hidden"></span>
                 <div class="settings-left">
                     <div id="flowfile-details">
-                        <div class="flowfile-header">FlowFile Details</div>
+                        <div class="flowfile-header"><fmt:message key="partials.canvas.flowfile-details-dialog.detail"/></div>
                         <div class="flowfile-detail">
                             <div class="detail-name">UUID</div>
                             <div id="flowfile-uuid" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">Filename</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.filename"/></div>
                             <div id="flowfile-filename" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">File Size</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.filesize"/></div>
                             <div id="flowfile-file-size" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">Queue Position</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.queuelocation"/></div>
                             <div id="flowfile-queue-position" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">Queued Duration</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.queueduration"/></div>
                             <div id="flowfile-queued-duration" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">Lineage Duration</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.lineageduration"/></div>
                             <div id="flowfile-lineage-duration" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="detail-name">Penalized</div>
+                            <div class="detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.penalized"/></div>
                             <div id="flowfile-penalized" class="detail-value"></div>
                             <div class="clear"></div>
                         </div>
@@ -66,36 +67,36 @@
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">
                     <div id="flowfile-content-details" class="content-details">
-                        <div class="flowfile-header">Content Claim</div>
+                        <div class="flowfile-header"><fmt:message key="partials.canvas.flowfile-details-dialog.contentclaim"/></div>
                         <div class="flowfile-detail">
-                            <div class="content-detail-name">Container</div>
+                            <div class="content-detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.container"/></div>
                             <div id="content-container" class="content-detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="content-detail-name">Section</div>
+                            <div class="content-detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.section"/></div>
                             <div id="content-section" class="content-detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="content-detail-name">Identifier</div>
+                            <div class="content-detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.identifier"/></div>
                             <div id="content-identifier" class="content-detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="content-detail-name">Offset</div>
+                            <div class="content-detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.offset"/></div>
                             <div id="content-offset" class="content-detail-value"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div class="content-detail-name">Size</div>
+                            <div class="content-detail-name"><fmt:message key="partials.canvas.flowfile-details-dialog.size"/></div>
                             <div id="content-size" class="content-detail-value"></div>
                             <div id="content-bytes" class="content-detail-value hidden"></div>
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div id="content-download" class="secondary-button fa fa-download button-icon"><span>Download</span></div>
-                            <div id="content-view" class="secondary-button fa fa-eye button-icon hidden"><span>View</span></div>
+                            <div id="content-download" class="secondary-button fa fa-download button-icon"><span><fmt:message key="partials.canvas.flowfile-details-dialog.download"/></span></div>
+                            <div id="content-view" class="secondary-button fa fa-eye button-icon hidden"><span><fmt:message key="partials.canvas.flowfile-details-dialog.view"/></span></div>
                             <div class="clear"></div>
                         </div>
                     </div>
@@ -104,7 +105,7 @@
             </div>
             <div id="flowfile-attributes-tab-content" class="details-tab">
                 <div id="flowfile-attributes-details">
-                    <div id="flowfile-attributes-header" class="flowfile-header">Attribute Values</div>
+                    <div id="flowfile-attributes-header" class="flowfile-header"><fmt:message key="partials.canvas.flowfile-details-dialog.attributevalue"/></div>
                     <div class="clear"></div>
                     <div id="flowfile-attributes-container"></div>
                 </div>

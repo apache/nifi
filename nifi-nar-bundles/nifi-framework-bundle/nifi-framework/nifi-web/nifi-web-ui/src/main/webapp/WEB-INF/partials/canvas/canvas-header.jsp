@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <md-toolbar id="header" layout-align="space-between center" layout="row" class="md-small md-accent md-hue-1">
     <img id="nifi-logo" src="images/nifi-logo.svg">
     <div flex layout="row" layout-align="space-between center">
@@ -85,11 +86,11 @@
                 </div>
                 <div id="login-link-container">
                     <span id="login-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">log in</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();"><fmt:message key="partials.canvas.canvas-header.login"/></span>
                 </div>
                 <div id="logout-link-container" style="display: none;">
                     <span id="logout-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">log out</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();"><fmt:message key="partials.canvas.canvas-header.logout"/></span>
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">
@@ -100,20 +101,20 @@
                     <md-menu-item layout-align="space-around center">
                         <a id="reporting-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.summary.shell.launch();">
-                            <i class="fa fa-table"></i>Summary
+                            <i class="fa fa-table"></i><fmt:message key="partials.canvas.canvas-header.reporting-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="counters-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessCounters()}">
-                            <i class="icon icon-counter"></i>Counters
+                            <i class="icon icon-counter"></i><fmt:message key="partials.canvas.canvas-header.counters-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="bulletin-board-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.bulletinBoard.shell.launch();">
-                            <i class="fa fa-sticky-note-o"></i>Bulletin Board
+                            <i class="fa fa-sticky-note-o"></i></i><fmt:message key="partials.canvas.canvas-header.bulletin-board-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
@@ -122,14 +123,14 @@
                         <a id="provenance-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessProvenance()}">
-                            <i class="icon icon-provenance"></i>Data Provenance
+                            <i class="icon icon-provenance"></i><fmt:message key="partials.canvas.canvas-header.provenance-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="flow-settings-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();">
-                            <i class="fa fa-wrench"></i>Controller Settings
+                            <i class="fa fa-wrench"></i><fmt:message key="partials.canvas.canvas-header.flow-settings-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.visible();"
@@ -137,13 +138,13 @@
                         <a id="cluster-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();"
                            ng-class="{disabled: !appCtrl.nf.Common.canAccessController()}">
-                            <i class="fa fa-cubes"></i>Cluster
+                            <i class="fa fa-cubes"></i><fmt:message key="partials.canvas.canvas-header.cluster-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="history-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.flowConfigHistory.shell.launch();">
-                            <i class="fa fa-history"></i>Flow Configuration History
+                            <i class="fa fa-history"></i><fmt:message key="partials.canvas.canvas-header.history-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-divider ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()"></md-menu-divider>
@@ -151,34 +152,34 @@
                         <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants())}">
-                            <i class="fa fa-users"></i>Users
+                            <i class="fa fa-users"></i><fmt:message key="partials.canvas.canvas-header.users-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()">
                         <a id="policies-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">
-                            <i class="fa fa-key"></i>Policies
+                            <i class="fa fa-key"></i><fmt:message key="partials.canvas.canvas-header.policies-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="templates-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
-                            <i class="icon icon-template"></i>Templates
+                            <i class="icon icon-template"></i><fmt:message key="partials.canvas.canvas-header.templates-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="help-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.help.shell.launch();">
-                            <i class="fa fa-question-circle"></i>Help
+                            <i class="fa fa-question-circle"></i><fmt:message key="partials.canvas.canvas-header.help-link"/>
                         </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="about-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.about.modal.show();">
-                            <i class="fa fa-info-circle"></i>About
+                            <i class="fa fa-info-circle"></i><fmt:message key="partials.canvas.canvas-header.about-link"/>
                         </a>
                     </md-menu-item>
                 </md-menu-content>

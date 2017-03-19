@@ -15,22 +15,24 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="queue-listing-container" class="hidden" class="hidden medium-dialog">
     <div id="queue-listing-header-container">
         <div id="queue-listing-header-text"></div>
     </div>
     <div id="queue-listing-stats-container">
         <div id="queue-listing-stats" class="filter-status">
-            Displaying&nbsp;<span id="displayed-flowfiles"></span>&nbsp;of&nbsp;<span id="total-flowfiles-count"></span>&nbsp;(<span id="total-flowfiles-size"></span>)
+            <fmt:message key="partials.canvas.queue-listing.queue-listing-stats-deploy"/>&nbsp;<span id="displayed-flowfiles"></span>&nbsp;<fmt:message key="partials.canvas.queue-listing.queue-listing-stats-of"/>&nbsp;<span id="total-flowfiles-count"></span>&nbsp;(<span id="total-flowfiles-size"></span>)
         </div>
         <div class="clear"></div>
     </div>
     <div id="queue-listing-table"></div>
     <div id="queue-listing-message" class="hidden"></div>
     <div id="queue-listing-refresh-container">
-        <button id="queue-listing-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    	<fmt:message key="partials.canvas.queue-listing.queue-listing-refresh-button" var="refresh"/>
+        <button id="queue-listing-refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
         <div id="queue-listing-last-refreshed-container" class="last-refreshed-container">
-            Last updated:&nbsp;<span id="queue-listing-last-refreshed"></span>
+            <fmt:message key="partials.canvas.queue-listing.lastUpdate"/>:&nbsp;<span id="queue-listing-last-refreshed"></span>
         </div>
         <div id="queue-listing-loading-container" class="loading-container"></div>
     </div>

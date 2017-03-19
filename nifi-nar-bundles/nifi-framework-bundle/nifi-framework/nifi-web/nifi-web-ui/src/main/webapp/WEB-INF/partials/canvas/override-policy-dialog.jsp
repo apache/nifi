@@ -15,12 +15,13 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="override-policy-dialog" class="hidden small-dialog">
     <div class="dialog-content">
-        <div>Do you want to override with a copy of the inherited policy or an empty policy?</div>
+        <div><fmt:message key="partials.canvas.override-policy-dialog.content"/></div>
         <div style="margin-top: 10px;">
-            <label for="copy-policy-radio-button"><input id="copy-policy-radio-button" type="radio" name="emptyOrCopy" value="copy" checked="checked"/> Copy</label>
-            <label for="empty-policy-radio-button"><input id="empty-policy-radio-button" type="radio" name="emptyOrCopy" value="policy"/> Empty</label>
+            <label for="copy-policy-radio-button"><input id="copy-policy-radio-button" type="radio" name="emptyOrCopy" value="copy" checked="checked"/> <fmt:message key="partials.canvas.override-policy-dialog.Copy"/></label>
+            <label for="empty-policy-radio-button"><input id="empty-policy-radio-button" type="radio" name="emptyOrCopy" value="policy"/> <fmt:message key="partials.canvas.override-policy-dialog.Empty"/></label>
         </div>
     </div>
 </div>

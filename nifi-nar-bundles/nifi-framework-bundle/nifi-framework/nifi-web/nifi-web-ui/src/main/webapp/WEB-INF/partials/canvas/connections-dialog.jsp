@@ -15,17 +15,18 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="connections-dialog" class="hidden">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Selected component</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.connections-dialog.SelectedComponent"/></div>
             <div class="setting-field">
                 <div id="connections-context"></div>
             </div>
         </div>
         <div class="setting">
-            <div id="connections-source" class="setting-name">Source</div>
-            <div id="connections-destination" class="setting-name">Destination</div>
+            <div id="connections-source" class="setting-name"><fmt:message key="partials.canvas.connections-dialog.Source"/></div>
+            <div id="connections-destination" class="setting-name"><fmt:message key="partials.canvas.connections-dialog.Destination"/></div>
             <div class="clear"></div>
             <div class="setting-field">
                 <div id="connections-container"></div>

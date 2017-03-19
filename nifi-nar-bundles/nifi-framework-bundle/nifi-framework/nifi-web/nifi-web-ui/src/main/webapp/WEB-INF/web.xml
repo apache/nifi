@@ -15,7 +15,15 @@
 -->
 <web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
     <display-name>nifi</display-name>
-    
+    <!-- jstl resource -->
+    <context-param>
+       <param-name>javax.servlet.jsp.jstl.fmt.localizationContext</param-name>
+       <param-value>Messages</param-value>   
+    </context-param>
+    <context-param>
+       <param-name>javax.servlet.jsp.jstl.fmt.locale</param-name>
+       <param-value>cn</param-value>          
+    </context-param>
     <!-- servlet to map to canvas page -->
     <servlet>
         <servlet-name>NiFiCanvas</servlet-name>

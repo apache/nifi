@@ -15,10 +15,11 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="instantiate-template-dialog" class="hidden small-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Choose Template:</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.instantiate-template-dialog.choosetmplate"/>:</div>
             <div id="available-templates" name="available-templates"></div>
         </div>
     </div>

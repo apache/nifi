@@ -15,19 +15,21 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="new-processor-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
             <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name">Tag Cloud:</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.new-processor-dialog.TagCloud"/>:</div>
             </div>
             <div flex layout="row" layout-align="space-between center" id="processor-type-filter-controls">
                 <div id="processor-type-filter-status" class="filter-status">
-                    Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span
+                    <fmt:message key="partials.canvas.new-processor-dialog.Displaying"/>&nbsp;<span id="displayed-processor-types"></span>&nbsp;<fmt:message key="partials.canvas.new-processor-dialog.Of"/>&nbsp;<span
                         id="total-processor-types"></span>
                 </div>
                 <div id="processor-type-filter-container">
-                    <input type="text" placeholder="Filter" id="processor-type-filter"/>
+                <fmt:message key="partials.canvas.new-processor-dialog.processor-type-filter-container" var="filter"/>
+                    <input type="text" placeholder="${filter}" id="processor-type-filter"/>
                 </div>
             </div>
         </div>
@@ -41,7 +43,7 @@
             </div>
             <div layout="column" flex id="processor-types-container">
                 <div id="processor-types-table" class="unselectable"></div>
-                <div id="processor-type-name-title" class="ellipsis">Selected Processor:</div>
+                <div id="processor-type-name-title" class="ellipsis"><fmt:message key="partials.canvas.new-processor-dialog.processor-type-name-title"/>:</div>
                 <div id="processor-type-name" class="ellipsis"></div>
                 <div id="processor-description-container">
                     <div id="processor-type-description" class="ellipsis multiline"></div>

@@ -15,22 +15,23 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="port-details" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="port-setting">
-            <div class="setting-name">Port name</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.port-details.PortName"/></div>
             <div class="setting-field">
                 <span id="read-only-port-name"></span>
             </div>
         </div>
         <div class="port-setting">
-            <div class="setting-name">Id</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.port-details.Id"/></div>
             <div class="setting-field">
                 <span id="read-only-port-id"></span>
             </div>
         </div>
         <div class="port-setting">
-            <div class="setting-name">Comments</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.port-details.Comments"/></div>
             <div class="setting-field">
                 <div id="read-only-port-comments"></div>
             </div>

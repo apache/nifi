@@ -15,16 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="policy-management">
-    <div id="policy-management-header-text">Access Policies</div>
+    <div id="policy-management-header-text"><fmt:message key="partials.canvas.policy-management.policy-management-header-text"/></div>
     <div id="policy-controls-container">
         <span id="selected-policy-action" class="hidden"></span>
         <span id="selected-policy-type" class="hidden"></span>
         <div id="policy-message-container">
             <div id="policy-message"></div>
-            <div id="new-policy-message" class="hidden"><span id="create-policy-link" class="link">Create</span> a new policy.</div>
-            <div id="override-policy-message" class="hidden"><span id="override-policy-link" class="link">Override</span> this policy.</div>
-            <div id="add-local-admin-message" class="hidden"><span id="add-local-admin-link" class="link">Add</span> policy for additional administrators.</div>
+            <div id="new-policy-message" class="hidden"><span id="create-policy-link" class="link"><fmt:message key="partials.canvas.policy-management.create-policy-link"/></span> <fmt:message key="partials.canvas.policy-management.new-policy-message"/>.</div>
+            <div id="override-policy-message" class="hidden"><span id="override-policy-link" class="link"><fmt:message key="partials.canvas.policy-management.override-policy-link"/></span> <fmt:message key="partials.canvas.policy-management.override-policy-message"/>.</div>
+            <div id="add-local-admin-message" class="hidden"><span id="add-local-admin-link" class="link"><fmt:message key="partials.canvas.policy-management.add-local-admin-link"/></span> <fmt:message key="partials.canvas.policy-management.add-local-admin-message"/>.</div>
             <div class="clear"></div>
         </div>
         <div id="global-policy-controls" class="hidden policy-controls">
@@ -49,7 +50,7 @@
                 </div>
                 <div class="policy-selected-component-details-container">
                     <div class="policy-selected-component-name"></div>
-                    <div class="policy-selected-component-type">Template</div>
+                    <div class="policy-selected-component-type"><fmt:message key="partials.canvas.policy-management.policy-selected-component-type1"/></div>
                 </div>
                 <div class="clear"></div>
             </div>
@@ -59,7 +60,7 @@
                 </div>
                 <div class="policy-selected-component-details-container">
                     <div class="policy-selected-component-name"></div>
-                    <div class="policy-selected-component-type">Controller Service</div>
+                    <div class="policy-selected-component-type"><fmt:message key="partials.canvas.policy-management.policy-selected-component-type2"/></div>
                 </div>
                 <div class="clear"></div>
             </div>
@@ -69,7 +70,7 @@
                 </div>
                 <div class="policy-selected-component-details-container">
                     <div class="policy-selected-component-name"></div>
-                    <div class="policy-selected-component-type">Reporting Task</div>
+                    <div class="policy-selected-component-type"><fmt:message key="partials.canvas.policy-management.policy-selected-component-type3"/></div>
                 </div>
                 <div class="clear"></div>
             </div>
@@ -84,12 +85,13 @@
     </div>
     <div id="policy-table"></div>
     <div id="policy-refresh-container">
-        <button id="policy-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    	<fmt:message key="partials.canvas.policy-management.policy-refresh-button" var="refresh"/>
+        <button id="policy-refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
         <div class="last-refreshed-container">
-            Last updated:&nbsp;<span id="policy-last-refreshed" class="last-refreshed"></span>
+            <fmt:message key="partials.canvas.policy-management.last-refreshed-container"/>:&nbsp;<span id="policy-last-refreshed" class="last-refreshed"></span>
         </div>
         <div id="policy-loading-container" class="loading-container"></div>
-        <div id="admin-policy-message" class="hidden">Only listing component specific administrators. Inherited administrators not shown.</div>
+        <div id="admin-policy-message" class="hidden"><fmt:message key="partials.canvas.policy-management.admin-policy-message"/></div>
         <div class="clear"></div>
     </div>
 </div>

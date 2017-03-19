@@ -15,5 +15,6 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="banner-header" class="utility-banner-header"></div>
 <div id="banner-footer" class="utility-banner-footer"></div>

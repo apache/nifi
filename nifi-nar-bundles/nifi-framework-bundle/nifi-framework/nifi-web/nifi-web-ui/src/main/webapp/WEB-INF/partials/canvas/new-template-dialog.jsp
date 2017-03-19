@@ -15,16 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="new-template-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Name</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.new-template-dialog.Name"/></div>
             <div class="setting-field">
                 <input id="new-template-name" class="new-template-field" type="text"/>
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Description</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.new-template-dialog.Description"/></div>
             <div class="setting-field">
                 <textarea cols="30" rows="8" id="new-template-description" class="new-template-field"></textarea>
             </div>

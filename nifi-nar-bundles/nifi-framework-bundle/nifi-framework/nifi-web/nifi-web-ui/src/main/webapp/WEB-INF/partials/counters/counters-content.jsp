@@ -15,15 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="counters">
     <div id="counters-header-and-filter">
-        <div id="counters-header-text">NiFi Counters</div>
+        <div id="counters-header-text"><fmt:message key="partials.counters.counters-content.counters-header-text"/></div>
         <div id="counters-filter-controls">
             <div id="counters-filter-stats" class="filter-status">
-                Displaying&nbsp;<span id="displayed-counters"></span>&nbsp;of&nbsp;<span id="total-counters"></span>
+                <fmt:message key="partials.counters.counters-content.Displaying"/><span id="displayed-counters"></span><fmt:message key="partials.counters.counters-content.Of"/><span id="total-counters"></span>
             </div>
             <div id="counters-filter-container" class="filter-container">
-                <input type="text" id="counters-filter" placeholder="Filter" class="filter"/>
+            	<fmt:message key="partials.counters.counters-content.Filter" var="filter"/>
+                <input type="text" id="counters-filter" placeholder="${filter}" class="filter"/>
                 <div id="counters-filter-type" class="filter-type"></div>
             </div>
         </div>
@@ -31,9 +33,10 @@
     <div id="counters-table"></div>
 </div>
 <div id="counters-refresh-container">
-    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+	<fmt:message key="partials.counters.counters-content.Refresh" var="refresh"/>
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
     <div id="counters-last-refreshed-container" class="last-refreshed-container">
-        Last updated:&nbsp;<span id="counters-last-refreshed" class="value-color"></span>
+        <fmt:message key="partials.counters.counters-content.LastUpdated"/><span id="counters-last-refreshed" class="value-color"></span>
     </div>
     <div id="counters-loading-container" class="loading-container"></div>
 </div>
