@@ -36,9 +36,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -87,6 +87,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private int numThreads = 1;
     private MockSessionFactory sessionFactory;
+    private long runSchedule = 0;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
@@ -177,11 +178,11 @@ public class StandardProcessorTestRunner implements TestRunner {
                 }
             }
 
-            final ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+            final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numThreads);
             @SuppressWarnings("unchecked")
             final Future<Throwable>[] futures = new Future[iterations];
             for (int i = 0; i < iterations; i++) {
-                final Future<Throwable> future = executorService.submit(new RunProcessor());
+                final Future<Throwable> future = executorService.schedule(new RunProcessor(), i * runSchedule, TimeUnit.MILLISECONDS);
                 futures[i] = future;
             }
 
@@ -906,5 +907,16 @@ public class StandardProcessorTestRunner implements TestRunner {
                 Assert.fail("FlowFile " + flowFile + " does not meet all condition");
             }
         }
+    }
+
+    /**
+     * Set the Run Schedule parameter (in milliseconds). If set, this will be the duration
+     * between two calls of the onTrigger method.
+     *
+     * @param runSchedule Run schedule duration in milliseconds.
+     */
+    @Override
+    public void setRunSchedule(long runSchedule) {
+        this.runSchedule = runSchedule;
     }
 }
