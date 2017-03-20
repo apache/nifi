@@ -25,7 +25,7 @@ ARG MINIFI_VERSION=0.2.0
 
 ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION
-ENV MINIFI_BINARY_URL https://archive.apache.org/dist/minifi/$MINIFI_VERSION/minifi-$MINIFI_VERSION-bin.tar.gz
+ENV MINIFI_BINARY_URL https://archive.apache.org/dist/nifi/minifi/$MINIFI_VERSION/minifi-$MINIFI_VERSION-bin.tar.gz
 
 # Setup MiNiFi user
 RUN groupadd -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
