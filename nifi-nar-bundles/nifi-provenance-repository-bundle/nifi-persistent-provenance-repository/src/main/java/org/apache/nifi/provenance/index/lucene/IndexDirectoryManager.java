@@ -75,7 +75,7 @@ public class IndexDirectoryManager {
 
                 final long startTime = DirectoryUtils.getIndexTimestamp(indexDir);
                 final List<IndexLocation> dirsForTimestamp = indexLocationByTimestamp.computeIfAbsent(startTime, t -> new ArrayList<>());
-                final IndexLocation indexLoc = new IndexLocation(indexDir, startTime, partitionName, repoConfig.getDesiredIndexSize());
+                final IndexLocation indexLoc = new IndexLocation(indexDir, startTime, partitionName);
                 dirsForTimestamp.add(indexLoc);
 
                 final Tuple<Long, IndexLocation> tuple = latestIndexByStorageDir.get(storageDir);
@@ -99,8 +99,7 @@ public class IndexDirectoryManager {
             final Map.Entry<Long, List<IndexLocation>> entry = itr.next();
             final List<IndexLocation> locations = entry.getValue();
 
-            final IndexLocation locToRemove = new IndexLocation(directory, DirectoryUtils.getIndexTimestamp(directory),
-                directory.getName(), repoConfig.getDesiredIndexSize());
+            final IndexLocation locToRemove = new IndexLocation(directory, DirectoryUtils.getIndexTimestamp(directory), directory.getName());
             locations.remove(locToRemove);
             if (locations.isEmpty()) {
                 itr.remove();
@@ -334,8 +333,8 @@ public class IndexDirectoryManager {
      */
     public synchronized File getWritableIndexingDirectory(final long earliestTimestamp, final String partitionName) {
         IndexLocation indexLoc = activeIndices.get(partitionName);
-        if (indexLoc == null || indexLoc.isIndexFull()) {
-            indexLoc = new IndexLocation(createIndex(earliestTimestamp, partitionName), earliestTimestamp, partitionName, repoConfig.getDesiredIndexSize());
+        if (indexLoc == null) {
+            indexLoc = new IndexLocation(createIndex(earliestTimestamp, partitionName), earliestTimestamp, partitionName);
             logger.debug("Created new Index Directory {}", indexLoc);
 
             indexLocationByTimestamp.computeIfAbsent(earliestTimestamp, t -> new ArrayList<>()).add(indexLoc);
