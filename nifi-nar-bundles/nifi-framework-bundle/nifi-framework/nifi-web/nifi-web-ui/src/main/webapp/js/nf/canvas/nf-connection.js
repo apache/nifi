@@ -1878,22 +1878,127 @@
                                 });
                             }
                         }
-    
-                        // stop further propagation
-                        d3.event.sourceEvent.stopPropagation();
-                    });
-            },
-    
-            /**
-             * Adds the specified connection entity.
-             *
-             * @param connectionEntities       The connection
-             * @param options           Configuration options
-             */
-            add: function (connectionEntities, options) {
-                var selectAll = false;
-              if (nfCommon.isDefinedAndNotNull(options)) {
-                  selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                    }
+
+                    // stop further propagation
+                    d3.event.sourceEvent.stopPropagation();
+                });
+        },
+
+        /**
+         * Adds the specified connection entity.
+         *
+         * @param connectionEntities       The connection
+         * @param options           Configuration options
+         */
+        add: function (connectionEntities, options) {
+            var selectAll = false;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
+
+            // get the current time
+            var now = new Date().getTime();
+
+            var add = function (connectionEntity) {
+                addedCache.set(connectionEntity.id, now);
+
+                // add the connection
+                connectionMap.set(connectionEntity.id, $.extend({
+                    type: 'Connection'
+                }, connectionEntity));
+            };
+
+            // determine how to handle the specified connection
+            if ($.isArray(connectionEntities)) {
+                $.each(connectionEntities, function (_, connectionEntity) {
+                    add(connectionEntity);
+                });
+            } else if (nfCommon.isDefinedAndNotNull(connectionEntities)) {
+                add(connectionEntities);
+            }
+
+            // apply the selection and handle new connections
+            var selection = select();
+            selection.enter().call(renderConnections, selectAll);
+            selection.call(updateConnections, {
+                'updatePath': true,
+                'updateLabel': false
+            }).call(sort);
+        },
+
+        /**
+         * Determines if the specified selection is disconnected from other nodes.
+         *
+         * @argument {selection} selection          The selection
+         */
+        isDisconnected: function (selection) {
+
+            // if nothing is selected return
+            if (selection.empty()) {
+                return false;
+            }
+            var connections = d3.map();
+            var components = d3.map();
+            var isDisconnected = true;
+
+            // include connections
+            selection.filter(function (d) {
+                return d.type === 'Connection';
+            }).each(function (d) {
+                connections.set(d.id, d);
+            });
+
+            // include components and ensure their connections are included
+            selection.filter(function (d) {
+                return d.type !== 'Connection';
+            }).each(function (d) {
+                components.set(d.id, d.component);
+
+                // check all connections of this component
+                $.each(nfConnection.getComponentConnections(d.id), function (_, connection) {
+                    if (!connections.has(connection.id)) {
+                        isDisconnected = false;
+                        return false;
+                    }
+                });
+            });
+            if (isDisconnected) {
+
+                // go through each connection to ensure its source and destination are included
+                connections.forEach(function (id, connection) {
+                    if (isDisconnected) {
+
+                        // determine whether this connection and its components are included within the selection
+                        isDisconnected = components.has(nfCanvasUtils.getConnectionSourceComponentId(connection)) && components.has(nfCanvasUtils.getConnectionDestinationComponentId(connection));
+                    }
+                });
+            }
+            return isDisconnected;
+        },
+
+        /**
+         * Populates the graph with the specified connections.
+         *
+         * @argument {object | array} connectionEntities               The connections to add
+         * @argument {object} options                Configuration options
+         */
+        set: function (connectionEntities, options) {
+            var selectAll = false;
+            var transition = false;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            }
+
+            var set = function (proposedConnectionEntity) {
+                var currentConnectionEntity = connectionMap.get(proposedConnectionEntity.id);
+
+                // set the connection if appropriate due to revision and wasn't previously removed
+                if (nfClient.isNewerRevision(currentConnectionEntity, proposedConnectionEntity) && !removedCache.has(proposedConnectionEntity.id)) {
+                    connectionMap.set(proposedConnectionEntity.id, $.extend({
+                        type: 'Connection'
+                    }, proposedConnectionEntity));
                 }
     
               // get the current time
