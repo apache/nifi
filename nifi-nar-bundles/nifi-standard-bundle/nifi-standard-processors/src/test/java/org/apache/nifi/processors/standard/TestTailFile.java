@@ -20,8 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -31,13 +33,15 @@ import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
 import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -660,6 +664,38 @@ public class TestTailFile {
     }
 
     @Test
+    public void testDetectNewFile() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
+        runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
+        runner.setProperty(TailFile.RECURSIVE, "false");
+        runner.setProperty(TailFile.ROLLING_STRATEGY, TailFile.FIXED_NAME);
+
+        initializeFile("target/log_1.txt", "firstLine\n");
+
+        Runnable task = () -> {
+            try {
+                initializeFile("target/log_2.txt", "newFile\n");
+            } catch (Exception e) {
+                fail();
+            }
+        };
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.schedule(task, 2, TimeUnit.SECONDS);
+
+        runner.setRunSchedule(2000);
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("newFile\n")));
+
+        runner.shutdown();
+    }
+
+    @Test
     public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
         runner.setVariable("vrBaseDirectory", "target");
         runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
@@ -931,6 +967,18 @@ public class TestTailFile {
     private void clean() {
         cleanFiles("target");
         cleanFiles("target/testDir");
+    }
+
+    private RandomAccessFile initializeFile(String path, String data) throws IOException {
+        File file = new File(path);
+        if(file.exists()) {
+            file.delete();
+        }
+        assertTrue(file.createNewFile());
+        RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+        randomAccessFile.write(data.getBytes());
+        randomAccessFile.close();
+        return randomAccessFile;
     }
 
 }

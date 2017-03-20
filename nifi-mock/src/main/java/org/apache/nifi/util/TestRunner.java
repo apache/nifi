@@ -965,4 +965,12 @@ public interface TestRunner {
      */
     void enforceReadStreamsClosed(boolean enforce);
 
+    /**
+     * Set the Run Schedule parameter (in milliseconds). If set, this will be the duration
+     * between two calls of the onTrigger method.
+     *
+     * @param runSchedule Run schedule duration in milliseconds.
+     */
+     void setRunSchedule(long runSchedule);
+
 }
