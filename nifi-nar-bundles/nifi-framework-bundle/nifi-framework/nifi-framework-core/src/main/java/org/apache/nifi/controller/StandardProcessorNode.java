@@ -18,13 +18,9 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -248,7 +244,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *            new comments
      */
     @Override
-    public void setComments(final String comments) {
+    public synchronized void setComments(final String comments) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -261,7 +257,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setPosition(final Position position) {
+    public synchronized void setPosition(final Position position) {
         this.position.set(position);
     }
 
@@ -271,7 +267,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setStyle(final Map<String, String> style) {
+    public synchronized void setStyle(final Map<String, String> style) {
         if (style != null) {
             this.style.set(Collections.unmodifiableMap(new HashMap<>(style)));
         }
@@ -337,7 +333,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *            tolerant
      */
     @Override
-    public void setLossTolerant(final boolean lossTolerant) {
+    public synchronized void setLossTolerant(final boolean lossTolerant) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -397,7 +393,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setName(final String name) {
+    public synchronized void setName(final String name) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -433,7 +429,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *             Processor
      */
     @Override
-    public void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
+    public synchronized void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
         if (schedulingStrategy == SchedulingStrategy.EVENT_DRIVEN && !processorRef.get().isEventDrivenSupported()) {
             // not valid. Just ignore it. We don't throw an Exception because if
             // a developer changes a Processor so that
@@ -460,7 +456,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setScheduldingPeriod(final String schedulingPeriod) {
+    public synchronized void setScheduldingPeriod(final String schedulingPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -494,7 +490,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setExecutionNode(final ExecutionNode executionNode) {
+    public synchronized void setExecutionNode(final ExecutionNode executionNode) {
         this.executionNode = executionNode;
     }
 
@@ -509,7 +505,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setRunDuration(final long duration, final TimeUnit timeUnit) {
+    public synchronized void setRunDuration(final long duration, final TimeUnit timeUnit) {
         if (duration < 0) {
             throw new IllegalArgumentException("Run Duration must be non-negative value; cannot set to "
                     + timeUnit.toSeconds(duration) + " seconds");
@@ -529,7 +525,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setYieldPeriod(final String yieldPeriod) {
+    public synchronized void setYieldPeriod(final String yieldPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -587,7 +583,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setPenalizationPeriod(final String penalizationPeriod) {
+    public synchronized void setPenalizationPeriod(final String penalizationPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -609,7 +605,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *             if the given value is less than 1
      */
     @Override
-    public void setMaxConcurrentTasks(final int taskCount) {
+    public synchronized void setMaxConcurrentTasks(final int taskCount) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
@@ -641,7 +637,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setBulletinLevel(final LogLevel level) {
+    public synchronized void setBulletinLevel(final LogLevel level) {
         LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
     }
 
@@ -862,7 +858,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setProcessor(final LoggableComponent<Processor> processor) {
+    public synchronized void setProcessor(final LoggableComponent<Processor> processor) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+        }
+
         final ProcessorDetails processorDetails = new ProcessorDetails(processor);
         processorRef.set(processorDetails);
     }
@@ -1093,7 +1093,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setProcessGroup(final ProcessGroup group) {
+    public synchronized void setProcessGroup(final ProcessGroup group) {
         this.processGroup.set(group);
     }
 
@@ -1273,7 +1273,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
-        if (this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING)) { // will ensure that the Processor represented by this node can only be started once
+
+        final boolean starting;
+        synchronized (this) {
+            starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING);
+        }
+
+        if (starting) { // will ensure that the Processor represented by this node can only be started once
             final Runnable startProcRunnable = new Runnable() {
                 @Override
                 public void run() {
@@ -1299,7 +1305,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {} seconds",
-                            new Object[] {StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis / 1000L}, cause);
+                                new Object[]{StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis / 1000L}, cause);
                         LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
 
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
@@ -1357,6 +1363,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final Processor processor = processorRef.get().getProcessor();
         LOG.info("Stopping processor: " + processor.getClass());
+
+
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
             scheduleState.incrementActiveThreadCount();
 
@@ -1393,14 +1401,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 }
             });
         } else {
-            /*
-             * We do compareAndSet() instead of set() to ensure that Processor
-             * stoppage is handled consistently including a condition where
-             * Processor never got a chance to transition to RUNNING state
-             * before stop() was called. If that happens the stop processor
-             * routine will be initiated in start() method, otherwise the IF
-             * part will handle the stop processor routine.
-             */
+        /*
+         * We do compareAndSet() instead of set() to ensure that Processor
+         * stoppage is handled consistently including a condition where
+         * Processor never got a chance to transition to RUNNING state
+         * before stop() was called. If that happens the stop processor
+         * routine will be initiated in start() method, otherwise the IF
+         * part will handle the stop processor routine.
+         */
             this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
         }
     }
@@ -1465,86 +1473,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public String getProcessGroupIdentifier() {
         final ProcessGroup group = getProcessGroup();
         return group == null ? null : group.getIdentifier();
-    }
-
-    private static final class ProcessorDetails {
-
-        private final Processor processor;
-        private final Class<?> procClass;
-        private final boolean triggerWhenEmpty;
-        private final boolean sideEffectFree;
-        private final boolean triggeredSerially;
-        private final boolean triggerWhenAnyDestinationAvailable;
-        private final boolean eventDrivenSupported;
-        private final boolean batchSupported;
-        private final Requirement inputRequirement;
-        private final ComponentLog componentLog;
-        private final BundleCoordinate bundleCoordinate;
-
-        public ProcessorDetails(final LoggableComponent<Processor> processor) {
-            this.processor = processor.getComponent();
-            this.componentLog = processor.getLogger();
-            this.bundleCoordinate = processor.getBundleCoordinate();
-
-            this.procClass = this.processor.getClass();
-            this.triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
-            this.sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
-            this.batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
-            this.triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
-            this.triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
-            this.eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
-
-            final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
-            if (inputRequirementPresent) {
-                this.inputRequirement = procClass.getAnnotation(InputRequirement.class).value();
-            } else {
-                this.inputRequirement = Requirement.INPUT_ALLOWED;
-            }
-        }
-
-        public Processor getProcessor() {
-            return processor;
-        }
-
-        public Class<?> getProcClass() {
-            return procClass;
-        }
-
-        public boolean isTriggerWhenEmpty() {
-            return triggerWhenEmpty;
-        }
-
-        public boolean isSideEffectFree() {
-            return sideEffectFree;
-        }
-
-        public boolean isTriggeredSerially() {
-            return triggeredSerially;
-        }
-
-        public boolean isTriggerWhenAnyDestinationAvailable() {
-            return triggerWhenAnyDestinationAvailable;
-        }
-
-        public boolean isEventDrivenSupported() {
-            return eventDrivenSupported;
-        }
-
-        public boolean isBatchSupported() {
-            return batchSupported;
-        }
-
-        public Requirement getInputRequirement() {
-            return inputRequirement;
-        }
-
-        public ComponentLog getComponentLog() {
-            return componentLog;
-        }
-
-        public BundleCoordinate getBundleCoordinate() {
-            return bundleCoordinate;
-        }
     }
 
 }

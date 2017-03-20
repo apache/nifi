@@ -91,9 +91,9 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                                          final VariableRegistry variableRegistry, final boolean isExtensionMissing) {
 
         super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, isExtensionMissing);
-        setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
+        setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
 
     }
 
@@ -161,8 +161,14 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     public void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
                                              final LoggableComponent<ControllerService> proxiedControllerService,
                                              final ControllerServiceInvocationHandler invocationHandler) {
-        final ControllerServiceDetails controllerServiceDetails = new ControllerServiceDetails(implementation, proxiedControllerService, invocationHandler);
-        this.controllerServiceHolder.set(controllerServiceDetails);
+        synchronized (this.active) {
+            if (isActive()) {
+                throw new IllegalStateException("Cannot modify Controller Service configuration while service is active");
+            }
+
+            final ControllerServiceDetails controllerServiceDetails = new ControllerServiceDetails(implementation, proxiedControllerService, invocationHandler);
+            this.controllerServiceHolder.set(controllerServiceDetails);
+        }
     }
 
     @Override
@@ -364,7 +370,10 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis) {
         if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)) {
-            this.active.set(true);
+            synchronized (active) {
+                this.active.set(true);
+            }
+
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
                 @Override
@@ -477,45 +486,4 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         return results != null ? results : Collections.emptySet();
     }
 
-    /**
-     * Helper to atomically get/set the proxy and implementation.
-     */
-    private static class ControllerServiceDetails {
-
-        private final ControllerService proxiedControllerService;
-        private final ControllerService implementation;
-        private final ComponentLog componentLog;
-        private final BundleCoordinate bundleCoordinate;
-        private final ControllerServiceInvocationHandler invocationHandler;
-
-        public ControllerServiceDetails(final LoggableComponent<ControllerService> implementation,
-                                        final LoggableComponent<ControllerService> proxiedControllerService,
-                                        final ControllerServiceInvocationHandler invocationHandler) {
-            this.proxiedControllerService = proxiedControllerService.getComponent();
-            this.implementation = implementation.getComponent();
-            this.componentLog = implementation.getLogger();
-            this.bundleCoordinate = implementation.getBundleCoordinate();
-            this.invocationHandler = invocationHandler;
-        }
-
-        public ControllerService getProxiedControllerService() {
-            return proxiedControllerService;
-        }
-
-        public ControllerService getImplementation() {
-            return implementation;
-        }
-
-        public ComponentLog getComponentLog() {
-            return componentLog;
-        }
-
-        public BundleCoordinate getBundleCoordinate() {
-            return bundleCoordinate;
-        }
-
-        public ControllerServiceInvocationHandler getInvocationHandler() {
-            return invocationHandler;
-        }
-    }
 }

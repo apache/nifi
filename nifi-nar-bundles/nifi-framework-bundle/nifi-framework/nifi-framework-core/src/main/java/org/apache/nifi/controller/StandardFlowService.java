@@ -435,7 +435,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
-    public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
+    public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         if (configuredForClustering) {
             // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
             final DataFlow initialFlow = (dataFlow == null) ? createDataFlow() : dataFlow;
@@ -497,7 +497,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     controller.startHeartbeating();
 
                     // Initialize the controller after the flow is loaded so we don't take any actions on repos until everything is good
-                    initialzeController();
+                    initializeController();
 
                     // notify controller that flow is initialized
                     try {
@@ -529,7 +529,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             try {
                 // operating in standalone mode, so load proposed flow and initialize the controller
                 loadFromBytes(dataFlow, true);
-                initialzeController();
+                initializeController();
                 dao.save(controller, true);
             } finally {
                 writeLock.unlock();
@@ -541,6 +541,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         DisconnectionCode disconnectionCode;
         if (ex instanceof UninheritableFlowException) {
             disconnectionCode = DisconnectionCode.MISMATCHED_FLOWS;
+        } else if (ex instanceof MissingBundleException) {
+            disconnectionCode = DisconnectionCode.MISSING_BUNDLE;
         } else if (ex instanceof FlowSynchronizationException) {
             disconnectionCode = DisconnectionCode.MISMATCHED_FLOWS;
         } else {
@@ -681,7 +683,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     // write lock must already be acquired
     private void loadFromBytes(final DataFlow proposedFlow, final boolean allowEmptyFlow)
-            throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
+            throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         logger.trace("Loading flow from bytes");
 
         // resolve the given flow (null means load flow from disk)
@@ -909,7 +911,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
             // Initialize the controller after the flow is loaded so we don't take any actions on repos until everything is good
-            initialzeController();
+            initializeController();
 
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(autoResumeState);
@@ -919,6 +921,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.startHeartbeating();
         } catch (final UninheritableFlowException ufe) {
             throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow is different than cluster flow.", ufe);
+        } catch (final MissingBundleException mbe) {
+            throw new MissingBundleException(CONNECTION_EXCEPTION_MSG_PREFIX + "cluster flow contains bundles that do not exist on the current node", mbe);
         } catch (final FlowSerializationException fse) {
             throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local or cluster flow is malformed.", fse);
         } catch (final FlowSynchronizationException fse) {
@@ -932,7 +936,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     }
 
-    private void initialzeController() throws IOException {
+    private void initializeController() throws IOException {
         if (firstControllerInitialization) {
             logger.debug("First controller initialization, initializing controller...");
             controller.initializeFlow();

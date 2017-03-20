@@ -1526,9 +1526,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws FlowSynchronizationException if updates to the controller failed.
      * If this exception is thrown, then the controller should be considered
      * unsafe to be used
+     * @throws MissingBundleException if the proposed flow cannot be loaded by the
+     * controller because it contains a bundle that does not exist in the controller
      */
     public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow)
-            throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
+            throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         writeLock.lock();
         try {
             LOG.debug("Synchronizing controller with proposed flow");

@@ -149,7 +149,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor)
-            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
+            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException {
 
         // handle corner cases involving no proposed flow
         if (proposedFlow == null) {
@@ -428,7 +428,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         try {
                             BundleUtils.getBundle(componentType, FlowFromDOMFactory.getBundle(bundleElement));
                         } catch (IllegalStateException e) {
-                            throw new UninheritableFlowException(e.getMessage(), e);
+                            throw new MissingBundleException(e.getMessage(), e);
                         }
                     }
                 }

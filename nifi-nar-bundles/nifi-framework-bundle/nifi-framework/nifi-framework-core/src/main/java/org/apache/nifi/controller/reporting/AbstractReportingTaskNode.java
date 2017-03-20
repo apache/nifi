@@ -146,6 +146,9 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public void setReportingTask(final LoggableComponent<ReportingTask> reportingTask) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Reporting Task configuration while Reporting Task is running");
+        }
         this.reportingTaskRef.set(new ReportingTaskDetails(reportingTask));
     }
 
@@ -297,28 +300,4 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         return results != null ? results : Collections.emptySet();
     }
 
-    private static class ReportingTaskDetails {
-
-        private final ReportingTask reportingTask;
-        private final ComponentLog componentLog;
-        private final BundleCoordinate bundleCoordinate;
-
-        public ReportingTaskDetails(final LoggableComponent<ReportingTask> reportingTask) {
-            this.reportingTask = reportingTask.getComponent();
-            this.componentLog = reportingTask.getLogger();
-            this.bundleCoordinate = reportingTask.getBundleCoordinate();
-        }
-
-        public ReportingTask getReportingTask() {
-            return reportingTask;
-        }
-
-        public ComponentLog getComponentLog() {
-            return componentLog;
-        }
-
-        public BundleCoordinate getBundleCoordinate() {
-            return bundleCoordinate;
-        }
-    }
 }
