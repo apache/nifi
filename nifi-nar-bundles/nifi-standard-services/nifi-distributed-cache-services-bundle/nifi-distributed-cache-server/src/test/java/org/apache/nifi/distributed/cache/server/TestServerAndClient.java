@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.SerializationException;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -75,13 +74,6 @@ public class TestServerAndClient {
     @Test
     public void testNonPersistentSetServerAndClient() throws InitializationException, IOException {
 
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
-
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
         final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
@@ -111,12 +103,6 @@ public class TestServerAndClient {
 
     @Test
     public void testPersistentSetServerAndClient() throws InitializationException, IOException {
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -169,12 +155,6 @@ public class TestServerAndClient {
 
     @Test
     public void testPersistentSetServerAndClientWithLFUEvictions() throws InitializationException, IOException {
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -237,12 +217,6 @@ public class TestServerAndClient {
 
     @Test
     public void testPersistentMapServerAndClientWithLFUEvictions() throws InitializationException, IOException {
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -298,18 +272,22 @@ public class TestServerAndClient {
         assertFalse(client.containsKey("test3", serializer));
         assertTrue(client.containsKey("test4", serializer));
 
+        // Test removeByPattern, the first two should be removed and the last should remain
+        client.put("test.1", "1", serializer, serializer);
+        client.put("test.2", "2", serializer, serializer);
+        client.put("test3", "2", serializer, serializer);
+        final long removedTwo = client.removeByPattern("test\\..*");
+        assertEquals(2L, removedTwo);
+        assertFalse(client.containsKey("test.1", serializer));
+        assertFalse(client.containsKey("test.2", serializer));
+        assertTrue(client.containsKey("test3", serializer));
+
         newServer.shutdownServer();
         client.close();
     }
 
     @Test
     public void testPersistentSetServerAndClientWithFIFOEvictions() throws InitializationException, IOException {
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -379,12 +357,6 @@ public class TestServerAndClient {
 
     @Test
     public void testNonPersistentMapServerAndClient() throws InitializationException, IOException, InterruptedException {
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -428,6 +400,16 @@ public class TestServerAndClient {
         assertTrue(removed);
         LOGGER.debug("end remove");
 
+        // Test removeByPattern, the first two should be removed and the last should remain
+        client.put("test.1", "1", keySerializer, keySerializer);
+        client.put("test.2", "2", keySerializer, keySerializer);
+        client.put("test3", "2", keySerializer, keySerializer);
+        final long removedTwo = client.removeByPattern("test\\..*");
+        assertEquals(2L, removedTwo);
+        assertFalse(client.containsKey("test.1", keySerializer));
+        assertFalse(client.containsKey("test.2", keySerializer));
+        assertTrue(client.containsKey("test3", keySerializer));
+
         final boolean containedAfterRemove = client.containsKey("testKey", keySerializer);
         assertFalse(containedAfterRemove);
 
@@ -439,9 +421,6 @@ public class TestServerAndClient {
         } catch (final Exception e) {
 
         }
-        client = null;
-        clientInitContext = null;
-        clientContext = null;
 
         DistributedMapCacheClientService client2 = new DistributedMapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
@@ -467,12 +446,6 @@ public class TestServerAndClient {
 
     @Test
     public void testClientTermination() throws InitializationException, IOException, InterruptedException {
-
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug See: https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("testClientTermination is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -525,13 +498,6 @@ public class TestServerAndClient {
 
     @Test
     public void testOptimisticLock() throws Exception {
-
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -607,13 +573,6 @@ public class TestServerAndClient {
 
     @Test
     public void testBackwardCompatibility() throws Exception {
-
-        /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
-         */
-        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 

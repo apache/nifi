@@ -128,6 +128,25 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
+    public Map<ByteBuffer, ByteBuffer> removeByPattern(final String regex) throws IOException {
+        final Map<ByteBuffer, ByteBuffer> removeResult = wrapped.removeByPattern(regex);
+        if (removeResult != null) {
+            final List<MapWaliRecord> records = new ArrayList<>(removeResult.size());
+            for(Map.Entry<ByteBuffer, ByteBuffer> entry : removeResult.entrySet()) {
+                final MapWaliRecord record = new MapWaliRecord(UpdateType.DELETE, entry.getKey(), entry.getValue());
+                records.add(record);
+                wali.update(records, false);
+
+                final long modCount = modifications.getAndIncrement();
+                if (modCount > 0 && modCount % 1000 == 0) {
+                    wali.checkpoint();
+                }
+            }
+        }
+        return removeResult;
+    }
+
+    @Override
     public void shutdown() throws IOException {
         wali.shutdown();
     }
