@@ -406,18 +406,24 @@
          * @param {selection} selection     The selection
          */
         show: function (selection) {
+            // deselect the current selection
+            var currentlySelected = nfCanvasUtils.getSelection();
+            currentlySelected.classed('selected', false);
+
+            // select only the component/connection in question
+            selection.classed('selected', true);
+
             if (selection.size() === 1) {
-                // deselect the current selection
-                var currentlySelected = nfCanvasUtils.getSelection();
-                currentlySelected.classed('selected', false);
-
-                // select only the component/connection in question
-                selection.classed('selected', true);
                 nfActions.center(selection);
-
-                // inform Angular app that values have changed
-                nfNgBridge.digest();
+            } else {
+                nfNgBridge.injector.get('navigateCtrl').zoomFit();
             }
+
+            // update URL deep linking params
+            nfCanvasUtils.setURLParameters(nfCanvasUtils.getGroupId(), selection);
+
+            // inform Angular app that values have changed
+            nfNgBridge.digest();
         },
 
         /**
@@ -935,6 +941,9 @@
                             }
                         }
 
+                        // update URL deep linking params
+                        nfCanvasUtils.setURLParameters();
+
                         // refresh the birdseye
                         nfBirdseye.refresh();
                         // inform Angular app values have changed
@@ -985,6 +994,9 @@
                             if (components.has('Connection')) {
                                 nfConnection.remove(components.get('Connection'));
                             }
+
+                            // update URL deep linking params
+                            nfCanvasUtils.setURLParameters();
 
                             // refresh the birdseye
                             nfBirdseye.refresh();
