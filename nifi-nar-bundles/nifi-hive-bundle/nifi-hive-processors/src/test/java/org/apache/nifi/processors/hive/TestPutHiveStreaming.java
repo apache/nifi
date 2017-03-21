@@ -32,6 +32,7 @@ import org.apache.hive.hcatalog.streaming.SerializationError;
 import org.apache.hive.hcatalog.streaming.StreamingConnection;
 import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.hive.hcatalog.streaming.TransactionBatch;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -42,6 +43,8 @@ import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,6 +54,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +110,7 @@ public class TestPutHiveStreaming {
     public void testSetup() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.assertNotValid();
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.assertNotValid();
@@ -117,6 +122,7 @@ public class TestPutHiveStreaming {
     @Test
     public void testUgiGetsCleared() {
         runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -131,6 +137,7 @@ public class TestPutHiveStreaming {
         ugi = mock(UserGroupInformation.class);
         when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString(), anyLong(), any())).thenReturn(ugi);
         runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -145,8 +152,42 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void testUgiGetsSetIfSecureJSON() throws AuthenticationFailedException, IOException {
+        when(hiveConf.get(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION)).thenReturn(SecurityUtil.KERBEROS);
+        ugi = mock(UserGroupInformation.class);
+        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString(), anyLong(), any())).thenReturn(ugi);
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+    }
+
+    @Test
     public void testSetupBadPartitionColumns() throws Exception {
         runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.assertValid();
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_number,,");
+        runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "true");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testSetupBadPartitionColumnsJSON() throws Exception {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -159,6 +200,20 @@ public class TestPutHiveStreaming {
     @Test(expected = AssertionError.class)
     public void testSetupWithKerberosAuthFailed() throws Exception {
         runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.HIVE_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml, src/test/resources/hive-site-security.xml");
+        runner.setProperty(kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
+        runner.setProperty(kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.run();
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testSetupWithKerberosAuthFailedJSON() throws Exception {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -170,6 +225,19 @@ public class TestPutHiveStreaming {
 
     @Test
     public void testSingleBatchInvalid() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.assertValid();
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "1");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testSingleBatchInvalidJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -181,6 +249,7 @@ public class TestPutHiveStreaming {
 
     @Test
     public void onTrigger() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -199,8 +268,129 @@ public class TestPutHiveStreaming {
         assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
     }
 
+
+    @Test
+    public void onTriggerJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertNotNull(resultFlowFile);
+        assertEquals("1", resultFlowFile.getAttribute(PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR));
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonNode rootNode = mapper.readTree(resultFlowFile.toByteArray());
+
+        // Verify the record is intact.
+        Iterator<JsonNode> iterator = rootNode.iterator();
+        assertTrue(iterator.hasNext());
+        JsonNode node = iterator.next();
+        assertEquals("Joe", node.get("name").asText());
+        assertEquals(146, node.get("favorite_number").asInt());
+        assertNull(node.get("favorite_color"));
+        assertNull(node.get("scale"));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void onTriggerMimeTypeAvro() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.USE_MIME_TYPE);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)), attributes);
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+    }
+
+    @Test
+    public void onTriggerMimeTypeJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.USE_MIME_TYPE);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+        runner.enqueue(createJSONSingleRecord(user1), attributes);
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+    }
+
+    @Test
+    public void onTriggerMimeTypeUnsupported() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.USE_MIME_TYPE);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/foo");
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)), attributes);
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_UNSUPPORTED_CONTENT, 1);
+    }
+
     @Test
     public void onTriggerBadInput() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        runner.enqueue("I am not an Avro record".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void onTriggerBadInputJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -214,6 +404,7 @@ public class TestPutHiveStreaming {
 
     @Test
     public void onTriggerMultipleRecords() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -268,7 +459,76 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerNoRecordsJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.setValidateExpressionUsage(false);
+
+        runner.enqueue("[]".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void onTriggerMultipleRecordsJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        runner.enqueue(createJSONArrayRecord(Arrays.asList(user1, user2, user3)));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertNotNull(resultFlowFile);
+        assertEquals("3", resultFlowFile.getAttribute(PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR));
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonNode rootNode = mapper.readTree(resultFlowFile.toByteArray());
+
+        // Verify the records are intact. We can't guarantee order so check the total number and non-null fields
+        Iterator<JsonNode> iterator = rootNode.iterator();
+        assertTrue(iterator.hasNext());
+        JsonNode node = iterator.next();
+        assertNotNull(node.get("name"));
+        assertNotNull(node.get("favorite_number"));
+        assertNull(node.get("favorite_color"));
+        assertNull(node.get("scale"));
+        assertTrue(iterator.hasNext());
+        node = iterator.next();
+        assertTrue(iterator.hasNext());
+        iterator.next();
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
     public void onTriggerWithPartitionColumns() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -294,7 +554,35 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithPartitionColumnsJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_number, favorite_color");
+        runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "true");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+                put("favorite_color", "blue");
+            }
+        };
+
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithPartitionColumnsNotInRecord() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -319,7 +607,34 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithPartitionColumnsNotInRecordJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
+        runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+                put("favorite_color", "blue");
+            }
+        };
+
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithRetireWriters() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -342,7 +657,32 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithRetireWritersJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        for (int i = 0; i < 10; i++) {
+            runner.enqueue(createJSONSingleRecord(user1));
+        }
+        runner.run(10);
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 10);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithHeartbeat() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -368,8 +708,36 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithHeartbeatJSON() throws Exception {
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.HEARTBEAT_INTERVAL, "1");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run(1, false);
+        // Wait for a heartbeat
+        Thread.sleep(1000);
+
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run(1, true);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 2);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithConnectFailure() throws Exception {
         processor.setGenerateConnectFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -390,8 +758,32 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithConnectFailureJSON() throws Exception {
+        processor.setGenerateConnectFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+    }
+
+    @Test
     public void onTriggerWithInterruptedException() throws Exception {
         processor.setGenerateInterruptedExceptionOnCreateWriter(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -410,8 +802,30 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithInterruptedExceptionJSON() throws Exception {
+        processor.setGenerateInterruptedExceptionOnCreateWriter(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
+    }
+
+    @Test
     public void onTriggerWithWriteFailure() throws Exception {
         processor.setGenerateWriteFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -437,8 +851,37 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithWriteFailureJSON() throws Exception {
+        processor.setGenerateWriteFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        runner.enqueue(createJSONArrayRecord(Arrays.asList(user1, user2)));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        assertEquals("2", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_FAILURE).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+    }
+
+    @Test
     public void onTriggerWithSerializationError() throws Exception {
         processor.setGenerateSerializationError(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -458,8 +901,31 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithSerializationErrorJSON() throws Exception {
+        processor.setGenerateSerializationError(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+    }
+
+    @Test
     public void onTriggerWithCommitFailure() throws Exception {
         processor.setGenerateCommitFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -472,6 +938,29 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
+    public void onTriggerWithCommitFailureJSON() throws Exception {
+        processor.setGenerateCommitFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
         runner.run();
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
@@ -482,6 +971,7 @@ public class TestPutHiveStreaming {
     @Test
     public void onTriggerWithTransactionFailure() throws Exception {
         processor.setGenerateTransactionFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -502,8 +992,32 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithTransactionFailureJSON() throws Exception {
+        processor.setGenerateTransactionFailure(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithExceptionOnFlushAndClose() throws Exception {
         processor.setGenerateExceptionOnFlushAndClose(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.AVRO_CONTENT);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -516,6 +1030,25 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        runner.run();
+    }
+
+    @Test
+    public void onTriggerWithExceptionOnFlushAndCloseJSON() throws Exception {
+        processor.setGenerateExceptionOnFlushAndClose(true);
+        runner.setProperty(PutHiveStreaming.INPUT_CONTENT_TYPE, PutHiveStreaming.JSON_CONTENT);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createJSONSingleRecord(user1));
         runner.run();
     }
 
@@ -555,6 +1088,16 @@ public class TestPutHiveStreaming {
         }
         return out.toByteArray();
 
+    }
+
+    private byte[] createJSONArrayRecord(List<Map<String, Object>> records) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(records).getBytes();
+    }
+
+    private byte[] createJSONSingleRecord(Map<String, Object> records) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(records).getBytes();
     }
 
     private class MockPutHiveStreaming extends PutHiveStreaming {
