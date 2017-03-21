@@ -40,6 +40,7 @@ limitations under the License.
         <module>minifi-toolkit</module>
         <module>minifi-docker</module>
         <module>minifi-c2</module>
+        <module>minifi-integration-tests</module>
     </modules>
 
     <url>http://nifi.apache.org/minifi</url>

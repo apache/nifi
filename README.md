@@ -21,6 +21,7 @@ MiNiFi is a child project effort of Apache NiFi
 - [Features](#features)
 - [Requirements](#requirements)
 - [Getting Started](#getting-started)
+- [Docker Build](#docker-build)
 - [Getting Help](#getting-help)
 - [Documentation](#documentation)
 - [License](#license)
@@ -96,6 +97,14 @@ To run MiNiFi:
 
         $ cd ~/example-minifi-deploy/minifi-*
         $ ./bin/minifi.sh stop
+
+## Docker Build
+
+To build:
+- Execute mvn -P docker clean install.  This will run the full build, create a docker image based on it, and run docker-compose integration tests.  After it completes successfully, you should have an apacheminifi:${minifi.version} image that can be started with the following command (replacing ${minifi.version} with the current maven version of your branch):
+```
+docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/config.yml apacheminifi:${minifi.version}
+```
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
