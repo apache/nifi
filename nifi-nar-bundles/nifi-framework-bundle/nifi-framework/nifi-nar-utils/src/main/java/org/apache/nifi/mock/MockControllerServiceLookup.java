@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
-
-import java.util.Collections;
-import java.util.Set;
+package org.apache.nifi.mock;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * A Mock ControllerServiceLookup that can be used so that

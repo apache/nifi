@@ -39,7 +39,6 @@
                     </div>
                 </div>
                 <div class="setting">
-                    <div class="setting-name">Tags</div>
                     <div class="setting-field">
                         <div id="processor-tag-cloud"></div>
                     </div>

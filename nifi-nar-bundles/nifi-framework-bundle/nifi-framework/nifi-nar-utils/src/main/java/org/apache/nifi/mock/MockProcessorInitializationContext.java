@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
+package org.apache.nifi.mock;
 
-import java.io.File;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+
+import java.io.File;
 
 /**
  * A Mock ProcessorInitializationContext that can be used so that Processors can

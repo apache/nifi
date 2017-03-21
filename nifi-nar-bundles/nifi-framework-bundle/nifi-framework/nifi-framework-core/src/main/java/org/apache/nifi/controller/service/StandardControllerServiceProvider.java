@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.bundle.Bundle;
@@ -85,26 +86,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         this.nifiProperties = nifiProperties;
     }
 
-    private Class<?>[] getInterfaces(final Class<?> cls) {
-        final List<Class<?>> allIfcs = new ArrayList<>();
-        populateInterfaces(cls, allIfcs);
-        return allIfcs.toArray(new Class<?>[allIfcs.size()]);
-    }
-
-    private void populateInterfaces(final Class<?> cls, final List<Class<?>> interfacesDefinedThusFar) {
-        final Class<?>[] ifc = cls.getInterfaces();
-        if (ifc != null && ifc.length > 0) {
-            for (final Class<?> i : ifc) {
-                interfacesDefinedThusFar.add(i);
-            }
-        }
-
-        final Class<?> superClass = cls.getSuperclass();
-        if (superClass != null) {
-            populateInterfaces(superClass, interfacesDefinedThusFar);
-        }
-    }
-
     private StateManager getStateManager(final String componentId) {
         return stateManagerProvider.getStateManager(componentId);
     }
@@ -139,11 +120,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ControllerService originalService = controllerServiceClass.newInstance();
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(originalService);
 
+            // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
+            final Class<?>[] interfaces = ClassUtils.getAllInterfaces(controllerServiceClass).stream().toArray(Class<?>[]::new);
+
             final ControllerService proxiedService;
             if (cl == null) {
-                proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(), getInterfaces(controllerServiceClass), invocationHandler);
+                proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(), interfaces, invocationHandler);
             } else {
-                proxiedService = (ControllerService) Proxy.newProxyInstance(cl, getInterfaces(controllerServiceClass), invocationHandler);
+                proxiedService = (ControllerService) Proxy.newProxyInstance(cl, interfaces, invocationHandler);
             }
             logger.info("Created Controller Service of type {} with identifier {}", type, id);
 

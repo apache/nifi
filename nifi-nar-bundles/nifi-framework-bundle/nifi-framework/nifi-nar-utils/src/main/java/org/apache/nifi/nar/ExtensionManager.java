@@ -22,6 +22,8 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -29,8 +31,11 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.init.ConfigurableComponentInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
@@ -50,6 +55,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -151,14 +157,105 @@ public class ExtensionManager {
     @SuppressWarnings("unchecked")
     private static void loadExtensions(final Bundle bundle) {
         for (final Map.Entry<Class, Set<Class>> entry : definitionMap.entrySet()) {
-            final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
+            final boolean isControllerService = ControllerService.class.equals(entry.getKey());
+            final boolean isProcessor = Processor.class.equals(entry.getKey());
+            final boolean isReportingTask = ReportingTask.class.equals(entry.getKey());
 
+            final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
             for (final Object o : serviceLoader) {
-                registerServiceClass(o.getClass(), classNameBundleLookup, bundle, entry.getValue());
+                // only consider extensions discovered directly in this bundle
+                boolean registerExtension = bundle.getClassLoader().equals(o.getClass().getClassLoader());
+
+                if (registerExtension) {
+                    final Class extensionType = o.getClass();
+                    if (isControllerService && !checkControllerServiceEligibility(extensionType)) {
+                        registerExtension = false;
+                        logger.error(String.format(
+                                "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionType.getName()));
+                    }
+
+                    final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent;
+                    if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) o, bundle.getClassLoader())) {
+                        registerExtension = false;
+                        logger.error(String.format(
+                                "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionType.getName()));
+                    }
+
+                    if (registerExtension) {
+                        registerServiceClass(o.getClass(), classNameBundleLookup, bundle, entry.getValue());
+                    }
+                }
             }
 
             classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
         }
+    }
+
+    private static boolean checkControllerServiceReferenceEligibility(final ConfigurableComponent component, final ClassLoader classLoader) {
+        // if the extension does not require instance classloading, its eligible
+        final boolean requiresInstanceClassLoading = component.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
+
+        ConfigurableComponentInitializer initializer = null;
+        try {
+            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(component.getClass());
+            initializer.initialize(component);
+
+            final Set<Class> cobundledApis = new HashSet<>();
+            try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+                final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
+                if (descriptors != null && !descriptors.isEmpty()) {
+                    for (final PropertyDescriptor descriptor : descriptors) {
+                        final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
+                        if (serviceApi != null && classLoader.equals(serviceApi.getClassLoader())) {
+                            cobundledApis.add(serviceApi);
+                        }
+                    }
+                }
+            }
+
+            if (!cobundledApis.isEmpty()) {
+                logger.warn(String.format(
+                        "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
+                        component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+            }
+
+            // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
+            return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
+        } catch (final InitializationException e) {
+            logger.warn(String.format("Unable to verify if component %s references any bundled Controller Service APIs due to %s", component.getClass().getName(), e.getMessage()));
+            return true;
+        } finally {
+            if (initializer != null) {
+                initializer.teardown(component);
+            }
+        }
+    }
+
+    private static boolean checkControllerServiceEligibility(Class extensionType) {
+        final Class originalExtensionType = extensionType;
+        final ClassLoader originalExtensionClassLoader = extensionType.getClassLoader();
+
+        // if the extension does not require instance classloading, its eligible
+        final boolean requiresInstanceClassLoading = extensionType.isAnnotationPresent(RequiresInstanceClassLoading.class);
+
+        final Set<Class> cobundledApis = new HashSet<>();
+        while (extensionType != null) {
+            for (final Class i : extensionType.getInterfaces()) {
+                if (originalExtensionClassLoader.equals(i.getClassLoader())) {
+                    cobundledApis.add(i);
+                }
+            }
+
+            extensionType = extensionType.getSuperclass();
+        }
+
+        if (!cobundledApis.isEmpty()) {
+            logger.warn(String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
+                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+        }
+
+        // the service is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
+        return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
     }
 
     /**
@@ -180,37 +277,12 @@ public class ExtensionManager {
             classNameBundleMap.put(className, registeredBundles);
         }
 
-        // extensions found in JARs directly in the lib directory will show up in the system bundle and also in every NAR,
-        // so we need to determine if the reason we are finding the current type is because we are seeing it through the ancestor
-        // system bundle, or if it really is a new bundle that has the same type, it is also possible that discoverExtensions is
-        // called multiple times with the same bundle and we don't want to register if it is already registered to the same bundle
-
         boolean alreadyRegistered = false;
-        final ClassLoader typeClassLoader = type.getClassLoader();
-
         for (final Bundle registeredBundle : registeredBundles) {
             final BundleCoordinate registeredCoordinate = registeredBundle.getBundleDetails().getCoordinate();
 
             // if the incoming bundle has the same coordinate as one of the registered bundles then consider it already registered
             if (registeredCoordinate.equals(bundle.getBundleDetails().getCoordinate())) {
-                alreadyRegistered = true;
-                break;
-            }
-
-            // different coordinates so now check if the already registered bundle is an ancestor of type
-            boolean loadedFromAncestor = false;
-
-            ClassLoader ancestorClassLoader = typeClassLoader;
-            while (ancestorClassLoader != null) {
-                if (ancestorClassLoader == registeredBundle.getClassLoader()) {
-                    loadedFromAncestor = true;
-                    break;
-                }
-                ancestorClassLoader = ancestorClassLoader.getParent();
-            }
-
-            // if the type was already loaded from an ancestor then we don't want to register it again
-            if (loadedFromAncestor) {
                 alreadyRegistered = true;
                 break;
             }

@@ -146,9 +146,9 @@
      * Hides the selected controller service.
      */
     var clearSelectedControllerService = function () {
-        $('#controller-service-type-description').text('');
-        $('#controller-service-type-name').text('');
-        $('#controller-service-type-bundle').text('');
+        $('#controller-service-type-description').attr('title', '').text('');
+        $('#controller-service-type-name').attr('title', '').text('');
+        $('#controller-service-type-bundle').attr('title', '').text('');
         $('#selected-controller-service-name').text('');
         $('#selected-controller-service-type').text('').removeData('bundle');
         $('#controller-service-description-container').hide();
@@ -1173,6 +1173,7 @@
         promptNewControllerService: function (controllerServicesUri, serviceTable) {
             // get the grid reference
             var grid = $('#controller-service-types-table').data('gridInstance');
+            var dataview = grid.getData();
 
             // update the keyhandler
             $('#controller-service-type-filter').off('keyup').on('keyup', function (e) {
@@ -1208,7 +1209,7 @@
                         var item = grid.getDataItem(selected[0]);
                         return isSelectable(item) === false;
                     } else {
-                        return grid.getData().getLength() === 0;
+                        return dataview.getLength() === 0;
                     }
                 },
                 handler: {
@@ -1230,27 +1231,27 @@
                 }
             }]).modal('show');
 
-            var controllerServiceTypesGrid = $('#controller-service-types-table').data('gridInstance');
-
             // remove previous dbl click handler
             if (dblClick !== null) {
-                controllerServiceTypesGrid.onDblClick.unsubscribe(dblClick);
+                grid.onDblClick.unsubscribe(dblClick);
             }
 
             // update the dbl click handler and subsrcibe
             dblClick = function(e, args) {
-                var controllerServiceType = controllerServiceTypesGrid.getDataItem(args.row);
+                var controllerServiceType = grid.getDataItem(args.row);
 
                 if (isSelectable(controllerServiceType)) {
                     addControllerService(controllerServicesUri, serviceTable, controllerServiceType.type, controllerServiceType.bundle);
                 }
             };
-            controllerServiceTypesGrid.onDblClick.subscribe(dblClick);
+            grid.onDblClick.subscribe(dblClick);
 
             // reset the canvas size after the dialog is shown
-            if (nfCommon.isDefinedAndNotNull(controllerServiceTypesGrid)) {
-                controllerServiceTypesGrid.setSelectedRows([0]);
-                controllerServiceTypesGrid.resizeCanvas();
+            grid.resizeCanvas();
+
+            // auto select the first row if possible
+            if (dataview.getLength() > 0) {
+                grid.setSelectedRows([0]);
             }
 
             // set the initial focus

@@ -14,36 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
+package org.apache.nifi.mock;
 
-import java.io.File;
-import java.util.concurrent.TimeUnit;
-
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingInitializationContext;
-import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.io.File;
 
 /**
- * A Mock ReportingInitializationContext that can be used to initialize a
- * ReportingTask for the purposes of documentation generation.
+ * A Mock ControllerServiceInitializationContext so that ControllerServices can
+ * be initialized for the purpose of generating documentation.
+ *
  *
  */
-public class MockReportingInitializationContext implements ReportingInitializationContext {
+public class MockControllerServiceInitializationContext implements ControllerServiceInitializationContext {
 
     @Override
     public String getIdentifier() {
-        return "mock-reporting-task";
-    }
-
-    @Override
-    public String getName() {
-        return "";
-    }
-
-    @Override
-    public long getSchedulingPeriod(TimeUnit timeUnit) {
-        return 0;
+        return "mock-controller-service";
     }
 
     @Override
@@ -52,18 +42,13 @@ public class MockReportingInitializationContext implements ReportingInitializati
     }
 
     @Override
-    public String getSchedulingPeriod() {
-        return "";
-    }
-
-    @Override
-    public SchedulingStrategy getSchedulingStrategy() {
-        return SchedulingStrategy.TIMER_DRIVEN;
-    }
-
-    @Override
     public ComponentLog getLogger() {
         return new MockComponentLogger();
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return null;
     }
 
     @Override

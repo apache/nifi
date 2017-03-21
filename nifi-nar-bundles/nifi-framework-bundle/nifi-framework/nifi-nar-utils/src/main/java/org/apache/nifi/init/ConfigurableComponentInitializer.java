@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation;
+package org.apache.nifi.init;
 
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.reporting.InitializationException;

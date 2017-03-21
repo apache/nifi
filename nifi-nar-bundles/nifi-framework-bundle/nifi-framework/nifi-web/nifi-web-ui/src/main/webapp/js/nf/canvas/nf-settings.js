@@ -330,9 +330,9 @@
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
-        $('#reporting-task-type-description').text('');
-        $('#reporting-task-type-name').text('');
-        $('#reporting-task-type-bundle').text('');
+        $('#reporting-task-type-description').attr('title', '').text('');
+        $('#reporting-task-type-name').attr('title', '').text('');
+        $('#reporting-task-type-bundle').attr('title', '').text('');
         $('#selected-reporting-task-name').text('');
         $('#selected-reporting-task-type').text('').removeData('bundle');
         $('#reporting-task-description-container').hide();
@@ -1280,11 +1280,17 @@
                 } else if (selectedTab === 'Reporting Tasks') {
                     $('#new-reporting-task-dialog').modal('show');
 
-                    // reset the canvas size after the dialog is shown
                     var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(reportingTaskTypesGrid)) {
-                        reportingTaskTypesGrid.setSelectedRows([0]);
+                        var reportingTaskTypesData = reportingTaskTypesGrid.getData();
+
+                        // reset the canvas size after the dialog is shown
                         reportingTaskTypesGrid.resizeCanvas();
+
+                        // select the first row if possible
+                        if (reportingTaskTypesData.getLength() > 0) {
+                            reportingTaskTypesGrid.setSelectedRows([0]);
+                        }
                     }
 
                     // set the initial focus

@@ -22,9 +22,8 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
-import org.apache.nifi.documentation.init.ControllerServiceInitializer;
-import org.apache.nifi.documentation.init.ProcessorInitializer;
-import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
@@ -118,7 +117,7 @@ public class DocGenerator {
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
         final ConfigurableComponent component = componentClass.newInstance();
-        final ConfigurableComponentInitializer initializer = getComponentInitializer(componentClass);
+        final ConfigurableComponentInitializer initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(componentClass);
         initializer.initialize(component);
 
         final DocumentationWriter writer = getDocumentWriter(componentClass);
@@ -150,28 +149,6 @@ public class DocGenerator {
             return new HtmlDocumentationWriter();
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
             return new HtmlDocumentationWriter();
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns a ConfigurableComponentInitializer for the type of component.
-     * Currently Processor, ControllerService and ReportingTask are supported.
-     *
-     * @param componentClass the class that requires a
-     * ConfigurableComponentInitializer
-     * @return a ConfigurableComponentInitializer capable of initializing that
-     * specific type of class
-     */
-    private static ConfigurableComponentInitializer getComponentInitializer(
-            final Class<? extends ConfigurableComponent> componentClass) {
-        if (Processor.class.isAssignableFrom(componentClass)) {
-            return new ProcessorInitializer();
-        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new ControllerServiceInitializer();
-        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new ReportingTaskingInitializer();
         }
 
         return null;

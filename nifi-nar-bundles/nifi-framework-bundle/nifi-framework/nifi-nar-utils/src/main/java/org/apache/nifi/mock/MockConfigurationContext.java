@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+package org.apache.nifi.mock;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class MockConfigurationContext implements ConfigurationContext {
 

@@ -14,11 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+package org.apache.nifi.mock;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -26,6 +22,10 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 public class MockProcessContext implements ProcessContext {
 

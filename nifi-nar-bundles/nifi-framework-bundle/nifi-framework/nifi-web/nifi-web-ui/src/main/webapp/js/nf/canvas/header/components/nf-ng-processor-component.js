@@ -148,9 +148,9 @@
             // if this row is currently selected and its being filtered
             if (matches === false && $('#selected-processor-type').text() === item['type']) {
                 // clear the selected row
-                $('#processor-type-description').text('');
-                $('#processor-type-name').text('');
-                $('#processor-type-bundle').text('');
+                $('#processor-type-description').attr('title', '').text('');
+                $('#processor-type-name').attr('title', '').text('');
+                $('#processor-type-bundle').attr('title', '').text('');
                 $('#selected-processor-name').text('');
                 $('#selected-processor-type').text('').removeData('bundle');
 
@@ -216,9 +216,9 @@
             applyFilter();
 
             // clear the selected row
-            $('#processor-type-description').text('');
-            $('#processor-type-name').text('');
-            $('#processor-type-bundle').text('');
+            $('#processor-type-description').attr('title', '').text('');
+            $('#processor-type-name').attr('title', '').text('');
+            $('#processor-type-bundle').attr('title', '').text('');
             $('#selected-processor-name').text('');
             $('#selected-processor-type').text('').removeData('bundle');
 
@@ -651,6 +651,7 @@
 
                 // get the grid reference
                 var grid = $('#processor-types-table').data('gridInstance');
+                var dataview = grid.getData();
 
                 // add the processor when its double clicked in the table
                 var gridDoubleClick = function (e, args) {
@@ -683,7 +684,7 @@
                             var item = grid.getDataItem(selected[0]);
                             return isSelectable(item) === false;
                         } else {
-                            return grid.getData().getLength() === 0;
+                            return dataview.getLength() === 0;
                         }
                     },
                     handler: {
@@ -736,7 +737,11 @@
 
                 // adjust the grid canvas now that its been rendered
                 grid.resizeCanvas();
-                grid.setSelectedRows([0]);
+
+                // auto select the first row if possible
+                if (dataview.getLength() > 0) {
+                    grid.setSelectedRows([0]);
+                }
             }
         };
 

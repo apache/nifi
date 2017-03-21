@@ -14,23 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.init;
+package org.apache.nifi.init;
 
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.documentation.ConfigurableComponentInitializer;
-import org.apache.nifi.documentation.mock.MockProcessContext;
-import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
-import org.apache.nifi.documentation.mock.MockComponentLogger;
-import org.apache.nifi.documentation.util.ReflectionUtils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.mock.MockProcessContext;
+import org.apache.nifi.mock.MockProcessorInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 /**
- * Initializes a Procesor using a MockProcessorInitializationContext
+ * Initializes a Processor using a MockProcessorInitializationContext
  *
  *
  */
