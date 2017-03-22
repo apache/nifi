@@ -121,7 +121,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(originalService);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
-            final Class<?>[] interfaces = ClassUtils.getAllInterfaces(controllerServiceClass).stream().toArray(Class<?>[]::new);
+            final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(controllerServiceClass);
+            final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
 
             final ControllerService proxiedService;
             if (cl == null) {
