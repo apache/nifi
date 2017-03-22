@@ -1781,8 +1781,8 @@ take effect only after NiFi has been stopped and restarted.
 Notification Services
 ---------------------
 When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. Currently,
-the only mechanism supplied is to send an e-mail notification. The notification services configuration file, however,
-is a configurable XML file so that as new notification capabilities are developed, they will be configured similarly.
+the only mechanisms supplied are to send an e-mail or HTTP POST notification. The notification services configuration file
+is an XML file where the notification capabilities are configured.
 
 The default location of the XML file is _conf/bootstrap-notification-services.xml_, but this value can be changed in the _conf/bootstrap.conf_ file.
 
@@ -1805,7 +1805,10 @@ The syntax of the XML file is as follows:
 ....
 
 Once the desired services have been configured, they can then be referenced in the _bootstrap.conf_ file.
-Currently, the only implementation is the `org.apache.nifi.bootstrap.notification.email.EmailNotificationService` implementation.
+
+=== Email Notification Service +
+
+The first Notifier is to send emails and the implementation is `org.apache.nifi.bootstrap.notification.email.EmailNotificationService`.
 It has the following properties available:
 
 |====
@@ -1843,6 +1846,46 @@ A complete example of configuring the Email service would look like the followin
         <property name="SMTP TLS">true</property>
         <property name="From">"NiFi Service Notifier"</property>
         <property name="To">username@gmail.com</property>
+     </service>
+....
+
+=== HTTP Notification Service +
+
+The second Notifier is to send HTTP POST requests and the implementation is `org.apache.nifi.bootstrap.notification.http.HttpNotificationService`.
+It has the following properties available:
+
+|====
+|*Property*|*Required*|*Description*
+|URL|true|The URL to send the notification to. Expression language is supported.
+|Connection timeout||Max wait time for connection to remote service. Expression language is supported. This defaults to 10s.
+|Write timeout||Max wait time for remote service to read the request sent. Expression language is supported. This defaults to 10s.
+|Truststore Filename||The fully-qualified filename of the Truststore
+|Truststore Type||The Type of the Truststore. Either JKS or PKCS12
+|Truststore Password||The password for the Truststore
+|Keystore Filename||The fully-qualified filename of the Keystore
+|Keystore Type||The password for the Keystore
+|Keystore Password||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.
+|SSL Protocol||The algorithm to use for this SSL context. This can either be "SSL" or "TLS".
+|====
+
+In addition to the properties above, dynamic properties can be added. They will be added as headers to the HTTP request. Expression language is supported.
+
+The notification message is in the body of the POST request. The type of notification is in the header "notification.type" and the subject uses the header "notification.subject".
+
+A complete example of configuring the HTTP service could look like the following:
+
+....
+     <service>
+        <id>http-notification</id>
+        <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>
+        <property name="URL">https://testServer.com:8080/</property>
+        <property name="Truststore Filename">localhost-ts.jks</property>
+        <property name="Truststore Type">JKS</property>
+        <property name="Truststore Password">localtest<property>
+        <property name="Keystore Filename">localhost-ts.jks</property>
+        <property name="Keystore Type">JKS</property>
+        <property name="Keystore Password">localtest</property>
+        <property name="notification.timestamp">${now()}</property>
      </service>
 ....
 
@@ -2144,14 +2187,14 @@ Providing three total locations, including  _nifi.provenance.repository.director
 	so it is not advisable to write to a single "event file" for a tremendous amount of time, as it will prevent old data from aging off as smoothly.
 |nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the "event file" that the repository is writing to.
 |nifi.provenance.repository.rollover.size|The amount of data to write to a single "event file." The default value is 100 MB. For production
-	environments where a very large amount of Data Provenance is generated, a value of 1 GB is also very reasonable. 
+	environments where a very large amount of Data Provenance is generated, a value of 1 GB is also very reasonable.
 |nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is 2.
 |nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is 1.
 	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
 	value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
 	It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
 	throughput environments, where more CPU and disk I/O is available, it may make sense to increase this value significantly. Typically going beyond
-	2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources. 
+	2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources.
 |nifi.provenance.repository.compress.on.rollover|Indicates whether to compress the provenance information when an "event file" is rolled over. The default value is _true_.
 |nifi.provenance.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system
 	not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data
@@ -2181,7 +2224,7 @@ Providing three total locations, including  _nifi.provenance.repository.director
 	NiFi will periodically open each Lucene index and then close it, in order to "warm" the cache. This will result in far faster queries when the Provenance Repository is large. As with
 	all great things, though, it comes with a cost. Warming the cache does take some CPU resources, but more importantly it will evict other data from the Operating System disk cache and
 	will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
-	are not fully utilized, this feature can result in far faster Provenance queries. 
+	are not fully utilized, this feature can result in far faster Provenance queries.
 |====
 
 

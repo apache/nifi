@@ -202,7 +202,7 @@ public class NotificationServiceManager {
                     if (invalidReasons.isEmpty()) {
                         final NotificationContext context = buildNotificationContext(config);
                         try {
-                            service.notify(context, subject, message);
+                            service.notify(context, type, subject, message);
                             logger.info("Successfully sent notification of type {} to {}", type, service);
                         } catch (final Throwable t) {   // keep running even if a Throwable is caught because we need to ensure that we are able to restart NiFi
                             logger.error("Failed to send notification of type {} to {} with Subject {} due to {}. Will ",
@@ -264,18 +264,21 @@ public class NotificationServiceManager {
                 final Map<String, String> configuredProps = config.getProperties();
 
                 final NotificationService service = config.getService();
-                for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
-                    final String configuredValue = configuredProps.get(descriptor.getName());
-                    if (configuredValue == null) {
-                        props.put(descriptor, descriptor.getDefaultValue());
-                    } else {
-                        props.put(descriptor, configuredValue);
-                    }
+                final List<PropertyDescriptor> configuredPropertyDescriptors = new ArrayList<>(service.getPropertyDescriptors());
+
+                // This is needed to capture all dynamic properties
+                configuredProps.forEach((key, value) -> {
+                    PropertyDescriptor propertyDescriptor = config.service.getPropertyDescriptor(key);
+                    props.put(config.service.getPropertyDescriptor(key), value);
+                    configuredPropertyDescriptors.remove(propertyDescriptor);
+                });
+
+                for (final PropertyDescriptor descriptor : configuredPropertyDescriptors) {
+                    props.put(descriptor, descriptor.getDefaultValue());
                 }
 
                 return props;
             }
-
         };
     }
 

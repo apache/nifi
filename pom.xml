@@ -205,6 +205,12 @@ language governing permissions and limitations under the License. -->
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>mockwebserver</artifactId>
+                <version>3.6.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
                 <version>${org.slf4j.version}</version>
@@ -1441,6 +1447,11 @@ language governing permissions and limitations under the License. -->
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
                 <version>1.11.68</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>3.6.0</version>
             </dependency>
             <!-- Ranger dependencies, only included when using -Pinclude-ranger -->
             <dependency>

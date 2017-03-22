@@ -75,7 +75,7 @@ public class TestCustomNotificationService extends AbstractNotificationService {
     }
 
     @Override
-    public void notify(NotificationContext context, String subject, String message) throws NotificationFailedException {
+    public void notify(NotificationContext context, NotificationType type, String subject, String message) throws NotificationFailedException {
         logger.info(context.getProperty(CUSTOM_HOSTNAME).evaluateAttributeExpressions().getValue());
         logger.info(context.getProperty(CUSTOM_USERNAME).evaluateAttributeExpressions().getValue());
         logger.info(context.getProperty(CUSTOM_PASSWORD).evaluateAttributeExpressions().getValue());
