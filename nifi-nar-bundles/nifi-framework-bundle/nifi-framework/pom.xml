@@ -29,6 +29,8 @@
         <module>nifi-runtime</module>
         <module>nifi-security</module>
         <module>nifi-site-to-site</module>
+        <module>nifi-repository-models</module>
+        <module>nifi-flowfile-repo-serialization</module>
         <module>nifi-framework-core</module>
         <module>nifi-framework-cluster-protocol</module>
         <module>nifi-framework-cluster</module>
