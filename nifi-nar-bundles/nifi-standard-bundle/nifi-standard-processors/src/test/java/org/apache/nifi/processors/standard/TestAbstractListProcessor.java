@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.Charsets;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -444,6 +446,22 @@ public class TestAbstractListProcessor {
         public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
             final Object value = stored.remove(key);
             return value != null;
+        }
+
+        @Override
+        public long removeByPattern(String regex) throws IOException {
+            final List<Object> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (Object key : stored.keySet()) {
+                // Key must be backed by something that can be converted into a String
+                Matcher m = p.matcher(key.toString());
+                if (m.matches()) {
+                    removedRecords.add(stored.get(key));
+                }
+            }
+            final long numRemoved = removedRecords.size();
+            removedRecords.forEach(stored::remove);
+            return numRemoved;
         }
     }
 

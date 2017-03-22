@@ -243,6 +243,11 @@ public class TestDetectDuplicate {
         }
 
         @Override
+        public long removeByPattern(String regex) throws IOException {
+            return exists ? 1L : 0L;
+        }
+
+        @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             cacheValue = value;
             exists = true;
