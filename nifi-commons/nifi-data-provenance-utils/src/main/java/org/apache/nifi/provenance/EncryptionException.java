@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.security.PrivilegedActionException;
-
 public class EncryptionException extends Throwable {
     /**
      * Constructs a new EncryptionException with {@code null} as its detail message.
@@ -72,8 +70,7 @@ public class EncryptionException extends Throwable {
      * message of {@code (cause==null ? null : cause.toString())} (which
      * typically contains the class and detail message of {@code cause}).
      * This constructor is useful for exceptions that are little more than
-     * wrappers for other exceptions (for example, {@link
-     * PrivilegedActionException}).
+     * wrappers for other exceptions.
      * <p>
      * <p>The {@link #fillInStackTrace()} method is called to initialize
      * the stack trace data in the newly created exception.

@@ -26,6 +26,7 @@ import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
@@ -281,16 +282,49 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     }
 
     @Test
-    void testRegisterEvent() {
+    @Ignore("Not yet implemented")
+    void testShouldRegisterAndGetEvent() {
+        // Arrange
+        config = createConfiguration()
+        // Needed until NIFI-3605 is implemented
+//        config.setMaxEventFileCapacity(1L)
+        config.setMaxEventFileCount(1)
+        config.setMaxEventFileLife(1, TimeUnit.SECONDS)
+        repo = new EncryptedWriteAheadProvenanceRepository(config)
+        repo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
+
+        Map attributes = ["abc": "This is a plaintext attribute.",
+                          "123": "This is another plaintext attribute."]
+        final ProvenanceEventRecord record = buildEventRecord(buildFlowFile(attributes))
+
+        final long LAST_RECORD_ID = repo.getMaxEventId()
+
+        // Act
+        repo.registerEvent(record)
+
+        // Examine the persisted bytes to ensure they are encrypted
+ProvenanceRepository plainRepo = new WriteAheadProvenanceRepository(config)
+        plainRepo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
+        ProvenanceEventRecord encryptedRecord = plainRepo.getEvent(LAST_RECORD_ID + 1)
+        logger.info("Retrieved a record from the repo that doesn't support encryption: ${encryptedRecord}")
+
+        // TODO: Examine the persisted bytes to ensure they are encrypted
+
+        // Retrieve the event through the interface
+        ProvenanceEventRecord recoveredRecord = repo.getEvent(LAST_RECORD_ID + 1)
+
+        logger.info("Recovered ${recoveredRecord}")
+
+        // Assert
+        assert recoveredRecord.getEventId() == LAST_RECORD_ID + 1
+        assert recoveredRecord.getTransitUri() == TRANSIT_URI
+        assert recoveredRecord.getEventType() == ProvenanceEventType.RECEIVE
+        // The UUID was added later but we care that all attributes we provided are still there
+        assert recoveredRecord.getAttributes().entrySet().containsAll(attributes.entrySet())
     }
 
-    void testRegisterEvents() {
-    }
-
-    void testGetEvents() {
-    }
-
-    void testGetEvent() {
+    @Test
+    void testShouldRegisterAndGetEvents() {
     }
 
     private static class ReportedEvent {

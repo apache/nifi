@@ -51,6 +51,8 @@ public class RepositoryConfiguration {
     private int compressionBlockBytes = 1024 * 1024;
     private int maxAttributeChars = 65536;
 
+    // TODO: Add encrypted boolean and keyId/provider/algorithm?
+
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
     private boolean compress = true;

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.IOException;
+import java.util.List;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,5 +28,58 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     private KeyProvider keyProvider;
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
-    // TODO: Intercept registerEvent and retrieveEvent
+    private String keyId;
+
+    /**
+     * This constructor exists solely for the use of the Java Service Loader mechanism and should not be used.
+     */
+    public EncryptedWriteAheadProvenanceRepository() {
+        super();
+    }
+
+    public EncryptedWriteAheadProvenanceRepository(final NiFiProperties nifiProperties) {
+        super(RepositoryConfiguration.create(nifiProperties));
+    }
+
+    public EncryptedWriteAheadProvenanceRepository(final RepositoryConfiguration config) {
+        super(config);
+    }
+
+    public EncryptedWriteAheadProvenanceRepository(String keyId) {
+        // TODO: Allow configuration/DI of keyProvider and provenanceEventEncryptor?
+        this.keyId = keyId;
+    }
+
+    @Override
+    public void registerEvent(final ProvenanceEventRecord event) {
+        try {
+            final String keyId = getCurrentKeyId();
+            if (keyProvider.keyExists(keyId)) {
+                EncryptedProvenanceEventRecord encryptedEvent = provenanceEventEncryptor.encrypt(event, keyId);
+
+            }
+        } catch (EncryptionException e) {
+            logger.error("Encountered an exception encrypting the event " + event.getFlowFileUuid() + " before registering in the provenance repository", e);
+            // TODO: Throw exception/recover?
+        }
+    }
+
+    @Override
+    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+
+    }
+
+    @Override
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) {
+        return null;
+    }
+
+    @Override
+    public ProvenanceEventRecord getEvent(final long id) throws IOException {
+        return null;
+    }
+
+    public String getCurrentKeyId() {
+        return keyId;
+    }
 }

@@ -863,6 +863,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     + NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         }
 
+        // TODO: If selected PR is encrypted, use the decorator
+
         try {
             return NarThreadContextClassLoader.createInstance(implementationClassName, ProvenanceRepository.class, properties);
         } catch (final Exception e) {

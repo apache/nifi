@@ -109,6 +109,11 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         }
     }
 
+    public static StandardProvenanceEventRecord copy(StandardProvenanceEventRecord other) {
+        Builder builder = new Builder().fromEvent(other);
+        return new StandardProvenanceEventRecord(builder);
+    }
+
     public String getStorageFilename() {
         return storageFilename;
     }
@@ -298,8 +303,8 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         }
 
         return -37423 + 3 * componentId.hashCode() + (transitUri == null ? 0 : 41 * transitUri.hashCode())
-            + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
-            + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
+                + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
+                + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
     }
 
     @Override
@@ -416,6 +421,22 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
                 + ", sourceSystemFlowFileIdentifier=" + sourceSystemFlowFileIdentifier
                 + ", parentUuids=" + parentUuids
                 + ", alternateIdentifierUri=" + alternateIdentifierUri + "]";
+    }
+
+    /**
+     * Returns a unique identifier for the record. By default, it uses
+     * {@link ProvenanceEventRecord#getEventId()} but if it has not been persisted to the
+     * repository, this is {@code -1}, so it constructs a String of the format
+     * {@code <event type>_on_<flowfile UUID>_by_<component UUID>_at_<event time>}.
+     *
+     * @return a String identifying the record for later analysis
+     */
+    public String getBestEventIdentifier() {
+        if (getEventId() != -1) {
+            return Long.toString(getEventId());
+        } else {
+            return getEventType().name() + "_on_" + getFlowFileUuid() + "_by_" + getComponentId() + "_at_" + getEventTime();
+        }
     }
 
     public static class Builder implements ProvenanceEventBuilder {

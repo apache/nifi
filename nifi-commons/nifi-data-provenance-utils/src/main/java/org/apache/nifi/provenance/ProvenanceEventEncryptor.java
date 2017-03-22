@@ -16,16 +16,27 @@
  */
 package org.apache.nifi.provenance;
 
+import java.security.KeyManagementException;
+
 public interface ProvenanceEventEncryptor {
+
+    /**
+     * Initializes the encryptor with a {@link KeyProvider}.
+     *
+     * @param keyProvider the key provider which will be responsible for accessing keys
+     * @throws KeyManagementException if there is an issue configuring the key provider
+     */
+    void initialize(KeyProvider keyProvider) throws KeyManagementException;
 
     /**
      * Encrypts the provided {@see ProvenanceEventRecord}.
      *
      * @param plainRecord the plain record
+     * @param keyId       the ID of the key to use
      * @return the encrypted record
      * @throws EncryptionException if there is an issue encrypting this record
      */
-    ProvenanceEventRecord encrypt(ProvenanceEventRecord plainRecord) throws EncryptionException;
+    EncryptedProvenanceEventRecord encrypt(ProvenanceEventRecord plainRecord, String keyId) throws EncryptionException;
 
     /**
      * Decrypts the provided {@see ProvenanceEventRecord}.
@@ -34,5 +45,5 @@ public interface ProvenanceEventEncryptor {
      * @return the decrypted record
      * @throws EncryptionException if there is an issue decrypting this record
      */
-    ProvenanceEventRecord decrypt(ProvenanceEventRecord encryptedRecord) throws EncryptionException;
+    ProvenanceEventRecord decrypt(EncryptedProvenanceEventRecord encryptedRecord) throws EncryptionException;
 }
