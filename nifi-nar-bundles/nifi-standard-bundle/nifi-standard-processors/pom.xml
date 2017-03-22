@@ -258,7 +258,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>ParCEFone</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
