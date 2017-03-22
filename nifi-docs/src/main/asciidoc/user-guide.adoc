@@ -166,11 +166,11 @@ and configure system properties, such as how many system resources should be pro
 
 On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
 canvas and can to search by component name, type, identifier, configuration properties, and their values. The Global Menu
-contain options that allow you to manipulate existing components on the canvas:
+contains options that allow you to manipulate existing components on the canvas:
 
 image::global-menu.png[NiFi Global Menu]
 
-Additionally, the UI has allows has some features that allow you to easily navigate around the canvas. You can use the
+Additionally, the UI has some features that allow you to easily navigate around the canvas. You can use the
 Navigate Palette to pan around the canvas, and to zoom in and out. The “Birds Eye View” of the dataflow provides a high-level
 view of the dataflow and allows you to pan across large portions of the dataflow. You can also find breadcrumbs along the
 bottom of the screen. As you navigate into and out of Process Groups, the breadcrumbs show
