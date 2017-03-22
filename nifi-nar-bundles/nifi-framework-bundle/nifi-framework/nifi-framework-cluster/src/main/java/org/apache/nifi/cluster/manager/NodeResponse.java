@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
@@ -34,6 +35,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.entity.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,11 +61,12 @@ public class NodeResponse {
     private final URI requestUri;
     private final ClientResponse clientResponse;
     private final NodeIdentifier nodeId;
-    private final Throwable throwable;
+    private Throwable throwable;
     private boolean hasCreatedResponse = false;
     private final Entity updatedEntity;
     private final long requestDurationNanos;
     private final String requestId;
+    private byte[] bufferedResponse;
 
     public NodeResponse(final NodeIdentifier nodeId, final String httpMethod, final URI requestUri, final ClientResponse clientResponse, final long requestDurationNanos, final String requestId) {
         if (nodeId == null) {
@@ -158,6 +161,23 @@ public class NodeResponse {
         return (500 <= statusCode && statusCode <= 599);
     }
 
+    public synchronized void bufferResponse() {
+        bufferedResponse = new byte[clientResponse.getLength()];
+        try {
+            StreamUtils.fillBuffer(clientResponse.getEntityInputStream(), bufferedResponse);
+        } catch (final IOException e) {
+            this.throwable = e;
+        }
+    }
+
+    private synchronized InputStream getInputStream() {
+        if (bufferedResponse == null) {
+            return clientResponse.getEntityInputStream();
+        }
+
+        return new ByteArrayInputStream(bufferedResponse);
+    }
+
     public ClientResponse getClientResponse() {
         return clientResponse;
     }
@@ -229,7 +249,6 @@ public class NodeResponse {
         for (final String key : clientResponse.getHeaders().keySet()) {
             final List<String> values = clientResponse.getHeaders().get(key);
             for (final String value : values) {
-
                 if (key.equalsIgnoreCase("transfer-encoding") || key.equalsIgnoreCase("content-length")) {
                     /*
                      * do not copy the transfer-encoding header (i.e., chunked encoding) or
@@ -244,25 +263,19 @@ public class NodeResponse {
                      */
                     continue;
                 }
+
                 responseBuilder.header(key, value);
             }
         }
 
         // head requests must not have a message-body in the response
         if (!HttpMethod.HEAD.equalsIgnoreCase(httpMethod)) {
-
             // set the entity
             if (updatedEntity == null) {
                 responseBuilder.entity(new StreamingOutput() {
                     @Override
                     public void write(final OutputStream output) throws IOException, WebApplicationException {
-                        BufferedInputStream bis = null;
-                        try {
-                            bis = new BufferedInputStream(clientResponse.getEntityInputStream());
-                            IOUtils.copy(bis, output);
-                        } finally {
-                            IOUtils.closeQuietly(bis);
-                        }
+                        IOUtils.copy(getInputStream(), output);
                     }
                 });
             } else {
