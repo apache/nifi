@@ -82,8 +82,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -584,7 +586,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             final byte[] snippetBytes = controller.getSnippetManager().export();
             final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint);
+            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
             return fromDisk;
         }
 
@@ -606,7 +608,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final byte[] flowBytes = baos.toByteArray();
         baos.reset();
 
-        return new StandardDataFlow(flowBytes, snippetBytes, authorizerFingerprint);
+        final Set<String> missingComponents = new HashSet<>();
+        controller.getRootGroup().findAllProcessors().stream().filter(p -> p.isExtensionMissing()).forEach(p -> missingComponents.add(p.getIdentifier()));
+        controller.getAllControllerServices().stream().filter(cs -> cs.isExtensionMissing()).forEach(cs -> missingComponents.add(cs.getIdentifier()));
+        controller.getAllReportingTasks().stream().filter(r -> r.isExtensionMissing()).forEach(r -> missingComponents.add(r.getIdentifier()));
+
+        return new StandardDataFlow(flowBytes, snippetBytes, authorizerFingerprint, missingComponents);
     }
 
 
@@ -659,7 +666,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
 
-            logger.info("Disconnecting node.");
+            logger.info("Disconnecting node due to " + explanation);
 
             // mark node as not connected
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, DisconnectionCode.UNKNOWN, explanation));
@@ -674,7 +681,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setClustered(false, null);
             clusterCoordinator.setConnected(false);
 
-            logger.info("Node disconnected.");
+            logger.info("Node disconnected due to " + explanation);
 
         } finally {
             writeLock.unlock();
@@ -690,19 +697,23 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final DataFlow actualProposedFlow;
         final byte[] flowBytes;
         final byte[] authorizerFingerprint;
+        final Set<String> missingComponents;
+
         if (proposedFlow == null) {
             final ByteArrayOutputStream flowOnDisk = new ByteArrayOutputStream();
             copyCurrentFlow(flowOnDisk);
             flowBytes = flowOnDisk.toByteArray();
             authorizerFingerprint = getAuthorizerFingerprint();
+            missingComponents = new HashSet<>();
             logger.debug("Loaded Flow from bytes");
         } else {
             flowBytes = proposedFlow.getFlow();
             authorizerFingerprint = proposedFlow.getAuthorizerFingerprint();
+            missingComponents = proposedFlow.getMissingComponents();
             logger.debug("Loaded flow from proposed flow");
         }
 
-        actualProposedFlow = new StandardDataFlow(flowBytes, null, authorizerFingerprint);
+        actualProposedFlow = new StandardDataFlow(flowBytes, null, authorizerFingerprint, missingComponents);
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");

@@ -22,6 +22,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for Bundles.
@@ -54,7 +55,12 @@ public final class BundleUtils {
                 throw new IllegalStateException(String.format("%s from %s is not known to this NiFi instance.", type, coordinate));
             }
         } else {
-            return bundle.getBundleDetails().getCoordinate();
+            final List<BundleCoordinate> bundlesForType = ExtensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
+            if (bundlesForType.contains(coordinate)) {
+                return coordinate;
+            } else {
+                throw new IllegalStateException(String.format("Found bundle %s but does not support %s", coordinate, type));
+            }
         }
     }
 
@@ -65,7 +71,11 @@ public final class BundleUtils {
      *  <ul>
      *      <li>If bundleDTO is specified</li>
      *      <ul>
-     *          <li>Matching bundle found, use it</li>
+     *          <li>Matching bundle found</li>
+     *          <ul>
+     *              <li>If bundle supports type, use it</li>
+     *              <li>If bundle doesn't support type, throw IllegalStateException</li>
+     *          </ul>
      *          <li>No matching bundle found, IllegalStateException</li>
      *      </ul>
      *      <li>If bundleDTO is not specified</li>
@@ -97,7 +107,11 @@ public final class BundleUtils {
      *  <ul>
      *      <li>If bundleDTO is specified</li>
      *      <ul>
-     *          <li>Matching bundle found, use it</li>
+     *          <li>Matching bundle found</li>
+     *          <ul>
+     *              <li>If bundle supports type, use it</li>
+     *              <li>If bundle doesn't support type, throw IllegalStateException</li>
+     *          </ul>
      *          <li>No matching bundle found</li>
      *          <ul>
      *              <li>One bundle that supports the specified type, use it</li>

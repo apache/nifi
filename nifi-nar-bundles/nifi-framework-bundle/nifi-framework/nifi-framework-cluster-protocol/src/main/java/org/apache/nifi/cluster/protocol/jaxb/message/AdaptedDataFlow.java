@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
+import java.util.Set;
+
 /**
  */
 public class AdaptedDataFlow {
@@ -23,6 +25,7 @@ public class AdaptedDataFlow {
     private byte[] flow;
     private byte[] snippets;
     private byte[] authorizerFingerprint;
+    private Set<String> missingComponents;
 
     public byte[] getFlow() {
         return flow;
@@ -46,6 +49,14 @@ public class AdaptedDataFlow {
 
     public void setAuthorizerFingerprint(byte[] authorizerFingerprint) {
         this.authorizerFingerprint = authorizerFingerprint;
+    }
+
+    public Set<String> getMissingComponents() {
+        return missingComponents;
+    }
+
+    public void setMissingComponents(Set<String> missingComponents) {
+        this.missingComponents = missingComponents;
     }
 
 }

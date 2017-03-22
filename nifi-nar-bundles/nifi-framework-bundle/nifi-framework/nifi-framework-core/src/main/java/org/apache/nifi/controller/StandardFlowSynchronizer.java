@@ -234,7 +234,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             policyBasedAuthorizer = null;
         }
 
-        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingSnippets, existingAuthFingerprint);
+        final Set<String> missingComponents = new HashSet<>();
+        controller.getAllControllerServices().stream().filter(cs -> cs.isExtensionMissing()).forEach(cs -> missingComponents.add(cs.getIdentifier()));
+        controller.getAllReportingTasks().stream().filter(r -> r.isExtensionMissing()).forEach(r -> missingComponents.add(r.getIdentifier()));
+        controller.getRootGroup().findAllProcessors().stream().filter(p -> p.isExtensionMissing()).forEach(p -> missingComponents.add(p.getIdentifier()));
+
+        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingSnippets, existingAuthFingerprint, missingComponents);
 
         Document configuration = null;
 
@@ -243,6 +248,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             if (existingFlowEmpty) {
                 configuration = parseFlowBytes(proposedFlow.getFlow());
                 if (configuration != null) {
+                    logger.trace("Checking bunde compatibility");
                     checkBundleCompatibility(configuration);
                 }
             } else {
@@ -254,6 +260,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         } catch (final FingerprintException fe) {
             throw new FlowSerializationException("Failed to generate flow fingerprints", fe);
+        }
+
+        logger.trace("Checking missing component inheritability");
+
+        final String problemInheritingMissingComponents = checkMissingComponentsInheritability(existingDataFlow, proposedFlow);
+        if (problemInheritingMissingComponents != null) {
+            throw new UninheritableFlowException("Proposed Flow is not inheritable by the flow controller because of differences in missing components: " + problemInheritingMissingComponents);
         }
 
         logger.trace("Checking authorizer inheritability");
@@ -1327,6 +1340,30 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
 
         return processGroup;
+    }
+
+    public String checkMissingComponentsInheritability(final DataFlow existingFlow, final DataFlow proposedFlow) {
+        if (existingFlow == null) {
+            return null;  // no existing flow, so equivalent to proposed flow
+        }
+
+        final Set<String> existingMissingComponents = new HashSet<>(existingFlow.getMissingComponents());
+        existingMissingComponents.removeAll(proposedFlow.getMissingComponents());
+
+        if (existingMissingComponents.size() > 0) {
+            final String missingIds = StringUtils.join(existingMissingComponents, ",");
+            return "Current flow has missing components that are not considered missing in the proposed flow (" + missingIds + ")";
+        }
+
+        final Set<String> proposedMissingComponents = new HashSet<>(proposedFlow.getMissingComponents());
+        proposedMissingComponents.removeAll(existingFlow.getMissingComponents());
+
+        if (proposedMissingComponents.size() > 0) {
+            final String missingIds = StringUtils.join(proposedMissingComponents, ",");
+            return "Proposed flow has missing components that are not considered missing in the current flow (" + missingIds + ")";
+        }
+
+        return null;
     }
 
     /**

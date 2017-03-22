@@ -77,11 +77,13 @@ class StandardFlowSynchronizerSpec extends Specification {
         // the unit under test
         def nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null)
         def flowSynchronizer = new StandardFlowSynchronizer(null,nifiProperties)
+        def firstRootGroup = Mock ProcessGroup
 
         when: "the flow is synchronized with the current state of the controller"
         flowSynchronizer.sync controller, proposedFlow, null
 
         then: "establish interactions for the mocked collaborators of StandardFlowSynchronizer to store the ending positions of components"
+        1 * firstRootGroup.findAllProcessors() >> []
         1 * controller.isFlowSynchronized() >> false
         _ * controller.rootGroupId >> flowControllerXml.rootGroup.id.text()
         _ * controller.getGroup(_) >> { String id -> positionableMocksById.get(id) }
@@ -89,6 +91,12 @@ class StandardFlowSynchronizerSpec extends Specification {
         _ * controller.bulletinRepository >> bulletinRepository
         _ * controller.authorizer >> authorizer
         _ * controller./set.*/(*_)
+        _ * controller.getAllControllerServices() >> []
+        _ * controller.getAllReportingTasks() >> []
+        _ * controller.getRootGroup() >>> [
+            firstRootGroup,
+            positionableMocksById.get(controller.rootGroupId)
+        ]
         _ * controller.createProcessGroup(_) >> { String pgId ->
             def processGroup = Mock(ProcessGroup)
             _ * processGroup.getIdentifier() >> pgId
@@ -208,6 +216,7 @@ class StandardFlowSynchronizerSpec extends Specification {
             [] as byte[]
         }
         _ * proposedFlow.authorizerFingerprint >> null
+        _ * proposedFlow.missingComponents >> []
 
         _ * flowFileQueue./set.*/(*_)
         _ * _.hashCode() >> 1

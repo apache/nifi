@@ -69,8 +69,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -83,6 +85,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
@@ -318,6 +321,66 @@ public class TestFlowController {
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+
+        final Set<String> missingComponents = new HashSet<>();
+        missingComponents.add("1");
+        missingComponents.add("2");
+
+        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
+        when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+            Assert.fail("Should have thrown exception");
+        } catch (UninheritableFlowException e) {
+            assertTrue(e.getMessage().contains("Proposed flow has missing components that are not considered missing in the current flow (1,2)"));
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
+        final StringEncryptor stringEncryptor = StringEncryptor.createEncryptor(nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties);
+
+        final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
+        when(mockProcessorNode.getIdentifier()).thenReturn("1");
+        when(mockProcessorNode.isExtensionMissing()).thenReturn(true);
+
+        final ControllerServiceNode mockControllerServiceNode = mock(ControllerServiceNode.class);
+        when(mockControllerServiceNode.getIdentifier()).thenReturn("2");
+        when(mockControllerServiceNode.isExtensionMissing()).thenReturn(true);
+
+        final ReportingTaskNode mockReportingTaskNode = mock(ReportingTaskNode.class);
+        when(mockReportingTaskNode.getIdentifier()).thenReturn("3");
+        when(mockReportingTaskNode.isExtensionMissing()).thenReturn(true);
+
+        final ProcessGroup mockRootGroup = mock(ProcessGroup.class);
+        when(mockRootGroup.findAllProcessors()).thenReturn(Collections.singletonList(mockProcessorNode));
+
+        final SnippetManager mockSnippetManager = mock(SnippetManager.class);
+        when(mockSnippetManager.export()).thenReturn(new byte[0]);
+
+        final FlowController mockFlowController = mock(FlowController.class);
+        when(mockFlowController.getRootGroup()).thenReturn(mockRootGroup);
+        when(mockFlowController.getAllControllerServices()).thenReturn(new HashSet<>(Arrays.asList(mockControllerServiceNode)));
+        when(mockFlowController.getAllReportingTasks()).thenReturn(new HashSet<>(Arrays.asList(mockReportingTaskNode)));
+        when(mockFlowController.getAuthorizer()).thenReturn(authorizer);
+        when(mockFlowController.getSnippetManager()).thenReturn(mockSnippetManager);
+
+        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
+        when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
+
+        try {
+            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, stringEncryptor);
+            Assert.fail("Should have thrown exception");
+        } catch (UninheritableFlowException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("Current flow has missing components that are not considered missing in the proposed flow (1,2,3)"));
+        }
     }
 
     @Test
