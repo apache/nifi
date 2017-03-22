@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
-license agreements. See the NOTICE file distributed with this work for additional 
-information regarding copyright ownership. The ASF licenses this file to 
-You under the Apache License, Version 2.0 (the "License"); you may not use 
-this file except in compliance with the License. You may obtain a copy of 
-the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
-by applicable law or agreed to in writing, software distributed under the 
-License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
-OF ANY KIND, either express or implied. See the License for the specific 
-language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
@@ -87,7 +88,7 @@ language governing permissions and limitations under the License. -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.min-version>3.1.0</maven.min-version>
-        <maven.surefire.arguments/>
+        <maven.surefire.arguments />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
@@ -330,9 +331,9 @@ language governing permissions and limitations under the License. -->
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
                 <exclusions>
-                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0 because it is 
-                    lgpl licensed | We also don't use the JDBC related features of quartz for 
-                    which the dependency would matter -->
+                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0 
+                        because it is lgpl licensed | We also don't use the JDBC related features 
+                        of quartz for which the dependency would matter -->
                     <exclusion>
                         <groupId>c3p0</groupId>
                         <artifactId>c3p0</artifactId>
@@ -401,8 +402,8 @@ language governing permissions and limitations under the License. -->
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <exclusions>
-                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used in dependencies 
-                    section -->
+                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used 
+                        in dependencies section -->
                     <exclusion>
                         <groupId>commons-logging</groupId>
                         <artifactId>commons-logging</artifactId>
@@ -818,7 +819,7 @@ language governing permissions and limitations under the License. -->
                 <version>${org.slf4j.version}</version>
             </dependency>
 
-            
+
             <!-- Test Dependencies for testing interactions with ZooKeeper -->
             <dependency>
                 <groupId>org.apache.curator</groupId>
@@ -832,9 +833,9 @@ language governing permissions and limitations under the License. -->
                 <version>6.8.8</version>
                 <scope>test</scope>
             </dependency>
-            
-            
-            <dependency>            
+
+
+            <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
                 <version>1.8.3</version>
@@ -868,6 +869,16 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-flowfile-repo-serialization</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-repository-models</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -1253,37 +1264,37 @@ language governing permissions and limitations under the License. -->
                 <artifactId>nifi-elasticsearch-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
-             </dependency>
-             <dependency>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-5-nar</artifactId>
-                 <version>1.2.0-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
-             </dependency>
-             <dependency>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-lumberjack-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-beats-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-email-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-             <dependency>
-                 <groupId>org.apache.nifi</groupId>
-                 <artifactId>nifi-tcp-nar</artifactId>
-                 <version>1.2.0-SNAPSHOT</version>
-                 <type>nar</type>
-             </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-tcp-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-splunk-nar</artifactId>
@@ -1308,7 +1319,7 @@ language governing permissions and limitations under the License. -->
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	        <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
@@ -1600,7 +1611,9 @@ language governing permissions and limitations under the License. -->
                             <include>**/*Spec.class</include>
                         </includes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true ${maven.surefire.arguments}</argLine>
+                        <argLine combine.children="append">-Xmx1G
+                            -Djava.net.preferIPv4Stack=true
+                            ${maven.surefire.arguments}</argLine>
                     </configuration>
                     <dependencies>
                         <dependency>
@@ -1804,71 +1817,100 @@ language governing permissions and limitations under the License. -->
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
+                                <property name="eachLine"
+                                    value="true" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
+                                    <property name="format"
+                                        value="\s+$" />
+                                    <property name="message"
+                                        value="Line has trailing whitespace." />
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
+                                    <property name="format"
+                                        value="[@]see\s+[{][@]link" />
+                                    <property name="message"
+                                        value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
                                 <module name="OuterTypeFilename" />
                                 <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter ignores the ending left 
-                                    brace -->
+                                    <!-- needs extra, because Eclipse formatter 
+                                        ignores the ending left brace -->
                                     <property name="max" value="200" />
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+                                    <property name="ignorePattern"
+                                        value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                                 </module>
                                 <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
+                                    <property name="processJavadoc"
+                                        value="true" />
                                 </module>
                                 <module name="NoLineWrap" />
                                 <module name="LeftCurly">
-                                    <property name="maxLineLength" value="160" />
+                                    <property name="maxLineLength"
+                                        value="160" />
                                 </module>
                                 <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
+                                    <property name="option"
+                                        value="alone" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
+                                    <property name="tokens"
+                                        value="DOT" />
+                                    <property name="option"
+                                        value="nl" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
+                                    <property name="tokens"
+                                        value="COMMA" />
+                                    <property name="option"
+                                        value="EOL" />
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
+                                    <property name="format"
+                                        value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
+                                    <property name="format"
+                                        value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
                                 <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
+                                    <property name="option"
+                                        value="NL" />
+                                    <property name="tokens"
+                                        value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
+                                    <property name="tokens"
+                                        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
+                                    <property name="tokens"
+                                        value="VARIABLE_DEF" />
+                                    <property
+                                        name="allowSamelineMultipleAnnotations"
+                                        value="true" />
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowMissingJavadoc" value="true" />
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingThrowsTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                    <property name="allowThrowsTagsForSubclasses" value="true" />
+                                    <property name="allowMissingJavadoc"
+                                        value="true" />
+                                    <property name="allowMissingParamTags"
+                                        value="true" />
+                                    <property name="allowMissingThrowsTags"
+                                        value="true" />
+                                    <property name="allowMissingReturnTag"
+                                        value="true" />
+                                    <property name="allowedAnnotations"
+                                        value="Override,Test,BeforeClass,AfterClass,Before,After" />
+                                    <property
+                                        name="allowThrowsTagsForSubclasses"
+                                        value="true" />
                                 </module>
                                 <module name="SingleLineJavadoc" />
                             </module>
@@ -1908,9 +1950,10 @@ language governing permissions and limitations under the License. -->
     </build>
     <profiles>
         <profile>
-            <!-- Performs execution of Integration Tests using the Maven FailSafe Plugin. The view of integration tests in this context
-            are those tests interfacing with external sources and services requiring additional resources or credentials that cannot
-            be explicitly provided. -->
+            <!-- Performs execution of Integration Tests using the Maven 
+                FailSafe Plugin. The view of integration tests in this context are those 
+                tests interfacing with external sources and services requiring additional 
+                resources or credentials that cannot be explicitly provided. -->
             <id>integration-tests</id>
             <build>
                 <plugins>
@@ -1930,12 +1973,12 @@ language governing permissions and limitations under the License. -->
             </build>
         </profile>
         <profile>
-            <!-- Checks style and licensing requirements. This is a good idea to run 
-            for contributions and for the release process. While it would be nice to 
-            run always these plugins can considerably slow the build and have proven 
-            to create unstable builds in our multi-module project and when building using 
-            multiple threads. The stability issues seen with Checkstyle in multi-module 
-            builds include false-positives and false negatives. -->
+            <!-- Checks style and licensing requirements. This is a good 
+                idea to run for contributions and for the release process. While it would 
+                be nice to run always these plugins can considerably slow the build and have 
+                proven to create unstable builds in our multi-module project and when building 
+                using multiple threads. The stability issues seen with Checkstyle in multi-module 
+                builds include false-positives and false negatives. -->
             <id>contrib-check</id>
             <build>
                 <plugins>
@@ -1991,14 +2034,16 @@ language governing permissions and limitations under the License. -->
                 </pluginManagement>
             </build>
         </profile>
-        <!-- The following profiles are here as a convenience for folks that want to build against vendor-specific
-         distributions of the various Hadoop ecosystem libraries.  These will alter which dependencies are sourced
-         in a manner that can adjust the correct LICENSE and NOTICE requirements for any affected jar and the
-         resulting assembly overall.  These L&N impacts are not automatically handled by the build process and are
-         the responsibility of those creating and using the resulting binary artifacts. -->
+        <!-- The following profiles are here as a convenience for folks that 
+            want to build against vendor-specific distributions of the various Hadoop 
+            ecosystem libraries. These will alter which dependencies are sourced in a 
+            manner that can adjust the correct LICENSE and NOTICE requirements for any 
+            affected jar and the resulting assembly overall. These L&N impacts are not 
+            automatically handled by the build process and are the responsibility of 
+            those creating and using the resulting binary artifacts. -->
         <profile>
-            <!-- This profile adds the Hortonworks repository for resolving Hortonworks Data Platform (HDP)
-                 artifacts for the Hadoop bundles -->
+            <!-- This profile adds the Hortonworks repository for resolving 
+                Hortonworks Data Platform (HDP) artifacts for the Hadoop bundles -->
             <id>hortonworks</id>
             <repositories>
                 <repository>
@@ -2033,15 +2078,13 @@ language governing permissions and limitations under the License. -->
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line
-                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
-                -->
+                <!-- Vendor-specific version number included here as default, 
+                    should be overridden on the command-line <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version> -->
             </properties>
         </profile>
         <profile>
-            <!-- This profile will add the MapR repository for resolving MapR Hadoop
-                 artifacts for the Hadoop bundles -->
+            <!-- This profile will add the MapR repository for resolving 
+                MapR Hadoop artifacts for the Hadoop bundles -->
             <id>mapr</id>
             <repositories>
                 <repository>
@@ -2057,15 +2100,13 @@ language governing permissions and limitations under the License. -->
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line
-                <hadoop.version>2.7.0-mapr-1602</hadoop.version>
-                -->
+                <!-- Vendor-specific version number included here as default, 
+                    should be overridden on the command-line <hadoop.version>2.7.0-mapr-1602</hadoop.version> -->
             </properties>
         </profile>
         <profile>
-            <!-- This profile will add the Cloudera repository for resolving Cloudera Distribution of Hadoop (CDH)
-                 artifacts for the Hadoop bundles -->
+            <!-- This profile will add the Cloudera repository for resolving 
+                Cloudera Distribution of Hadoop (CDH) artifacts for the Hadoop bundles -->
             <id>cloudera</id>
             <repositories>
                 <repository>
@@ -2081,10 +2122,8 @@ language governing permissions and limitations under the License. -->
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line
-                <hadoop.version>2.6.0-cdh5.8.1</hadoop.version>
-                -->
+                <!-- Vendor-specific version number included here as default, 
+                    should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
             </properties>
         </profile>
     </profiles>
