@@ -48,6 +48,7 @@
         <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/globalization/resources.js"></script>
         ${nf.bulletin.board.script.tags}
     </head>
     <body ng-controller="ngBulletinBoardAppCtrl">

@@ -13,16 +13,18 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="user-policies-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">User</div>
+            <div class="setting-name"><fmt:message key="partials.users.user-policies-dialog.User"/></div>
             <div class="setting-field">
                 <div id="policies-dialog-user-name"></div>
             </div>
         </div>
-        <div id="user-policy-message" title="Some policies may be inherited by descendant components unless explicitly overridden.">
-            Some policies may be inherited by descendant components unless explicitly overridden.
+        <fmt:message key="partials.users.user-policies-dialog.user-policy-message" var="userPolicyMessage"/>
+        <div id="user-policy-message" title="${userPolicyMessage}">
+            <fmt:message key="partials.users.user-policies-dialog.user-policy-message"/>
         </div>
         <div id="user-policies-table"></div>
     </div>

@@ -15,19 +15,21 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="search-users-dialog" class="hidden">
     <div class="dialog-content">
         <div class="secure-port-setting">
-            <input id="search-users-field" type="text" placeholder="User Identity"/>
+        <fmt:message key="partials.canvas.search-users-dialog.search-users-field" var="useridentity"/>
+            <input id="search-users-field" type="text" placeholder="${useridentity}"/>
         </div>
         <div class="secure-port-setting">
-            <div class="setting-name">Selected Users</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.search-users-dialog.SelectedUsers"/></div>
             <div class="setting-field allowed-container">
                 <ul id="allowed-users" class="allowed"></ul>
             </div>
         </div>
         <div class="secure-port-setting">
-            <div class="setting-name">Selected Groups</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.search-users-dialog.SelectedGroups"/></div>
             <div class="setting-field allowed-container">
                 <ul id="allowed-groups" class="allowed"></ul>
             </div>

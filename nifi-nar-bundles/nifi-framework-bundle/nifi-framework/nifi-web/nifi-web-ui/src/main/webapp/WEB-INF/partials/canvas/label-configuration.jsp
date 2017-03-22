@@ -15,16 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="label-configuration" class="hidden medium-dialog">
     <div id="label-configuration-contents" class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Label Value</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.label-configuration.LabelValue"/></div>
             <div class="setting-field">
                 <textarea cols="30" rows="4" id="label-value" class="setting-input"></textarea>
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Font Size</div>
+            <div class="setting-name"><fmt:message key="partials.canvas.label-configuration.fontSize"/></div>
             <div class="setting-field">
                 <div id="label-font-size"></div>
             </div>

@@ -15,24 +15,25 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="node-details-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Address</div>
+            <div class="setting-name"><fmt:message key="partials.cluster.node-details-dialog.Address"/></div>
             <div class="setting-field">
                 <span id="node-address"></span>
             </div>
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">Node Id</div>
+            <div class="setting-name"><fmt:message key="partials.cluster.node-details-dialog.NodeId"/></div>
             <div class="setting-field">
                 <span id="node-id"></span>
             </div>
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">Node Events</div>
+            <div class="setting-name"><fmt:message key="partials.cluster.node-details-dialog.NodeEvents"/></div>
             <div class="setting-field">
                 <div id="node-events"></div>
             </div>

@@ -15,12 +15,14 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="bulletin-board">
     <div id="bulletin-board-header-and-filter">
-        <div id="bulletin-board-header-text">NiFi Templates</div>
+        <div id="bulletin-board-header-text"><fmt:message key="partials.bulletin-board.bulletin-board-content.bulletin-board-header-text"/></div>
         <div id="bulletin-board-filter-controls">
             <div id="bulletin-board-filter-container" class="filter-container">
-                <input type="text" placeholder="Filter" id="bulletin-board-filter" class="filter"/>
+            	<fmt:message key="partials.bulletin-board.bulletin-board-content.bulletin-board-filter" var="filter"/>
+                <input type="text" placeholder="${filter}" id="bulletin-board-filter" class="filter"/>
                 <div id="bulletin-board-filter-type" class="filter-type"></div>
             </div>
         </div>
@@ -28,16 +30,18 @@
     <div id="bulletin-board-container"></div>
 </div>
 <div id="bulletin-board-refresh-container">
-    <md-switch class="md-primary refresh-toggle" aria-label="Toggle auto refresh" ng-change="appCtrl.serviceProvider.bulletinBoardCtrl.togglePolling()" ng-model="appCtrl.serviceProvider.bulletinBoardCtrl.polling">
-        Auto-refresh
+	<fmt:message key="partials.bulletin-board.bulletin-board-content.refresh-toggle" var="toggle"/>
+    <md-switch class="md-primary refresh-toggle" aria-label="${toggle}" ng-change="appCtrl.serviceProvider.bulletinBoardCtrl.togglePolling()" ng-model="appCtrl.serviceProvider.bulletinBoardCtrl.polling">
+        <fmt:message key="partials.bulletin-board.bulletin-board-content.bulletin-board-refresh-container"/>
     </md-switch>
-    <button id="refresh-button" ng-click="appCtrl.serviceProvider.bulletinBoardCtrl.loadBulletins()" class="refresh-button pointer fa fa-refresh" title="Start/Stop auto refresh"></button>
+    <fmt:message key="partials.bulletin-board.bulletin-board-content.bulletin-board-last-refreshed-container" var="autorefresh"/>
+    <button id="refresh-button" ng-click="appCtrl.serviceProvider.bulletinBoardCtrl.loadBulletins()" class="refresh-button pointer fa fa-refresh" title="${autorefresh}"></button>
     <div id="bulletin-board-last-refreshed-container" class="last-refreshed-container">
-        Last updated:&nbsp;<span id="bulletin-board-last-refreshed" class="value-color"></span>
+        <fmt:message key="partials.bulletin-board.bulletin-board-content.bulletin-board-last-refreshed-container"/>:&nbsp;<span id="bulletin-board-last-refreshed" class="value-color"></span>
     </div>
     <div id="bulletin-board-loading-container" class="loading-container"></div>
     <div id="bulletin-board-status-container">
         <div id="bulletin-error-message"></div>
-        <span id="clear-bulletins-button" class="link pointer">Clear</span>
+        <span id="clear-bulletins-button" class="link pointer"><fmt:message key="partials.bulletin-board.Clear"/></span>
     </div>
 </div>
