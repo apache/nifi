@@ -38,6 +38,7 @@ import javax.mail.internet.MimeMessage;
 import org.apache.nifi.bootstrap.notification.AbstractNotificationService;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationFailedException;
+import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -195,7 +196,7 @@ public class EmailNotificationService extends AbstractNotificationService {
     }
 
     @Override
-    public void notify(final NotificationContext context, final String subject, final String messageText) throws NotificationFailedException {
+    public void notify(final NotificationContext context, final NotificationType notificationType, final String subject, final String messageText) throws NotificationFailedException {
         final Properties properties = getMailProperties(context);
         final Session mailSession = createMailSession(properties);
         final Message message = new MimeMessage(mailSession);

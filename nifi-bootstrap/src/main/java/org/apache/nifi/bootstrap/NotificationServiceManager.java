@@ -37,6 +37,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bootstrap.notification.AbstractNotificationService;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationService;
@@ -202,7 +203,7 @@ public class NotificationServiceManager {
                     if (invalidReasons.isEmpty()) {
                         final NotificationContext context = buildNotificationContext(config);
                         try {
-                            service.notify(context, subject, message);
+                            service.notify(context, type, subject, message);
                             logger.info("Successfully sent notification of type {} to {}", type, service);
                         } catch (final Throwable t) {   // keep running even if a Throwable is caught because we need to ensure that we are able to restart NiFi
                             logger.error("Failed to send notification of type {} to {} with Subject {} due to {}. Will ",
@@ -263,19 +264,22 @@ public class NotificationServiceManager {
                 final Map<PropertyDescriptor, String> props = new HashMap<>();
                 final Map<String, String> configuredProps = config.getProperties();
 
-                final NotificationService service = config.getService();
-                for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
-                    final String configuredValue = configuredProps.get(descriptor.getName());
-                    if (configuredValue == null) {
-                        props.put(descriptor, descriptor.getDefaultValue());
-                    } else {
-                        props.put(descriptor, configuredValue);
-                    }
+                final AbstractNotificationService service = config.getService();
+                final List<PropertyDescriptor> configuredPropertyDescriptors = new ArrayList<>(service.getPropertyDescriptors());
+
+                // This is needed to capture all dynamic properties
+                configuredProps.forEach((key, value) -> {
+                    PropertyDescriptor propertyDescriptor = config.service.getPropertyDescriptor(key);
+                    props.put(config.service.getPropertyDescriptor(key), value);
+                    configuredPropertyDescriptors.remove(propertyDescriptor);
+                });
+
+                for (final PropertyDescriptor descriptor : configuredPropertyDescriptors) {
+                    props.put(descriptor, descriptor.getDefaultValue());
                 }
 
                 return props;
             }
-
         };
     }
 
@@ -360,7 +364,7 @@ public class NotificationServiceManager {
             propertyValues.put(propName, propValue);
         }
 
-        final NotificationService service = (NotificationService) serviceObject;
+        final AbstractNotificationService service = (AbstractNotificationService) serviceObject;
 
         try {
             service.initialize(new NotificationInitializationContext() {
@@ -420,15 +424,15 @@ public class NotificationServiceManager {
     }
 
     private static class ConfiguredNotificationService {
-        private final NotificationService service;
+        private final AbstractNotificationService service;
         private final Map<String, String> properties;
 
-        public ConfiguredNotificationService(final NotificationService service, final Map<String, String> properties) {
+        public ConfiguredNotificationService(final AbstractNotificationService service, final Map<String, String> properties) {
             this.service = service;
             this.properties = properties;
         }
 
-        public NotificationService getService() {
+        public AbstractNotificationService getService() {
             return service;
         }
 

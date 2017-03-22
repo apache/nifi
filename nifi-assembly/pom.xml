@@ -672,6 +672,7 @@ language governing permissions and limitations under the License. -->
                                                     <include>ch.qos.logback:logback-core</include>
                                                     <include>org.apache.nifi:nifi-security-utils</include>
                                                     <include>org.apache.nifi:nifi-utils</include>
+                                                    <include>com.squareup.okhttp3:okhttp</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
