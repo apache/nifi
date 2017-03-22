@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 
 
@@ -239,6 +240,78 @@ public class TestParseCEF {
         Assert.assertEquals(prettyEvent, extension.get("deviceCustomDate1").asText());
     }
 
+    @Test
+    public void testNonEnglishDate() {
+        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
+        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "fr-FR");
+        runner.assertValid();
 
+        String sample = sample1.replace("Feb", "févr.");
+        runner.enqueue(sample);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
+        MockFlowFile mff1 = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        mff1.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
+
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
+        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "et-EE");
+        runner.assertValid();
+
+        sample = sample1.replace("Feb", "veebr");
+        runner.enqueue(sample);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 2);
+        MockFlowFile mff2  = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        mff2.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
+
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
+        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "ja-JP");
+        runner.assertValid();
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("LLLL", Locale.forLanguageTag("ja-JP") );
+        String jpFeb = dateFormat.format(1423441663000L);
+
+        sample = sample1.replace("Feb", jpFeb );
+        runner.enqueue(sample);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 3);
+        MockFlowFile mff3  = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
+
+        mff3.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
+
+
+    }
+
+
+    @Test
+    public void testCustomValidator() {
+        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
+        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
+        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
+
+
+        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "SPANGLISH");
+        runner.assertNotValid();
+
+        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "en-US");
+        runner.assertValid();
+
+
+        Locale availableLocales[] = Locale.getAvailableLocales();
+
+        for (Locale listedLocale : availableLocales ) {
+            if (!listedLocale.toString().isEmpty()) {
+                String input = listedLocale.toLanguageTag();
+                runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, input );
+                runner.assertValid();
+            }
+        }
+    }
 }
 

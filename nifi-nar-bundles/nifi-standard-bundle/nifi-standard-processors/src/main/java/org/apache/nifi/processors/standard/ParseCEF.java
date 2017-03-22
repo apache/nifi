@@ -43,6 +43,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -69,6 +72,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -146,6 +150,17 @@ public class ParseCEF extends AbstractProcessor {
         .defaultValue(LOCAL_TZ)
         .build();
 
+    public static final PropertyDescriptor DATETIME_REPRESENTATION = new PropertyDescriptor.Builder()
+        .name("DATETIME_REPRESENTATION")
+        .displayName("DateTime Locale")
+        .description("The IETF BCP 47 representation of the Locale to be used when parsing date " +
+                "fields with long or short month names (e.g. may <en-US> vs. mai. <fr-FR>. The default" +
+                "value is generally safe. Only change if having issues parsing CEF messages")
+        .required(true)
+        .addValidator(new ValidateLocale())
+        .defaultValue("en-US")
+        .build();
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .description("Any FlowFile that could not be parsed as a CEF message will be transferred to this Relationship without any attributes being added")
@@ -157,10 +172,11 @@ public class ParseCEF extends AbstractProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor>properties =new ArrayList<>();
+        final List<PropertyDescriptor>properties = new ArrayList<>();
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
         properties.add(TIME_REPRESENTATION);
+        properties.add(DATETIME_REPRESENTATION);
         return properties;
     }
 
@@ -193,6 +209,7 @@ public class ParseCEF extends AbstractProcessor {
                 tzId = UTC;
                 break;
         }
+
     }
 
     @Override
@@ -214,7 +231,11 @@ public class ParseCEF extends AbstractProcessor {
         CommonEvent event;
 
         try {
-            event = parser.parse(buffer, true);
+            // parcefoneLocale defaults to en_US, so this should not fail. But we force failure in case the custom
+            // validator failed to identify an invalid Locale
+            final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
+            event = parser.parse(buffer, true, parcefoneLocale);
+
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to
             // address possible ParCEFone bugs.
@@ -322,6 +343,29 @@ public class ParseCEF extends AbstractProcessor {
                 throws IOException, JsonProcessingException {
             jsonGenerator.writeObject(macAddress.toString());
         }
+    }
 
+
+    protected static class ValidateLocale implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (null == input || input.isEmpty()) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation(subject + " cannot be empty").build();
+            }
+            final Locale testLocale = Locale.forLanguageTag(input);
+            final Locale[] availableLocales = Locale.getAvailableLocales();
+
+            // Check if the provided Locale is valid by checking against the first value of the array (i.e. "null" locale)
+            if (availableLocales[0].equals(testLocale)) {
+                // Locale matches the "null" locale so it is treated as invalid
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation(input + " is not a valid locale format.").build();
+            } else {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+
+            }
+
+        }
     }
 }
