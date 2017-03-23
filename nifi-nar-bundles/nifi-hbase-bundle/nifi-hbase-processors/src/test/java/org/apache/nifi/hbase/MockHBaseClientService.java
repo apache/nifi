@@ -104,7 +104,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
     
     @Override
-    public void get(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException {
+    public void get(String tableName, byte[] row, Collection<Column> columns, ResultHandler handler) throws IOException {
        throw new UnsupportedOperationException();
     }
 
