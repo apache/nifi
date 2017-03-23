@@ -377,10 +377,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     public void get(String tableName, byte[] row, Collection<Column> columns, ResultHandler handler) 
             throws IOException{
             
-        try (final Table table = connection.getTable(TableName.valueOf(tableName));
-             final Get g = new Get(row);
-             final Result result = table.get(g)) {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             
+            final Get g = new Get(row);
+            final Result result = table.get(g);
+                
             if (!result.isEmpty()) {
                 final byte[] rowKey = result.getRow();
                 final cell[] cells = result.rawCells();
