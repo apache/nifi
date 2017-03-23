@@ -458,6 +458,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-stateful-analysis-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-cdc-mysql-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>

@@ -79,6 +79,7 @@
         <module>nifi-registry-bundle</module>
         <module>nifi-stateful-analysis-bundle</module>
         <module>nifi-poi-bundle</module>
+        <module>nifi-cdc</module>
   </modules>
 
     <build>
