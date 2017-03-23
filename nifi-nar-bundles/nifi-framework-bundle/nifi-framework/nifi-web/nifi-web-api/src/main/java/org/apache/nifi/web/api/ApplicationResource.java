@@ -978,10 +978,21 @@ public abstract class ApplicationResource {
 
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
         // to the cluster nodes themselves.
-        if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
-        } else {
-            return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse();
+        final long replicateStart = System.nanoTime();
+        String action = null;
+        try {
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                action = "Replicate Request " + method + " " + path;
+                return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
+            } else {
+                action = "Forward Request " + method + " " + path + " to Coordinator";
+                return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse();
+            }
+        } finally {
+            final long replicateNanos = System.nanoTime() - replicateStart;
+            final String transactionId = headers.get(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+            final String requestId = transactionId == null ? "Request with no ID" : transactionId;
+            logger.debug("Took a total of {} millis to {} for {}", TimeUnit.NANOSECONDS.toMillis(replicateNanos), action, requestId);
         }
     }
 

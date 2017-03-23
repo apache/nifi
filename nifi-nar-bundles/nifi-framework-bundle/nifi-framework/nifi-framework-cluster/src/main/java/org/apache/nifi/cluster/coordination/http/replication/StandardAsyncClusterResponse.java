@@ -17,24 +17,29 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private static final Logger logger = LoggerFactory.getLogger(StandardAsyncClusterResponse.class);
+
+    public static final String VERIFICATION_PHASE = "Verification Phase";
+    public static final String COMMIT_PHASE = "Execution Phase";
+    public static final String ONLY_PHASE = "Only Phase";
 
     private final String id;
     private final Set<NodeIdentifier> nodeIds;
@@ -51,14 +56,25 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
 
     private NodeResponse mergedResponse; // guarded by synchronizing on this
     private RuntimeException failure; // guarded by synchronizing on this
+    private volatile String phase;
+    private volatile long phaseStartTime = System.nanoTime();
+    private final long creationTime = System.nanoTime();
 
-    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds,
-                                        final HttpResponseMapper responseMapper, final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
+    private final Map<String, Long> timingInfo = new LinkedHashMap<>();
+
+    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds, final HttpResponseMapper responseMapper,
+        final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
         this.id = id;
         this.nodeIds = Collections.unmodifiableSet(new HashSet<>(nodeIds));
         this.uri = uri;
         this.method = method;
         this.merge = merge;
+
+        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) {
+            phase = VERIFICATION_PHASE;
+        } else {
+            phase = ONLY_PHASE;
+        }
 
         creationTimeNanos = System.nanoTime();
         for (final NodeIdentifier nodeId : nodeIds) {
@@ -69,6 +85,34 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
         this.completionCallback = completionCallback;
         this.completedResultFetchedCallback = completedResultFetchedCallback;
     }
+
+    public void setPhase(final String phase) {
+        this.phase = phase;
+        phaseStartTime = System.nanoTime();
+    }
+
+    public synchronized void addTiming(final String description, final String node, final long nanos) {
+        final StringBuilder sb = new StringBuilder(description);
+        if (phase != ONLY_PHASE) {
+            sb.append(" (").append(phase).append(")");
+        }
+        sb.append(" for ").append(node);
+        timingInfo.put(sb.toString(), nanos);
+    }
+
+    private synchronized void logTimingInfo() {
+        if (!logger.isDebugEnabled()) {
+            return;
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(String.format("For %s %s Timing Info is as follows:\n", method, uri));
+        for (final Map.Entry<String, Long> entry : timingInfo.entrySet()) {
+            sb.append(entry.getKey()).append(" took ").append(TimeUnit.NANOSECONDS.toMillis(entry.getValue())).append(" millis\n");
+        }
+        logger.debug(sb.toString());
+    }
+
 
     @Override
     public String getRequestIdentifier() {
@@ -148,7 +192,11 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
             .map(p -> p.getResponse())
             .filter(response -> response != null)
             .collect(Collectors.toSet());
+
+        final long start = System.nanoTime();
         mergedResponse = responseMapper.mapResponses(uri, method, nodeResponses, merge);
+        final long nanos = System.nanoTime() - start;
+        addTiming("Map/Merge Responses", "All Nodes", nanos);
 
         logger.debug("Notifying all that merged response is complete for {}", id);
         this.notifyAll();
@@ -168,6 +216,8 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
                 this.wait();
             }
         }
+
+        logTimingInfo();
 
         return getMergedResponse(true);
     }
@@ -195,6 +245,8 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
             }
         }
 
+        logTimingInfo();
+
         return getMergedResponse(true);
     }
 
@@ -217,9 +269,17 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
 
         if (completedCount == responseMap.size()) {
             logger.debug("Notifying all that merged response is ready for {}", id);
+            addTiming("Phase Completed", "All Nodes", System.nanoTime() - phaseStartTime);
+
+            final long start = System.nanoTime();
+
             synchronized (this) {
                 this.notifyAll();
             }
+
+            final long nanos = System.nanoTime() - start;
+            timingInfo.put("Notifying All Threads that Request is Complete", nanos);
+            timingInfo.put("Total Time for All Nodes", System.nanoTime() - creationTime);
 
             if (completionCallback != null) {
                 completionCallback.onCompletion(this);

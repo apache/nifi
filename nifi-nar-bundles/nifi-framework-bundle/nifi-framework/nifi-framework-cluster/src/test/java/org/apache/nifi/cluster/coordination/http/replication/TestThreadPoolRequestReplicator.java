@@ -234,7 +234,7 @@ public class TestThreadPoolRequestReplicator {
                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
+                    final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -364,7 +364,7 @@ public class TestThreadPoolRequestReplicator {
                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
+                    final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -574,7 +574,7 @@ public class TestThreadPoolRequestReplicator {
         final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, nifiProps) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
+                final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse response) {
                 if (delayMillis > 0L) {
                     try {
                         Thread.sleep(delayMillis);
