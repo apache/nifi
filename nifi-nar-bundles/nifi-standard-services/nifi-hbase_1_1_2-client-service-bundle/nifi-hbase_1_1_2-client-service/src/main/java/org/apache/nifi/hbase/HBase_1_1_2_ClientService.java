@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -366,6 +367,31 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     resultCells[i] = resultCell;
                 }
 
+                // delegate to the handler
+                handler.handle(rowKey, resultCells);
+            }
+        }
+    }
+        
+    @Override
+    public void get(String tableName, byte[] row, Collection<Column> columns, ResultHandler handler) 
+            throws IOException{
+            
+        try (final Table table = connection.getTable(TableName.valueOf(tableName));
+             final Get g = new Get(row);
+             final Result result = table.get(g)) {
+            
+            if (!result.isEmpty()) {
+                final byte[] rowKey = result.getRow();
+                final cell[] cells = result.rawCells();
+                    
+                // convert HBase cells to NiFi cells
+                final ResultCell[] resultsCells = new ResultCell[cells.length];
+                for (int i=0; i< cells.length; i++) {
+                     final Cell cell = cells[i];
+                     final ResultCell resultCell = getResultCell(cell);
+                     resultCells[i] = resultCell;
+                }
                 // delegate to the handler
                 handler.handle(rowKey, resultCells);
             }
