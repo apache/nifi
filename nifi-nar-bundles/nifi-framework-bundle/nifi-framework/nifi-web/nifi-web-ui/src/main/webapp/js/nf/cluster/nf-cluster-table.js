@@ -88,6 +88,8 @@
         tableIdColumn: 'nodeId',
         tableOptions: commonTableOptions,
         tableOnClick: nodesTableOnClick,
+        createTableOnEnter: null,
+        cleanUpTable: null,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -108,93 +110,12 @@
         },
         tabContentId: 'cluster-jvm-tab-content',
         tableId: 'cluster-jvm-table',
-        tableColumnModel: [
-            {id: 'node', field: 'node', name: 'Node Address', sortable: true, resizable: true},
-            {
-                id: 'heapMax',
-                field: 'maxHeap',
-                name: 'Heap Max',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'heapTotal',
-                field: 'totalHeap',
-                name: 'Heap Total',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'heapUsed',
-                field: 'usedHeap',
-                name: 'Heap Used',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'heapUtilPct',
-                field: 'heapUtilization',
-                name: 'Heap Utilization',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'nonHeapTotal',
-                field: 'totalNonHeap',
-                name: 'Non-Heap Total',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'nonHeapUsed',
-                field: 'usedNonHeap',
-                name: 'Non-Heap Used',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'gcOldGen',
-                field: 'gcOldGen',
-                name: 'G1 Old Generation',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'gcNewGen',
-                field: 'gcNewGen',
-                name: 'G1 Young Generation',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            },
-            {
-                id: 'uptime',
-                field: 'uptime',
-                name: 'Uptime',
-                sortable: true,
-                resizable: true,
-                cssClass: 'cell-right',
-                headerCssClass: 'header-right'
-            }
-        ],
+        tableColumnModel: createJvmTableColumnModel,
         tableIdColumn: 'id',
         tableOptions: commonTableOptions,
         tableOnClick: null,
+        createTableOnEnter: createJvmTableOnEnterHandler,
+        cleanUpTable: cleanUpJvmTable,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -254,6 +175,8 @@
         tableIdColumn: 'id',
         tableOptions: commonTableOptions,
         tableOnClick: null,
+        createTableOnEnter: null,
+        cleanUpTable: null,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -313,6 +236,8 @@
         tableIdColumn: 'id',
         tableOptions: commonTableOptions,
         tableOnClick: null,
+        createTableOnEnter: null,
+        cleanUpTable: null,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -373,6 +298,8 @@
         tableIdColumn: 'id',
         tableOptions: commonTableOptions,
         tableOnClick: null,
+        createTableOnEnter: null,
+        cleanUpTable: null,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -405,6 +332,8 @@
         tableIdColumn: 'id',
         tableOptions: commonTableOptions,
         tableOnClick: null,
+        createTableOnEnter: null,
+        cleanUpTable: null,
         init: commonTableInit,
         onSort: sort,
         onTabSelected: onSelectTab,
@@ -559,6 +488,135 @@
         return columnModel;
     }
 
+    /**
+     * Click handler for the Nodes table options.
+     */
+    function createJvmTableOnEnterHandler(grid) {
+        var data = grid.getData();
+
+        return function (e) {
+            var jvmGc = $(this).find('div.show-jvm-gc');
+            if (jvmGc.length && !jvmGc.data('qtip')) {
+                var rowId = $(this).find('span.row-id').text();
+
+                // get the status item
+                var item = data.getItemById(rowId);
+
+                // generate the markup
+                var garbageCollections = nfCommon.getFormattedGarbageCollections(item.garbageCollection);
+                var tooltip = nfCommon.formatUnorderedList(garbageCollections);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    jvmGc.qtip($.extend({}, nfCommon.config.tooltipConfig, {
+                        content: tooltip,
+                        position: {
+                            container: $('#cluster'),
+                            at: 'bottom left',
+                            my: 'top right',
+                            adjust: {
+                                x: 4,
+                                y: 4
+                            }
+                        }
+                    }));
+                }
+            }
+        };
+    }
+
+    function cleanUpJvmTable(table) {
+        nfCommon.cleanUpTooltips(table, 'div.show-jvm-gc');
+    }
+
+    function createJvmTableColumnModel() {
+        var gcFormatter = function (row, cell, value, columnDef, dataContext) {
+            return '<div class="pointer show-jvm-gc fa fa-question-circle" style="margin-top: 2px;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+        };
+
+        return [
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node Address',
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'heapMax',
+                field: 'maxHeap',
+                name: 'Heap Max',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'heapTotal',
+                field: 'totalHeap',
+                name: 'Heap Total',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'heapUsed',
+                field: 'usedHeap',
+                name: 'Heap Used',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'heapUtilPct',
+                field: 'heapUtilization',
+                name: 'Heap Utilization',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'nonHeapTotal',
+                field: 'totalNonHeap',
+                name: 'Non-Heap Total',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'nonHeapUsed',
+                field: 'usedNonHeap',
+                name: 'Non-Heap Used',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            },
+            {
+                id: 'gc',
+                name: 'GC',
+                sortable: false,
+                resizable: true,
+                formatter: gcFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'uptime',
+                field: 'uptime',
+                name: 'Uptime',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
+            }
+        ];
+    }
+
     var prevColumn, count;
 
     /**
@@ -601,12 +659,6 @@
                 || sortDetails.columnId === 'processors') {
                 var aCount = nfCommon.parseCount(a[sortDetails.columnId]);
                 var bCount = nfCommon.parseCount(b[sortDetails.columnId]);
-                return aCount - bCount;
-            } else if (sortDetails.columnId === 'gcOldGen' || sortDetails.columnId === 'gcNewGen') {
-                var aSplit = a[sortDetails.columnId].split(/ /);
-                var bSplit = b[sortDetails.columnId].split(/ /);
-                var aCount = nfCommon.parseCount(aSplit[0]);
-                var bCount = nfCommon.parseCount(bSplit[0]);
                 return aCount - bCount;
             } else if (sortDetails.columnId === 'status') {
                 var aStatus = formatNodeStatus(a);
@@ -933,11 +985,6 @@
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
                 var snapshot = nodeSnapshot.snapshot;
 
-                // sort the garbage collection
-                var garbageCollection = snapshot.garbageCollection.sort(function (a, b) {
-                    return a.name === b.name ? 0 : a.name > b.name ? 1 : -1;
-                });
-
                 // add the node jvm details
                 jvmTableRows.push({
                     id: nodeSnapshot.nodeId,
@@ -950,10 +997,7 @@
                     maxNonHeap: snapshot.maxNonHeap,
                     totalNonHeap: snapshot.totalNonHeap,
                     usedNonHeap: snapshot.usedNonHeap,
-                    gcOldGen: garbageCollection[0].collectionCount + ' times (' +
-                    garbageCollection[0].collectionTime + ')',
-                    gcNewGen: garbageCollection[1].collectionCount + ' times (' +
-                    garbageCollection[1].collectionTime + ')',
+                    garbageCollection: snapshot.garbageCollection,
                     uptime: snapshot.uptime
                 });
             });
@@ -1164,7 +1208,20 @@
         }
 
         // hold onto an instance of the grid
-        $('#' + tab.tableId).data('gridInstance', grid);
+        var table = $('#' + tab.tableId).data('gridInstance', grid);
+
+        // enter events
+        if (typeof tab.createTableOnEnter === 'function') {
+            table.on('mouseenter', 'div.slick-cell', tab.createTableOnEnter(grid));
+        }
+
+        // clean up
+        if (typeof tab.cleanUpTable === 'function') {
+            grid.onViewportChanged.subscribe(function (e, args) {
+                tab.cleanUpTable(table);
+            });
+        }
+
         tab.dataView = dataView;
         tab.grid = grid;
     };

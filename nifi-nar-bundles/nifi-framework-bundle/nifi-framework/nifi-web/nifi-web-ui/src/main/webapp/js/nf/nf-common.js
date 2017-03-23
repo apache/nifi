@@ -1501,6 +1501,28 @@
             return formattedControllerServiceApis;
         },
 
+        /**
+         * Formats the specified garbage collections list.
+         *
+         * @param {array} garbageCollections    The garbage collections
+         * @returns {array}                     The formatted messages
+         */
+        getFormattedGarbageCollections: function (garbageCollections) {
+            // sort the garbage collections
+            garbageCollections.sort(function (a, b) {
+                return b.collectionCount - a.collectionCount;
+            });
+
+            var formattedGarbageCollections = [];
+            $.each(garbageCollections, function (_, garbageCollection) {
+                var name = $('<span style="font-weight: bold;"></span>').text(garbageCollection.name);
+                var stats = $('<span></span>').text(' - ' + garbageCollection.collectionCount + ' times (' + garbageCollection.collectionTime + ')');
+                var gc = $('<div></div>').append(name).append(stats);
+                formattedGarbageCollections.push(gc);
+            });
+            return formattedGarbageCollections;
+        },
+
         getPolicyTypeListing: function (value) {
             var nest = d3.nest()
                 .key(function (d) {
