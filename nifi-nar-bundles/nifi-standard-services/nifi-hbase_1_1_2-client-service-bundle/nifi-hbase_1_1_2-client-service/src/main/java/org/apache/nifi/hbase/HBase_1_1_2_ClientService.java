@@ -387,7 +387,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 final Cell[] cells = result.rawCells();
                     
                 // convert HBase cells to NiFi cells
-                final ResultCell[] resultsCells = new ResultCell[cells.length];
+                final ResultCell[] resultCells = new ResultCell[cells.length];
                 for (int i=0; i< cells.length; i++) {
                      final Cell cell = cells[i];
                      final ResultCell resultCell = getResultCell(cell);
