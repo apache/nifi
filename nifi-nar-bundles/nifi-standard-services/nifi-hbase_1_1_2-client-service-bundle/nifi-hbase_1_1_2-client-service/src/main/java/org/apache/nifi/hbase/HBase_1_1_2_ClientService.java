@@ -384,7 +384,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 
             if (!result.isEmpty()) {
                 final byte[] rowKey = result.getRow();
-                final cell[] cells = result.rawCells();
+                final Cell[] cells = result.rawCells();
                     
                 // convert HBase cells to NiFi cells
                 final ResultCell[] resultsCells = new ResultCell[cells.length];
