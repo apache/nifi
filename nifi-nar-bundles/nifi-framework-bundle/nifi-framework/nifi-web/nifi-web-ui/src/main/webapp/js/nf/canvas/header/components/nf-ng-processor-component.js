@@ -487,6 +487,10 @@
                             // end the update
                             processorTypesData.endUpdate();
 
+                            // resort
+                            processorTypesData.reSort();
+                            processorTypesGrid.invalidate();
+
                             // set the total number of processors
                             $('#total-processor-types, #displayed-processor-types').text(response.processorTypes.length);
 

@@ -541,6 +541,10 @@
             // end the update
             controllerServiceTypesData.endUpdate();
 
+            // resort
+            controllerServiceTypesData.reSort();
+            controllerServiceTypesGrid.invalidate();
+
             // set the total number of processors
             $('#total-controller-service-types, #displayed-controller-service-types').text(response.controllerServiceTypes.length);
 

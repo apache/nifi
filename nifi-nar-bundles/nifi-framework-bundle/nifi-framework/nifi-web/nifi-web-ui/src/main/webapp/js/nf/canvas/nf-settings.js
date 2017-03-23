@@ -664,6 +664,10 @@
             // end the update
             reportingTaskTypesData.endUpdate();
 
+            // resort
+            reportingTaskTypesData.reSort();
+            reportingTaskTypesGrid.invalidate();
+
             // set the total number of processors
             $('#total-reporting-task-types, #displayed-reporting-task-types').text(response.reportingTaskTypes.length);
 
