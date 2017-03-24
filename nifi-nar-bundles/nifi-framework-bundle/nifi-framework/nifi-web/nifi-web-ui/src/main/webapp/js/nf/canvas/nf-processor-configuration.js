@@ -590,6 +590,9 @@
                 }, {
                     text: 'ERROR',
                     value: 'ERROR'
+                }, {
+                    text: 'NONE',
+                    value: 'NONE'
                 }]
             });
 
