@@ -39,7 +39,7 @@
     </appender>
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.processors.standard.util.crypto" level="DEBUG"/>
+    <logger name="org.apache.nifi.crypto" level="DEBUG"/>
 
     <!-- Logger for managing logging statements for nifi clusters. -->
     <logger name="org.apache.nifi.cluster" level="INFO"/>
