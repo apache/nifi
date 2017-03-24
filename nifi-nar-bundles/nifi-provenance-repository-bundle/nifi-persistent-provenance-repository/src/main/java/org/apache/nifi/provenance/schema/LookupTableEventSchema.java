@@ -20,23 +20,35 @@ package org.apache.nifi.provenance.schema;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.ALTERNATE_IDENTIFIER;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.CHILD_UUIDS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.COMPONENT_ID;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.COMPONENT_ID_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.COMPONENT_TYPE;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.COMPONENT_TYPE_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.CURRENT_CONTENT_CLAIM;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.CURRENT_CONTENT_CLAIM_ENC;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.ENCRYPTION_DETAILS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_DETAILS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_DURATION;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_DURATION_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TIME_OFFSET;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TIME_OFFSET_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TYPE_ORDINAL;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TYPE_ORDINAL_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EXPLICIT_STRING;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.FLOWFILE_ENTRY_DATE_OFFSET;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.FLOWFILE_ENTRY_DATE_OFFSET_ENC;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.IS_ENCRYPTED;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.LINEAGE_START_DATE_OFFSET;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.LINEAGE_START_DATE_OFFSET_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.LOOKUP_VALUE;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.NO_VALUE;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PARENT_UUIDS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_ATTRIBUTES;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_CONTENT_CLAIM;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_CONTENT_CLAIM_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.RECORD_IDENTIFIER_OFFSET;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.RELATIONSHIP;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.SOURCE_QUEUE_ID;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.SOURCE_QUEUE_ID_ENC;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.TRANSIT_URI;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UNCHANGED_VALUE;
@@ -45,12 +57,12 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UPD
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 
 public class LookupTableEventSchema {
     public static final RecordSchema EVENT_SCHEMA = buildSchemaV1(false);
+    public static final RecordSchema ENCRYPTED_EVENT_SCHEMA = buildSchemaV1Encrypted(false);
 
     public static final RecordSchema NO_VALUE_SCHEMA = new RecordSchema(Collections.singletonList(NO_VALUE));
     public static final RecordSchema EXPLICIT_STRING_SCHEMA = new RecordSchema(Collections.singletonList(EXPLICIT_STRING));
@@ -89,6 +101,41 @@ public class LookupTableEventSchema {
 
         final RecordSchema schema = new RecordSchema(fields);
         return schema;
+    }
+
+    private static RecordSchema buildSchemaV1Encrypted(final boolean includeEventId) {
+        final List<RecordField> fields = new ArrayList<>();
+        if (includeEventId) {
+            fields.add(RECORD_IDENTIFIER_OFFSET);
+        }
+
+        fields.add(IS_ENCRYPTED);
+        fields.add(ENCRYPTION_DETAILS);
+
+        // Generic fields (special format if non-String)
+        fields.add(EVENT_TYPE_ORDINAL_ENC);
+        fields.add(EVENT_TIME_OFFSET_ENC);
+        fields.add(FLOWFILE_ENTRY_DATE_OFFSET_ENC);
+        fields.add(EVENT_DURATION_ENC);
+        fields.add(LINEAGE_START_DATE_OFFSET_ENC);
+        fields.add(COMPONENT_ID_ENC);
+        fields.add(COMPONENT_TYPE_ENC);
+        fields.add(EVENT_DETAILS);
+        fields.add(PREVIOUS_ATTRIBUTES);
+        fields.add(UPDATED_ATTRIBUTES);
+        fields.add(CURRENT_CONTENT_CLAIM_ENC);
+        fields.add(PREVIOUS_CONTENT_CLAIM_ENC);
+        fields.add(SOURCE_QUEUE_ID_ENC);
+
+        // EventType-Specific fields
+        fields.add(PARENT_UUIDS);  // for FORK, JOIN, CLONE, REPLAY events
+        fields.add(CHILD_UUIDS); // for FORK, JOIN, CLONE, REPLAY events
+        fields.add(TRANSIT_URI); // for SEND/RECEIVE/FETCH events
+        fields.add(SOURCE_SYSTEM_FLOWFILE_IDENTIFIER); // for SEND/RECEIVE events
+        fields.add(ALTERNATE_IDENTIFIER); // for ADD_INFO events
+        fields.add(RELATIONSHIP); // for ROUTE events
+
+        return new RecordSchema(fields);
     }
 
 }

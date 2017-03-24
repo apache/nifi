@@ -66,12 +66,12 @@ public class LookupTableEventRecordFields {
     public static final RecordField CONTENT_CLAIM_SIZE = new SimpleRecordField(EventFieldNames.CONTENT_CLAIM_SIZE, FieldType.LONG, EXACTLY_ONE);
 
     public static final RecordField PREVIOUS_CONTENT_CLAIM = new ComplexRecordField(EventFieldNames.PREVIOUS_CONTENT_CLAIM, ZERO_OR_ONE,
-        CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET, CONTENT_CLAIM_SIZE);
+            CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET, CONTENT_CLAIM_SIZE);
 
     public static final RecordField CURRENT_CONTENT_CLAIM_EXPLICIT = new ComplexRecordField(EventFieldNames.EXPLICIT_VALUE, EXACTLY_ONE,
-        CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET, CONTENT_CLAIM_SIZE);
+            CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET, CONTENT_CLAIM_SIZE);
     public static final RecordField CURRENT_CONTENT_CLAIM = new UnionRecordField(EventFieldNames.CONTENT_CLAIM,
-        Repetition.EXACTLY_ONE, NO_VALUE, UNCHANGED_VALUE, CURRENT_CONTENT_CLAIM_EXPLICIT);
+            Repetition.EXACTLY_ONE, NO_VALUE, UNCHANGED_VALUE, CURRENT_CONTENT_CLAIM_EXPLICIT);
 
 
     // EventType-Specific fields
@@ -86,4 +86,36 @@ public class LookupTableEventRecordFields {
     // for ADD_INFO
     public static final RecordField ALTERNATE_IDENTIFIER = new SimpleRecordField(EventFieldNames.ALTERNATE_IDENTIFIER, FieldType.STRING, ZERO_OR_ONE);
     public static final RecordField RELATIONSHIP = new SimpleRecordField(EventFieldNames.RELATIONSHIP, FieldType.STRING, ZERO_OR_ONE);
+
+    // Fields about encryption
+    public static final RecordField IS_ENCRYPTED = new SimpleRecordField(EventFieldNames.IS_ENCRYPTED, FieldType.BOOLEAN, ZERO_OR_ONE);
+    public static final RecordField KEY_ID = new SimpleRecordField(EventFieldNames.KEY_ID, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField VERSION = new SimpleRecordField(EventFieldNames.VERSION, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField ALGORITHM = new SimpleRecordField(EventFieldNames.ALGORITHM, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField IV = new SimpleRecordField(EventFieldNames.IV, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField ENCRYPTION_DETAILS = new ComplexRecordField(EventFieldNames.ENCRYPTION_DETAILS, ZERO_OR_ONE, KEY_ID, VERSION, ALGORITHM, IV);
+
+
+    // Encrypted fields (must be String type, but only override non-String fields)
+    public static final RecordField EVENT_TYPE_ORDINAL_ENC = new SimpleRecordField(EventFieldNames.EVENT_TYPE, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField EVENT_TIME_OFFSET_ENC = new SimpleRecordField(EventFieldNames.EVENT_TIME, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField FLOWFILE_ENTRY_DATE_OFFSET_ENC = new SimpleRecordField(EventFieldNames.FLOWFILE_ENTRY_DATE, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField EVENT_DURATION_ENC = new SimpleRecordField(EventFieldNames.EVENT_DURATION, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField LINEAGE_START_DATE_OFFSET_ENC = new SimpleRecordField(EventFieldNames.LINEAGE_START_DATE, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField LOOKUP_VALUE_ENC = new SimpleRecordField(EventFieldNames.LOOKUP_VALUE, FieldType.STRING, Repetition.EXACTLY_ONE);
+
+    public static final RecordField COMPONENT_ID_ENC = new UnionRecordField(EventFieldNames.COMPONENT_ID, Repetition.EXACTLY_ONE, NO_VALUE, EXPLICIT_STRING, LOOKUP_VALUE_ENC);
+    public static final RecordField SOURCE_QUEUE_ID_ENC = new UnionRecordField(EventFieldNames.SOURCE_QUEUE_IDENTIFIER, Repetition.EXACTLY_ONE, NO_VALUE, EXPLICIT_STRING, LOOKUP_VALUE_ENC);
+    public static final RecordField COMPONENT_TYPE_ENC = new UnionRecordField(EventFieldNames.COMPONENT_TYPE, Repetition.EXACTLY_ONE, EXPLICIT_STRING, LOOKUP_VALUE_ENC);
+
+    public static final RecordField CONTENT_CLAIM_OFFSET_ENC = new SimpleRecordField(EventFieldNames.CONTENT_CLAIM_OFFSET, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField CONTENT_CLAIM_SIZE_ENC = new SimpleRecordField(EventFieldNames.CONTENT_CLAIM_SIZE, FieldType.STRING, EXACTLY_ONE);
+
+    public static final RecordField PREVIOUS_CONTENT_CLAIM_ENC = new ComplexRecordField(EventFieldNames.PREVIOUS_CONTENT_CLAIM, ZERO_OR_ONE,
+            CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET_ENC, CONTENT_CLAIM_SIZE_ENC);
+
+    public static final RecordField CURRENT_CONTENT_CLAIM_EXPLICIT_ENC = new ComplexRecordField(EventFieldNames.EXPLICIT_VALUE, EXACTLY_ONE,
+            CONTENT_CLAIM_CONTAINER, CONTENT_CLAIM_SECTION, CONTENT_CLAIM_IDENTIFIER, CONTENT_CLAIM_OFFSET_ENC, CONTENT_CLAIM_SIZE_ENC);
+    public static final RecordField CURRENT_CONTENT_CLAIM_ENC = new UnionRecordField(EventFieldNames.CONTENT_CLAIM,
+            Repetition.EXACTLY_ONE, NO_VALUE, UNCHANGED_VALUE, CURRENT_CONTENT_CLAIM_EXPLICIT_ENC);
 }

@@ -51,8 +51,9 @@ public class EncryptedProvenanceEventRecord extends StandardProvenanceEventRecor
     private boolean isEncrypted;
     private static final String LIST_DELIMITER = ",";
 
-    private EncryptedProvenanceEventRecord(final Builder builder) {
+    EncryptedProvenanceEventRecord(final Builder builder) {
         super(builder);
+        isEncrypted = false;
     }
 
     /**
