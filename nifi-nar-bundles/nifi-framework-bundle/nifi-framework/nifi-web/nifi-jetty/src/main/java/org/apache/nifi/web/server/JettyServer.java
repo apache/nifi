@@ -26,7 +26,9 @@ import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
@@ -113,7 +115,10 @@ public class JettyServer implements NiFiServer {
     private final Server server;
     private final NiFiProperties props;
 
+    private Bundle systemBundle;
+    private Set<Bundle> bundles;
     private ExtensionMapping extensionMapping;
+
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
 
@@ -681,6 +686,11 @@ public class JettyServer implements NiFiServer {
     @Override
     public void start() {
         try {
+            ExtensionManager.discoverExtensions(systemBundle, bundles);
+            ExtensionManager.logClassLoaderMapping();
+
+            DocGenerator.generate(props, extensionMapping);
+
             // start the server
             server.start();
 
@@ -856,6 +866,12 @@ public class JettyServer implements NiFiServer {
     @Override
     public void setExtensionMapping(ExtensionMapping extensionMapping) {
         this.extensionMapping = extensionMapping;
+    }
+
+    @Override
+    public void setBundles(Bundle systemBundle, Set<Bundle> bundles) {
+        this.systemBundle = systemBundle;
+        this.bundles = bundles;
     }
 
     @Override

@@ -36,7 +36,7 @@ public class NarThreadContextClassLoaderTest {
     @Test
     public void validateWithPropertiesConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
-        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        Bundle systemBundle = SystemBundle.create(properties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         Object obj = NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(),
@@ -51,7 +51,7 @@ public class NarThreadContextClassLoaderTest {
         Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put("fail", "true");
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", additionalProperties);
-        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        Bundle systemBundle = SystemBundle.create(properties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(), WithPropertiesConstructor.class, properties);
     }
@@ -59,7 +59,7 @@ public class NarThreadContextClassLoaderTest {
     @Test
     public void validateWithDefaultConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
-        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        Bundle systemBundle = SystemBundle.create(properties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         assertTrue(NarThreadContextClassLoader.createInstance(WithDefaultConstructor.class.getName(),
                 WithDefaultConstructor.class, properties) instanceof WithDefaultConstructor);

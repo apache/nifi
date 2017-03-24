@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -453,7 +454,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (bundleDTO != null) {
             BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
             try {
-                flowController.changeProcessorType(processor, processor.getCanonicalClassName(), incomingCoordinate);
+                flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
             } catch (ProcessorInstantiationException e) {
                 throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
                         processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);

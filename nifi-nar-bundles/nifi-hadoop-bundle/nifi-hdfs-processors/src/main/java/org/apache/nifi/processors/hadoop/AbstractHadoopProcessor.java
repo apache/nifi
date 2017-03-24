@@ -37,6 +37,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -45,7 +46,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -65,7 +65,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
  */
-@RequiresInstanceClassLoading
+@RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /**
      * Compression Type Enum
@@ -191,7 +191,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 // then load the Configuration and set the new resources in the holder
                 if (resources == null || !configResources.equals(resources.getConfigResources())) {
                     getLogger().debug("Reloading validation resources");
-                    resources = new ValidationResources(configResources, getConfigurationFromResources(configResources));
+                    final Configuration config = new ExtendedConfiguration(getLogger());
+                    config.setClassLoader(Thread.currentThread().getContextClassLoader());
+                    resources = new ValidationResources(configResources, getConfigurationFromResources(config, configResources));
                     validationResourceHolder.set(resources);
                 }
 
@@ -240,9 +242,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         hdfsResources.set(new HdfsResources(null, null, null));
     }
 
-    private static Configuration getConfigurationFromResources(String configResources) throws IOException {
+    private static Configuration getConfigurationFromResources(final Configuration config, String configResources) throws IOException {
         boolean foundResources = false;
-        final Configuration config = new ExtendedConfiguration();
         if (null != configResources) {
             String[] resources = configResources.split(",");
             for (String resource : resources) {
@@ -272,8 +273,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
     HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
-        Configuration config = getConfigurationFromResources(configResources);
-        config.setClassLoader(Thread.currentThread().getContextClassLoader()); // set the InstanceClassLoader
+        Configuration config = new ExtendedConfiguration(getLogger());
+        config.setClassLoader(Thread.currentThread().getContextClassLoader());
+
+        getConfigurationFromResources(config, configResources);
 
         // first check for timeout on HDFS connection, because FileSystem has a hard coded 15 minute timeout
         checkHdfsUriForTimeout(config);
@@ -531,16 +534,22 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
      */
     static class ExtendedConfiguration extends Configuration {
 
+        private final ComponentLog logger;
         private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
 
-        public Class<?> getClassByNameOrNull(String name) {
-            Map<String, WeakReference<Class<?>>> map;
+        public ExtendedConfiguration(final ComponentLog logger) {
+            this.logger = logger;
+        }
 
+        public Class<?> getClassByNameOrNull(String name) {
+            final ClassLoader classLoader = getClassLoader();
+
+            Map<String, WeakReference<Class<?>>> map;
             synchronized (CACHE_CLASSES) {
-                map = CACHE_CLASSES.get(getClassLoader());
+                map = CACHE_CLASSES.get(classLoader);
                 if (map == null) {
                     map = Collections.synchronizedMap(new WeakHashMap<>());
-                    CACHE_CLASSES.put(getClassLoader(), map);
+                    CACHE_CLASSES.put(classLoader, map);
                 }
             }
 
@@ -552,9 +561,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
             if (clazz == null) {
                 try {
-                    clazz = Class.forName(name, true, getClassLoader());
+                    clazz = Class.forName(name, true, classLoader);
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    logger.error(e.getMessage(), e);
                     return null;
                 }
                 // two putters can race here, but they'll put the same class

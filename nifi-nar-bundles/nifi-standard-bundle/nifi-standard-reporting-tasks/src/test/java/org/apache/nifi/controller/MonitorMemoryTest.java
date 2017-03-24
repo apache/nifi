@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.util.CapturingLogger;
 import org.apache.nifi.util.NiFiProperties;
@@ -151,7 +152,7 @@ public class MonitorMemoryTest {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         // build the system bundle
-        final Bundle bundle = ExtensionManager.createSystemBundle(nifiProperties);
+        final Bundle bundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(bundle, Collections.emptySet());
 
         return new Tuple<>(FlowController.createStandaloneInstance(

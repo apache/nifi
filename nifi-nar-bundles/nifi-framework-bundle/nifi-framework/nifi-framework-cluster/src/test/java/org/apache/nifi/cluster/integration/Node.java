@@ -64,6 +64,7 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
@@ -120,7 +121,7 @@ public class Node {
             }
         };
 
-        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        final Bundle systemBundle = SystemBundle.create(properties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         revisionManager = Mockito.mock(RevisionManager.class);

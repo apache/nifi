@@ -30,22 +30,23 @@ public interface AuthorizableLookup {
     Authorizable getController();
 
     /**
+     * Get the authorizable for the given type and bundle. This will use a dummy instance of the
+     * component. The intent of this method is to provide access to the PropertyDescriptors
+     * prior to the component being created.
+     *
+     * @param type component type
+     * @param bundle the bundle for the component
+     * @return authorizable
+     */
+    ComponentAuthorizable getConfigurableComponent(String type, BundleDTO bundle);
+
+    /**
      * Get the authorizable Processor.
      *
      * @param id processor id
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getProcessor(String id);
-
-    /**
-     * Get the authorizable for this Processor. This will create a dummy instance of the
-     * processor. The intent of this method is to provide access to the PropertyDescriptors
-     * prior to the component being created.
-     *
-     * @param type processor type
-     * @return authorizable
-     */
-    ConfigurableComponentAuthorizable getProcessorByType(String type, BundleDTO bundle);
+    ComponentAuthorizable getProcessor(String id);
 
     /**
      * Get the authorizable for querying Provenance.
@@ -139,18 +140,7 @@ public interface AuthorizableLookup {
      * @param id controller service id
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getControllerService(String id);
-
-    /**
-     * Get the authorizable for this Controller Service. This will create a dummy instance of the
-     * controller service. The intent of this method is to provide access to the PropertyDescriptors
-     * prior to the component being created.
-     *
-     * @param type controller service type
-     * @param bundle bundle
-     * @return authorizable
-     */
-    ConfigurableComponentAuthorizable getControllerServiceByType(String type, BundleDTO bundle);
+    ComponentAuthorizable getControllerService(String id);
 
     /**
      * Get the authorizable referencing component.
@@ -167,18 +157,7 @@ public interface AuthorizableLookup {
      * @param id reporting task id
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getReportingTask(String id);
-
-    /**
-     * Get the authorizable for this Reporting Task. This will create a dummy instance of the
-     * reporting task. The intent of this method is to provide access to the PropertyDescriptors
-     * prior to the component being created.
-     *
-     * @param type reporting task type
-     * @param bundle bundle
-     * @return authorizable
-     */
-    ConfigurableComponentAuthorizable getReportingTaskByType(String type, BundleDTO bundle);
+    ComponentAuthorizable getReportingTask(String id);
 
     /**
      * Get the authorizable Template.

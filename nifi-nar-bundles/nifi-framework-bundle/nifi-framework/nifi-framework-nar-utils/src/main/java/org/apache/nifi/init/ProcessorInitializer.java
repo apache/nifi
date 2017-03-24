@@ -52,7 +52,7 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
             final MockProcessContext context = new MockProcessContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, processor, logger, context);
         } finally {
-            ExtensionManager.removeInstanceClassLoaderIfExists(component.getIdentifier());
+            ExtensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }

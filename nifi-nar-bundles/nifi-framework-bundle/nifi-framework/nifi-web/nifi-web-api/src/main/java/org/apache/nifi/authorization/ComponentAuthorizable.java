@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Authorizable for a component that references a ControllerService.
  */
-public interface ConfigurableComponentAuthorizable {
+public interface ComponentAuthorizable {
     /**
      * Returns the base authorizable for this ControllerServiceReference. Non null
      *

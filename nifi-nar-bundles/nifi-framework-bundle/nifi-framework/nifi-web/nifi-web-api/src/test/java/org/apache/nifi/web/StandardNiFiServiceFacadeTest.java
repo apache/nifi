@@ -25,7 +25,7 @@ import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -114,7 +114,7 @@ public class StandardNiFiServiceFacadeTest {
             }
 
             // component authorizable
-            final ConfigurableComponentAuthorizable componentAuthorizable = mock(ConfigurableComponentAuthorizable.class);
+            final ComponentAuthorizable componentAuthorizable = mock(ComponentAuthorizable.class);
             when(componentAuthorizable.getAuthorizable()).then(getAuthorizableInvocation -> {
 
                 // authorizable

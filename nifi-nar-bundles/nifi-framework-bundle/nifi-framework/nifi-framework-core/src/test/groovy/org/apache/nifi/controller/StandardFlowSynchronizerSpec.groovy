@@ -26,6 +26,7 @@ import org.apache.nifi.controller.queue.FlowFileQueue
 import org.apache.nifi.groups.ProcessGroup
 import org.apache.nifi.groups.RemoteProcessGroup
 import org.apache.nifi.nar.ExtensionManager
+import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.Relationship
 import org.apache.nifi.reporting.BulletinRepository
 import org.apache.nifi.util.NiFiProperties
@@ -43,7 +44,7 @@ class StandardFlowSynchronizerSpec extends Specification {
         System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
 
         def niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
-        systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
+        systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 

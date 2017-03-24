@@ -39,6 +39,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -542,7 +543,7 @@ public class TestProcessorLifecycle {
         this.setControllerRootGroup(fc, testGroup);
 
         ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "serv",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), true);
+                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
 
@@ -569,7 +570,7 @@ public class TestProcessorLifecycle {
         this.setControllerRootGroup(fc, testGroup);
 
         ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "foo",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), true);
+                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true);
         testGroup.addControllerService(testServiceNode);
 
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
@@ -731,7 +732,7 @@ public class TestProcessorLifecycle {
         }
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
-        final Bundle systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
+        final Bundle systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,

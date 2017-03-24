@@ -44,6 +44,8 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -67,6 +69,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,7 +119,7 @@ public class TestFlowController {
         encryptor = StringEncryptor.createEncryptor(nifiProperties);
 
         // use the system bundle
-        systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
+        systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
@@ -465,7 +469,7 @@ public class TestFlowController {
     @Test
     public void testCreateMissingControllerService() throws ProcessorInstantiationException {
         final ControllerServiceNode serviceNode = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         assertNotNull(serviceNode);
         assertEquals("org.apache.nifi.NonExistingControllerService", serviceNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingControllerService", serviceNode.getComponentType());
@@ -518,7 +522,7 @@ public class TestFlowController {
         ProcessGroup pg = controller.createProcessGroup("my-process-group");
         pg.setName("my-process-group");
         ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         pg.addControllerService(cs);
         controller.getRootGroup().addProcessGroup(pg);
         controller.getRootGroup().removeProcessGroup(pg);
@@ -527,7 +531,7 @@ public class TestFlowController {
     }
 
     @Test
-    public void testChangeProcessorType() throws ProcessorInstantiationException {
+    public void testReloadProcessor() throws ProcessorInstantiationException {
         final String id = "1234-ScheduledProcessor" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ProcessorNode processorNode = controller.createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
@@ -548,7 +552,7 @@ public class TestFlowController {
         assertEquals(LogLevel.WARN, processorNode.getBulletinLevel());
 
         // now change the type of the processor from DummyScheduledProcessor to DummySettingsProcessor
-        controller.changeProcessorType(processorNode, DummySettingsProcessor.class.getName(), coordinate);
+        controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, processorNode.getIdentifier());
@@ -573,10 +577,42 @@ public class TestFlowController {
     }
 
     @Test
-    public void testChangeControllerServiceType() {
+    public void testReloadProcessorWithAdditionalResources() throws ProcessorInstantiationException, MalformedURLException {
+        final URL resource1 = new File("src/test/resources/TestClasspathResources/resource1.txt").toURI().toURL();
+        final URL resource2 = new File("src/test/resources/TestClasspathResources/resource2.txt").toURI().toURL();
+        final URL resource3 = new File("src/test/resources/TestClasspathResources/resource3.txt").toURI().toURL();
+        final Set<URL> additionalUrls = new LinkedHashSet<>(Arrays.asList(resource1, resource2, resource3));
+
+        final String id = "1234-ScheduledProcessor" + System.currentTimeMillis();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ProcessorNode processorNode = controller.createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
+        final String originalName = processorNode.getName();
+
+        // the instance class loader shouldn't have any of the resources yet
+        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+
+        // now change the type of the processor from DummyScheduledProcessor to DummySettingsProcessor
+        controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, additionalUrls);
+
+        // the instance class loader shouldn't have any of the resources yet
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+    }
+
+    @Test
+    public void testReloadControllerService() {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, true);
+        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
         final String originalName = controllerServiceNode.getName();
 
         assertEquals(id, controllerServiceNode.getIdentifier());
@@ -586,7 +622,7 @@ public class TestFlowController {
         assertEquals(ServiceA.class.getSimpleName(), controllerServiceNode.getComponentType());
         assertEquals(ServiceA.class.getCanonicalName(), controllerServiceNode.getComponent().getClass().getCanonicalName());
 
-        controller.changeControllerServiceType(controllerServiceNode, ServiceB.class.getName(), coordinate);
+        controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, controllerServiceNode.getIdentifier());
@@ -603,7 +639,38 @@ public class TestFlowController {
     }
 
     @Test
-    public void testChangeReportingTaskType() throws ReportingTaskInstantiationException {
+    public void testReloadControllerServiceWithAdditionalResources() throws MalformedURLException {
+        final URL resource1 = new File("src/test/resources/TestClasspathResources/resource1.txt").toURI().toURL();
+        final URL resource2 = new File("src/test/resources/TestClasspathResources/resource2.txt").toURI().toURL();
+        final URL resource3 = new File("src/test/resources/TestClasspathResources/resource3.txt").toURI().toURL();
+        final Set<URL> additionalUrls = new LinkedHashSet<>(Arrays.asList(resource1, resource2, resource3));
+
+        final String id = "ServiceA" + System.currentTimeMillis();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
+        final String originalName = controllerServiceNode.getName();
+
+        // the instance class loader shouldn't have any of the resources yet
+        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+
+        controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
+
+        // the instance class loader shouldn't have any of the resources yet
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+    }
+
+    @Test
+    public void testReloadReportingTask() throws ReportingTaskInstantiationException {
         final String id = "ReportingTask" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ReportingTaskNode node = controller.createReportingTask(DummyReportingTask.class.getName(), id, coordinate, true);
@@ -616,7 +683,7 @@ public class TestFlowController {
         assertEquals(DummyReportingTask.class.getSimpleName(), node.getComponentType());
         assertEquals(DummyReportingTask.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
 
-        controller.changeReportingTaskType(node, DummyScheduledReportingTask.class.getName(), coordinate);
+        controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, node.getIdentifier());
@@ -630,7 +697,45 @@ public class TestFlowController {
         assertEquals(DummyReportingTask.class.getCanonicalName(), node.getCanonicalClassName());
         assertEquals(DummyReportingTask.class.getSimpleName(), node.getComponentType());
         assertEquals(DummyScheduledReportingTask.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
+    }
 
+    @Test
+    public void testReloadReportingTaskWithAdditionalResources() throws ReportingTaskInstantiationException, MalformedURLException {
+        final URL resource1 = new File("src/test/resources/TestClasspathResources/resource1.txt").toURI().toURL();
+        final URL resource2 = new File("src/test/resources/TestClasspathResources/resource2.txt").toURI().toURL();
+        final URL resource3 = new File("src/test/resources/TestClasspathResources/resource3.txt").toURI().toURL();
+        final Set<URL> additionalUrls = new LinkedHashSet<>(Arrays.asList(resource1, resource2, resource3));
+
+        final String id = "ReportingTask" + System.currentTimeMillis();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ReportingTaskNode node = controller.createReportingTask(DummyReportingTask.class.getName(), id, coordinate, true);
+
+        // the instance class loader shouldn't have any of the resources yet
+        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+
+        controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, additionalUrls);
+
+        // the instance class loader shouldn't have any of the resources yet
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        assertNotNull(instanceClassLoader);
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
+        assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
+        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+    }
+
+    private boolean containsResource(URL[] resources, URL resourceToFind) {
+        for (URL resource : resources) {
+            if (resourceToFind.getPath().equals(resource.getPath())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -744,7 +849,7 @@ public class TestFlowController {
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, true);
+        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();
@@ -775,7 +880,7 @@ public class TestFlowController {
     public void testInstantiateSnippetWithControllerService() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, true);
+        final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
 
         // create the controller service dto
         final ControllerServiceDTO csDto = new ControllerServiceDTO();

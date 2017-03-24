@@ -32,7 +32,7 @@ public enum NarManifestEntry {
     BUILD_BRANCH("Build-Branch"),
     BUILD_TIMESTAMP("Build-Timestamp"),
     BUILD_JDK("Build-Jdk"),
-    BUILT_BY("Built-By")
+    BUILT_BY("Built-By"),
     ;
 
     final String manifestName;

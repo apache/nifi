@@ -30,8 +30,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 public interface ConfiguredComponent extends ComponentAuthorizable {
 
@@ -52,6 +54,8 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
     public String getProperty(final PropertyDescriptor property);
 
     boolean isValid();
+
+    void reload(Set<URL> additionalUrls) throws Exception;
 
     BundleCoordinate getBundleCoordinate();
 

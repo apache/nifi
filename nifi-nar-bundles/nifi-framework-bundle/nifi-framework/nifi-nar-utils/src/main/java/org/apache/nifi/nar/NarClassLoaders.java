@@ -184,6 +184,7 @@ public final class NarClassLoaders {
                     jettyClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), systemClassLoader);
 
                     // remove the jetty nar since its already loaded
+                    narDirectoryBundleLookup.put(narDetail.getWorkingDirectory().getCanonicalPath(), new Bundle(narDetail, jettyClassLoader));
                     narCoordinateClassLoaderLookup.put(narDetail.getCoordinate().getCoordinate(), jettyClassLoader);
                     narDetailsIter.remove();
                 }

@@ -17,11 +17,10 @@
 package org.apache.nifi;
 
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.documentation.DocGenerator;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -126,7 +125,7 @@ public class NiFi {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
-        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        final Bundle systemBundle = SystemBundle.create(properties);
 
         // expand the nars
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
@@ -140,12 +139,7 @@ public class NiFi {
             throw new IllegalStateException("Unable to find the framework NAR ClassLoader.");
         }
 
-        // discover the extensions
         final Set<Bundle> narBundles = NarClassLoaders.getInstance().getBundles();
-        ExtensionManager.discoverExtensions(systemBundle, narBundles);
-        ExtensionManager.logClassLoaderMapping();
-
-        DocGenerator.generate(properties, extensionMapping);
 
         // load the server from the framework classloader
         Thread.currentThread().setContextClassLoader(frameworkClassLoader);
@@ -155,6 +149,7 @@ public class NiFi {
         final long startTime = System.nanoTime();
         nifiServer = (NiFiServer) jettyConstructor.newInstance(properties, narBundles);
         nifiServer.setExtensionMapping(extensionMapping);
+        nifiServer.setBundles(systemBundle, narBundles);
 
         if (shutdown) {
             LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");

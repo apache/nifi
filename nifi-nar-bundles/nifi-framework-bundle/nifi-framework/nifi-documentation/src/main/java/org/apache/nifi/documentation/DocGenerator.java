@@ -22,8 +22,6 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
-import org.apache.nifi.init.ConfigurableComponentInitializer;
-import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
@@ -93,7 +91,7 @@ public class DocGenerator {
                 final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
                     logger.debug("Documenting: " + componentClass);
-                    document(componentDirectory, componentClass);
+                    document(componentDirectory, componentClass, coordinate);
                 } catch (Exception e) {
                     logger.warn("Unable to document: " + componentClass, e);
                 }
@@ -113,12 +111,12 @@ public class DocGenerator {
      * @throws IOException ioe
      * @throws InitializationException ie
      */
-    private static void document(final File componentDocsDir, final Class<? extends ConfigurableComponent> componentClass)
+    private static void document(final File componentDocsDir, final Class<? extends ConfigurableComponent> componentClass, final BundleCoordinate bundleCoordinate)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
-        final ConfigurableComponent component = componentClass.newInstance();
-        final ConfigurableComponentInitializer initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(componentClass);
-        initializer.initialize(component);
+        // use temp components from ExtensionManager which should always be populated before doc generation
+        final String classType = componentClass.getCanonicalName();
+        final ConfigurableComponent component = ExtensionManager.getTempComponent(classType, bundleCoordinate);
 
         final DocumentationWriter writer = getDocumentWriter(componentClass);
 
@@ -130,8 +128,6 @@ public class DocGenerator {
         try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
             writer.write(component, output, hasAdditionalInfo(componentDocsDir));
         }
-
-        initializer.teardown(component);
     }
 
     /**

@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
@@ -657,9 +657,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    ConfigurableComponentAuthorizable authorizable = null;
+                    ComponentAuthorizable authorizable = null;
                     try {
-                        authorizable = lookup.getProcessorByType(requestProcessor.getType(), requestProcessor.getBundle());
+                        authorizable = lookup.getConfigurableComponent(requestProcessor.getType(), requestProcessor.getBundle());
 
                         if (authorizable.isRestricted()) {
                             lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
@@ -1806,7 +1806,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
                     final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
-                    final Consumer<ConfigurableComponentAuthorizable> authorizeRestricted = authorizable -> {
+                    final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
                         if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
                             lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
                         }
@@ -1982,7 +1982,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
                     final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
-                    final Consumer<ConfigurableComponentAuthorizable> authorizeRestricted = authorizable -> {
+                    final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
                         if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
                             lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
                         }
@@ -2347,9 +2347,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    ConfigurableComponentAuthorizable authorizable = null;
+                    ComponentAuthorizable authorizable = null;
                     try {
-                        authorizable = lookup.getControllerServiceByType(requestControllerService.getType(), requestControllerService.getBundle());
+                        authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
 
                         if (authorizable.isRestricted()) {
                             lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);

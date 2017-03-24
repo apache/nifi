@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -163,7 +164,8 @@ public class ControllerServiceLoader {
         // create a new id for the clone seeded from the original id so that it is consistent in a cluster
         final UUID id = UUID.nameUUIDFromBytes(controllerService.getIdentifier().getBytes(StandardCharsets.UTF_8));
 
-        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), controllerService.getBundleCoordinate(), false);
+        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(),
+                controllerService.getBundleCoordinate(), Collections.emptySet(), false);
         clone.setName(controllerService.getName());
         clone.setComments(controllerService.getComments());
 
@@ -193,7 +195,7 @@ public class ControllerServiceLoader {
             }
         }
 
-        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, false);
+        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         return node;

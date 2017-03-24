@@ -24,6 +24,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -35,6 +36,7 @@ import org.apache.nifi.controller.service.mock.ServiceC;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
@@ -93,7 +95,7 @@ public class TestStandardControllerServiceProvider {
         niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
 
         // load the system bundle
-        systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
+        systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
@@ -118,7 +120,7 @@ public class TestStandardControllerServiceProvider {
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
 
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null,false);
         provider.enableControllerService(serviceNode);
         provider.disableControllerService(serviceNode);
     }
@@ -134,9 +136,9 @@ public class TestStandardControllerServiceProvider {
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
 
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         group.addControllerService(serviceNodeA);
         group.addControllerService(serviceNodeB);
 
@@ -208,13 +210,13 @@ public class TestStandardControllerServiceProvider {
         // we enable C and B, even if we attempt to enable C before B... i.e., if we try to enable C, we cannot do so
         // until B is first enabled so ensure that we enable B first.
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         procGroup.addControllerService(serviceNode1);
         procGroup.addControllerService(serviceNode2);
@@ -251,9 +253,9 @@ public class TestStandardControllerServiceProvider {
         final StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, null, null, stateManagerProvider, variableRegistry, niFiProperties);
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
 
@@ -312,7 +314,7 @@ public class TestStandardControllerServiceProvider {
         // like that.
         nodeMap.clear();
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "3");
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "1");
         nodeMap.put("1", serviceNode1);
@@ -338,9 +340,9 @@ public class TestStandardControllerServiceProvider {
         nodeMap.clear();
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         final ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceB.class.getName(), "5",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "4");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
@@ -397,10 +399,11 @@ public class TestStandardControllerServiceProvider {
     }
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
+        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(new DummyProcessor(), systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, niFiProperties,
-                VariableRegistry.EMPTY_REGISTRY);
+                VariableRegistry.EMPTY_REGISTRY, reloadComponent);
 
         final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null, variableRegistry);
         group.addProcessor(procNode);
@@ -419,7 +422,7 @@ public class TestStandardControllerServiceProvider {
         final StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, null, null, stateManagerProvider, variableRegistry, niFiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
         serviceNode.addReference(procNode);
@@ -443,17 +446,17 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode A = provider.createControllerService(ServiceA.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode C = provider.createControllerService(ServiceA.class.getName(), "C",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode D = provider.createControllerService(ServiceB.class.getName(), "D",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode E = provider.createControllerService(ServiceA.class.getName(), "E",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode F = provider.createControllerService(ServiceB.class.getName(), "F",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         procGroup.addControllerService(A);
         procGroup.addControllerService(B);
@@ -494,15 +497,15 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode A = provider.createControllerService(ServiceC.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode C = provider.createControllerService(ServiceB.class.getName(), "C",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode D = provider.createControllerService(ServiceA.class.getName(), "D",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode F = provider.createControllerService(ServiceA.class.getName(), "F",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         procGroup.addControllerService(A);
         procGroup.addControllerService(B);
@@ -536,19 +539,19 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceA.class.getName(), "5",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode6 = provider.createControllerService(ServiceB.class.getName(), "6",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
         ControllerServiceNode serviceNode7 = provider.createControllerService(ServiceC.class.getName(), "7",
-                systemBundle.getBundleDetails().getCoordinate(), false);
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
 
         procGroup.addControllerService(serviceNode1);
         procGroup.addControllerService(serviceNode2);

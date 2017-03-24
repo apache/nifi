@@ -21,7 +21,6 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateProvider;
@@ -37,12 +36,10 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -50,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -67,18 +65,16 @@ public class ExtensionManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionManager.class);
 
-    public static final BundleCoordinate SYSTEM_BUNDLE_COORDINATE = new BundleCoordinate(
-            BundleCoordinate.DEFAULT_GROUP, "system", BundleCoordinate.DEFAULT_VERSION);
-
     // Maps a service definition (interface) to those classes that implement the interface
     private static final Map<Class, Set<Class>> definitionMap = new HashMap<>();
 
     private static final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
     private static final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
     private static final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
+    private static final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
-    private static final Set<String> requiresInstanceClassLoading = new HashSet<>();
-    private static final Map<String, ClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
+    private static final Map<String, Class<?>> requiresInstanceClassLoading = new HashMap<>();
+    private static final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
     static {
         definitionMap.put(Processor.class, new HashSet<>());
@@ -127,29 +123,6 @@ public class ExtensionManager {
     }
 
     /**
-     * Returns a bundle representing the system class loader.
-     *
-     * @param niFiProperties a NiFiProperties instance which will be used to obtain the default NAR library path,
-     *                       which will become the working directory of the returned bundle
-     * @return a bundle for the system class loader
-     */
-    public static Bundle createSystemBundle(final NiFiProperties niFiProperties) {
-        final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-
-        final String narLibraryDirectory = niFiProperties.getProperty(NiFiProperties.NAR_LIBRARY_DIRECTORY);
-        if (StringUtils.isBlank(narLibraryDirectory)) {
-            throw new IllegalStateException("Unable to create system bundle because " + NiFiProperties.NAR_LIBRARY_DIRECTORY + " was null or empty");
-        }
-
-        final BundleDetails systemBundleDetails = new BundleDetails.Builder()
-                .workingDir(new File(narLibraryDirectory))
-                .coordinate(SYSTEM_BUNDLE_COORDINATE)
-                .build();
-
-        return new Bundle(systemBundleDetails, systemClassLoader);
-    }
-
-    /**
      * Loads extensions from the specified bundle.
      *
      * @param bundle from which to load extensions
@@ -163,6 +136,15 @@ public class ExtensionManager {
 
             final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
             for (final Object o : serviceLoader) {
+                // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
+                if ((isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent) {
+                    final ConfigurableComponent configurableComponent = (ConfigurableComponent) o;
+                    initializeTempComponent(configurableComponent);
+
+                    final String cacheKey = getClassBundleKey(o.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
+                    tempComponentLookup.put(cacheKey, (ConfigurableComponent)o);
+                }
+
                 // only consider extensions discovered directly in this bundle
                 boolean registerExtension = bundle.getClassLoader().equals(o.getClass().getClassLoader());
 
@@ -185,9 +167,20 @@ public class ExtensionManager {
                         registerServiceClass(o.getClass(), classNameBundleLookup, bundle, entry.getValue());
                     }
                 }
+
             }
 
             classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
+        }
+    }
+
+    private static void initializeTempComponent(final ConfigurableComponent configurableComponent) {
+        ConfigurableComponentInitializer initializer = null;
+        try {
+            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(configurableComponent.getClass());
+            initializer.initialize(configurableComponent);
+        } catch (final InitializationException e) {
+            logger.warn(String.format("Unable to initialize component %s due to %s", configurableComponent.getClass().getName(), e.getMessage()));
         }
     }
 
@@ -195,40 +188,27 @@ public class ExtensionManager {
         // if the extension does not require instance classloading, its eligible
         final boolean requiresInstanceClassLoading = component.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
 
-        ConfigurableComponentInitializer initializer = null;
-        try {
-            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(component.getClass());
-            initializer.initialize(component);
-
-            final Set<Class> cobundledApis = new HashSet<>();
-            try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
-                final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
-                if (descriptors != null && !descriptors.isEmpty()) {
-                    for (final PropertyDescriptor descriptor : descriptors) {
-                        final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
-                        if (serviceApi != null && classLoader.equals(serviceApi.getClassLoader())) {
-                            cobundledApis.add(serviceApi);
-                        }
+        final Set<Class> cobundledApis = new HashSet<>();
+        try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+            final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
+            if (descriptors != null && !descriptors.isEmpty()) {
+                for (final PropertyDescriptor descriptor : descriptors) {
+                    final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
+                    if (serviceApi != null && classLoader.equals(serviceApi.getClassLoader())) {
+                        cobundledApis.add(serviceApi);
                     }
                 }
             }
-
-            if (!cobundledApis.isEmpty()) {
-                logger.warn(String.format(
-                        "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
-                        component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
-            }
-
-            // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
-            return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
-        } catch (final InitializationException e) {
-            logger.warn(String.format("Unable to verify if component %s references any bundled Controller Service APIs due to %s", component.getClass().getName(), e.getMessage()));
-            return true;
-        } finally {
-            if (initializer != null) {
-                initializer.teardown(component);
-            }
         }
+
+        if (!cobundledApis.isEmpty()) {
+            logger.warn(String.format(
+                    "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
+                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+        }
+
+        // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
+        return requiresInstanceClassLoading == false || cobundledApis.isEmpty();
     }
 
     private static boolean checkControllerServiceEligibility(Class extensionType) {
@@ -304,7 +284,8 @@ public class ExtensionManager {
             classes.add(type);
 
             if (type.isAnnotationPresent(RequiresInstanceClassLoading.class)) {
-                requiresInstanceClassLoading.add(className);
+                final String cacheKey = getClassBundleKey(className, bundle.getBundleDetails().getCoordinate());
+                requiresInstanceClassLoading.put(cacheKey, type);
             }
         }
 
@@ -324,9 +305,10 @@ public class ExtensionManager {
      * @param classType the type of class to lookup the ClassLoader for
      * @param instanceIdentifier the identifier of the specific instance of the classType to look up the ClassLoader for
      * @param bundle the bundle where the classType exists
+     * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    public static ClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle) {
+    public static InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
         if (StringUtils.isEmpty(classType)) {
             throw new IllegalArgumentException("Class-Type is required");
         }
@@ -339,21 +321,86 @@ public class ExtensionManager {
             throw new IllegalArgumentException("Bundle is required");
         }
 
-        final ClassLoader bundleClassLoader = bundle.getClassLoader();
-
         // If the class is annotated with @RequiresInstanceClassLoading and the registered ClassLoader is a URLClassLoader
         // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
         // InstanceClassLoader that has the NAR ClassLoader as a parent
-        ClassLoader instanceClassLoader;
-        if (requiresInstanceClassLoading.contains(classType) && (bundleClassLoader instanceof URLClassLoader)) {
-            final URLClassLoader registeredUrlClassLoader = (URLClassLoader) bundleClassLoader;
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+
+        InstanceClassLoader instanceClassLoader;
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        final String key = getClassBundleKey(classType, bundle.getBundleDetails().getCoordinate());
+
+        if (requiresInstanceClassLoading.containsKey(key) && bundleClassLoader instanceof NarClassLoader) {
+            final Class<?> type = requiresInstanceClassLoading.get(key);
+            final RequiresInstanceClassLoading requiresInstanceClassLoading = type.getAnnotation(RequiresInstanceClassLoading.class);
+
+            final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
+            logger.debug("Including ClassLoader resources from {} for component {}", new Object[] {bundle.getBundleDetails(), instanceIdentifier});
+
+            final Set<URL> instanceUrls = new LinkedHashSet<>();
+            for (final URL url : narBundleClassLoader.getURLs()) {
+                instanceUrls.add(url);
+            }
+
+            ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
+
+            if (requiresInstanceClassLoading.cloneAncestorResources()) {
+                final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
+                final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
+
+                while (ancestorClassLoader != null && ancestorClassLoader instanceof NarClassLoader) {
+                    final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
+
+                    // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
+                    if (ancestorNarBundle == null || reachableApiBundles.contains(ancestorNarBundle.getBundleDetails().getCoordinate())
+                            || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
+                        break;
+                    }
+
+                    final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
+                    for (final URL url : ancestorNarClassLoader.getURLs()) {
+                        instanceUrls.add(url);
+                    }
+                    ancestorClassLoader = ancestorNarClassLoader.getParent();
+                }
+            }
+
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, ancestorClassLoader);
         } else {
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], bundleClassLoader);
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
+        }
+
+        if (logger.isTraceEnabled()) {
+            for (URL url : instanceClassLoader.getURLs()) {
+                logger.trace("URL resource {} for {}...", new Object[]{url.toExternalForm(), instanceIdentifier});
+            }
         }
 
         instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
         return instanceClassLoader;
+    }
+
+    /**
+     * Find the bundle coordinates for any service APIs that are referenced by this component and not part of the same bundle.
+     *
+     * @param component the component being instantiated
+     */
+    protected static Set<BundleCoordinate> findReachableApiBundles(final ConfigurableComponent component) {
+        final Set<BundleCoordinate> reachableApiBundles = new HashSet<>();
+
+        try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+            final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
+            if (descriptors != null && !descriptors.isEmpty()) {
+                for (final PropertyDescriptor descriptor : descriptors) {
+                    final Class<? extends ControllerService> serviceApi = descriptor.getControllerServiceDefinition();
+                    if (serviceApi != null && !component.getClass().getClassLoader().equals(serviceApi.getClassLoader())) {
+                        final Bundle apiBundle = classLoaderBundleLookup.get(serviceApi.getClassLoader());
+                        reachableApiBundles.add(apiBundle.getBundleDetails().getCoordinate());
+                    }
+                }
+            }
+        }
+
+        return reachableApiBundles;
     }
 
     /**
@@ -362,44 +409,40 @@ public class ExtensionManager {
      * @param instanceIdentifier the identifier of a component
      * @return the instance class loader for the component
      */
-    public static ClassLoader getInstanceClassLoader(final String instanceIdentifier) {
+    public static InstanceClassLoader getInstanceClassLoader(final String instanceIdentifier) {
         return instanceClassloaderLookup.get(instanceIdentifier);
     }
 
     /**
-     * Removes the ClassLoader for the given instance and closes it if necessary.
+     * Removes the InstanceClassLoader for a given component.
      *
-     * @param instanceIdentifier the identifier of a component to remove the ClassLoader for
-     * @return the removed ClassLoader for the given instance, or null if not found
+     * @param instanceIdentifier the of a component
      */
-    public static ClassLoader removeInstanceClassLoaderIfExists(final String instanceIdentifier) {
+    public static InstanceClassLoader removeInstanceClassLoader(final String instanceIdentifier) {
         if (instanceIdentifier == null) {
             return null;
         }
 
-        final ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        final InstanceClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        closeURLClassLoader(instanceIdentifier, classLoader);
+        return classLoader;
+    }
+
+    /**
+     * Closes the given ClassLoader if it is an instance of URLClassLoader.
+     *
+     * @param instanceIdentifier the instance id the class loader corresponds to
+     * @param classLoader the class loader to close
+     */
+    public static void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
         if (classLoader != null && (classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {
                 urlClassLoader.close();
             } catch (IOException e) {
-                logger.warn("Unable to class URLClassLoader for " + instanceIdentifier);
+                logger.warn("Unable to close URLClassLoader for " + instanceIdentifier);
             }
         }
-        return classLoader;
-    }
-
-    /**
-     * Checks if the given class type requires per-instance class loading (i.e. contains the @RequiresInstanceClassLoading annotation)
-     *
-     * @param classType the class to check
-     * @return true if the class is found in the set of classes requiring instance level class loading, false otherwise
-     */
-    public static boolean requiresInstanceClassLoading(final String classType) {
-        if (classType == null) {
-            throw new IllegalArgumentException("Class type cannot be null");
-        }
-        return requiresInstanceClassLoading.contains(classType);
     }
 
     /**
@@ -448,6 +491,22 @@ public class ExtensionManager {
         }
         final Set<Class> extensions = definitionMap.get(definition);
         return (extensions == null) ? Collections.<Class>emptySet() : extensions;
+    }
+
+    public static ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
+        if (classType == null) {
+            throw new IllegalArgumentException("Class type cannot be null");
+        }
+
+        if (bundleCoordinate == null) {
+            throw new IllegalArgumentException("Bundle Coordinate cannot be null");
+        }
+
+        return tempComponentLookup.get(getClassBundleKey(classType, bundleCoordinate));
+    }
+
+    private static String getClassBundleKey(final String classType, final BundleCoordinate bundleCoordinate) {
+        return classType + "_" + bundleCoordinate.getCoordinate();
     }
 
     public static void logClassLoaderMapping() {

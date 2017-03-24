@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.FileBasedVariableRegistry;
@@ -48,7 +49,7 @@ public class StandardControllerServiceProviderTest {
         NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
 
         // load the system bundle
-        systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
+        systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
@@ -80,7 +81,7 @@ public class StandardControllerServiceProviderTest {
             public void onComponentRemoved(String componentId) {
             }
         }, variableRegistry, nifiProperties);
-        ControllerServiceNode node = provider.createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), true);
+        ControllerServiceNode node = provider.createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), null, true);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();
     }
