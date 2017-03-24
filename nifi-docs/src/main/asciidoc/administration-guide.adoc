@@ -1777,17 +1777,6 @@ take effect only after NiFi has been stopped and restarted.
                                  configured recipients if the bootstrap determines that NiFi has unexpectedly died.
 |====
 
-*Java 8 handling of codecache*
-It has been observed in Java 8 runtime environments that performance can suddenly drop by more than an order of magnitude after days or weeks of otherwise ideal
-behavior.  This has only been observed under extremely high load and in cases where considerable Just in Time (JIT) compilation occurs.  The core problem is the CodeCache becomes
-full and is seemingly not properly garbage collected or grown.  When this occurs JIT seems to no longer occur or involve considerable delays and performance drops.
-This is easily overcome by ensuring the following lines are available in the _boostrap.conf_.  By default they are there but commented.  Uncomment them for maximum sustained throughput.
-....
-#java.arg.7=-XX:ReservedCodeCacheSize=256m
-#java.arg.8=-XX:CodeCacheFlushingMinimumFreeSpace=10m
-#java.arg.9=-XX:+UseCodeCacheFlushing
-....
-
 [[notification_services]]
 Notification Services
 ---------------------
