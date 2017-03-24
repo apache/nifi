@@ -345,6 +345,7 @@
             <xs:enumeration value="WARN"></xs:enumeration>
             <xs:enumeration value="ERROR"></xs:enumeration>
             <xs:enumeration value="FATAL"></xs:enumeration>
+            <xs:enumeration value="NONE"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
 	
