@@ -314,7 +314,7 @@ public class TestProcessorLifecycle {
 
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPED);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(1000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
@@ -383,7 +383,7 @@ public class TestProcessorLifecycle {
         assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(500);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
     }
@@ -411,7 +411,7 @@ public class TestProcessorLifecycle {
         assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STARTING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(4000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
     }
@@ -443,7 +443,7 @@ public class TestProcessorLifecycle {
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
         ps.stopProcessor(testProcNode);
         Thread.sleep(100);
-        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPING);
+        assertTrue(testProcNode.getPhysicalScheduledState() == ScheduledState.STOPPED);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         Thread.sleep(4000);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);

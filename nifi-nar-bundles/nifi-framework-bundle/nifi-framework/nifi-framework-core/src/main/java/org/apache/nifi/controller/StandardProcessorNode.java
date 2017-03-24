@@ -138,6 +138,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                                    // ??????? NOT any more
     private ExecutionNode executionNode;
 
+    private volatile Future<?> onScheduleFuture;
+
     public StandardProcessorNode(final Processor processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final NiFiProperties nifiProperties,
@@ -1299,23 +1301,23 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
 
-                        if (scheduledState.get() != ScheduledState.STOPPING) { // make sure we only continue retry loop if STOP action wasn't initiated
-                            taskScheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
-                        } else {
-                            scheduledState.set(ScheduledState.STOPPED);
+                        synchronized (StandardProcessorNode.this) {
+                            if (scheduledState.get() != ScheduledState.STOPPING) { // make sure we only continue retry loop if STOP action wasn't initiated
+                                onScheduleFuture = taskScheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
+                            } else {
+                                scheduledState.set(ScheduledState.STOPPED);
+                            }
                         }
                     }
                 }
             };
-            taskScheduler.execute(startProcRunnable);
+            onScheduleFuture = taskScheduler.submit(startProcRunnable);
         } else {
             final String procName = this.processor.getClass().getSimpleName();
             LOG.warn("Can not start '" + procName
-                    + "' since it's already in the process of being started or it is DISABLED - "
-                    + scheduledState.get());
+                    + "' since it's already in the process of being started or it is DISABLED - " + scheduledState.get());
             procLog.warn("Can not start '" + procName
-                    + "' since it's already in the process of being started or it is DISABLED - "
-                    + scheduledState.get());
+                    + "' since it's already in the process of being started or it is DISABLED - " + scheduledState.get());
         }
     }
 
@@ -1385,15 +1387,32 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 }
             });
         } else {
-            /*
-             * We do compareAndSet() instead of set() to ensure that Processor
-             * stoppage is handled consistently including a condition where
-             * Processor never got a chance to transition to RUNNING state
-             * before stop() was called. If that happens the stop processor
-             * routine will be initiated in start() method, otherwise the IF
-             * part will handle the stop processor routine.
-             */
-            this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+            synchronized (this) {
+                if (onScheduleFuture != null) { // can only be null if stop was called before start
+                    if (onScheduleFuture.cancel(false)) { // 'false' ensures we are not canceling the one in progress, only the scheduled one
+                        /*
+                         * We only want to transition to STOPPED stated in the
+                         * event when stop was called by the user
+                         * when @OnSchedule results in exception and is
+                         * scheduled for re-try. However if @OnSchedule is
+                         * currently executing we don't want to interrupt it,
+                         * hence 'false' in the above 'cancel' call
+                         */
+                        this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPED);
+                    } else {
+                        /*
+                         * We do compareAndSet() instead of set() to ensure that
+                         * Processor stoppage is handled consistently including
+                         * a condition where Processor never got a chance to
+                         * transition to RUNNING state before stop() was called.
+                         * If that happens the stop processor routine will be
+                         * initiated in start() method, otherwise the IF part
+                         * will handle the stop processor routine.
+                         */
+                        this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+                    }
+                }
+            }
         }
     }
 
