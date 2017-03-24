@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.cybersecurity;
 
+import com.idealista.tlsh.TLSH;
+import com.idealista.tlsh.exceptions.InsufficientComplexityException;
 import info.debatty.java.spamsum.SpamSum;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -65,8 +67,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @Tags({"hashing", "fuzzy-hashing", "cyber-security"})
 @CapabilityDescription("Calculates a fuzzy/locality-sensitive hash value for the Content of a FlowFile and puts that " +
         "hash value on the FlowFile as an attribute whose name is determined by the <Hash Attribute Name> property." +
-        "Note: this processor only offers non-criptographic hash algorithms. And it should be not be " +
-        "seen as a replacement to the HashContent processor")
+        "Note: this processor only offers non-cryptographic hash algorithms. And it should be not be " +
+        "seen as a replacement to the HashContent processor." +
+        "Note: The underlying library loads the entirety of the streamed content into and performs result " +
+        "evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being " +
+        "evaluated by this processor and the hardware supporting it especially when working against large files.")
 
 @SeeAlso({HashContent.class})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
@@ -75,8 +80,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FuzzyHashContent extends AbstractProcessor {
 
-    public static final AllowableValue SSDEEP = new AllowableValue("ssdeep", "ssdeep", "Uses ssdeep / SpamSum 'context triggered piecewise hash'.");
-
+    public static final AllowableValue allowableValueSSDEEP = new AllowableValue(
+            "ssdeep",
+            "ssdeep",
+            "Uses ssdeep / SpamSum 'context triggered piecewise hash'.");
+    public static final AllowableValue allowableValueTLSH = new AllowableValue(
+            "tlsh",
+            "tlsh",
+            "Uses TLSH (Trend 'Locality Sensitive Hash'). Note: FlowFile Content must be at least 512 characters long");
 
     public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("ATTRIBUTE_NAME")
@@ -92,7 +103,7 @@ public class FuzzyHashContent extends AbstractProcessor {
             .name("HASH_ALGORITHM")
             .displayName("Hashing Algorithm")
             .description("The hashing algorithm utilised")
-            .allowableValues(SSDEEP)
+            .allowableValues(allowableValueSSDEEP, allowableValueTLSH)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -136,7 +147,6 @@ public class FuzzyHashContent extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-
     }
 
     @Override
@@ -147,7 +157,16 @@ public class FuzzyHashContent extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        final String algorithm = context.getProperty(HASH_ALGORITHM).getValue();
+
+        // Check if content matches minimum length requirement
+        if (context.getProperty(HASH_ALGORITHM).equals(allowableValueTLSH) && flowFile.getSize() < 512 ) {
+            logger.info("The content of {} is smaller than the minimum required by TLSH, routing to failure", new Object[]{flowFile});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
+
+
 
 
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
@@ -159,9 +178,12 @@ public class FuzzyHashContent extends AbstractProcessor {
                     try (ByteArrayOutputStream holder = new ByteArrayOutputStream()) {
                         StreamUtils.copy(in,holder);
 
-                        //
-                        if (algorithm.equals(SSDEEP.getValue())) {
+                        if (context.getProperty(HASH_ALGORITHM).getValue().equals(allowableValueSSDEEP.getValue())) {
                             hashValueHolder.set(new SpamSum().HashString(holder.toString()));
+                        }
+
+                        if (context.getProperty(HASH_ALGORITHM).getValue().equals(allowableValueTLSH.getValue())) {
+                            hashValueHolder.set(new TLSH(holder.toString()).hash());
                         }
                     }
                 }
@@ -172,7 +194,7 @@ public class FuzzyHashContent extends AbstractProcessor {
             logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final ProcessException e) {
+        } catch (final InsufficientComplexityException | ProcessException e) {
             logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
         }
