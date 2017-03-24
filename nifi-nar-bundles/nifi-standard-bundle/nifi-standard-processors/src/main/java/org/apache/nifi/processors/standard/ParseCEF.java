@@ -167,7 +167,7 @@ public class ParseCEF extends AbstractProcessor {
         .build();
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
-        .description("Any FlowFile that is successfully parsed as a CEF message will be to this Relationship.")
+        .description("Any FlowFile that is successfully parsed as a CEF message will be transferred to this Relationship.")
         .build();
 
     @Override

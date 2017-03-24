@@ -1211,6 +1211,31 @@ The derived work is adapted from
   release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
 and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
+  (ASLv2) tlsh
+    The following NOTICE information applies:
+       Java port of Trend Locality Sensitive Hash (TLSH)
+       Copyright 2000-2016 Idealista, S.A
+
+       This product includes software developed at
+       Idealista, S.A (http://www.idealista.com/)
+
+       Based on the algorithms described in Trend Micro's TLSH official
+       repository, available in:
+
+         https://github.com/trendmicro/tlsh
+
+       Refer to the following publication for more information:
+
+         Jonathan Oliver, Chun Cheng and Yanggui Chen, “TLSH - A Locality
+         Sensitive Hash” - 4th Cybercrime and Trustworthy Computing Workshop,
+         Sydney, November 2013
+
+         https://drive.google.com/file/d/0B6FS3SVQ1i0GTXk5eDl3Y29QWlk/edit?usp=sharing
+
+       This software is inspired in the previous Java port developed by TripleCheck:
+
+         https://github.com/triplecheck/TLSH
+
 ************************
 Common Development and Distribution License 1.1
 ************************
