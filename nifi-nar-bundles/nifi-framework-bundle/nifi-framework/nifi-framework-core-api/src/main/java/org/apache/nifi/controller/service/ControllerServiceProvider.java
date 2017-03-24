@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
 
@@ -38,10 +39,11 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param type of service
      * @param id of service
      * @param bundleCoordinate the coordinate of the bundle for the service
+     * @param additionalUrls optional additional URL resources to add to the class loader of the component
      * @param firstTimeAdded for service
      * @return the service node
      */
-    ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
+    ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded);
 
     /**
      * @param id of the service

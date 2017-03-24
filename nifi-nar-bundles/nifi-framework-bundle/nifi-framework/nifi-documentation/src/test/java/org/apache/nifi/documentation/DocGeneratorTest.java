@@ -23,6 +23,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,7 +48,7 @@ public class DocGeneratorTest {
                 NiFiProperties.COMPONENT_DOCS_DIRECTORY,
                 temporaryFolder.getRoot().getAbsolutePath());
 
-        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        final Bundle systemBundle = SystemBundle.create(properties);
         final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());

@@ -27,12 +27,10 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,6 +58,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final String componentType;
     private final String componentCanonicalClass;
     private final VariableRegistry variableRegistry;
+    private final ReloadComponent reloadComponent;
 
     private final AtomicBoolean isExtensionMissing;
 
@@ -69,7 +68,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                                        final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
-                                       final boolean isExtensionMissing) {
+                                       final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
@@ -78,6 +77,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.componentCanonicalClass = componentCanonicalClass;
         this.variableRegistry = variableRegistry;
         this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
+        this.reloadComponent = reloadComponent;
     }
 
     @Override
@@ -234,37 +234,28 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     /**
-     * Adds all of the modules identified by the given module paths to the InstanceClassLoader for this component.
+     * Triggers the reloading of the underlying component using a new InstanceClassLoader that includes the additional URL resources.
      *
      * @param modulePaths a list of module paths where each entry can be a comma-separated list of multiple module paths
      */
     private void processClasspathModifiers(final Set<String> modulePaths) {
         try {
+            // compute the URLs from all the modules paths
             final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
 
-            if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Adding {} resources to the classpath for {}", new Object[] {urls.length, name});
-                for (URL url : urls) {
-                    getLogger().debug(url.getFile());
+            // convert to a set of URLs
+            final Set<URL> additionalUrls = new LinkedHashSet<>();
+            if (urls != null) {
+                for (final URL url : urls) {
+                    additionalUrls.add(url);
                 }
             }
 
-            final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            // reload the underlying component with a new InstanceClassLoader that includes the new URLs
+            reload(additionalUrls);
 
-            if (!(classLoader instanceof InstanceClassLoader)) {
-                // Really shouldn't happen, but if we somehow got here and don't have an InstanceClassLoader then log a warning and move on
-                final String classLoaderName = classLoader == null ? "null" : classLoader.getClass().getName();
-                if (getLogger().isWarnEnabled()) {
-                    getLogger().warn(String.format("Unable to modify the classpath for %s, expected InstanceClassLoader, but found %s", name, classLoaderName));
-                }
-                return;
-            }
-
-            final InstanceClassLoader instanceClassLoader = (InstanceClassLoader) classLoader;
-            instanceClassLoader.setInstanceResources(urls);
-        } catch (MalformedURLException e) {
-            // Shouldn't get here since we are suppressing errors
-            getLogger().warn("Error processing classpath resources", e);
+        } catch (Exception e) {
+            getLogger().warn("Error processing classpath resources for " + id + ": " + e.getMessage(), e);
         }
     }
 
@@ -504,6 +495,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     protected VariableRegistry getVariableRegistry() {
         return this.variableRegistry;
+    }
+
+    protected ReloadComponent getReloadComponent() {
+        return this.reloadComponent;
     }
 
     @Override

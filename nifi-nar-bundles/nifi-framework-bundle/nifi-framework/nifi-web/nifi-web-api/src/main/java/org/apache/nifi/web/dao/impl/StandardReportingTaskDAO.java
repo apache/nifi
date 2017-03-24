@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
@@ -39,6 +40,7 @@ import org.quartz.CronExpression;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +51,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     private ReportingTaskProvider reportingTaskProvider;
     private ComponentStateDAO componentStateDAO;
+    private ReloadComponent reloadComponent;
 
     private ReportingTaskNode locateReportingTask(final String reportingTaskId) {
         // get the reporting task
@@ -167,7 +170,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         if (bundleDTO != null) {
             final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
             try {
-                reportingTaskProvider.changeReportingTaskType(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate);
+                reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
             } catch (ReportingTaskInstantiationException e) {
                 throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
                         reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
@@ -355,5 +358,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
+    }
+
+    public void setReloadComponent(ReloadComponent reloadComponent) {
+        this.reloadComponent = reloadComponent;
     }
 }

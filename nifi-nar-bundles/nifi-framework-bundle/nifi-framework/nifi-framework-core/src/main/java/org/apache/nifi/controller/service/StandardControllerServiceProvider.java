@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,7 +92,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded) {
         if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException();
         }
@@ -106,7 +107,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     throw new ControllerServiceInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
                 }
 
-                cl = ExtensionManager.createInstanceClassLoader(type, id, csBundle);
+                cl = ExtensionManager.createInstanceClassLoader(type, id, csBundle, additionalUrls);
                 Thread.currentThread().setContextClassLoader(cl);
                 rawClass = Class.forName(type, false, cl);
             } catch (final Exception e) {
@@ -141,7 +142,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, serviceLogger);
 
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                    id, validationContextFactory, this, variableRegistry);
+                    id, validationContextFactory, this, variableRegistry, flowController);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
@@ -217,7 +218,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
 
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
-                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, true);
+                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, flowController, true);
         return serviceNode;
     }
 
@@ -537,7 +538,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         group.removeControllerService(serviceNode);
-        ExtensionManager.removeInstanceClassLoaderIfExists(serviceNode.getIdentifier());
+        ExtensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
     }
 
     @Override

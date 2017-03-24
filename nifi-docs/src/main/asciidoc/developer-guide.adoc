@@ -2357,6 +2357,11 @@ component's NAR ClassLoader. When `@RequiresInstanceClassLoading` is not present
 instance ClassLoader simply has it's parent ClassLoader set to the NAR ClassLoader, rather than
 copying resources.
 
+The `@RequiresInstanceClassLoading` annotation also provides an optional flag `cloneAncestorResources'. If
+set to true, the instance ClassLoader will include ancestor resources up to the first ClassLoader containing a
+controller service API referenced by the component, or up to the Jetty NAR. If set to false, or not specified,
+only the resources from the component's NAR will be included.
+
 Because @RequiresInstanceClassLoading copies resources from the NAR ClassLoader for each instance of the
 component, use this capability judiciously. If ten instances of one component are created, all classes
 from the component's NAR ClassLoader are loaded into memory ten times. This could eventually increase the

@@ -767,7 +767,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             if (removed) {
                 try {
-                    ExtensionManager.removeInstanceClassLoaderIfExists(id);
+                    ExtensionManager.removeInstanceClassLoader(id);
                 } catch (Throwable t) {
                 }
             }
@@ -1914,7 +1914,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             if (removed) {
                 try {
-                    ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
+                    ExtensionManager.removeInstanceClassLoader(service.getIdentifier());
                 } catch (Throwable t) {
                 }
             }

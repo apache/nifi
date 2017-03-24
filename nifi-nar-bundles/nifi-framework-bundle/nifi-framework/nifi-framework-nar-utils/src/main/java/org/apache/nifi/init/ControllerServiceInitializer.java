@@ -18,40 +18,42 @@ package org.apache.nifi.init;
 
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.mock.MockConfigurationContext;
-import org.apache.nifi.mock.MockReportingInitializationContext;
+import org.apache.nifi.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.reporting.ReportingInitializationContext;
-import org.apache.nifi.reporting.ReportingTask;
 
 /**
- * Initializes a ReportingTask using a MockReportingInitializationContext;
+ * Initializes a ControllerService using a MockControllerServiceInitializationContext
  *
  *
  */
-public class ReportingTaskingInitializer implements ConfigurableComponentInitializer {
+public class ControllerServiceInitializer implements ConfigurableComponentInitializer {
 
     @Override
     public void initialize(ConfigurableComponent component) throws InitializationException {
-        ReportingTask reportingTask = (ReportingTask) component;
-        ReportingInitializationContext context = new MockReportingInitializationContext();
+        ControllerService controllerService = (ControllerService) component;
+        ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
         try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), context.getIdentifier())) {
-            reportingTask.initialize(context);
+            controllerService.initialize(context);
         }
     }
 
     @Override
     public void teardown(ConfigurableComponent component) {
-        ReportingTask reportingTask = (ReportingTask) component;
         try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
+            ControllerService controllerService = (ControllerService) component;
 
+            final ComponentLog logger = new MockComponentLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask, new MockComponentLogger(), context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, controllerService, logger, context);
         } finally {
-            ExtensionManager.removeInstanceClassLoaderIfExists(component.getIdentifier());
+            ExtensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }

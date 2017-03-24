@@ -27,13 +27,13 @@ public interface TemplateContentsAuthorizable {
      *
      * @return temporary instances of all encapsulated processors
      */
-    Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors();
+    Set<ComponentAuthorizable> getEncapsulatedProcessors();
 
     /**
      * Returns temporary instances of all encapsulated controller services. Non null
      *
      * @return temporary instances of all encapsulated controller services
      */
-    Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices();
+    Set<ComponentAuthorizable> getEncapsulatedControllerServices();
 
 }

@@ -77,7 +77,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         try {
             // create the controller service
             final ControllerServiceNode controllerService = serviceProvider.createControllerService(
-                    controllerServiceDTO.getType(), controllerServiceDTO.getId(), BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle()), true);
+                    controllerServiceDTO.getType(), controllerServiceDTO.getId(), BundleUtils.getBundle(controllerServiceDTO.getType(),
+                            controllerServiceDTO.getBundle()), Collections.emptySet(), true);
 
             // ensure we can perform the update
             verifyUpdate(controllerService, controllerServiceDTO);
@@ -170,7 +171,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         if (bundleDTO != null) {
             final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
             try {
-                flowController.changeControllerServiceType(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate);
+                flowController.reload(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
             } catch (ControllerServiceInstantiationException e) {
                 throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
                         controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);

@@ -20,17 +20,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -58,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.UUID;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -232,7 +227,7 @@ public class FingerprintFactory {
             });
 
             for (final ControllerServiceDTO dto : serviceDtos) {
-                addControllerServiceFingerprint(builder, dto, controller);
+                addControllerServiceFingerprint(builder, dto);
             }
         }
 
@@ -262,7 +257,7 @@ public class FingerprintFactory {
             });
 
             for (final ReportingTaskDTO dto : reportingTaskDtos) {
-                addReportingTaskFingerprint(builder, dto, controller);
+                addReportingTaskFingerprint(builder, dto);
             }
         }
 
@@ -277,7 +272,7 @@ public class FingerprintFactory {
         final List<Element> processorElems = DomUtils.getChildElementsByTagName(processGroupElem, "processor");
         Collections.sort(processorElems, getIdsComparator());
         for (final Element processorElem : processorElems) {
-            addFlowFileProcessorFingerprint(builder, processorElem, controller);
+            addFlowFileProcessorFingerprint(builder, processorElem);
         }
 
         // input ports
@@ -332,7 +327,7 @@ public class FingerprintFactory {
         return builder;
     }
 
-    private StringBuilder addFlowFileProcessorFingerprint(final StringBuilder builder, final Element processorElem, final FlowController controller) throws FingerprintException {
+    private StringBuilder addFlowFileProcessorFingerprint(final StringBuilder builder, final Element processorElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "id"));
         // class
@@ -346,24 +341,11 @@ public class FingerprintFactory {
         final BundleDTO bundle = FlowFromDOMFactory.getBundle(DomUtils.getChild(processorElem, "bundle"));
         addBundleFingerprint(builder, bundle);
 
-        // create an instance of the Processor so that we know the default property values
-        Processor processor = null;
-        try {
-            if (controller != null) {
-                final BundleCoordinate coordinate = getCoordinate(className, bundle);
-                processor = controller.createProcessor(className, UUID.randomUUID().toString(), coordinate, false).getProcessor();
-            }
-        } catch (ProcessorInstantiationException | IllegalStateException e) {
-            logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", className, e.toString());
-            if (logger.isDebugEnabled()) {
-                logger.warn("", e);
-            }
-        } finally {
-            // The processor instance is only for fingerprinting so we can remove the InstanceClassLoader here
-            // since otherwise it will stick around in the map forever
-            if (processor != null) {
-                ExtensionManager.removeInstanceClassLoaderIfExists(processor.getIdentifier());
-            }
+        // get the temp instance of the Processor so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(className, bundle);
+        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(className, coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get Processor of type {}; its default properties will be fingerprinted instead of being ignored.", className);
         }
 
         // properties
@@ -372,7 +354,7 @@ public class FingerprintFactory {
         for (final Element propertyElem : sortedPropertyElems) {
             final String propName = DomUtils.getChildElementsByTagName(propertyElem, "name").get(0).getTextContent();
             String propValue = getFirstValue(DomUtils.getChildNodesByTagName(propertyElem, "value"), null);
-            addPropertyFingerprint(builder, processor, propName, propValue);
+            addPropertyFingerprint(builder, configurableComponent, propName, propValue);
         }
 
         final NodeList autoTerminateElems = DomUtils.getChildNodesByTagName(processorElem, "autoTerminatedRelationship");
@@ -571,7 +553,7 @@ public class FingerprintFactory {
         return builder;
     }
 
-    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto, final FlowController controller) {
+    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
@@ -582,21 +564,14 @@ public class FingerprintFactory {
         builder.append(dto.getAnnotationData());
         builder.append(dto.getState());
 
-        // create an instance of the ControllerService so that we know the default property values
-        ControllerService controllerService = null;
-        try {
-            if (controller != null) {
-                final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-                controllerService = controller.createControllerService(dto.getType(), UUID.randomUUID().toString(), coordinate, false).getControllerServiceImplementation();
-            }
-        } catch (Exception e) {
-            logger.warn("Unable to create ControllerService of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());
-            if (logger.isDebugEnabled()) {
-                logger.warn("", e);
-            }
+        // get the temp instance of the ControllerService so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
+        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get ControllerService of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
 
-        addPropertiesFingerprint(builder, controllerService, dto.getProperties());
+        addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());
     }
 
     private void addPropertiesFingerprint(final StringBuilder builder, final ConfigurableComponent component, final Map<String, String> properties) {
@@ -634,7 +609,7 @@ public class FingerprintFactory {
         return coordinate;
     }
 
-    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto, final FlowController controller) {
+    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto) {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
@@ -646,21 +621,14 @@ public class FingerprintFactory {
         builder.append(dto.getSchedulingStrategy());
         builder.append(dto.getAnnotationData());
 
-        // create an instance of the ReportingTask so that we know the default property values
-        ReportingTask reportingTask = null;
-        try {
-            if (controller != null) {
-                final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-                reportingTask = controller.createReportingTask(dto.getType(), UUID.randomUUID().toString(), coordinate, false, false).getReportingTask();
-            }
-        } catch (Exception e) {
-            logger.warn("Unable to create ReportingTask of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());
-            if (logger.isDebugEnabled()) {
-                logger.warn("", e);
-            }
+        // get the temp instance of the ReportingTask so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
+        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get ReportingTask of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
 
-        addPropertiesFingerprint(builder, reportingTask, dto.getProperties());
+        addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());
     }
 
     private Comparator<Element> getIdsComparator() {
