@@ -94,8 +94,14 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeAttribute("href", "/nifi-docs/css/component-usage.css");
         xmlStreamWriter.writeAttribute("type", "text/css");
         xmlStreamWriter.writeEndElement();
-
         xmlStreamWriter.writeEndElement();
+
+        xmlStreamWriter.writeStartElement("script");
+        xmlStreamWriter.writeAttribute("type", "text/javascript");
+        xmlStreamWriter.writeCharacters("window.onload = function(){if(self==top) { " +
+                "document.getElementById('nameHeader').style.display = \"inherit\"; } }" );
+        xmlStreamWriter.writeEndElement();
+
     }
 
     /**
@@ -123,6 +129,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
             throws XMLStreamException {
         xmlStreamWriter.writeStartElement("body");
+        writeHeader(configurableComponent, xmlStreamWriter);
         writeDescription(configurableComponent, xmlStreamWriter, hasAdditionalDetails);
         writeTags(configurableComponent, xmlStreamWriter);
         writeProperties(configurableComponent, xmlStreamWriter);
@@ -131,6 +138,23 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeRestrictedInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
+        xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Write the header to be displayed when loaded outside an iframe.
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
+     */
+    private void writeHeader(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+        xmlStreamWriter.writeStartElement("h1");
+        xmlStreamWriter.writeAttribute("id", "nameHeader");
+        // Style will be overwritten on load if needed
+        xmlStreamWriter.writeAttribute("style", "display: none;");
+        xmlStreamWriter.writeCharacters(getTitle(configurableComponent));
         xmlStreamWriter.writeEndElement();
     }
 
