@@ -38,6 +38,8 @@ import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.repository.schema.RecordSchema;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +56,13 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
     private KeyProvider keyProvider;
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
-    private String keyId;
-    private int debugFrequency;
+    private static final TimedBuffer<TimestampedLong> encryptTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
 
+    private String keyId;
+
+    private int debugFrequency;
     public static final int SERIALIZATION_VERSION = 1;
+
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
     public EncryptedSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
@@ -79,7 +84,13 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
         // TODO: May be temporary encryption & serialization; if I can get the normal SchemaRecordWriter to work, I'll use that
         byte[] cipherBytes;
         try {
-            cipherBytes = encrypt(record);
+            byte[] serialized;
+            try (final ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
+                 final DataOutputStream dos = new DataOutputStream(baos)) {
+                writeRecord(record, 0L, dos);
+                serialized = baos.toByteArray();
+            }
+            cipherBytes = encrypt(serialized);
         } catch (EncryptionException e) {
             logger.error("Encountered an error: ", e);
             throw new IOException("Error encrypting the provenance record", e);
@@ -121,6 +132,9 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
             final long serializeNanos = lockStart - encryptStart;
             getSerializeTimes().add(new TimestampedLong(serializeNanos));
 
+            final long encryptNanos = encryptStop - encryptStart;
+            getEncryptTimes().add(new TimestampedLong(encryptNanos));
+
             final long lockNanos = writeStart - lockStart;
             getLockTimes().add(new TimestampedLong(lockNanos));
             getBytesWrittenBuffer().add(new TimestampedLong(endBytes - startBytes));
@@ -144,23 +158,22 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
         final Long writeNanosLast60 = getWriteTimes().getAggregateValue(sixtySecondsAgo).getValue();
         final Long lockNanosLast60 = getLockTimes().getAggregateValue(sixtySecondsAgo).getValue();
         final Long serializeNanosLast60 = getSerializeTimes().getAggregateValue(sixtySecondsAgo).getValue();
+        final Long encryptNanosLast60 = getEncryptTimes().getAggregateValue(sixtySecondsAgo).getValue();
         final Long bytesWrittenLast60 = getBytesWrittenBuffer().getAggregateValue(sixtySecondsAgo).getValue();
-        logger.debug("In the last 60 seconds, have spent {} millis writing to file ({} MB), {} millis waiting on synchronize block, {} millis serializing events",
+        logger.debug("In the last 60 seconds, have spent {} millis writing to file ({} MB), {} millis waiting on synchronize block, {} millis serializing events, {} millis encrypting events",
                 TimeUnit.NANOSECONDS.toMillis(writeNanosLast60),
                 bytesWrittenLast60 / 1024 / 1024,
                 TimeUnit.NANOSECONDS.toMillis(lockNanosLast60),
-                TimeUnit.NANOSECONDS.toMillis(serializeNanosLast60));
+                TimeUnit.NANOSECONDS.toMillis(serializeNanosLast60),
+                TimeUnit.NANOSECONDS.toMillis(encryptNanosLast60));
     }
 
-    private byte[] encrypt(ProvenanceEventRecord record) throws IOException, EncryptionException {
-       String keyId = getKeyId();
-        byte[] serialized;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
-             final DataOutputStream dos = new DataOutputStream(baos)) {
-            writeRecord(record, 0L, dos);
-            serialized = baos.toByteArray();
-        }
+    static TimedBuffer<TimestampedLong> getEncryptTimes() {
+        return encryptTimes;
+    }
 
+    private byte[] encrypt(byte[] serialized) throws IOException, EncryptionException {
+       String keyId = getKeyId();
         // TODO: Delegate to encryptor with proper error-checking and customization
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -179,7 +192,14 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
             System.arraycopy(ivBytes, 0, ivAndCipherBytes, 0, ivBytes.length);
             System.arraycopy(cipherBytes, 0, ivAndCipherBytes, 16, cipherBytes.length);
 
-            return ivAndCipherBytes;
+            // TODO: Refactor to use concatByteArrays() for performance
+            // Add the sentinel byte of 0x01
+            byte[] sentinelAndAllBytes = new byte[1 + ivAndCipherBytes.length];
+            final byte[] SENTINEL = new byte[]{ 0x01};
+            System.arraycopy(SENTINEL, 0, sentinelAndAllBytes, 0, 1);
+            System.arraycopy(ivAndCipherBytes, 0, sentinelAndAllBytes, 1, ivAndCipherBytes.length);
+
+            return sentinelAndAllBytes;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);

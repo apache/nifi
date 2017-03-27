@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicLong
 import static org.apache.nifi.provenance.TestUtil.createFlowFile
 
 @RunWith(JUnit4.class)
-class EncryptedSchemaRecordWriterTest extends AbstractTestRecordReaderWriter {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordWriterTest.class)
+class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWriter {
+    private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReaderWriterTest.class)
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
@@ -134,14 +134,51 @@ class EncryptedSchemaRecordWriterTest extends AbstractTestRecordReaderWriter {
     protected RecordReader createReader(
             final InputStream inputStream,
             final String journalFilename, final TocReader tocReader, final int maxAttributeSize) throws IOException {
-        return new EventIdFirstSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize)
+        return new EncryptedSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize, mockKeyProvider, mockEncryptor)
     }
 
     /**
-     * Build a record and write it with a standard writer and the encrypted writer. Recover with the standard reader and the contents of the encrypted record should be unreadable.
+     * Build a record and write it to the repository with the encrypted writer. Recover with the encrypted reader and verify.
      */
     @Test
-    void testShouldWriteEncryptedRecord() {
+    void testShouldWriteAndReadEncryptedRecord() {
+        // Arrange
+        final ProvenanceEventRecord record = buildEventRecord()
+        logger.info("Built sample PER: ${record}")
+
+        TocWriter tocWriter = new StandardTocWriter(tocFile, false, false)
+
+        RecordWriter encryptedWriter = createWriter(journalFile, tocWriter, false, UNCOMPRESSED_BLOCK_SIZE)
+        logger.info("Generated encrypted writer: ${encryptedWriter}")
+
+        // Act
+        int encryptedRecordId = idGenerator.get()
+        encryptedWriter.writeHeader(encryptedRecordId)
+        encryptedWriter.writeRecord(record)
+        encryptedWriter.close()
+        logger.info("Wrote encrypted record ${encryptedRecordId} to journal")
+
+        // Assert
+        TocReader tocReader = new StandardTocReader(tocFile)
+        final FileInputStream fis = new FileInputStream(journalFile)
+        final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, MAX_ATTRIBUTE_SIZE)
+        logger.info("Generated encrypted reader: ${reader}")
+
+        ProvenanceEventRecord encryptedEvent = reader.nextRecord()
+        assert encryptedEvent
+        assert encryptedRecordId as long == encryptedEvent.getEventId()
+        assert record.componentId == encryptedEvent.getComponentId()
+        assert record.componentType == encryptedEvent.getComponentType()
+        logger.info("Successfully read encrypted record: ${encryptedEvent}")
+
+        assert !reader.nextRecord()
+    }
+    
+    /**
+     * Build a record and write it with a standard writer and the encrypted writer to the same repository. Recover with the standard reader and the contents of the encrypted record should be unreadable.
+     */
+    @Test
+    void testShouldWriteEncryptedRecordAndPlainRecord() {
         // Arrange
         final ProvenanceEventRecord record = buildEventRecord()
         logger.info("Built sample PER: ${record}")
