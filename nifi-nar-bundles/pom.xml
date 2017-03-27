@@ -81,6 +81,7 @@
         <module>nifi-poi-bundle</module>
         <module>nifi-cdc</module>
         <module>nifi-cybersecurity-bundle</module>
+        <module>nifi-atlas-bundle</module>
   </modules>
 
     <build>

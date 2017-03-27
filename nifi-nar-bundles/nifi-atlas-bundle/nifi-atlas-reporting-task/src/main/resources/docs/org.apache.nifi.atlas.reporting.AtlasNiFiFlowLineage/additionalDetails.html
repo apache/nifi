@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+    <head>
+        <meta charset="utf-8" />
+        <title>AtlasNiFiFlowLineage</title>
+        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>AtlasNiFiFlowLineage</h2>
+
+        Table of contents:
+        <ul>
+            <li><a href="#how-it-works">How it works</a></li>
+            <ul>
+                <li><a href="#nifi-atlas-types">NiFi Atlas Types</a></li>
+                <li><a href="#path-separation">Path Separation Logic</a></li>
+                <li><a href="#runs-in-cluster">How it runs in NiFi cluster</a></li>
+            </ul>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#nifi-configs">Required NiFi Configurations</a></li>
+            <li><a href="#atlas-configs">Required Atlas Configurations</a></li>
+            <li><a href="#datasets-and-processors">Supported DataSets and Processors</a></li>
+        </ul>
+
+        <h3 id="how-it-works">How it works</h3>
+
+        <h4 id="nifi-atlas-types">NiFi Atlas Types</h4>
+
+        <p>This reporting task creates following NiFi specific types in Atlas Type system when it runs if these type definitions are not found.</p>
+
+        <p>Green boxes represent sub-types of DataSet and blue ones are sub-types of Process. Gray lines represent entity ownership.
+        Red lines represent lineage.</p>
+
+        <svg width="100%" height="200">
+            <defs>
+                <symbol id="Process">
+                    <rect width="110" height="30" fill="#6ec3ef" stroke="gray" />
+                </symbol>
+                <symbol id="Diamond">
+                    <polygon points="1,5 5,7 9,5 5,3" fill="#b7b7b7" transform="scale(2,2) translate(-1 0)"/>
+                </symbol>
+                <symbol id="DataSet">
+                    <rect width="110" height="30" fill="#98d680" stroke="gray" />
+                </symbol>
+                <symbol id="Triangle">
+                    <polygon points="0,10 10,10 5,0" fill="#b23f25" />
+                </symbol>
+                <symbol id="Arrow">
+                    <line x1="110" y1="15" x2="160" y2="15" stroke="#b23f25" stroke-width="2" />
+                    <use xlink:href="#Triangle" transform="translate(160 10) rotate(90)"/>
+                </symbol>
+                <symbol id="ArrowD">
+                    <line x1="110" y1="15" x2="160" y2="60" stroke="#b23f25" stroke-width="2" />
+                    <use xlink:href="#Triangle" transform="translate(165 58) rotate(135)"/>
+                </symbol>
+            </defs>
+
+            <g transform="translate(50, 30)">
+                <!-- 3 column layout -->
+                <g transform="translate(0 0)">
+                    <g>
+                        <use xlink:href="#DataSet" />
+                        <text x="8" y="20" font-size="14">nifi_input_port</text>
+                        <use xlink:href="#ArrowD" />
+                    </g>
+                    <g transform="translate(0 60)">
+                        <use xlink:href="#DataSet" />
+                        <text x="25" y="20" font-size="14">nifi_data</text>
+                        <use xlink:href="#Arrow" />
+                    </g>
+                    <g transform="translate(0 120)">
+                        <use xlink:href="#DataSet" />
+                        <text x="10" y="20" font-size="14">Other DataSet</text>
+                        <use xlink:href="#ArrowD" transform="translate(0 30) scale(1, -1)"/>
+                    </g>
+                </g>
+                <g transform="translate(160 0)">
+                    <g>
+                        <use xlink:href="#Process" />
+                        <text x="25" y="20" font-size="14">nifi_flow</text>
+                        <!-- input_port -->
+                        <line x1="0" y1="15" x2="-50" y2="15" stroke="gray" />
+                        <use xlink:href="#Diamond" transform="translate(-15, 5)"/>
+                        <!-- nifi_data -->
+                        <line x1="0" y1="30" x2="-50" y2="60" stroke="gray" />
+                        <use xlink:href="#Diamond" transform="translate(-18, 30) rotate(-35)"/>
+                        <!-- flow_path -->
+                        <line x1="55" y1="30" x2="55" y2="60" stroke="gray" />
+                        <use xlink:href="#Diamond" transform="translate(65, 30) rotate(90)"/>
+                        <!-- output_port -->
+                        <line x1="110" y1="15" x2="160" y2="15" stroke="gray" />
+                        <use xlink:href="#Diamond" transform="translate(110, 5)"/>
+                        <!-- nifi_queue -->
+                        <line x1="110" y1="30" x2="160" y2="60" stroke="gray" />
+                        <use xlink:href="#Diamond" transform="translate(115, 20) rotate(35)"/>
+                    </g>
+                    <g transform="translate(0 60)">
+                        <use xlink:href="#Process" />
+                        <text x="10" y="20" font-size="14">nifi_flow_path</text>
+                        <!-- to output_port -->
+                        <use xlink:href="#ArrowD" transform="scale(1, -1) translate(0 -15)"/>
+                        <!-- to queue -->
+                        <use xlink:href="#Arrow" />
+                    </g>
+                </g>
+                <g transform="translate(320 0)">
+                    <g>
+                        <use xlink:href="#DataSet" />
+                        <text x="5" y="20" font-size="14">nifi_output_port</text>
+                    </g>
+                    <g transform="translate(0 60)">
+                        <use xlink:href="#DataSet" />
+                        <text x="20" y="20" font-size="14">nifi_queue</text>
+                        <!-- back to flow_path -->
+                        <polyline points="55,30 55,50, -105,50 -105,30" fill="none" stroke="#b23f25" stroke-width="2" />
+                        <use xlink:href="#Triangle" transform="translate(-110 30)"/>
+                    </g>
+                    <g transform="translate(0 120)">
+                        <use xlink:href="#DataSet" />
+                        <text x="10" y="20" font-size="14">Other DataSet</text>
+                        <use xlink:href="#ArrowD" transform="translate(110 30) scale(-1, -1)"/>
+                    </g>
+                </g>
+            </g>
+        </svg>
+
+        <ul>
+            <li>nifi_flow:
+                <p>Represents a NiFI data flow. As shown in the above diagram, nifi_flow owns other nifi_component types.
+                This owning relationship is defined using Atlas 'owned' constraint.</p>
+                <p>When a NiFi data flow is updated and this reporting task runs, the task analyzes and traverse the entire flow again.
+                    Although removed nifi_componet entities will automatically be deleted from Atlas,
+                    those entities can still be seen in Atlas search result or lineage graph since Atlas uses 'Soft Delete' by default.
+                    See <a href="#delete-handler">Atlas Delete Handler</a> for further detail.</p>
+            </li>
+            <ul>
+                <li>qualifiedName: ID of the root Process Group.</li>
+                <li>name: Name of root the Process Group.</li>
+                <li>url: URL of this NiFi. This can be specified via reporting task property.</li>
+            </ul>
+        </ul>
+        <ul>
+            <li>nifi_flow_path: <p>Part of a NiFi data flow. This reporting task divide a NiFi flow into multiple flow paths. See <a href="#path-separation">Path Separation Logic</a> for details..</p></li>
+            <ul>
+                <li>qualifiedName: ID of the first Processor in the path.</li>
+                <li>name: "p" + pathIndex. Where pathIndex denotes index of the path within a flow, starting from 0 (zero).</li>
+            </ul>
+        </ul>
+        <ul>
+            <li>nifi_input/output_port: <p>Represents a root group Port which can be accessed as RemoteProcessGroup via Site-to-Site protocol.</p></li>
+            <ul>
+                <li>qualifiedName: ID of the Port.</li>
+                <li>name: Name of the Port.</li>
+            </ul>
+        </ul>
+        <ul>
+            <li>nifi_datat: <p>Represents a DataSet which is ingessted by an 'Obscure Ingress Processor'.</p></li>
+            <ul>
+                <li>qualifiedName: ID of the obscure ingress Processor.</li>
+                <li>name: Name of the Processor.</li>
+            </ul>
+        </ul>
+        <ul>
+            <li>nifi_queue: <p>A special DataSet which is only be used between nifi_flow_paths,
+                representing a NiFi connection in between Processors.</p></li>
+            <ul>
+                <li>qualifiedName: ID of the first Processor in the destination nifi_flow_path.</li>
+                <li>name: Name of the Processor.</li>
+            </ul>
+        </ul>
+
+        <h4 id="path-separation">Path Separation Logic</h4>
+
+        <p>To provide a meaningful lineage granularity in Atlas, this reporting task divide a NiFi flow into paths.
+        The logic has following concepts:</p>
+
+        <ul>
+            <li>
+                <p>Focuses only on Processors. Input / Output ports, Process Groups or Funnels do not contribute path
+                    separation.</p>
+                <p>For example, following two flows are identical in path separation logic:</p>
+                <ul>
+                    <li>
+                        <pre>Input port -> Processor 0 -> Funnel -> Processor 1
+-> Input port of a child Process Group -> Processor 2</pre>
+                    </li>
+                    <li>
+                        <pre>Processor 0 -> Processor 1 -> Processor 2</pre>
+                    </li>
+                </ul>
+                <p>Both flows will be treated as a single path that consists of Processor 0, 1 and 2.</p>
+            </li>
+            <li>
+                <p>Any Processor with multiple incoming relationship from other Processors is treated like a 'Common
+                    route' or 'Functional route', and is managed as a separate path.</p>
+                <p>For example, following flow:</p>
+                <pre>Processor 0 -> Processor 1 -> a Process Group -> Processor 2
+Processor 3 -> the same Process Group -> Processor2</pre>
+                <p>Will produce following paths as result:</p>
+                <pre>Path 0: Processor 0, 1
+Path 1: Processor 2
+Path 2: Processor 3</pre>
+
+            </li>
+            <li><p>Self cyclic relationships are ignored.</p></li>
+        </ul>
+
+        <p>Based on these concepts, path separation is done by following steps:</p>
+
+        <ol>
+            <li>Select starting Processors without any input relationship from other Processors.</li>
+            <li>Create a 'nifi_flow_path' using the starting Processor. The same path may already exist if other path arrived here before.</li>
+            <li>From a starting Processor, traverse outgoing relationships.</li>
+            <li>If it encounters any Processor with more than 1 incoming Processor relationships, then split the Processor as new starting Processor.</li>
+            <li>When starting as a new path, a 'nifi-queue' is created. The queue is put to current path outputs, and new path inputs. Back to step 2.</li>
+            <li>Traverse outgoing paths as long as there is one.</li>
+        </ol>
+
+
+        <h4 id="run-in-cluster">How it runs in NiFi cluster</h4>
+
+        When this reporting task runs in NiFi cluster, each node schedules and executes the reporting task,
+        but only the one running on the primary node performs data flow analysis and reports to Atlas.
+
+        <h3 id="limitations">Limitations</h3>
+
+        <ul>
+            <li>
+                <em>Requires Atlas 0.8 incubating or later</em>:
+                <p>This reporting task requires Atlas REST API version 2, which is introduced at Atlas 0.8-incubating.
+                    Older versions of Atlas are not supported.</p>
+            </li>
+            <li>
+                <em>Limited DataSets and Processors support</em>:
+                <p>In order to report lineage to Atlas, this reporting task must know what a given processor does (Ingress/Egress) with which DataSet.
+                    This can only be possible by understanding defined properties for a Processor
+                    and create an 'Atlas Object Id' for a DataSet which uniquely identifies an entity in Atlas. Atlas Object Id has unique
+                    properties map, and mostly 'qualifiedName' is set in the unique properties map to identify an entity.
+                    The format of a qualifiedName depends on each DataSet.</p>
+                <p>To create this Atlas Object ID, we have to implement Processor-specific code that analyzes configured properties.
+                    See <a href="#datasets-and-processors">Supported DataSets and Processors</a> below for details.</p>
+            </li>
+            <li>
+                <em>Atlas DataSet entities referred from a NiFi flow must be created before reported</em>:
+                <p>This reporting task creates an analyzed NiFi flow entity with referring Atlas Object IDs of DataSet entities in Atlas it interacts with.
+                    Those entities should be created by the DataSet itself or other processes those created the DataSets in real world.</p>
+                <p>For example, if a NiFI flow streams data into a Hive table, the Hive table entity must exists in Atlas
+                    for this reporting task to create lineage properly. The non-existing DataSets are ignored.</p>
+                <p>However, for DataSets having simple schema, such as kafka_topic, this reporting task tries to create missing entity.
+                    Again, since this entity creation logic strongly depends on each DataSet, only few NiFi processors support it.</p>
+            </li>
+            <li>
+                <em>Expression Language (EL) is not supported</em>:
+                <p>This reporting task analyzes NiFi Flow literally and statically, which means
+                    it does not perform any NiFi EL to get a configured value if an EL is present in a Processor property value.
+                    The processors in the supported list below does not report lineage to Atlas if required information is defined using EL.</p>
+            </li>
+        </ul>
+
+        <h3 id="nifi-configs">Required NiFi Configurations</h3>
+
+        <ul>
+            <li>
+                <em>Required security policies</em>:
+                <p>This reporting task uses NiFi REST API to get NiFi flow information.
+                    If a NiFi instance is secured, following security policies should be configured to allow a NiFi instance to read:</p>
+                <ul>
+                    <li>view the user interface: Required to call REST API.</li>
+                    <li>view the component: Required to get flow configurations. Grant read access at the root ProcessGroup
+                        to report an entire flow to Atlas, or configure each ProcessGroup and Processor level.</li>
+                    <li>access the controller: Required to get cluster information.</li>
+                </ul>
+            </li>
+            <li>
+                <em>atlas-application.properties</em>
+                <p>This reporting task uses following atlas-application.properties:</p>
+                <ul>
+                    <li>
+                        <pre>atlas.cluster.name=(Atlas Cluster Name)</pre>
+                        <p>Some DataSet can only be identified with its cluster name, e.g. Hive tables uses 'table.database@cluster' format. A cluster name can be specified here for those processors.</p>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 id="atlas-configs">Required Atlas Configurations</h3>
+
+        <ul>
+            <li id="delete-handler">
+                <em>Delete Handler</em>:
+                <p>Atlas uses 'SoftDeleteHandler' by default. It may not fit well with a flexible lineage like NiFi flow.
+                    For example, a NiFi flow path P1 consumes from Kafka topic 'A' and 'B', then it publishes to topic 'C'.
+                    Then P1 would have inputs 'A' and 'B', and outputs 'C' references when its flow is reported to Atlas.
+                    What will happen if an user removes a ConsumeKafka processor which used to receive messages from 'B'?</p>
+                <p>When this reporting task runs again, it replaces P1 having only 'A' as inputs and output 'C'.
+                    The reference from P1 to Kafka topic 'B' is removed in Atlas, but it was performed as a 'Soft Delete'.
+                    Deleted relationships are marked as deleted, but sto;; appear in Atlas lineage Graph.</p>
+                <p>Soft delete model is useful if you would like to capture every lineage ever defined,
+                    but would not be if you prefer seeing current state of a NiFi flow.</p>
+                <p>To change this behavior, set following in 'atlas-application.properties' on Atlas server, then restart Atlas.
+                    HardDeleteHandlerV1 physically removes lineage, so P1 to B lineage will be deleted in previous example:</p>
+                <pre>atlas.DeleteHandlerV1.impl=org.apache.atlas.repository.store.graph.v1.HardDeleteHandlerV1</pre>
+
+            </li>
+        </ul>
+
+
+        <h3 id="datasets-and-processors">Supported DataSets and Processors</h3>
+
+        <p>This ReportingTask supports following DataSets and Processors:</p>
+        <ul>
+            <li>Kafka<ul>
+                    <li>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka</li>
+                    <li>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_0_10</li>
+                    <li>org.apache.nifi.processors.kafka.pubsub.PublishKafka</li>
+                    <li>org.apache.nifi.processors.kafka.pubsub.PublishKafka_0_10</li>
+                </ul>
+            </li>
+            <li>Hive<ul>
+                    <li>org.apache.nifi.processors.hive.PutHiveStreaming</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>Obscure Ingress Processor</h4>
+
+        <p>Even if a processor does not have a specific Ingress implementation, if it does not have any input relationship, then it will be treated as an 'Obscure Ingress Processor'.
+            For such processor, a 'nifi_data' entity is created and put into the inputs of the nifi flow path that the processor belongs to.</p>
+
+    </body>
+</html>
