@@ -74,7 +74,7 @@ public class DeleteRowsWriter extends AbstractBinlogTableEventWriter<DeleteRowsE
             Integer columnType = null;
             if (columnDefinition != null) {
                 jsonGenerator.writeStringField("name", columnDefinition.getName());
-                columnType = (int) columnDefinition.getType();
+                columnType = columnDefinition.getType();
                 jsonGenerator.writeNumberField("column_type", columnType);
             }
             if (row[i] == null) {

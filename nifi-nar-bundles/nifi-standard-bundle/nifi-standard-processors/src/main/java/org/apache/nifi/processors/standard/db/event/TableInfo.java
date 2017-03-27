@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.db.event;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 
@@ -73,12 +74,14 @@ public class TableInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TableInfo tableInfo = (TableInfo) o;
+        TableInfo that = (TableInfo) o;
 
-        if (!databaseName.equals(tableInfo.databaseName)) return false;
-        if (!tableName.equals(tableInfo.tableName)) return false;
-        if (!tableId.equals(tableInfo.tableId)) return false;
-        return columns != null ? columns.equals(tableInfo.columns) : tableInfo.columns == null;
+        return new EqualsBuilder()
+                .append(databaseName, that.databaseName)
+                .append(tableName, that.tableName)
+                .append(tableId, that.tableId)
+                .append(columns, that.columns)
+                .isEquals();
     }
 
     @Override
@@ -134,7 +137,13 @@ public class TableInfo {
             List<ColumnDefinition> columnDefinitions = new ArrayList<>();
             for (int i = 0; i < numTokens - 3; i += 2) {
                 try {
-                    columnDefinitions.add(new ColumnDefinition(Byte.parseByte(tokens[i + 4]), tokens[i + 3]));
+                    int columnTypeIndex = i + 4;
+                    int columnNameIndex = i + 3;
+                    if (columnTypeIndex < numTokens) {
+                        columnDefinitions.add(new ColumnDefinition(Integer.parseInt(tokens[columnTypeIndex]), tokens[columnNameIndex]));
+                    } else {
+                        throw new IOException("No type detected for column: " + tokens[columnNameIndex]);
+                    }
                 } catch (NumberFormatException nfe) {
                     throw new IOException("Illegal column type value for column " + (i / 2 + 1) + ": " + tokens[i + 4]);
                 }

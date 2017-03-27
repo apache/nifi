@@ -16,29 +16,30 @@
  */
 package org.apache.nifi.processors.standard.db.event;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+
 /**
  * A class that specifies a definition for a relational table column, including type, name, etc.
  */
 public class ColumnDefinition {
 
-    private byte type;
+    private int type;
     private String name = "";
 
-    public ColumnDefinition(byte type) {
+    public ColumnDefinition(int type) {
         this.type = type;
     }
 
-    public ColumnDefinition(byte type, String name) {
+    public ColumnDefinition(int type, String name) {
         this(type);
         this.name = name;
     }
 
-    public byte getType() {
-
+    public int getType() {
         return type;
     }
 
-    public void setType(byte type) {
+    public void setType(int type) {
         this.type = type;
     }
 
@@ -57,14 +58,16 @@ public class ColumnDefinition {
 
         ColumnDefinition that = (ColumnDefinition) o;
 
-        if (type != that.type) return false;
-        return name.equals(that.name);
+        return new EqualsBuilder()
+                .append(type, that.type)
+                .append(name, that.name)
+                .isEquals();
     }
 
     @Override
     public int hashCode() {
-        int result = (int) type;
-        result = 31 * result + name.hashCode();
+        int result = type;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
     }
 }

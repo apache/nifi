@@ -289,6 +289,8 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
 
     private volatile ProcessSession currentSession;
     private BinaryLogClient binlogClient;
+    private BinlogEventListener eventListener;
+
     private volatile LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
@@ -342,6 +344,8 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
         pds.add(DIST_CACHE_CLIENT);
         pds.add(RETRIEVE_ALL_RECORDS);
         pds.add(INIT_SEQUENCE_ID);
+        pds.add(INIT_BINLOG_FILENAME);
+        pds.add(INIT_BINLOG_POSITION);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -441,6 +445,11 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
+            // BinaryLogClient expects a non-null password, so set it to the empty string if it is not provided
+            if (password == null) {
+                password = "";
+            }
+
             long connectTimeout = context.getProperty(GetChangeDataCaptureMySQL.CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
             String driverLocation = context.getProperty(DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
@@ -467,9 +476,10 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
         }
 
         ComponentLog log = getLogger();
+        StateManager stateManager = context.getStateManager();
 
         try {
-            outputEvents(currentSession, log);
+            outputEvents(currentSession, stateManager, log);
         } catch (IOException ioe) {
             try {
                 // Perform some processor-level "rollback"
@@ -477,7 +487,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
                 currentBinlogPosition = xactBinlogPosition;
                 currentSequenceId.set(xactSequenceId);
                 inTransaction = false;
-                stop(context.getStateManager());
+                stop(stateManager);
                 queue.clear();
             } catch (Exception e) {
                 // Not much we can recover from here
@@ -526,7 +536,6 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
         InetSocketAddress connectedHost = null;
-        ComponentLog log = getLogger();
 
         while (connectedHost == null && connectionAttempts < numHosts) {
             if (binlogClient == null) {
@@ -535,9 +544,11 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
                 binlogClient = createBinlogClient(connectedHost.getHostString(), connectedHost.getPort(), username, password);
             }
 
-            BinlogEventListener eventListener = createBinlogEventListener(binlogClient, queue);
+            if (eventListener == null) {
+                eventListener = createBinlogEventListener(binlogClient, queue);
+            }
+            eventListener.start();
             binlogClient.registerEventListener(eventListener);
-
             binlogClient.setBinlogFilename(currentBinlogFile);
             binlogClient.setBinlogPosition(currentBinlogPosition);
 
@@ -570,17 +581,22 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
     }
 
 
-    public void outputEvents(ProcessSession session, ComponentLog log) throws IOException {
+    public void outputEvents(ProcessSession session, StateManager stateManager, ComponentLog log) throws IOException {
         RawBinlogEvent rawBinlogEvent;
 
         // Drain the queue
-        ;
         while ((rawBinlogEvent = queue.poll()) != null && !doStop.get()) {
             Event event = rawBinlogEvent.getEvent();
             EventHeaderV4 header = event.getHeader();
             long timestamp = header.getTimestamp();
-            currentBinlogPosition = header.getPosition();
             EventType eventType = header.getEventType();
+            // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume at the event about to be processed.
+            // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
+            // advance the position if it is not that type of event. ROTATE events don't generate output CDC events and have the current binlog position in a special field, which
+            // is filled in during the ROTATE case
+            if (eventType != EventType.ROTATE && eventType != EventType.FORMAT_DESCRIPTION) {
+                currentBinlogPosition = header.getPosition();
+            }
             log.debug("Got message event type: {} ", new Object[]{header.getEventType().toString()});
             switch (eventType) {
                 case TABLE_MAP:
@@ -598,8 +614,13 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
 
                             if (currentTable == null) {
                                 // We don't have an entry for this table yet, so fetch the info from the database and populate the cache
-                                currentTable = loadTableInfo(key);
-                                cacheClient.put(key, currentTable, cacheKeySerializer, cacheValueSerializer);
+                                try {
+                                    currentTable = loadTableInfo(key);
+                                    cacheClient.put(key, currentTable, cacheKeySerializer, cacheValueSerializer);
+                                } catch (SQLException se) {
+                                    // Propagate the error up, so things like rollback and logging/bulletins can be handled
+                                    throw new IOException(se.getMessage(), se);
+                                }
                             }
                         }
                     }
@@ -718,14 +739,35 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             }
 
             // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume after the event that was just processed.
-            currentBinlogPosition = header.getNextPosition();
+            // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
+            // advance the position if it is not that type of event.
+            if (eventType != EventType.ROTATE && eventType != EventType.FORMAT_DESCRIPTION) {
+                currentBinlogPosition = header.getNextPosition();
+            }
+
+            // Update state with latest values
+            Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
+
+            // Save current binlog filename and position to the state map
+            if (currentBinlogFile != null) {
+                newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, currentBinlogFile);
+            }
+            newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(currentBinlogPosition));
+            newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(currentSequenceId.get()));
+            stateManager.setState(newStateMap, Scope.LOCAL);
         }
     }
 
     protected void stop(StateManager stateManager) throws CDCException {
         try {
-            doStop.set(true);
             binlogClient.disconnect();
+            if (eventListener != null) {
+                eventListener.stop();
+                binlogClient.unregisterEventListener(eventListener);
+            }
+            doStop.set(true);
+
+            // Update state with latest values
             Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
 
             // Save current binlog filename and position to the state map
@@ -766,26 +808,22 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
      * @param key A TableInfoCacheKey reference, which contains the database and table names
      * @return A TableInfo instance with the ColumnDefinitions provided (if retrieved successfully from the database)
      */
-    protected TableInfo loadTableInfo(TableInfoCacheKey key) {
+    protected TableInfo loadTableInfo(TableInfoCacheKey key) throws SQLException {
         TableInfo tableInfo = null;
         if (jdbcConnection != null) {
-            try {
-                try (Statement s = jdbcConnection.createStatement()) {
-                    s.execute("USE " + key.getDatabaseName());
-                    ResultSet rs = s.executeQuery("SELECT * FROM " + key.getTableName());
-                    ResultSetMetaData rsmd = rs.getMetaData();
-                    int numCols = rsmd.getColumnCount();
-                    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-                    for (int i = 1; i <= numCols; i++) {
-                        // Use the column label if it exists, otherwise use the column name. We're not doing aliasing here, but it's better practice.
-                        String columnLabel = rsmd.getColumnLabel(i);
-                        columnDefinitions.add(new ColumnDefinition((byte) rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)));
-                    }
-
-                    tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(), columnDefinitions);
+            try (Statement s = jdbcConnection.createStatement()) {
+                s.execute("USE " + key.getDatabaseName());
+                ResultSet rs = s.executeQuery("SELECT * FROM " + key.getTableName());
+                ResultSetMetaData rsmd = rs.getMetaData();
+                int numCols = rsmd.getColumnCount();
+                List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+                for (int i = 1; i <= numCols; i++) {
+                    // Use the column label if it exists, otherwise use the column name. We're not doing aliasing here, but it's better practice.
+                    String columnLabel = rsmd.getColumnLabel(i);
+                    columnDefinitions.add(new ColumnDefinition(rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)));
                 }
-            } catch (SQLException e) {
 
+                tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(), columnDefinitions);
             }
         }
 

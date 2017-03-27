@@ -24,7 +24,7 @@ import org.apache.nifi.processors.standard.db.impl.mysql.event.BinlogTableEventI
 import java.io.IOException;
 
 /**
- * An abstract base class for writing MYSQL binlog events into flow file(s), e.g.
+ * An abstract base class for writing MYSQL table-related binlog events into flow file(s), e.g.
  */
 public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventInfo> extends AbstractBinlogEventWriter<T> {
 
@@ -47,13 +47,12 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
         }
     }
 
-    // Default implementation for binlog events
+    // Default implementation for table-related binlog events
     @Override
     public long writeEvent(ProcessSession session, T eventInfo, long currentSequenceId) {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, (outputStream) -> {
             super.startJson(outputStream, eventInfo);
-            super.writeJson(eventInfo);
             writeJson(eventInfo);
             // Nothing in the body
             super.endJson();

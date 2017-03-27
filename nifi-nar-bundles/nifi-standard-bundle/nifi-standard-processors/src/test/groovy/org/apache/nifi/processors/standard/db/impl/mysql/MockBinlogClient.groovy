@@ -32,10 +32,6 @@ class MockBinlogClient extends BinaryLogClient {
     String password
 
     boolean connected
-
-    String binlogFilename
-    long binlogPosition
-
     boolean connectionTimeout = false
     boolean connectionError = false
 
@@ -58,6 +54,9 @@ class MockBinlogClient extends BinaryLogClient {
         }
         if (connectionError) {
             throw new IOException('Error during connect')
+        }
+        if (password == null) {
+            throw new NullPointerException('''Password can't be null''')
         }
         connected = true
     }

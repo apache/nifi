@@ -39,6 +39,10 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
         this.queue = q;
     }
 
+    public void start() {
+        stopNow.set(false);
+    }
+
     public void stop() {
         stopNow.set(true);
     }

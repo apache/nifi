@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.db.event;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 
 import java.io.IOException;
@@ -47,10 +48,12 @@ public class TableInfoCacheKey {
 
         TableInfoCacheKey that = (TableInfoCacheKey) o;
 
-        if (tableId != that.tableId) return false;
-        if (databaseName != null ? !databaseName.equals(that.databaseName) : that.databaseName != null) return false;
-        if (tableName != null ? !tableName.equals(that.tableName) : that.tableName != null) return false;
-        return uuidPrefix != null ? uuidPrefix.equals(that.uuidPrefix) : that.uuidPrefix == null;
+        return new EqualsBuilder()
+                .append(tableId, that.tableId)
+                .append(databaseName, that.databaseName)
+                .append(tableName, that.tableName)
+                .append(uuidPrefix, that.uuidPrefix)
+                .isEquals();
     }
 
     @Override

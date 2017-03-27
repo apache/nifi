@@ -92,7 +92,6 @@ class GetChangeDataCaptureMySQLTest {
         testRunner.setProperty(GetChangeDataCaptureMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
         testRunner.setProperty(GetChangeDataCaptureMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(GetChangeDataCaptureMySQL.USERNAME, 'root')
-        testRunner.setProperty(GetChangeDataCaptureMySQL.PASSWORD, 'password')
         testRunner.setProperty(GetChangeDataCaptureMySQL.CONNECT_TIMEOUT, '2 seconds')
 
         testRunner.run(1, false, true)
@@ -350,7 +349,6 @@ class GetChangeDataCaptureMySQLTest {
                 + 'begin' + 'schema_change' + Collections.nCopies(2, 'delete') + 'commit')
 
         resultFiles.eachWithIndex { e, i ->
-            println "[$i - ${e.getAttribute(EventWriter.SEQUENCE_ID_KEY)}]: ${new String(e.toByteArray())}"
             assertEquals(i, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
             assertEquals(EventWriter.APPLICATION_JSON, e.getAttribute(CoreAttributes.MIME_TYPE.key()))
             assertEquals((i < 8) ? 'master.000001' : 'master.000002', e.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY))
@@ -533,6 +531,12 @@ class GetChangeDataCaptureMySQLTest {
         // Run and Stop the processor
         testRunner.run(1, true, false)
 
+        def resultFiles = testRunner.getFlowFilesForRelationship(GetChangeDataCaptureMySQL.REL_SUCCESS)
+        assertEquals(1, resultFiles.size())
+
+        // Re-initialize the processor so it can receive events
+        testRunner.run(1, false, true)
+
         // This WRITE ROWS should be skipped
         def cols = new BitSet()
         cols.set(1)
@@ -549,12 +553,13 @@ class GetChangeDataCaptureMySQLTest {
         ))
 
         // Run and Stop the processor
-        testRunner.run(1, true, true)
+        testRunner.run(1, true, false)
 
 
-        def resultFiles = testRunner.getFlowFilesForRelationship(GetChangeDataCaptureMySQL.REL_SUCCESS)
+        resultFiles = testRunner.getFlowFilesForRelationship(GetChangeDataCaptureMySQL.REL_SUCCESS)
         assertEquals(3, resultFiles.size())
     }
+
 
     /********************************
      * Mock and helper classes below
