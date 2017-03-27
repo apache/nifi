@@ -14,7 +14,8 @@
 -->
 # Apache NiFi [![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
 
-Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
+[Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and 
+reliable system to process and distribute data.
 
 ## Table of Contents
 
@@ -24,7 +25,7 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 - [Getting Help](#getting-help)
 - [Documentation](#documentation)
 - [License](#license)
-- [Export Control] (#export-control)
+- [Export Control](#export-control)
 
 ## Features
 
