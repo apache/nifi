@@ -366,7 +366,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     xmlStreamWriter.writeCharacters(", ");
                 }
                 xmlStreamWriter.writeCharacters("whether a property supports the ");
-                writeLink(xmlStreamWriter, "NiFi Expression Language", "../../html/expression-language-guide.html");
+                writeLink(xmlStreamWriter, "NiFi Expression Language", "/nifi-docs/html/expression-language-guide.html");
             }
             if (containsSensitiveProperties) {
                 xmlStreamWriter.writeCharacters(", and whether a property is considered " + "\"sensitive\", meaning that its value will be encrypted. Before entering a "
@@ -524,7 +524,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             throws XMLStreamException {
         xmlStreamWriter.writeCharacters(" ");
         xmlStreamWriter.writeStartElement("img");
-        xmlStreamWriter.writeAttribute("src", "../../html/images/iconInfo.png");
+        xmlStreamWriter.writeAttribute("src", "/nifi-docs/html/images/iconInfo.png");
         xmlStreamWriter.writeAttribute("alt", description);
         xmlStreamWriter.writeAttribute("title", description);
         xmlStreamWriter.writeEndElement();
