@@ -608,7 +608,18 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final long nanos = System.nanoTime() - startNanos;
         clusterResponse.addTiming("Perform HTTP Request", nodeId.toString(), nanos);
-        return new NodeResponse(nodeId, method, uri, clientResponse, nanos, requestId);
+        final NodeResponse nodeResponse = new NodeResponse(nodeId, method, uri, clientResponse, System.nanoTime() - startNanos, requestId);
+        if (nodeResponse.is2xx()) {
+            final int length = nodeResponse.getClientResponse().getLength();
+            if (length > 0) {
+                final boolean canBufferResponse = clusterResponse.requestBuffer(length);
+                if (canBufferResponse) {
+                    nodeResponse.bufferResponse();
+                }
+            }
+        }
+
+        return nodeResponse;
     }
 
     private boolean isMutableRequest(final String method, final String uriPath) {

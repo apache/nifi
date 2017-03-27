@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private static final Logger logger = LoggerFactory.getLogger(StandardAsyncClusterResponse.class);
+    private static final int DEFAULT_RESPONSE_BUFFER_SIZE = 1024 * 1024;
 
     public static final String VERIFICATION_PHASE = "Verification Phase";
     public static final String COMMIT_PHASE = "Execution Phase";
@@ -50,6 +51,7 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private final Runnable completedResultFetchedCallback;
     private final long creationTimeNanos;
     private final boolean merge;
+    private final AtomicInteger responseBufferLeft;
 
     private final Map<NodeIdentifier, ResponseHolder> responseMap = new HashMap<>();
     private final AtomicInteger requestsCompleted = new AtomicInteger(0);
@@ -64,6 +66,11 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
 
     public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds, final HttpResponseMapper responseMapper,
         final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
+        this(id, uri, method, nodeIds, responseMapper, completionCallback, completedResultFetchedCallback, merge, DEFAULT_RESPONSE_BUFFER_SIZE);
+    }
+
+    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds, final HttpResponseMapper responseMapper,
+        final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge, final int responseBufferSize) {
         this.id = id;
         this.nodeIds = Collections.unmodifiableSet(new HashSet<>(nodeIds));
         this.uri = uri;
@@ -84,6 +91,21 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
         this.responseMapper = responseMapper;
         this.completionCallback = completionCallback;
         this.completedResultFetchedCallback = completedResultFetchedCallback;
+        this.responseBufferLeft = new AtomicInteger(responseBufferSize);
+    }
+
+    public boolean requestBuffer(final int size) {
+        boolean updated = false;
+        while (!updated) {
+            final int bytesLeft = responseBufferLeft.get();
+            if (bytesLeft < size) {
+                return false;
+            }
+
+            updated = responseBufferLeft.compareAndSet(bytesLeft, bytesLeft - size);
+        }
+
+        return true;
     }
 
     public void setPhase(final String phase) {

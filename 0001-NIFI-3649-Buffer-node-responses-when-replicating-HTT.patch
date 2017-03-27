@@ -1,0 +1,347 @@
+From f52b5daed02c8da080850e5a63dd7550ed06f855 Mon Sep 17 00:00:00 2001
+From: Mark Payne <markap14@hotmail.com>
+Date: Mon, 27 Mar 2017 10:59:43 -0400
+Subject: [PATCH] NIFI-3649: Buffer node responses when replicating HTTP
+ Requests up to a maximum buffer size
+
+---
+ .../replication/StandardAsyncClusterResponse.java  | 26 ++++++++++++++--
+ .../replication/ThreadPoolRequestReplicator.java   | 30 ++++++++++++++-----
+ .../apache/nifi/cluster/manager/NodeResponse.java  | 35 +++++++++++++++-------
+ .../TestThreadPoolRequestReplicator.java           |  6 ++--
+ .../org/apache/nifi/cluster/integration/Node.java  |  5 ++++
+ .../org.apache.nifi.components.state.StateProvider | 15 ++++++++++
+ 6 files changed, 93 insertions(+), 24 deletions(-)
+ create mode 100644 nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/resources/META-INF/services/org.apache.nifi.components.state.StateProvider
+
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/StandardAsyncClusterResponse.java b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/StandardAsyncClusterResponse.java
+index 318b1a0..8d4cd0b 100644
+--- a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/StandardAsyncClusterResponse.java
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/StandardAsyncClusterResponse.java
+@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
+ 
+ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
+     private static final Logger logger = LoggerFactory.getLogger(StandardAsyncClusterResponse.class);
++    private static final int DEFAULT_RESPONSE_BUFFER_SIZE = 1024 * 1024;
+ 
+     private final String id;
+     private final Set<NodeIdentifier> nodeIds;
+@@ -45,6 +46,7 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
+     private final Runnable completedResultFetchedCallback;
+     private final long creationTimeNanos;
+     private final boolean merge;
++    private final AtomicInteger responseBufferLeft;
+ 
+     private final Map<NodeIdentifier, ResponseHolder> responseMap = new HashMap<>();
+     private final AtomicInteger requestsCompleted = new AtomicInteger(0);
+@@ -52,8 +54,13 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
+     private NodeResponse mergedResponse; // guarded by synchronizing on this
+     private RuntimeException failure; // guarded by synchronizing on this
+ 
+-    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds,
+-                                        final HttpResponseMapper responseMapper, final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
++    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds, final HttpResponseMapper responseMapper,
++        final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
++        this(id, uri, method, nodeIds, responseMapper, completionCallback, completedResultFetchedCallback, merge, DEFAULT_RESPONSE_BUFFER_SIZE);
++    }
++
++    public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds, final HttpResponseMapper responseMapper,
++        final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge, final int responseBufferSize) {
+         this.id = id;
+         this.nodeIds = Collections.unmodifiableSet(new HashSet<>(nodeIds));
+         this.uri = uri;
+@@ -68,6 +75,21 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
+         this.responseMapper = responseMapper;
+         this.completionCallback = completionCallback;
+         this.completedResultFetchedCallback = completedResultFetchedCallback;
++        this.responseBufferLeft = new AtomicInteger(responseBufferSize);
++    }
++
++    public boolean requestBuffer(final int size) {
++        boolean updated = false;
++        while (!updated) {
++            final int bytesLeft = responseBufferLeft.get();
++            if (bytesLeft < size) {
++                return false;
++            }
++
++            updated = responseBufferLeft.compareAndSet(bytesLeft, bytesLeft - size);
++        }
++
++        return true;
+     }
+ 
+     @Override
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/ThreadPoolRequestReplicator.java b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/ThreadPoolRequestReplicator.java
+index 3b4470f..48bfa49 100644
+--- a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/ThreadPoolRequestReplicator.java
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/coordination/http/replication/ThreadPoolRequestReplicator.java
+@@ -407,7 +407,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+ 
+             // replicate the request to all nodes
+             final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+-                    nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, nodeCompletionCallback);
++                nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, nodeCompletionCallback, finalResponse);
+             replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
+ 
+             return response;
+@@ -473,7 +473,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+                                     logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
+ 
+                                     final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+-                                            nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, cancelLockHeaders, null);
++                                        nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, cancelLockHeaders, null, clusterResponse);
+ 
+                                     replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, cancelLockHeaders);
+                                 }
+@@ -547,7 +547,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+         };
+ 
+         // Callback function for generating a NodeHttpRequestCallable that can be used to perform the work
+-        final Function<NodeIdentifier, NodeHttpRequest> requestFactory = nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, validationHeaders, completionCallback);
++        final Function<NodeIdentifier, NodeHttpRequest> requestFactory = nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, validationHeaders, completionCallback,
++            clusterResponse);
+ 
+         // replicate the 'verification request' to all nodes
+         replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, validationHeaders);
+@@ -566,7 +567,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+ 
+     // Visible for testing - overriding this method makes it easy to verify behavior without actually making any web requests
+     protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId,
+-                                            final Map<String, String> headers) {
++        final Map<String, String> headers, final StandardAsyncClusterResponse clusterResponse) {
+         final ClientResponse clientResponse;
+         final long startNanos = System.nanoTime();
+         logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", method, uri, requestId, headers);
+@@ -594,7 +595,18 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+                 throw new IllegalArgumentException("HTTP Method '" + method + "' not supported for request replication.");
+         }
+ 
+-        return new NodeResponse(nodeId, method, uri, clientResponse, System.nanoTime() - startNanos, requestId);
++        final NodeResponse nodeResponse = new NodeResponse(nodeId, method, uri, clientResponse, System.nanoTime() - startNanos, requestId);
++        if (nodeResponse.is2xx()) {
++            final int length = nodeResponse.getClientResponse().getLength();
++            if (length > 0) {
++                final boolean canBufferResponse = clusterResponse.requestBuffer(length);
++                if (canBufferResponse) {
++                    nodeResponse.bufferResponse();
++                }
++            }
++        }
++
++        return nodeResponse;
+     }
+ 
+     private boolean isMutableRequest(final String method, final String uriPath) {
+@@ -746,15 +758,17 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+         private final Object entity;
+         private final Map<String, String> headers = new HashMap<>();
+         private final NodeRequestCompletionCallback callback;
++        private final StandardAsyncClusterResponse clusterResponse;
+ 
+-        private NodeHttpRequest(final NodeIdentifier nodeId, final String method,
+-                                final URI uri, final Object entity, final Map<String, String> headers, final NodeRequestCompletionCallback callback) {
++        private NodeHttpRequest(final NodeIdentifier nodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers,
++            final NodeRequestCompletionCallback callback, final StandardAsyncClusterResponse clusterResponse) {
+             this.nodeId = nodeId;
+             this.method = method;
+             this.uri = uri;
+             this.entity = entity;
+             this.headers.putAll(headers);
+             this.callback = callback;
++            this.clusterResponse = clusterResponse;
+         }
+ 
+ 
+@@ -768,7 +782,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
+                 final String requestId = headers.get("x-nifi-request-id");
+ 
+                 logger.debug("Replicating request {} {} to {}", method, uri.getPath(), nodeId);
+-                nodeResponse = replicateRequest(resourceBuilder, nodeId, method, uri, requestId, headers);
++                nodeResponse = replicateRequest(resourceBuilder, nodeId, method, uri, requestId, headers, clusterResponse);
+             } catch (final Exception e) {
+                 nodeResponse = new NodeResponse(nodeId, method, uri, e);
+                 logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, e);
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/manager/NodeResponse.java b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/manager/NodeResponse.java
+index 308652e..7c911b8 100644
+--- a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/manager/NodeResponse.java
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/main/java/org/apache/nifi/cluster/manager/NodeResponse.java
+@@ -16,8 +16,9 @@
+  */
+ package org.apache.nifi.cluster.manager;
+ 
+-import java.io.BufferedInputStream;
++import java.io.ByteArrayInputStream;
+ import java.io.IOException;
++import java.io.InputStream;
+ import java.io.OutputStream;
+ import java.net.URI;
+ import java.util.List;
+@@ -34,6 +35,7 @@ import javax.ws.rs.core.StreamingOutput;
+ import org.apache.commons.io.IOUtils;
+ import org.apache.commons.lang3.StringUtils;
+ import org.apache.nifi.cluster.protocol.NodeIdentifier;
++import org.apache.nifi.stream.io.StreamUtils;
+ import org.apache.nifi.web.api.entity.Entity;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -59,11 +61,12 @@ public class NodeResponse {
+     private final URI requestUri;
+     private final ClientResponse clientResponse;
+     private final NodeIdentifier nodeId;
+-    private final Throwable throwable;
++    private Throwable throwable;
+     private boolean hasCreatedResponse = false;
+     private final Entity updatedEntity;
+     private final long requestDurationNanos;
+     private final String requestId;
++    private byte[] bufferedResponse;
+ 
+     public NodeResponse(final NodeIdentifier nodeId, final String httpMethod, final URI requestUri, final ClientResponse clientResponse, final long requestDurationNanos, final String requestId) {
+         if (nodeId == null) {
+@@ -158,6 +161,23 @@ public class NodeResponse {
+         return (500 <= statusCode && statusCode <= 599);
+     }
+ 
++    public synchronized void bufferResponse() {
++        bufferedResponse = new byte[clientResponse.getLength()];
++        try {
++            StreamUtils.fillBuffer(clientResponse.getEntityInputStream(), bufferedResponse);
++        } catch (final IOException e) {
++            this.throwable = e;
++        }
++    }
++
++    private synchronized InputStream getInputStream() {
++        if (bufferedResponse == null) {
++            return clientResponse.getEntityInputStream();
++        }
++
++        return new ByteArrayInputStream(bufferedResponse);
++    }
++
+     public ClientResponse getClientResponse() {
+         return clientResponse;
+     }
+@@ -229,7 +249,6 @@ public class NodeResponse {
+         for (final String key : clientResponse.getHeaders().keySet()) {
+             final List<String> values = clientResponse.getHeaders().get(key);
+             for (final String value : values) {
+-
+                 if (key.equalsIgnoreCase("transfer-encoding") || key.equalsIgnoreCase("content-length")) {
+                     /*
+                      * do not copy the transfer-encoding header (i.e., chunked encoding) or
+@@ -244,25 +263,19 @@ public class NodeResponse {
+                      */
+                     continue;
+                 }
++
+                 responseBuilder.header(key, value);
+             }
+         }
+ 
+         // head requests must not have a message-body in the response
+         if (!HttpMethod.HEAD.equalsIgnoreCase(httpMethod)) {
+-
+             // set the entity
+             if (updatedEntity == null) {
+                 responseBuilder.entity(new StreamingOutput() {
+                     @Override
+                     public void write(final OutputStream output) throws IOException, WebApplicationException {
+-                        BufferedInputStream bis = null;
+-                        try {
+-                            bis = new BufferedInputStream(clientResponse.getEntityInputStream());
+-                            IOUtils.copy(bis, output);
+-                        } finally {
+-                            IOUtils.closeQuietly(bis);
+-                        }
++                        IOUtils.copy(getInputStream(), output);
+                     }
+                 });
+             } else {
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/coordination/http/replication/TestThreadPoolRequestReplicator.java b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/coordination/http/replication/TestThreadPoolRequestReplicator.java
+index 88a8836..3369cd8 100644
+--- a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/coordination/http/replication/TestThreadPoolRequestReplicator.java
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/coordination/http/replication/TestThreadPoolRequestReplicator.java
+@@ -234,7 +234,7 @@ public class TestThreadPoolRequestReplicator {
+                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+             @Override
+             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
++                    final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse clusterResponse) {
+                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
+                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
+                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
+@@ -364,7 +364,7 @@ public class TestThreadPoolRequestReplicator {
+                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+             @Override
+             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
++                    final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse clusterResponse) {
+                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
+                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
+                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
+@@ -574,7 +574,7 @@ public class TestThreadPoolRequestReplicator {
+         final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, nifiProps) {
+             @Override
+             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+-                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
++                final URI uri, final String requestId, Map<String, String> givenHeaders, final StandardAsyncClusterResponse clusterResponse) {
+                 if (delayMillis > 0L) {
+                     try {
+                         Thread.sleep(delayMillis);
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/integration/Node.java b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/integration/Node.java
+index 7c74680..20dbfe1 100644
+--- a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/integration/Node.java
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/java/org/apache/nifi/cluster/integration/Node.java
+@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
+ 
+ import org.apache.commons.lang3.builder.HashCodeBuilder;
+ import org.apache.nifi.authorization.Authorizer;
++import org.apache.nifi.bundle.Bundle;
+ import org.apache.nifi.cluster.ReportedEvent;
+ import org.apache.nifi.cluster.coordination.flow.FlowElection;
+ import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
+@@ -62,6 +63,7 @@ import org.apache.nifi.engine.FlowEngine;
+ import org.apache.nifi.events.EventReporter;
+ import org.apache.nifi.io.socket.ServerSocketConfiguration;
+ import org.apache.nifi.io.socket.SocketConfiguration;
++import org.apache.nifi.nar.ExtensionManager;
+ import org.apache.nifi.registry.VariableRegistry;
+ import org.apache.nifi.reporting.BulletinRepository;
+ import org.apache.nifi.reporting.Severity;
+@@ -118,6 +120,9 @@ public class Node {
+             }
+         };
+ 
++        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
++        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
++
+         revisionManager = Mockito.mock(RevisionManager.class);
+         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+ 
+diff --git a/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/resources/META-INF/services/org.apache.nifi.components.state.StateProvider b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/resources/META-INF/services/org.apache.nifi.components.state.StateProvider
+new file mode 100644
+index 0000000..49a02cd
+--- /dev/null
++++ b/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-cluster/src/test/resources/META-INF/services/org.apache.nifi.components.state.StateProvider
+@@ -0,0 +1,15 @@
++# Licensed to the Apache Software Foundation (ASF) under one or more
++# contributor license agreements.  See the NOTICE file distributed with
++# this work for additional information regarding copyright ownership.
++# The ASF licenses this file to You under the Apache License, Version 2.0
++# (the "License"); you may not use this file except in compliance with
++# the License.  You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++org.apache.nifi.cluster.integration.NopStateProvider
+\ No newline at end of file
+-- 
+2.5.1
+
