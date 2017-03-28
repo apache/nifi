@@ -569,7 +569,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             // perform checkpoint, writing to .partial file
             fileOut = new FileOutputStream(partialPath.toFile());
-            dataOut = new DataOutputStream(fileOut);
+            dataOut = new DataOutputStream(new BufferedOutputStream(fileOut));
             dataOut.writeUTF(MinimalLockingWriteAheadLog.class.getName());
             dataOut.writeInt(getVersion());
             dataOut.writeUTF(serde.getClass().getName());
@@ -590,9 +590,12 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         } finally {
             if (dataOut != null) {
                 try {
-                    dataOut.flush();
-                    fileOut.getFD().sync();
-                    dataOut.close();
+                    try {
+                        dataOut.flush();
+                        fileOut.getFD().sync();
+                    } finally {
+                        dataOut.close();
+                    }
                 } catch (final IOException e) {
                     logger.warn("Failed to close Data Stream due to {}", e.toString(), e);
                 }
