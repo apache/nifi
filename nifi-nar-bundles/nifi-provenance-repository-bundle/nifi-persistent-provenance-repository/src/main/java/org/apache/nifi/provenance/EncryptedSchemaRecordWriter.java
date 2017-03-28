@@ -66,12 +66,14 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
     public EncryptedSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
-                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider, ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
+                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
       this(file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup, keyProvider, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
     }
 
     public EncryptedSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
-                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider, ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
+                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
         super(file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup);
         this.keyProvider = keyProvider;
         this.provenanceEventEncryptor = provenanceEventEncryptor;
@@ -200,7 +202,8 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
             System.arraycopy(ivAndCipherBytes, 0, sentinelAndAllBytes, 1, ivAndCipherBytes.length);
 
             return sentinelAndAllBytes;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException
+                | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);
         }

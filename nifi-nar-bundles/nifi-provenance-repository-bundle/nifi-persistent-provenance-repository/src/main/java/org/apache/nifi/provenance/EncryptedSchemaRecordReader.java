@@ -25,6 +25,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -40,6 +41,7 @@ import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
@@ -67,11 +69,13 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
-    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider, ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
+    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
         this(inputStream, filename, tocReader, maxAttributeChars, keyProvider, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
     }
 
-    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider, ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
+    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
         super(inputStream, filename, tocReader, maxAttributeChars);
         this.keyProvider = keyProvider;
         this.provenanceEventEncryptor = provenanceEventEncryptor;
@@ -115,6 +119,28 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         }
     }
 
+    // TODO: Copied from EventIdFirstSchemaRecordReader to force local/overridden readRecord()
+    @Override
+    protected Optional<StandardProvenanceEventRecord> readToEvent(final long eventId, final DataInputStream dis, final int serializationVersion) throws IOException {
+        verifySerializationVersion(serializationVersion);
+
+        while (isData(dis)) {
+            final long startOffset = getBytesConsumed();
+            final long id = dis.readInt() + getFirstEventId();
+            final int recordLength = dis.readInt();
+
+            if (id >= eventId) {
+                final StandardProvenanceEventRecord event = readRecord(dis, id, startOffset, recordLength);
+                return Optional.ofNullable(event);
+            } else {
+                // This is not the record we want. Skip over it instead of deserializing it.
+                StreamUtils.skip(dis, recordLength);
+            }
+        }
+
+        return Optional.empty();
+    }
+
     private byte[] decrypt(byte[] ivAndCipherBytes) throws IOException, EncryptionException {
         String keyId = getKeyId();
 
@@ -140,7 +166,8 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
             byte[] plainBytes = cipher.doFinal(cipherBytes);
             return plainBytes;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException
+                | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);
         }
@@ -148,5 +175,18 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     public String getKeyId() {
         return keyId;
+    }
+
+    @Override
+    public String toString() {
+        return getDescription();
+    }
+
+    private String getDescription() {
+        try {
+            return "EncryptedSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename() + ", keyId: " + getKeyId();
+        } catch (Exception e) {
+            return "EncryptedSchemaRecordReader@" + Integer.toHexString(this.hashCode());
+        }
     }
 }

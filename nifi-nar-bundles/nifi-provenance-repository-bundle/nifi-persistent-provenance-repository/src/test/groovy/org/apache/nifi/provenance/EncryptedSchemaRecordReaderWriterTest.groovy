@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.provenance
 
 import org.apache.nifi.flowfile.FlowFile
@@ -28,6 +44,7 @@ import javax.crypto.spec.SecretKeySpec
 import java.security.Security
 import java.util.concurrent.atomic.AtomicLong
 
+import static groovy.test.GroovyAssert.shouldFail
 import static org.apache.nifi.provenance.TestUtil.createFlowFile
 
 @RunWith(JUnit4.class)
@@ -82,20 +99,29 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
 
     @Before
     void setUp() throws Exception {
-        journalFile = new File("target/storage/${UUID.randomUUID()}/testEventIdFirstSchemaRecordReaderWriter");
+        journalFile = new File("target/storage/${UUID.randomUUID()}/testEventIdFirstSchemaRecordReaderWriter")
         tocFile = TocUtil.getTocFile(journalFile)
         idGenerator.set(0L)
     }
 
     @After
     void tearDown() throws Exception {
-        FileUtils.deleteFile(journalFile.getParentFile(), true)
+        try {
+            FileUtils.deleteFile(journalFile.getParentFile(), true)
+        } catch (Exception e) {
+            logger.error(e)
+        }
     }
 
     @AfterClass
     static void tearDownOnce() throws Exception {
         if (ORIGINAL_LOG_LEVEL) {
             System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", ORIGINAL_LOG_LEVEL)
+        }
+        try {
+            FileUtils.deleteFile(new File("target/storage"), true)
+        } catch (Exception e) {
+            logger.error(e)
         }
     }
 
@@ -173,9 +199,9 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
 
         assert !reader.nextRecord()
     }
-    
+
     /**
-     * Build a record and write it with a standard writer and the encrypted writer to the same repository. Recover with the standard reader and the contents of the encrypted record should be unreadable.
+     * Build a record and write it with a standard writer and the encrypted writer to different repositories. Recover with the standard reader and the contents of the encrypted record should be unreadable.
      */
     @Test
     void testShouldWriteEncryptedRecordAndPlainRecord() {
@@ -185,24 +211,28 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
 
         TocWriter tocWriter = new StandardTocWriter(tocFile, false, false)
 
-        RecordWriter encryptedWriter = createWriter(journalFile, tocWriter, false, UNCOMPRESSED_BLOCK_SIZE)
-        logger.info("Generated encrypted writer: ${encryptedWriter}")
-
         RecordWriter standardWriter = new EventIdFirstSchemaRecordWriter(journalFile, idGenerator, tocWriter, false, UNCOMPRESSED_BLOCK_SIZE, IdentifierLookup.EMPTY)
         logger.info("Generated standard writer: ${standardWriter}")
 
+        File encryptedJournalFile = new File(journalFile.absolutePath + "_encrypted")
+        File encryptedTocFile = TocUtil.getTocFile(encryptedJournalFile)
+        TocWriter encryptedTocWriter = new StandardTocWriter(encryptedTocFile, false, false)
+        RecordWriter encryptedWriter = createWriter(encryptedJournalFile, encryptedTocWriter, false, UNCOMPRESSED_BLOCK_SIZE)
+        logger.info("Generated encrypted writer: ${encryptedWriter}")
+
         // Act
-        int standardRecordId = idGenerator.getAndIncrement()
+        int standardRecordId = idGenerator.get()
         standardWriter.writeHeader(standardRecordId)
         standardWriter.writeRecord(record)
+        standardWriter.close()
         logger.info("Wrote standard record ${standardRecordId} to journal")
 
-        // TODO: Don't increment this time? 1 -> 3?
-        int encryptedRecordId = idGenerator.getAndIncrement()
+        int encryptedRecordId = idGenerator.get()
         encryptedWriter.writeHeader(encryptedRecordId)
         encryptedWriter.writeRecord(record)
+        encryptedWriter.close()
         logger.info("Wrote encrypted record ${encryptedRecordId} to journal")
-        
+
         // Assert
         TocReader tocReader = new StandardTocReader(tocFile)
         final FileInputStream fis = new FileInputStream(journalFile)
@@ -216,13 +246,18 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         assert record.componentType == standardEvent.getComponentType()
         logger.info("Successfully read standard record: ${standardEvent}")
 
-        ProvenanceEventRecord encryptedEvent = reader.nextRecord()
-        assert encryptedEvent
-        assert encryptedRecordId as long == encryptedEvent.getEventId()
-        assert record.componentId == encryptedEvent.getComponentId()
-        assert record.componentType == encryptedEvent.getComponentType()
-        logger.info("Successfully read encrypted record: ${encryptedEvent}")
-
         assert !reader.nextRecord()
+
+        // Demonstrate unable to read from encrypted file with standard reader
+        TocReader incompatibleTocReader = new StandardTocReader(encryptedTocFile)
+        final FileInputStream efis = new FileInputStream(encryptedJournalFile)
+        RecordReader incompatibleReader = new EventIdFirstSchemaRecordReader(efis, encryptedJournalFile.getName(), incompatibleTocReader, MAX_ATTRIBUTE_SIZE)
+        logger.info("Generated standard reader (attempting to read encrypted file): ${incompatibleReader}")
+
+        def msg = shouldFail(EOFException) {
+            ProvenanceEventRecord encryptedEvent = incompatibleReader.nextRecord()
+        }
+        logger.expected(msg)
+        assert msg =~ "EOFException: Failed to read field"
     }
 }

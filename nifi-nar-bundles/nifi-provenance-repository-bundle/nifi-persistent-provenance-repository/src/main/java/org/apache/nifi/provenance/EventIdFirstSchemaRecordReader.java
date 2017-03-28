@@ -146,7 +146,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         return deserializedEvent;
     }
 
-    private boolean isData(final InputStream in) throws IOException {
+    protected boolean isData(final InputStream in) throws IOException {
         in.mark(1);
         final int nextByte = in.read();
         in.reset();
@@ -173,5 +173,18 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public String toString() {
+        return getDescription();
+    }
+
+    private String getDescription() {
+        try {
+            return "EventIdFirstSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename();
+        } catch (Exception e) {
+            return "EventIdFirstSchemaRecordReader@" + Integer.toHexString(this.hashCode());
+        }
     }
 }

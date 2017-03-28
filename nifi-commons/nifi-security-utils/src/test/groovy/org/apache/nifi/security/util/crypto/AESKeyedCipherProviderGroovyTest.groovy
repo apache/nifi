@@ -38,7 +38,7 @@ import java.security.Security
 import static groovy.test.GroovyAssert.shouldFail
 
 @RunWith(JUnit4.class)
-public class AESKeyedCipherProviderGroovyTest {
+class AESKeyedCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(AESKeyedCipherProviderGroovyTest.class)
 
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
@@ -48,7 +48,7 @@ public class AESKeyedCipherProviderGroovyTest {
     private static final SecretKey key = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -57,15 +57,19 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
+    }
+
+    private static boolean isUnlimitedStrengthCryptoAvailable() {
+        Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
     @Test
-    public void testGetCipherShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -94,7 +98,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -123,10 +127,9 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                PasswordBasedEncryptor.supportsUnlimitedStrength())
+        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.", isUnlimitedStrengthCryptoAvailable())
 
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
         final List<Integer> LONG_KEY_LENGTHS = [192, 256]
@@ -168,7 +171,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testShouldRejectEmptyKey() throws Exception {
+    void testShouldRejectEmptyKey() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -184,7 +187,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testShouldRejectIncorrectLengthKey() throws Exception {
+    void testShouldRejectIncorrectLengthKey() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -203,7 +206,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testShouldRejectEmptyEncryptionMethod() throws Exception {
+    void testShouldRejectEmptyEncryptionMethod() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -217,7 +220,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testShouldRejectUnsupportedEncryptionMethod() throws Exception {
+    void testShouldRejectUnsupportedEncryptionMethod() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -233,7 +236,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldSupportExternalCompatibility() throws Exception {
+    void testGetCipherShouldSupportExternalCompatibility() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -262,7 +265,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherForDecryptShouldRequireIV() throws Exception {
+    void testGetCipherForDecryptShouldRequireIV() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -290,7 +293,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldRejectInvalidIVLengths() throws Exception {
+    void testGetCipherShouldRejectInvalidIVLengths() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
@@ -317,7 +320,7 @@ public class AESKeyedCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldRejectEmptyIV() throws Exception {
+    void testGetCipherShouldRejectEmptyIV() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
