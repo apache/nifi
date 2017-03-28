@@ -33,6 +33,9 @@ import org.openhealthtools.mdht.uml.cda.consol.ProblemConcernAct;
 import org.openhealthtools.mdht.uml.cda.consol.ProblemObservation;
 import org.openhealthtools.mdht.uml.cda.consol.ProblemSection;
 import org.openhealthtools.mdht.uml.cda.consol.ProblemStatus;
+import org.openhealthtools.mdht.uml.cda.consol.VitalSignObservation;
+import org.openhealthtools.mdht.uml.cda.consol.VitalSignsOrganizer;
+import org.openhealthtools.mdht.uml.cda.consol.VitalSignsSection;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 
 
@@ -71,7 +74,18 @@ public class TestExtractCCDAAttributes {
         expectedAttributes.put("problemSection.act.observation.problemStatus.code.displayName", "Status");
         expectedAttributes.put("problemSection.act.observation.problemStatus.statusCode.code", "completed");
         expectedAttributes.put("problemSection.act.observation.statusCode.code", "completed");
-
+        expectedAttributes.put("vitalSignsSection.code.code", "8716-3");
+        expectedAttributes.put("vitalSignsSection.code.codeSystem", "2.16.840.1.113883.6.1");
+        expectedAttributes.put("vitalSignsSection.code.codeSystemName", "LOINC");
+        expectedAttributes.put("vitalSignsSection.code.displayName", "Vital Signs");
+        expectedAttributes.put("vitalSignsSection.organizer.code.code", "46680005");
+        expectedAttributes.put("vitalSignsSection.organizer.code.codeSystem", "2.16.840.1.113883.6.96");
+        expectedAttributes.put("vitalSignsSection.organizer.code.codeSystemName", "SNOMEDCT");
+        expectedAttributes.put("vitalSignsSection.organizer.code.displayName", "Vital signs");
+        expectedAttributes.put("vitalSignsSection.organizer.statusCode.code", "completed");
+        expectedAttributes.put("vitalSignsSection.organizer.observations.code.codeSystem", "2.16.840.1.113883.6.1");
+        expectedAttributes.put("vitalSignsSection.organizer.observations.code.codeSystemName", "LOINC");
+        expectedAttributes.put("vitalSignsSection.organizer.observations.statusCode.code", "completed");
 
         ContinuityOfCareDocument doc = ConsolFactory.eINSTANCE.createContinuityOfCareDocument().init();
 
@@ -84,6 +98,14 @@ public class TestExtractCCDAAttributes {
         problemSection.addAct(problemAct);
         problemAct.addObservation(problemObservation);
         problemObservation.addObservation(problemStatus);
+
+        VitalSignsOrganizer vitalSignsOrganizer = ConsolFactory.eINSTANCE.createVitalSignsOrganizer().init();
+        VitalSignObservation vitalSignObservation = ConsolFactory.eINSTANCE.createVitalSignObservation().init();
+
+        VitalSignsSection vitalSignsSection = ConsolFactory.eINSTANCE.createVitalSignsSection().init();
+        doc.addSection(vitalSignsSection);
+        vitalSignsSection.addOrganizer(vitalSignsOrganizer);
+        vitalSignsOrganizer.addObservation(vitalSignObservation);
 
         StringWriter writer = new StringWriter();
         CDAUtil.save(doc, writer);
