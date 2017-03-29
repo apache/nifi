@@ -18,6 +18,7 @@ package org.apache.nifi.controller.service;
 
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.List;
@@ -50,6 +51,11 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * @return a proxied ControllerService that can be addressed outside of the framework.
      */
     ControllerService getProxiedControllerService();
+
+    /**
+     * @return the invocation handler being used by the proxy
+     */
+    ControllerServiceInvocationHandler getInvocationHandler();
 
     /**
      * Returns the list of services that are required to be enabled before this
@@ -167,4 +173,16 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * {@link #disable(ScheduledExecutorService)}.
      */
     boolean isActive();
+
+    /**
+     * Sets a new proxy and implementation for this node.
+     *
+     * @param implementation the actual implementation controller service
+     * @param proxiedControllerService the proxied controller service
+     * @param invocationHandler the invocation handler being used by the proxy
+     */
+    void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
+                                      final LoggableComponent<ControllerService> proxiedControllerService,
+                                      final ControllerServiceInvocationHandler invocationHandler);
+
 }

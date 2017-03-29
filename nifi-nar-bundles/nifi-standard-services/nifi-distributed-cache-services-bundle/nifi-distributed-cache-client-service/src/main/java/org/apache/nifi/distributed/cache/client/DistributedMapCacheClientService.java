@@ -217,6 +217,20 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public long removeByPattern(String regex) throws IOException {
+        return withCommsSession(session -> {
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("removeByPattern");
+            dos.writeUTF(regex);
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            return dis.readLong();
+        });
+    }
+
+    @Override
     public <K, V> CacheEntry<K, V> fetch(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withCommsSession(session -> {
             validateProtocolVersion(session, 2);

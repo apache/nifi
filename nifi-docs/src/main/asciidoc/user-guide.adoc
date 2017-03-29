@@ -47,6 +47,8 @@ Browser Support
 Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if
 the current stable release is 45.X then the officially supported versions will be 45.X and 44.X.
 
+For Safari, which releases major versions much less frequently, Current and Current - 1 simply represent the two latest releases.
+
 The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested
 against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
 
@@ -164,11 +166,11 @@ and configure system properties, such as how many system resources should be pro
 
 On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
 canvas and can to search by component name, type, identifier, configuration properties, and their values. The Global Menu
-contain options that allow you to manipulate existing components on the canvas:
+contains options that allow you to manipulate existing components on the canvas:
 
 image::global-menu.png[NiFi Global Menu]
 
-Additionally, the UI has allows has some features that allow you to easily navigate around the canvas. You can use the
+Additionally, the UI has some features that allow you to easily navigate around the canvas. You can use the
 Navigate Palette to pan around the canvas, and to zoom in and out. The “Birds Eye View” of the dataflow provides a high-level
 view of the dataflow and allows you to pan across large portions of the dataflow. You can also find breadcrumbs along the
 bottom of the screen. As you navigate into and out of Process Groups, the breadcrumbs show
@@ -367,9 +369,9 @@ image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
 *Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG)
 references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
 is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
-is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
-via an RPG, the RPG will first connect to the remote instance's NCM to determine which nodes are in the cluster and
-how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
+is the URL of any NiFi instance in that cluster. When data is transferred to a clustered instance of NiFi
+via an RPG, the RPG will first connect to the remote instance whose URL is configured to determine which nodes are in the cluster and
+how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote instances are
 then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to
 recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
 
@@ -995,7 +997,13 @@ link:administration-guide.html[System Administrator’s Guide].
 
 image:configure-remote-process-group.png["Configure Remote Process Group"]
 
-By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server. For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are supported.
+By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote
+NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server.
+For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are supported.
+
+*Local Network Interface*: In some cases, it may be desirable to prefer one network interface over another. For example, if a wired interface and a wireless
+interface both exist, the wired interface may be preferred. This can be configured by specifying the name of the network interface to use in this box. If the
+value entered is not valid, the Remote Process Group will not be valid and will not communicate with other NiFi instances until this is resolved.
 
 ==== Configure Site-to-Site server NiFi instance
 

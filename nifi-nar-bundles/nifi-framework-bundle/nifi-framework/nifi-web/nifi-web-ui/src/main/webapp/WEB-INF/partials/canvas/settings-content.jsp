@@ -70,5 +70,7 @@
             Last updated:&nbsp;<span id="settings-last-refreshed" class="value-color"></span>
         </div>
         <div id="settings-loading-container" class="loading-container"></div>
+        <div id="controller-cs-availability" class="hidden">Listed services are available to all Reporting Tasks and services defined in the Controller Settings.</div>
+        <div class="clear"></div>
     </div>
 </div>

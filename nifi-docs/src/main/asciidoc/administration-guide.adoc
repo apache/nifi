@@ -1928,7 +1928,6 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 
 |===
 |*Property*|*Description*
-|nifi.version|The version number of the current release. If upgrading but reusing this file, be sure to update this value.
 |nifi.flow.configuration.file*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is ./conf/flow.xml.gz.
 |nifi.flow.configuration.archive.enabled*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is _true_.
 |nifi.flow.configuration.archive.dir*|The location of the archive directory where backup copies of the flow.xml are saved. The default value is ./conf/archive. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with nifi.flow.configuration.archive.max.time, max.storage and max.count properties respectively. If none of these limitation for archiving is specified, NiFi uses default condition, that is "30 days" for max.time and "500 MB" for max.storage. +
@@ -2053,8 +2052,8 @@ nifi.content.repository.directory.content2=/repos/content2 +
 Providing three total locations, including  _nifi.content.repository.directory.default_.
 |nifi.content.repository.archive.max.retention.period|If archiving is enabled (see nifi.content.repository.archive.enabled below), then
 this property specifies the maximum amount of time to keep the archived data. It is 12 hours by default.
-|nifi.content.repository.archive.max.usage.percentage|If archiving is enabled (see nifi.content.repository.archive.enabled below), then this property also must have a value to indicate the maximum percentage of disk space that may be used before archive data is removed. If this value is already met even before archiving then arhival will not be of much use. It is 50% by default.
-|nifi.content.repository.archive.enabled|To enable archiving, set this to _true_ and specify a value for the nifi.content.repository.archive.max.usage.percentage property above. By default, archiving is enabled.
+|nifi.content.repository.archive.max.usage.percentage|If archiving is enabled (see nifi.content.repository.archive.enabled below), then this property must have a value that indicates the content repository disk usage percentage at which archived data begins to be removed. If the archive is empty and content repository disk usage is above this percentage, then archiving is temporarily disabled. Archiving will resume when disk usage is below this percentage. It is 50% by default.
+|nifi.content.repository.archive.enabled|To enable content archiving, set this to _true_ and specify a value for the nifi.content.repository.archive.max.usage.percentage property above. Content archiving enables the provenance UI to view or replay content that is no longer in a dataflow queue. By default, archiving is enabled.
 |nifi.content.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 |nifi.content.viewer.url|The URL for a web-based content viewer if one is available. It is blank by default.
 |====

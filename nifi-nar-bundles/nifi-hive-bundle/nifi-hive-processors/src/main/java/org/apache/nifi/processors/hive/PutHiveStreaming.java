@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.File;
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -32,6 +31,7 @@ import org.apache.hive.hcatalog.streaming.ConnectionError;
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
 import org.apache.hive.hcatalog.streaming.SerializationError;
 import org.apache.hive.hcatalog.streaming.StreamingException;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -61,6 +61,7 @@ import org.apache.nifi.util.hive.HiveWriter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -94,6 +95,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "hivestreaming.record.count", description = "This attribute is written on the flow files routed to the 'success' "
                 + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively.")
 })
+@RequiresInstanceClassLoading
 public class PutHiveStreaming extends AbstractProcessor {
 
     // Attributes
@@ -349,6 +351,8 @@ public class PutHiveStreaming extends AbstractProcessor {
             }
             log.info("Successfully logged in as principal {} with keytab {}", new Object[]{principal, keyTab});
             options = options.withKerberosPrincipal(principal).withKerberosKeytab(keyTab);
+        } else {
+            ugi = null;
         }
 
         allWriters = new ConcurrentHashMap<>();
@@ -662,14 +666,14 @@ public class PutHiveStreaming extends AbstractProcessor {
         callTimeoutPool.shutdown();
         try {
             while (!callTimeoutPool.isTerminated()) {
-                callTimeoutPool.awaitTermination(
-                        options.getCallTimeOut(), TimeUnit.MILLISECONDS);
+                callTimeoutPool.awaitTermination(options.getCallTimeOut(), TimeUnit.MILLISECONDS);
             }
         } catch (Throwable t) {
             log.warn("shutdown interrupted on " + callTimeoutPool, t);
         }
 
         callTimeoutPool = null;
+        ugi = null;
         hiveConfigurator.stopRenewer();
     }
 

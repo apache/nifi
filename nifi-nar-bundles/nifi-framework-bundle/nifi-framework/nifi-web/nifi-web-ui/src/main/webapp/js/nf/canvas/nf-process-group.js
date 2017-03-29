@@ -1256,29 +1256,33 @@
          *
          * @param {string} groupId
          */
-        enterGroup: function (groupId) { 
+        enterGroup: function (groupId) {
 
             // hide the context menu
-            nfContextMenu.hide();  
+            nfContextMenu.hide();
 
             // set the new group id
-            nfCanvasUtils.setGroupId(groupId);  
+            nfCanvasUtils.setGroupId(groupId);
 
             // reload the graph
-            return nfCanvasUtils.reload().done(function () { 
+            return nfCanvasUtils.reload().done(function () {
 
                 // attempt to restore the view
-                var viewRestored = nfCanvasUtils.restoreUserView();  
+                var viewRestored = nfCanvasUtils.restoreUserView();
 
                 // if the view was not restore attempt to fit
                 if (viewRestored === false) {
-                    nfCanvasUtils.fitCanvasView();  
+                    nfCanvasUtils.fitCanvasView();
 
                     // refresh the canvas
                     nfCanvasUtils.refreshCanvasView({
                         transition: true
                     });
                 }
+
+                // update URL deep linking params
+                nfCanvasUtils.setURLParameters(groupId, d3.select());
+
             }).fail(function () {
                 nfDialog.showOkDialog({
                     headerText: 'Process Group',

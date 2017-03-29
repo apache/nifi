@@ -16,28 +16,27 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.scheduling.ScheduleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class ProcessorNode extends AbstractConfiguredComponent implements Connectable {
 
@@ -45,11 +44,11 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     protected final AtomicReference<ScheduledState> scheduledState;
 
-    public ProcessorNode(final Processor processor, final String id,
+    public ProcessorNode(final String id,
                          final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                          final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
-                         final ComponentLog logger) {
-        super(processor, id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, logger);
+                         final boolean isExtensionMissing) {
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, isExtensionMissing);
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 
@@ -76,6 +75,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     public abstract LogLevel getBulletinLevel();
 
     public abstract Processor getProcessor();
+
+    public abstract void setProcessor(LoggableComponent<Processor> processor);
 
     public abstract void yield(long period, TimeUnit timeUnit);
 

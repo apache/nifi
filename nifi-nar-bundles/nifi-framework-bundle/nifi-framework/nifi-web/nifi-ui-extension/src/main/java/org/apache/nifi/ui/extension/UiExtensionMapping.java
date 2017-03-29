@@ -30,21 +30,45 @@ public class UiExtensionMapping {
         this.uiExtensions = uiExtensions;
     }
 
+    private String getBundleSpecificKey(final String type, final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
+        return type + ":" + bundleGroup + ":" + bundleArtifact + ":" + bundleVersion;
+    }
+
     /**
      * @param type type
+     * @param bundleGroup bundle group
+     * @param bundleArtifact bundle artifact
+     * @param bundleVersion bundle version
      * @return whether there are any UI extensions for the specified component
      * type
      */
-    public boolean hasUiExtension(final String type) {
+    public boolean hasUiExtension(final String type, final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
+        // if there is an extension registered with these bundle coordinates use it
+        final String bundleSpecificKey = getBundleSpecificKey(type, bundleGroup, bundleArtifact, bundleVersion);
+        if (uiExtensions.containsKey(bundleSpecificKey)) {
+            return true;
+        }
+
+        // otherwise fall back to the component type
         return uiExtensions.containsKey(type);
     }
 
     /**
      * @param type type
+     * @param bundleGroup bundle group
+     * @param bundleArtifact bundle artifact
+     * @param bundleVersion bundle version
      * @return the listing of all discovered UI extensions for the specified
      * component type
      */
-    public List<UiExtension> getUiExtension(final String type) {
+    public List<UiExtension> getUiExtension(final String type, final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
+        // if there is an extension registered with these bundle coordinates use it
+        final String bundleSpecificKey = getBundleSpecificKey(type, bundleGroup, bundleArtifact, bundleVersion);
+        if (uiExtensions.containsKey(bundleSpecificKey)) {
+            return uiExtensions.get(bundleSpecificKey);
+        }
+
+        // otherwise fall back to the component type
         return uiExtensions.get(type);
     }
 

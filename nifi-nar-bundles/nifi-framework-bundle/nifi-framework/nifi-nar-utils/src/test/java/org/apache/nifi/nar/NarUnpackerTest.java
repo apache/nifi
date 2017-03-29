@@ -30,13 +30,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -88,14 +88,12 @@ public class NarUnpackerTest {
         assertEquals("./target/NarUnpacker/lib2/",
                 properties.getProperty("nifi.nar.library.directory.alt"));
 
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, ExtensionManager.createSystemBundle(properties));
 
         assertEquals(2, extensionMapping.getAllExtensionNames().size());
 
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.two"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.two"));
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
 
@@ -121,11 +119,10 @@ public class NarUnpackerTest {
         others.put("nifi.nar.library.directory.alt", emptyDir.toString());
         NiFiProperties properties = loadSpecifiedProperties("/NarUnpacker/conf/nifi.properties", others);
 
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, ExtensionManager.createSystemBundle(properties));
 
         assertEquals(1, extensionMapping.getAllExtensionNames().size());
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
 
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
@@ -145,10 +142,9 @@ public class NarUnpackerTest {
         others.put("nifi.nar.library.directory.alt", nonExistantDir.toString());
         NiFiProperties properties = loadSpecifiedProperties("/NarUnpacker/conf/nifi.properties", others);
 
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, ExtensionManager.createSystemBundle(properties));
 
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
 
         assertEquals(1, extensionMapping.getAllExtensionNames().size());
 
@@ -170,7 +166,7 @@ public class NarUnpackerTest {
         others.put("nifi.nar.library.directory.alt", nonDir.toString());
         NiFiProperties properties = loadSpecifiedProperties("/NarUnpacker/conf/nifi.properties", others);
 
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, ExtensionManager.createSystemBundle(properties));
 
         assertNull(extensionMapping);
     }
@@ -180,8 +176,7 @@ public class NarUnpackerTest {
         try {
             filePath = NarUnpackerTest.class.getResource(propertiesFile).toURI().getPath();
         } catch (URISyntaxException ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex);
+            throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
         }
         return NiFiProperties.createBasicNiFiProperties(filePath, others);
     }

@@ -39,12 +39,14 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     private String communicationsTimeout;
     private String yieldDuration;
     private String transportProtocol;
+    private String localNetworkInterface;
     private String proxyHost;
     private Integer proxyPort;
     private String proxyUser;
     private String proxyPassword;
 
     private Collection<String> authorizationIssues;
+    private Collection<String> validationErrors;
     private Boolean transmitting;
 
     private Integer inputPortCount;
@@ -349,6 +351,25 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         this.transportProtocol = transportProtocol;
     }
 
+    @ApiModelProperty("The local network interface to send/receive data. If not specified, any local address is used. If clustered, all nodes must have an interface with this identifier.")
+    public String getLocalNetworkInterface() {
+        return localNetworkInterface;
+    }
+
+    public void setLocalNetworkInterface(String localNetworkInterface) {
+        this.localNetworkInterface = localNetworkInterface;
+    }
+
+    @ApiModelProperty(
+            "The validation errors for the remote process group. These validation errors represent the problems with the remote process group that must be resolved before it can transmit."
+    )
+    public Collection<String> getValidationErrors() {
+        return validationErrors;
+    }
+
+    public void setValidationErrors(Collection<String> validationErrors) {
+        this.validationErrors = validationErrors;
+    }
 
     public String getProxyHost() {
         return proxyHost;

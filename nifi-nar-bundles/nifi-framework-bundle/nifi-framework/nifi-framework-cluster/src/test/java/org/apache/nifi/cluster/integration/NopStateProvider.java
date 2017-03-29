@@ -112,4 +112,5 @@ public class NopStateProvider implements StateProvider {
     public Scope[] getSupportedScopes() {
         return new Scope[] {Scope.LOCAL};
     }
+
 }

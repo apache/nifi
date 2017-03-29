@@ -19,15 +19,15 @@ package org.apache.nifi.web.server;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -125,12 +125,7 @@ public class JettyServer implements NiFiServer {
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
-    /**
-     * Creates and configures a new Jetty instance.
-     *
-     * @param props the configuration
-     */
-    public JettyServer(final NiFiProperties props) {
+    public JettyServer(final NiFiProperties props, final Set<Bundle> bundles) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
         threadPool.setName("NiFi Web Server");
 
@@ -145,41 +140,14 @@ public class JettyServer implements NiFiServer {
         // configure server
         configureConnectors(server);
 
-        // load wars from the nar working directories
-        loadWars(locateNarWorkingDirectories());
+        // load wars from the bundle
+        loadWars(bundles);
     }
 
-    private Set<File> locateNarWorkingDirectories() {
-        final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
-        final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
-
-        final File[] frameworkDir = frameworkWorkingDir.listFiles();
-        if (frameworkDir == null) {
-            throw new IllegalStateException(String.format("Unable to access framework working directory: %s", frameworkWorkingDir.getAbsolutePath()));
-        }
-
-        final File[] extensionDirs = extensionsWorkingDir.listFiles();
-        if (extensionDirs == null) {
-            throw new IllegalStateException(String.format("Unable to access extensions working directory: %s", extensionsWorkingDir.getAbsolutePath()));
-        }
-
-        // we want to consider the framework and all extension NARs
-        final Set<File> narWorkingDirectories = new HashSet<>(Arrays.asList(frameworkDir));
-        narWorkingDirectories.addAll(Arrays.asList(extensionDirs));
-
-        return narWorkingDirectories;
-    }
-
-    /**
-     * Loads the WARs in the specified NAR working directories. A WAR file must
-     * have a ".war" extension.
-     *
-     * @param narWorkingDirectories dirs
-     */
-    private void loadWars(final Set<File> narWorkingDirectories) {
+    private void loadWars(final Set<Bundle> bundles) {
 
         // load WARs
-        Map<File, File> warToNarWorkingDirectoryLookup = findWars(narWorkingDirectories);
+        final Map<File, Bundle> warToBundleLookup = findWars(bundles);
 
         // locate each war being deployed
         File webUiWar = null;
@@ -188,7 +156,7 @@ public class JettyServer implements NiFiServer {
         File webDocsWar = null;
         File webContentViewerWar = null;
         List<File> otherWars = new ArrayList<>();
-        for (File war : warToNarWorkingDirectoryLookup.keySet()) {
+        for (File war : warToBundleLookup.keySet()) {
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
@@ -242,8 +210,8 @@ public class JettyServer implements NiFiServer {
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
                     String warContextPath = String.format("/%s", warName);
 
-                    // attempt to locate the nar class loader for this war
-                    ClassLoader narClassLoaderForWar = NarClassLoaders.getInstance().getExtensionClassLoader(warToNarWorkingDirectoryLookup.get(war));
+                    // get the classloader for this war
+                    ClassLoader narClassLoaderForWar = warToBundleLookup.get(war).getClassLoader();
 
                     // this should never be null
                     if (narClassLoaderForWar == null) {
@@ -269,17 +237,22 @@ public class JettyServer implements NiFiServer {
                             contentViewerWebContexts.add(extensionUiContext);
                         } else {
                             // consider each component type identified
-                            for (final String componentType : types) {
-                                logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, types));
+                            for (final String componentTypeCoordinates : types) {
+                                logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, componentTypeCoordinates));
 
                                 // record the extension definition
                                 final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
 
                                 // create if this is the first extension for this component type
-                                List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentType);
+                                List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentTypeCoordinates);
                                 if (componentUiExtensionsForType == null) {
                                     componentUiExtensionsForType = new ArrayList<>();
-                                    componentUiExtensionsByType.put(componentType, componentUiExtensionsForType);
+                                    componentUiExtensionsByType.put(componentTypeCoordinates, componentUiExtensionsForType);
+                                }
+
+                                // see if there is already a ui extension of this same time
+                                if (containsUiExtensionType(componentUiExtensionsForType, extensionType)) {
+                                    throw new IllegalStateException(String.format("Encountered duplicate UI for %s", componentTypeCoordinates));
                                 }
 
                                 // record this extension
@@ -335,6 +308,23 @@ public class JettyServer implements NiFiServer {
     }
 
     /**
+     * Returns whether or not the specified ui extensions already contains an extension of the specified type.
+     *
+     * @param componentUiExtensionsForType  ui extensions for the type
+     * @param extensionType type of ui extension
+     * @return whether or not the specified ui extensions already contains an extension of the specified type
+     */
+    private boolean containsUiExtensionType(final List<UiExtension> componentUiExtensionsForType, final UiExtensionType extensionType) {
+        for (final UiExtension uiExtension : componentUiExtensionsForType) {
+            if (extensionType.equals(uiExtension.getExtensionType())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Enables compression for the specified handler.
      *
      * @param handler handler to enable compression for
@@ -347,12 +337,13 @@ public class JettyServer implements NiFiServer {
         return gzip;
     }
 
-    private Map<File, File> findWars(final Set<File> narWorkingDirectories) {
-        final Map<File, File> wars = new HashMap<>();
+    private Map<File, Bundle> findWars(final Set<Bundle> bundles) {
+        final Map<File, Bundle> wars = new HashMap<>();
 
         // consider each nar working directory
-        for (final File narWorkingDirectory : narWorkingDirectories) {
-            final File narDependencies = new File(narWorkingDirectory, "META-INF/bundled-dependencies");
+        bundles.forEach(bundle -> {
+            final BundleDetails details = bundle.getBundleDetails();
+            final File narDependencies = new File(details.getWorkingDirectory(), "META-INF/bundled-dependencies");
             if (narDependencies.isDirectory()) {
                 // list the wars from this nar
                 final File[] narDependencyDirs = narDependencies.listFiles(WAR_FILTER);
@@ -362,10 +353,10 @@ public class JettyServer implements NiFiServer {
 
                 // add each war
                 for (final File war : narDependencyDirs) {
-                    wars.put(war, narWorkingDirectory);
+                    wars.put(war, bundle);
                 }
             }
-        }
+        });
 
         return wars;
     }
@@ -433,48 +424,6 @@ public class JettyServer implements NiFiServer {
         return null;
     }
 
-    /**
-     * Returns the extension in the specified WAR using the specified path.
-     *
-     * @param war war
-     * @param path path
-     * @return extensions
-     */
-    private List<String> getWarExtensions(final File war, final String path) {
-        List<String> processorTypes = new ArrayList<>();
-
-        // load the jar file and attempt to find the nifi-processor entry
-        JarFile jarFile = null;
-        try {
-            jarFile = new JarFile(war);
-            JarEntry jarEntry = jarFile.getJarEntry(path);
-
-            // ensure the nifi-processor entry was found
-            if (jarEntry != null) {
-                // get an input stream for the nifi-processor configuration file
-                try (final BufferedReader in = new BufferedReader(
-                        new InputStreamReader(jarFile.getInputStream(jarEntry)))) {
-
-                    // read in each configured type
-                    String rawProcessorType;
-                    while ((rawProcessorType = in.readLine()) != null) {
-                        // extract the processor type
-                        final String processorType = extractComponentType(rawProcessorType);
-                        if (processorType != null) {
-                            processorTypes.add(processorType);
-                        }
-                    }
-                }
-            }
-        } catch (IOException ioe) {
-            logger.warn("Unable to inspect {} for a custom processor UI.", new Object[]{war, ioe});
-        } finally {
-            IOUtils.closeQuietly(jarFile);
-        }
-
-        return processorTypes;
-    }
-
     private WebAppContext loadWar(final File warFile, final String contextPath, final ClassLoader parentClassLoader) {
         final WebAppContext webappContext = new WebAppContext(warFile.getPath(), contextPath);
         webappContext.setContextPath(contextPath);
@@ -530,8 +479,8 @@ public class JettyServer implements NiFiServer {
             final Resource docsResource = Resource.newResource(docsDir);
 
             // load the component documentation working directory
-            final String componentDocsDirPath = props.getProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, "work/docs/components");
-            final File workingDocsDirectory = Paths.get(componentDocsDirPath).toRealPath().getParent().toFile();
+            final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
+            final File workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
             final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
 
             // load the rest documentation
@@ -917,4 +866,5 @@ public class JettyServer implements NiFiServer {
             logger.warn("Failed to stop web server", ex);
         }
     }
+
 }

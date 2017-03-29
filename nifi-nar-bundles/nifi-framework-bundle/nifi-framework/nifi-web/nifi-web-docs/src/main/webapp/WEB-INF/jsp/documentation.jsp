@@ -30,7 +30,18 @@
     </head>
     <body id="documentation-body">
         <div id="banner-header" class="main-banner-header"></div>
-        <span id="initial-selection" style="display: none;"><%= request.getParameter("select") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("select")) %></span>
+        <span id="initial-selection-type" style="display: none;">
+            <%= request.getParameter("select") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("select")) %>
+        </span>
+        <span id="initial-selection-bundle-group" style="display: none;">
+            <%= request.getParameter("group") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("group")) %>
+        </span>
+        <span id="initial-selection-bundle-artifact" style="display: none;">
+            <%= request.getParameter("artifact") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("artifact")) %>
+        </span>
+        <span id="initial-selection-bundle-version" style="display: none;">
+            <%= request.getParameter("version") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("version")) %>
+        </span>
         <div id="documentation-header" class="documentation-header">
             <div id="component-list-toggle-link">-</div>
             <div id="header-contents">
@@ -46,11 +57,11 @@
                         <div class="header">General</div>
                         <div id="general-links" class="component-links">
                             <ul>
-                                <li class="component-item"><a class="component-link overview" href="html/overview.html" target="component-usage">Overview</a></li>
-                                <li class="component-item"><a class="component-link getting-started" href="html/getting-started.html" target="component-usage">Getting Started</a></li>
-                                <li class="component-item"><a class="component-link user-guide" href="html/user-guide.html" target="component-usage">User Guide</a></li>
-                                <li class="component-item"><a class="component-link expression-language-guide" href="html/expression-language-guide.html" target="component-usage">Expression Language Guide</a></li>
-                                <li class="component-item"><a class="component-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
+                                <li class="component-item"><a class="document-link overview" href="html/overview.html" target="component-usage">Overview</a></li>
+                                <li class="component-item"><a class="document-link getting-started" href="html/getting-started.html" target="component-usage">Getting Started</a></li>
+                                <li class="component-item"><a class="document-link user-guide" href="html/user-guide.html" target="component-usage">User Guide</a></li>
+                                <li class="component-item"><a class="document-link expression-language-guide" href="html/expression-language-guide.html" target="component-usage">Expression Language Guide</a></li>
+                                <li class="component-item"><a class="document-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching guides</span>
                         </div>
@@ -62,7 +73,24 @@
                                 <c:when test="${not empty processors}">
                                     <ul>
                                     <c:forEach var="entry" items="${processors}">
-                                        <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
+                                        <c:forEach var="bundleEntry" items="${processorBundleLookup[entry.value]}">
+                                            <li class="component-item">
+                                                <span class="bundle-group hidden">${bundleEntry.group}</span>
+                                                <span class="bundle-artifact hidden">${bundleEntry.id}</span>
+                                                <span class="bundle-version hidden">${bundleEntry.version}</span>
+                                                <span class="extension-class hidden">${entry.value}</span>
+                                                <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </a>
+                                            </li>
+                                        </c:forEach>
                                     </c:forEach>
                                     </ul>
                                     <span class="no-matching no-components hidden">No matching processors</span>
@@ -80,7 +108,25 @@
                                 <c:when test="${not empty controllerServices}">
                                     <ul>
                                     <c:forEach var="entry" items="${controllerServices}">
-                                        <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
+                                        <c:forEach var="bundleEntry" items="${controllerServiceBundleLookup[entry.value]}">
+                                            <li class="component-item">
+                                                <span class="bundle-group hidden">${bundleEntry.group}</span>
+                                                <span class="bundle-artifact hidden">${bundleEntry.id}</span>
+                                                <span class="bundle-version hidden">${bundleEntry.version}</span>
+                                                <span class="extension-class hidden">${entry.value}</span>
+                                                <a class="component-link"
+                                                   href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </a>
+                                            </li>
+                                        </c:forEach>
                                     </c:forEach>
                                     </ul>
                                     <span class="no-matching no-components hidden">No matching controller services</span>
@@ -98,7 +144,24 @@
                                 <c:when test="${not empty reportingTasks}">
                                     <ul>
                                     <c:forEach var="entry" items="${reportingTasks}">
-                                        <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
+                                        <c:forEach var="bundleEntry" items="${reportingTaskBundleLookup[entry.value]}">
+                                            <li class="component-item">
+                                                <span class="bundle-group hidden">${bundleEntry.group}</span>
+                                                <span class="bundle-artifact hidden">${bundleEntry.id}</span>
+                                                <span class="bundle-version hidden">${bundleEntry.version}</span>
+                                                <span class="extension-class hidden">${entry.value}</span>
+                                                <a class="component-link" href="components/${bundleEntry.group}/${bundleEntry.id}/${bundleEntry.version}/${entry.value}/index.html" target="component-usage">
+                                                    <c:choose>
+                                                        <c:when test="${bundleEntry.version == 'unversioned'}">
+                                                            ${entry.key}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            ${entry.key} ${bundleEntry.version}
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </a>
+                                            </li>
+                                        </c:forEach>
                                     </c:forEach>
                                     </ul>
                                     <span class="no-matching no-components hidden">No matching reporting tasks</span>
@@ -113,9 +176,9 @@
                         <div class="header">Developer</div>
                         <div id="developer-links" class="component-links">
                             <ul>
-                                <li class="component-item"><a class="component-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
-                                <li class="component-item"><a class="component-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
-                                <li class="component-item"><a class="component-link developer-guide" href="html/nifi-in-depth.html" target="component-usage">Apache NiFi In Depth</a></li>
+                                <li class="component-item"><a class="document-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
+                                <li class="component-item"><a class="document-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
+                                <li class="component-item"><a class="document-link developer-guide" href="html/nifi-in-depth.html" target="component-usage">Apache NiFi In Depth</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching developer guides</span>
                         </div>

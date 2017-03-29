@@ -141,6 +141,9 @@
                         'selectAll': true
                     });
 
+                    // update component visibility
+                    nfGraph.updateVisibility();
+
                     // update the birdseye
                     nfBirdseye.refresh();
                 }).fail(nfErrorHandler.handleAjaxError);

@@ -24,6 +24,7 @@ import java.util.Map;
 /**
  * An EventFactory implementation to create LumberjackEvents.
  */
+@Deprecated
 public class LumberjackEventFactory implements EventFactory<LumberjackEvent> {
 
     @Override

@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -36,10 +37,11 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param type of service
      * @param id of service
+     * @param bundleCoordinate the coordinate of the bundle for the service
      * @param firstTimeAdded for service
      * @return the service node
      */
-    ControllerServiceNode createControllerService(String type, String id, boolean firstTimeAdded);
+    ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
 
     /**
      * @param id of the service

@@ -128,8 +128,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
                     maxEventId = eventId;
                     break;
                 }
-            } catch (final IOException ioe) {
-                logger.warn("Could not read file {}; if this file contains Provenance Events, new events may be created with the same event identifiers", file, ioe);
+            } catch (final Exception e) {
+                logger.warn("Could not read file {}; if this file contains Provenance Events, new events may be created with the same event identifiers", file, e);
             }
         }
 

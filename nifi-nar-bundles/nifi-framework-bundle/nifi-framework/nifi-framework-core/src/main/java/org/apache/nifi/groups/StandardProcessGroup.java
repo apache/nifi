@@ -2107,6 +2107,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             verifyContents(snippet);
+            verifyDestinationNotInSnippet(snippet, destination);
 
             if (!isDisconnected(snippet)) {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
@@ -2258,6 +2259,23 @@ public final class StandardProcessGroup implements ProcessGroup {
         verifyAllKeysExist(snippet.getProcessors().keySet(), processors, "Processor");
         verifyAllKeysExist(snippet.getRemoteProcessGroups().keySet(), remoteGroups, "Remote Process Group");
         verifyAllKeysExist(snippet.getConnections().keySet(), connections, "Connection");
+    }
+
+    /**
+     * Verifies that a move request cannot attempt to move a process group into itself.
+     *
+     * @param snippet the snippet
+     * @param destination the destination
+     * @throws IllegalStateException if the snippet contains an ID that is equal to the identifier of the destination
+     */
+    private void verifyDestinationNotInSnippet(final Snippet snippet, final ProcessGroup destination) throws IllegalStateException {
+        if (snippet.getProcessGroups() != null && destination != null) {
+            snippet.getProcessGroups().forEach((processGroupId, revision) -> {
+                if (processGroupId.equals(destination.getIdentifier())) {
+                    throw new IllegalStateException("Unable to move Process Group into itself.");
+                }
+            });
+        }
     }
 
     /**
@@ -2497,6 +2515,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             verifyContents(snippet);
+            verifyDestinationNotInSnippet(snippet, newProcessGroup);
 
             if (!isDisconnected(snippet)) {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");

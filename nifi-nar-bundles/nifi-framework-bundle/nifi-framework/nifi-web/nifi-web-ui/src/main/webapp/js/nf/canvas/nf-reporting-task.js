@@ -230,6 +230,7 @@
         var reportingTaskData = reportingTaskGrid.getData();
         var currentReportingTask = reportingTaskData.getItemById(reportingTaskEntity.id);
         reportingTaskData.updateItem(reportingTaskEntity.id, $.extend({
+            type: 'ReportingTask',
             bulletins: currentReportingTask.bulletins
         }, reportingTaskEntity));
     };
@@ -478,7 +479,8 @@
 
                 // populate the reporting task settings
                 nfCommon.populateField('reporting-task-id', reportingTask['id']);
-                nfCommon.populateField('reporting-task-type', nfCommon.substringAfterLast(reportingTask['type'], '.'));
+                nfCommon.populateField('reporting-task-type', nfCommon.formatType(reportingTask));
+                nfCommon.populateField('reporting-task-bundle', nfCommon.formatBundle(reportingTask['bundle']));
                 $('#reporting-task-name').val(reportingTask['name']);
                 $('#reporting-task-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(reportingTaskEnableStyle);
                 $('#reporting-task-comments').val(reportingTask['comments']);
@@ -677,6 +679,7 @@
                 // populate the reporting task settings
                 nfCommon.populateField('reporting-task-id', reportingTask['id']);
                 nfCommon.populateField('reporting-task-type', nfCommon.substringAfterLast(reportingTask['type'], '.'));
+                nfCommon.populateField('reporting-task-bundle', nfCommon.formatBundle(reportingTask['bundle']));
                 nfCommon.populateField('read-only-reporting-task-name', reportingTask['name']);
                 nfCommon.populateField('read-only-reporting-task-comments', reportingTask['comments']);
 

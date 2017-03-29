@@ -74,13 +74,12 @@ public class TestServerAndClient {
 
     @Test
     public void testNonPersistentSetServerAndClient() throws InitializationException, IOException {
-
         /**
          * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
          * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -116,7 +115,7 @@ public class TestServerAndClient {
          * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -174,7 +173,7 @@ public class TestServerAndClient {
          * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -236,13 +235,90 @@ public class TestServerAndClient {
     }
 
     @Test
+    public void testPersistentMapServerAndClientWithLFUEvictions() throws InitializationException, IOException {
+        /**
+         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
+         * See:  https://issues.apache.org/jira/browse/NIFI-437
+         */
+        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+
+        LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
+        // Create server
+        final File dataFile = new File("target/cache-data");
+        deleteRecursively(dataFile);
+
+        // Create server
+        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        final DistributedMapCacheServer server = new MapServer();
+        runner.addControllerService("server", server);
+        runner.setProperty(server, DistributedMapCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
+        runner.setProperty(server, DistributedMapCacheServer.MAX_CACHE_ENTRIES, "3");
+        runner.setProperty(server, DistributedMapCacheServer.EVICTION_POLICY, DistributedMapCacheServer.EVICTION_STRATEGY_LFU);
+        runner.enableControllerService(server);
+
+        DistributedMapCacheClientService client = createMapClient(server.getPort());
+        final Serializer<String> serializer = new StringSerializer();
+        final boolean added = client.putIfAbsent("test", "1", serializer, serializer);
+        waitABit();
+        final boolean added2 = client.putIfAbsent("test2", "2", serializer, serializer);
+        waitABit();
+        final boolean added3 = client.putIfAbsent("test3", "3", serializer, serializer);
+        waitABit();
+        assertTrue(added);
+        assertTrue(added2);
+        assertTrue(added3);
+
+        final boolean contains = client.containsKey("test", serializer);
+        final boolean contains2 = client.containsKey("test2", serializer);
+        assertTrue(contains);
+        assertTrue(contains2);
+
+        final boolean addedAgain = client.putIfAbsent("test", "1", serializer, serializer);
+        assertFalse(addedAgain);
+
+        final boolean added4 = client.putIfAbsent("test4", "4", serializer, serializer);
+        assertTrue(added4);
+
+        // ensure that added3 was evicted because it was used least frequently
+        assertFalse(client.containsKey("test3", serializer));
+
+        server.shutdownServer();
+
+        final DistributedMapCacheServer newServer = new MapServer();
+        runner.addControllerService("server2", newServer);
+        runner.setProperty(newServer, DistributedMapCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
+        runner.enableControllerService(newServer);
+        client.close();
+        client = createMapClient(newServer.getPort());
+
+        assertTrue(client.containsKey("test", serializer));
+        assertTrue(client.containsKey("test2", serializer));
+        assertFalse(client.containsKey("test3", serializer));
+        assertTrue(client.containsKey("test4", serializer));
+
+        // Test removeByPattern, the first two should be removed and the last should remain
+        client.put("test.1", "1", serializer, serializer);
+        client.put("test.2", "2", serializer, serializer);
+        client.put("test3", "2", serializer, serializer);
+        final long removedTwo = client.removeByPattern("test\\..*");
+        assertEquals(2L, removedTwo);
+        assertFalse(client.containsKey("test.1", serializer));
+        assertFalse(client.containsKey("test.2", serializer));
+        assertTrue(client.containsKey("test3", serializer));
+
+        newServer.shutdownServer();
+        client.close();
+    }
+
+    @Test
     public void testPersistentSetServerAndClientWithFIFOEvictions() throws InitializationException, IOException {
         /**
          * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
          * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -317,7 +393,7 @@ public class TestServerAndClient {
          * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
 
@@ -361,6 +437,16 @@ public class TestServerAndClient {
         assertTrue(removed);
         LOGGER.debug("end remove");
 
+        // Test removeByPattern, the first two should be removed and the last should remain
+        client.put("test.1", "1", keySerializer, keySerializer);
+        client.put("test.2", "2", keySerializer, keySerializer);
+        client.put("test3", "2", keySerializer, keySerializer);
+        final long removedTwo = client.removeByPattern("test\\..*");
+        assertEquals(2L, removedTwo);
+        assertFalse(client.containsKey("test.1", keySerializer));
+        assertFalse(client.containsKey("test.2", keySerializer));
+        assertTrue(client.containsKey("test3", keySerializer));
+
         final boolean containedAfterRemove = client.containsKey("testKey", keySerializer);
         assertFalse(containedAfterRemove);
 
@@ -372,9 +458,6 @@ public class TestServerAndClient {
         } catch (final Exception e) {
 
         }
-        client = null;
-        clientInitContext = null;
-        clientContext = null;
 
         DistributedMapCacheClientService client2 = new DistributedMapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
@@ -400,12 +483,12 @@ public class TestServerAndClient {
 
     @Test
     public void testClientTermination() throws InitializationException, IOException, InterruptedException {
-
         /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug See: https://issues.apache.org/jira/browse/NIFI-437
+         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
+         * See:  https://issues.apache.org/jira/browse/NIFI-437
          */
-        Assume.assumeFalse("testClientTermination is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
-            SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+        Assume.assumeFalse("test is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
 
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
@@ -458,7 +541,6 @@ public class TestServerAndClient {
 
     @Test
     public void testOptimisticLock() throws Exception {
-
         /**
          * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
          * See:  https://issues.apache.org/jira/browse/NIFI-437
@@ -540,7 +622,6 @@ public class TestServerAndClient {
 
     @Test
     public void testBackwardCompatibility() throws Exception {
-
         /**
          * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
          * See:  https://issues.apache.org/jira/browse/NIFI-437
@@ -624,6 +705,20 @@ public class TestServerAndClient {
         clientProperties.put(DistributedSetCacheClientService.PORT, String.valueOf(port));
         final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
         client.onConfigured(clientContext);
+
+        return client;
+    }
+
+    private DistributedMapCacheClientService createMapClient(final int port) throws InitializationException {
+        final DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
+        client.initialize(clientInitContext);
+
+        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        client.cacheConfig(clientContext);
 
         return client;
     }

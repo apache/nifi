@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.NiFiProperties;
@@ -46,6 +47,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -146,10 +148,18 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
 
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName) throws Exception {
         // get the classloader for the specified authorizer
-        final ClassLoader authorizerClassLoader = ExtensionManager.getClassLoader(authorizerClassName);
-        if (authorizerClassLoader == null) {
+        final List<Bundle> authorizerBundles = ExtensionManager.getBundles(authorizerClassName);
+
+        if (authorizerBundles.size() == 0) {
             throw new Exception(String.format("The specified authorizer class '%s' is not known to this nifi.", authorizerClassName));
         }
+
+        if (authorizerBundles.size() > 1) {
+            throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
+        }
+
+        final Bundle authorizerBundle = authorizerBundles.get(0);
+        final ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();

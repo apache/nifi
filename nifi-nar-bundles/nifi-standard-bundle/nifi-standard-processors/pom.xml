@@ -168,6 +168,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -186,7 +187,7 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>de.svenkubiak</groupId>
-            <artifactId>jBcrypt</artifactId>
+            <artifactId>jBCrypt</artifactId>
             <version>0.4.1</version>
         </dependency>
         <dependency>
@@ -230,6 +231,12 @@ language governing permissions and limitations under the License. -->
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockftpserver</groupId>
+            <artifactId>MockFtpServer</artifactId>
+            <version>2.7.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>jolt-core</artifactId>
             <version>0.1.0</version>
@@ -252,7 +259,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>ParCEFone</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -280,6 +287,7 @@ language governing permissions and limitations under the License. -->
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/randombytes-1</exclude>
                         <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>

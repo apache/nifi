@@ -39,6 +39,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.LinkedHashSet;
@@ -168,6 +169,7 @@ public interface SiteToSiteClient extends Closeable {
         private int batchCount;
         private long batchSize;
         private long batchNanos;
+        private InetAddress localAddress;
         private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
         private HttpProxy httpProxy;
 
@@ -198,6 +200,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = config.getPreferredBatchCount();
             this.batchSize = config.getPreferredBatchSize();
             this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            this.localAddress = config.getLocalAddress();
             this.httpProxy = config.getHttpProxy();
 
             return this;
@@ -223,12 +226,31 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
-         * <p>Specifies the URLs of the remote NiFi instance.</p>
-         * <p>If this URL points to a NiFi node in a NiFi cluster, data transfer to and from
-         * nodes will be automatically load balanced across the different nodes.</p>
+         * <p>
+         * Specifies the local address to use when communicating with the remote NiFi instance.
+         * </p>
          *
-         * <p>Multiple urls provide better connectivity with a NiFi cluster, able to connect
-         * to the target cluster at long as one of the specified urls is accessible.</p>
+         * @param localAddress the local address to use, or <code>null</code> to use <code>anyLocal</code> address.
+         * @return the builder
+         */
+        public Builder localAddress(final InetAddress localAddress) {
+            this.localAddress = localAddress;
+            return this;
+        }
+
+        /**
+         * <p>
+         * Specifies the URLs of the remote NiFi instance.
+         * </p>
+         * <p>
+         * If this URL points to a NiFi node in a NiFi cluster, data transfer to and from
+         * nodes will be automatically load balanced across the different nodes.
+         * </p>
+         *
+         * <p>
+         * Multiple urls provide better connectivity with a NiFi cluster, able to connect
+         * to the target cluster at long as one of the specified urls is accessible.
+         * </p>
          *
          * @param urls urls of remote instance
          * @return the builder
@@ -717,6 +739,7 @@ public interface SiteToSiteClient extends Closeable {
         private final long batchSize;
         private final long batchNanos;
         private final HttpProxy httpProxy;
+        private final InetAddress localAddress;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
@@ -740,6 +763,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchNanos = 0;
             this.transportProtocol = null;
             this.httpProxy = null;
+            this.localAddress = null;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -766,6 +790,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchNanos = builder.batchNanos;
             this.transportProtocol = builder.getTransportProtocol();
             this.httpProxy = builder.getHttpProxy();
+            this.localAddress = builder.localAddress;
         }
 
         @Override
@@ -930,6 +955,11 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public HttpProxy getHttpProxy() {
             return httpProxy;
+        }
+
+        @Override
+        public InetAddress getLocalAddress() {
+            return localAddress;
         }
     }
 }

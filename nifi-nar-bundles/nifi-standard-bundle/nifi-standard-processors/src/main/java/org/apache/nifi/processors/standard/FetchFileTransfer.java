@@ -239,9 +239,9 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     StreamUtils.copy(in, out);
+                    transfer.flush();
                 }
             });
-            transfer.flush();
             transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
         } catch (final FileNotFoundException e) {
             getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
@@ -255,14 +255,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
             session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
             return;
-        } catch (final IOException e) {
+        } catch (final ProcessException | IOException e) {
             try {
                 transfer.close();
             } catch (final IOException e1) {
                 getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[] {host, port, e.toString()}, e);
             }
 
-            getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to failure",
+            getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
                 new Object[] {flowFile, filename, host, port, e.toString()}, e);
             session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
             return;

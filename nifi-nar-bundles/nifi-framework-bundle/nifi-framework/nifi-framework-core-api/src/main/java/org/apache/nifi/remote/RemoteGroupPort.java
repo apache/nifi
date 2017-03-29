@@ -33,6 +33,7 @@ public abstract class RemoteGroupPort extends AbstractPort implements Port, Remo
 
     public abstract TransferDirection getTransferDirection();
 
+    @Override
     public abstract boolean isUseCompression();
 
     public abstract void setUseCompression(boolean useCompression);

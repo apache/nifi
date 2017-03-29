@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -39,6 +40,7 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -175,16 +177,20 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     static {
         // Load the DatabaseAdapters
+        ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
         ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
-        dbAdapterLoader.forEach(it -> dbAdapters.put(it.getName(), it));
+        dbAdapterLoader.forEach(it -> {
+            dbAdapters.put(it.getName(), it);
+            dbAdapterValues.add(new AllowableValue(it.getName(),it.getName(), it.getDescription()));
+        });
 
         DB_TYPE = new PropertyDescriptor.Builder()
                 .name("db-fetch-db-type")
                 .displayName("Database Type")
                 .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
                         + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-                .allowableValues(dbAdapters.keySet())
-                .defaultValue(dbAdapters.values().stream().findFirst().get().getName())
+                .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
+                .defaultValue("Generic")
                 .required(true)
                 .build();
     }

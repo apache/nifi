@@ -61,6 +61,12 @@ div.reporting-task-enabled-container {
     margin-left: 10px;
 }
 
+#reporting-task-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 input.reporting-task-scheduling-period {
     width: 150px;
 }

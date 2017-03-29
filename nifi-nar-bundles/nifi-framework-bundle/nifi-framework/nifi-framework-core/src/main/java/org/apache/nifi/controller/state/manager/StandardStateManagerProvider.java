@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,6 +30,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -44,7 +46,9 @@ import org.apache.nifi.controller.state.StandardStateProviderInitializationConte
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
 import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -183,7 +187,8 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         }
 
         final SSLContext sslContext = SslContextFactory.createSslContext(properties, false);
-        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext);
+        final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
+        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
 
         synchronized (provider) {
             provider.initialize(initContext);
@@ -213,15 +218,17 @@ public class StandardStateManagerProvider implements StateManagerProvider{
     private static StateProvider instantiateStateProvider(final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(type);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type));
+            final List<Bundle> bundles = ExtensionManager.getBundles(type);
+            if (bundles.size() == 0) {
+                throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
+            if (bundles.size() > 1) {
+                throw new IllegalStateException(String.format("Multiple bundles found for the specified class '%s', only one is allowed.", type));
+            }
+
+            final Bundle bundle = bundles.get(0);
+            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
+            final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForType);
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);

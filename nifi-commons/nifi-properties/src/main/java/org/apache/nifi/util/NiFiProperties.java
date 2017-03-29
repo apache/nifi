@@ -24,12 +24,9 @@ import java.net.InetSocketAddress;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +55,6 @@ public abstract class NiFiProperties {
     public static final String LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "nifi.login.identity.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
     public static final String RESTORE_DIRECTORY = "nifi.restore.directory";
-    public static final String VERSION = "nifi.version";
     public static final String WRITE_DELAY_INTERVAL = "nifi.flowservice.writedelay.interval";
     public static final String AUTO_RESUME_STATE = "nifi.flowcontroller.autoResumeState";
     public static final String FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.period";
@@ -141,8 +137,6 @@ public abstract class NiFiProperties {
     public static final String SECURITY_NEED_CLIENT_AUTH = "nifi.security.needClientAuth";
     public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
-    public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_PORT = "nifi.security.cluster.authority.provider.port";
-    public static final String SECURITY_CLUSTER_AUTHORITY_PROVIDER_THREADS = "nifi.security.cluster.authority.provider.threads";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
     public static final String SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX = "nifi.security.identity.mapping.pattern.";
@@ -204,18 +198,10 @@ public abstract class NiFiProperties {
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
-    // build info
-    public static final String BUILD_TAG = "nifi.build.tag";
-    public static final String BUILD_BRANCH = "nifi.build.branch";
-    public static final String BUILD_REVISION = "nifi.build.revision";
-    public static final String BUILD_TIMESTAMP = "nifi.build.timestamp";
-
     // defaults
-    public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
     public static final String DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "conf/login-identity-providers.xml";
-    public static final String DEFAULT_USER_CREDENTIAL_CACHE_DURATION = "24 hours";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
     public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
     public static final int DEFAULT_WEB_THREADS = 200;
@@ -612,14 +598,6 @@ public abstract class NiFiProperties {
     }
 
     // getters for ui properties //
-    /**
-     * Get the title for the UI.
-     *
-     * @return The UI title
-     */
-    public String getUiTitle() {
-        return this.getProperty(VERSION, DEFAULT_TITLE);
-    }
 
     /**
      * Get the banner text.
@@ -1005,21 +983,6 @@ public abstract class NiFiProperties {
             return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
         } else {
             return new Path[]{};
-        }
-    }
-
-    public Date getBuildTimestamp() {
-        String buildTimestampString = getProperty(NiFiProperties.BUILD_TIMESTAMP);
-        if (!StringUtils.isEmpty(buildTimestampString)) {
-            try {
-                SimpleDateFormat buildTimestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                Date buildTimestampDate = buildTimestampFormat.parse(buildTimestampString);
-                return buildTimestampDate;
-            } catch (ParseException parseEx) {
-                return null;
-            }
-        } else {
-            return null;
         }
     }
 

@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,7 @@ public class PersistentMapCache implements MapCache {
                 records.add(new MapWaliRecord(UpdateType.DELETE, evicted.getKey(), evicted.getValue()));
             }
 
-            wali.update(Collections.singletonList(record), false);
+            wali.update(records, false);
 
             final long modCount = modifications.getAndIncrement();
             if ( modCount > 0 && modCount % 100000 == 0 ) {
@@ -123,6 +122,25 @@ public class PersistentMapCache implements MapCache {
             final long modCount = modifications.getAndIncrement();
             if (modCount > 0 && modCount % 1000 == 0) {
                 wali.checkpoint();
+            }
+        }
+        return removeResult;
+    }
+
+    @Override
+    public Map<ByteBuffer, ByteBuffer> removeByPattern(final String regex) throws IOException {
+        final Map<ByteBuffer, ByteBuffer> removeResult = wrapped.removeByPattern(regex);
+        if (removeResult != null) {
+            final List<MapWaliRecord> records = new ArrayList<>(removeResult.size());
+            for(Map.Entry<ByteBuffer, ByteBuffer> entry : removeResult.entrySet()) {
+                final MapWaliRecord record = new MapWaliRecord(UpdateType.DELETE, entry.getKey(), entry.getValue());
+                records.add(record);
+                wali.update(records, false);
+
+                final long modCount = modifications.getAndIncrement();
+                if (modCount > 0 && modCount % 1000 == 0) {
+                    wali.checkpoint();
+                }
             }
         }
         return removeResult;

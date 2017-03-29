@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.documentation;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,15 +35,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.Set;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class DocGeneratorTest {
 
@@ -44,15 +47,19 @@ public class DocGeneratorTest {
                 NiFiProperties.COMPONENT_DOCS_DIRECTORY,
                 temporaryFolder.getRoot().getAbsolutePath());
 
-        NarUnpacker.unpackNars(properties);
+        final Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
-        DocGenerator.generate(properties);
+        DocGenerator.generate(properties, mapping);
 
-        File processorDirectory = new File(temporaryFolder.getRoot(), "org.apache.nifi.processors.WriteResourceToStream");
+        final String extensionClassName = "org.apache.nifi.processors.WriteResourceToStream";
+        final BundleCoordinate coordinate = mapping.getProcessorNames().get(extensionClassName).stream().findFirst().get();
+        final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+        File processorDirectory = new File(temporaryFolder.getRoot(), path);
         File indexHtml = new File(processorDirectory, "index.html");
         Assert.assertTrue(indexHtml + " should have been generated", indexHtml.exists());
         String generatedHtml = FileUtils.readFileToString(indexHtml);

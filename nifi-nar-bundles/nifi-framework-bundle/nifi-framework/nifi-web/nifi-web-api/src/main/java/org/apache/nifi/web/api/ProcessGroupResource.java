@@ -32,17 +32,22 @@ import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
-import org.apache.nifi.authorization.TemplateAuthorizable;
+import org.apache.nifi.authorization.TemplateContentsAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -652,17 +657,25 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestProcessor.getType());
-                    if (authorizable.isRestricted()) {
-                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
-                    }
+                    ConfigurableComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getProcessorByType(requestProcessor.getType(), requestProcessor.getBundle());
 
-                    final ProcessorConfigDTO config = requestProcessor.getConfig();
-                    if (config != null && config.getProperties() != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+                        if (authorizable.isRestricted()) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        }
+
+                        final ProcessorConfigDTO config = requestProcessor.getConfig();
+                        if (config != null && config.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateProcessor(requestProcessor),
                 processorEntity -> {
                     final ProcessorDTO processor = processorEntity.getComponent();
 
@@ -1835,6 +1848,33 @@ public class ProcessGroupResource extends ApplicationResource {
     // -----------------
 
     /**
+     * Discovers the compatible bundle details for the components in the specified snippet.
+     *
+     * @param snippet the snippet
+     */
+    private void discoverCompatibleBundles(final FlowSnippetDTO snippet) {
+        if (snippet.getProcessors() != null) {
+            snippet.getProcessors().forEach(processor -> {
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(processor.getType(), processor.getBundle());
+                processor.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+            });
+        }
+
+        if (snippet.getControllerServices() != null) {
+            snippet.getControllerServices().forEach(controllerService -> {
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerService.getType(), controllerService.getBundle());
+                controllerService.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+            });
+        }
+
+        if (snippet.getProcessGroups() != null) {
+            snippet.getProcessGroups().forEach(processGroup -> {
+                discoverCompatibleBundles(processGroup.getContents());
+            });
+        }
+    }
+
+    /**
      * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
      * corresponding URI. Instead the request URI is returned.
      * <p>
@@ -1881,7 +1921,43 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // ensure the position has been specified
         if (requestInstantiateTemplateRequestEntity == null || requestInstantiateTemplateRequestEntity.getOriginX() == null || requestInstantiateTemplateRequestEntity.getOriginY() == null) {
-            throw new IllegalArgumentException("The  origin position (x, y) must be specified");
+            throw new IllegalArgumentException("The origin position (x, y) must be specified.");
+        }
+
+        // ensure the template id was provided
+        if (requestInstantiateTemplateRequestEntity.getTemplateId() == null) {
+            throw new IllegalArgumentException("The template id must be specified.");
+        }
+
+        // ensure the template encoding version is valid
+        if (requestInstantiateTemplateRequestEntity.getEncodingVersion() != null) {
+            try {
+                FlowEncodingVersion.parse(requestInstantiateTemplateRequestEntity.getEncodingVersion());
+            } catch (final IllegalArgumentException e) {
+                throw new IllegalArgumentException("The template encoding version is not valid. The expected format is <number>.<number>");
+            }
+        }
+
+        // populate the encoding version if necessary
+        if (requestInstantiateTemplateRequestEntity.getEncodingVersion() == null) {
+            // if the encoding version is not specified, use the latest encoding version as these options were
+            // not available pre 1.x, will be overridden if populating from the underlying template below
+            requestInstantiateTemplateRequestEntity.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
+        }
+
+        // populate the component bundles if necessary
+        if (requestInstantiateTemplateRequestEntity.getSnippet() == null) {
+            // get the desired template in order to determine the supported bundles
+            final TemplateDTO requestedTemplate = serviceFacade.exportTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
+            final FlowSnippetDTO requestTemplateContents = requestedTemplate.getSnippet();
+
+            // determine the compatible bundles to use for each component in this template, this ensures the nodes in the cluster
+            // instantiate the components from the same bundles
+            discoverCompatibleBundles(requestTemplateContents);
+
+            // update the requested template as necessary - use the encoding version from the underlying template
+            requestInstantiateTemplateRequestEntity.setEncodingVersion(requestedTemplate.getEncodingVersion());
+            requestInstantiateTemplateRequestEntity.setSnippet(requestTemplateContents);
         }
 
         if (isReplicateRequest()) {
@@ -1898,9 +1974,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
+                    final Authorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
+                    template.authorize(authorizer, RequestAction.READ, user);
+
                     // ensure read on the template
-                    final TemplateAuthorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
-                    template.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
+                    final TemplateContentsAuthorizable templateContents = lookup.getTemplateContents(requestInstantiateTemplateRequestEntity.getSnippet());
 
                     // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
                     final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
@@ -1911,14 +1989,14 @@ public class ProcessGroupResource extends ApplicationResource {
                     };
 
                     // ensure restricted access if necessary
-                    template.getEncapsulatedProcessors().forEach(authorizeRestricted);
-                    template.getEncapsulatedControllerServices().forEach(authorizeRestricted);
+                    templateContents.getEncapsulatedProcessors().forEach(authorizeRestricted);
+                    templateContents.getEncapsulatedControllerServices().forEach(authorizeRestricted);
                 },
-                null,
+                () -> serviceFacade.verifyComponentTypes(requestInstantiateTemplateRequestEntity.getSnippet()),
                 instantiateTemplateRequestEntity -> {
                     // create the template and generate the json
-                    final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(),
-                            instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId(), getIdGenerationSeed().orElse(null));
+                    final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
+                            instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
 
                     final FlowDTO flowSnippet = entity.getFlow();
 
@@ -2161,10 +2239,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> {
-                    serviceFacade.verifyCanAddTemplate(groupId, requestTemplateEntity.getTemplate().getName());
-                    serviceFacade.verifyComponentTypes(requestTemplateEntity.getTemplate().getSnippet());
-                },
+                () -> serviceFacade.verifyCanAddTemplate(groupId, requestTemplateEntity.getTemplate().getName()),
                 templateEntity -> {
                     try {
                         // import the template
@@ -2272,16 +2347,24 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
-                    if (authorizable.isRestricted()) {
-                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
-                    }
+                    ConfigurableComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getControllerServiceByType(requestControllerService.getType(), requestControllerService.getBundle());
 
-                    if (requestControllerService.getProperties() != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                        if (authorizable.isRestricted()) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        }
+
+                        if (requestControllerService.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateControllerService(requestControllerService),
                 controllerServiceEntity -> {
                     final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
 

@@ -74,7 +74,8 @@ public class HiveConfigurator {
 
     public void preload(Configuration configuration) {
         try {
-            FileSystem.get(configuration);
+            FileSystem.get(configuration).close();
+            UserGroupInformation.setConfiguration(configuration);
         } catch (IOException ioe) {
             // Suppress exception as future uses of this configuration will fail
         }

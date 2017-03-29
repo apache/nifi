@@ -46,6 +46,10 @@
                             <span id="reporting-task-type"></span>
                         </div>
                     </div>
+                    <div class="setting">
+                        <div class="setting-name">Bundle</div>
+                        <div id="reporting-task-bundle" class="setting-field"></div>
+                    </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">

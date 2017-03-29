@@ -27,7 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 
@@ -218,7 +221,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                     // These maybe should used the escaped values, but that would
                     // change the existing non-broken behavior of the processor
                     if (parseFields && (field instanceof Composite) && !isTimestamp(field)) {
-                        for (final Map.Entry<String, Type> componentEntry : getAllComponents(fieldKey, field).entrySet()) {
+                        for (final Map.Entry<String, Type> componentEntry : getAllComponents(fieldKey, field, useNames).entrySet()) {
                             final String componentKey = componentEntry.getKey();
                             final Type component = componentEntry.getValue();
                             final String componentValue = HL7_ESCAPING.unescape(component.encode(), HL7_ENCODING);
@@ -298,25 +301,50 @@ public class ExtractHL7Attributes extends AbstractProcessor {
         return fields;
     }
 
-    private static Map<String, Type> getAllComponents(final String fieldKey, final Type field) throws HL7Exception {
+    private static Map<String, Type> getAllComponents(final String fieldKey, final Type field, final boolean useNames) throws HL7Exception {
         final Map<String, Type> components = new TreeMap<>();
         if (!isEmpty(field) && (field instanceof Composite)) {
-            final Type[] types = ((Composite) field).getComponents();
-            for (int i = 0; i < types.length; i++) {
-                final Type type = types[i];
-                if (!isEmpty(type)) {
-                    String fieldName = field.getName();
-                    if (fieldName.equals("CM_MSG")) {
-                        fieldName = "CM";
+            if (useNames) {
+                final Pattern p = Pattern.compile("^(cm_msg|[a-z][a-z][a-z]?)([0-9]+)_(\\w+)$");
+                try {
+                    final java.beans.PropertyDescriptor[] properties = PropertyUtils.getPropertyDescriptors(field);
+                    for (final java.beans.PropertyDescriptor property : properties) {
+                        final String propertyName = property.getName();
+                        final Matcher matcher = p.matcher(propertyName);
+                        if (matcher.find()) {
+                            final Type type = (Type) PropertyUtils.getProperty(field, propertyName);
+                            if (!isEmpty(type)) {
+                                final String componentName = matcher.group(3);
+                                final String typeKey = new StringBuilder()
+                                    .append(fieldKey)
+                                    .append(".")
+                                    .append(componentName)
+                                    .toString();
+                                components.put(typeKey, type);
+                            }
+                        }
                     }
-                    final String typeKey = new StringBuilder()
-                        .append(fieldKey)
-                        .append(".")
-                        .append(fieldName)
-                        .append(".")
-                        .append(i+1)
-                        .toString();
-                    components.put(typeKey, type);
+                } catch (Exception e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                }
+            } else {
+                final Type[] types = ((Composite) field).getComponents();
+                for (int i = 0; i < types.length; i++) {
+                    final Type type = types[i];
+                    if (!isEmpty(type)) {
+                        String fieldName = field.getName();
+                        if (fieldName.equals("CM_MSG")) {
+                            fieldName = "CM";
+                        }
+                        final String typeKey = new StringBuilder()
+                            .append(fieldKey)
+                            .append(".")
+                            .append(fieldName)
+                            .append(".")
+                            .append(i+1)
+                            .toString();
+                        components.put(typeKey, type);
+                    }
                 }
             }
         }

@@ -18,6 +18,9 @@ package org.apache.nifi.cluster.protocol;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
@@ -34,6 +37,7 @@ public class StandardDataFlow implements Serializable, DataFlow {
     private final byte[] flow;
     private final byte[] snippetBytes;
     private final byte[] authorizerFingerprint;
+    private final Set<String> missingComponentIds;
 
     /**
      * Constructs an instance.
@@ -41,22 +45,27 @@ public class StandardDataFlow implements Serializable, DataFlow {
      * @param flow a valid flow as bytes, which cannot be null
      * @param snippetBytes an XML representation of snippets.  May be null.
      * @param authorizerFingerprint the bytes of the Authorizer's fingerprint. May be null when using an external Authorizer.
+     * @param missingComponentIds the ids of components that were created as missing ghost components
      *
      * @throws NullPointerException if flow is null
      */
-    public StandardDataFlow(final byte[] flow, final byte[] snippetBytes, final byte[] authorizerFingerprint) {
+    public StandardDataFlow(final byte[] flow, final byte[] snippetBytes, final byte[] authorizerFingerprint, final Set<String> missingComponentIds) {
         if(flow == null){
             throw new NullPointerException("Flow cannot be null");
         }
         this.flow = flow;
         this.snippetBytes = snippetBytes;
         this.authorizerFingerprint = authorizerFingerprint;
+        this.missingComponentIds = Collections.unmodifiableSet(missingComponentIds == null
+                ? new HashSet<>() : new HashSet<>(missingComponentIds));
     }
 
     public StandardDataFlow(final DataFlow toCopy) {
         this.flow = copy(toCopy.getFlow());
         this.snippetBytes = copy(toCopy.getSnippets());
         this.authorizerFingerprint = copy(toCopy.getAuthorizerFingerprint());
+        this.missingComponentIds = Collections.unmodifiableSet(toCopy.getMissingComponents() == null
+                ? new HashSet<>() : new HashSet<>(toCopy.getMissingComponents()));
     }
 
     private static byte[] copy(final byte[] bytes) {
@@ -77,6 +86,11 @@ public class StandardDataFlow implements Serializable, DataFlow {
     @Override
     public byte[] getAuthorizerFingerprint() {
         return authorizerFingerprint;
+    }
+
+    @Override
+    public Set<String> getMissingComponents() {
+        return missingComponentIds;
     }
 
 }

@@ -51,10 +51,11 @@
                 'nf.Label',
                 'nf.Processor',
                 'nf.RemoteProcessGroupPorts',
+                'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -90,6 +91,7 @@
                 require('nf.Label'),
                 require('nf.Processor'),
                 require('nf.RemoteProcessGroupPorts'),
+                require('nf.ComponentVersion'),
                 require('nf.QueueListing'),
                 require('nf.StatusHistory')));
     } else {
@@ -125,10 +127,11 @@
             root.nf.Label,
             root.nf.Processor,
             root.nf.RemoteProcessGroupPorts,
+            root.nf.ComponentVersion,
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -406,18 +409,24 @@
          * @param {selection} selection     The selection
          */
         show: function (selection) {
+            // deselect the current selection
+            var currentlySelected = nfCanvasUtils.getSelection();
+            currentlySelected.classed('selected', false);
+
+            // select only the component/connection in question
+            selection.classed('selected', true);
+
             if (selection.size() === 1) {
-                // deselect the current selection
-                var currentlySelected = nfCanvasUtils.getSelection();
-                currentlySelected.classed('selected', false);
-
-                // select only the component/connection in question
-                selection.classed('selected', true);
                 nfActions.center(selection);
-
-                // inform Angular app that values have changed
-                nfNgBridge.digest();
+            } else {
+                nfNgBridge.injector.get('navigateCtrl').zoomFit();
             }
+
+            // update URL deep linking params
+            nfCanvasUtils.setURLParameters(nfCanvasUtils.getGroupId(), selection);
+
+            // inform Angular app that values have changed
+            nfNgBridge.digest();
         },
 
         /**
@@ -849,7 +858,10 @@
             if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
                 nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                        select: nfCommon.substringAfterLast(selectionData.component.type, '.')
+                        select: selectionData.component.type,
+                        group: selectionData.component.bundle.group,
+                        artifact: selectionData.component.bundle.artifact,
+                        version: selectionData.component.bundle.version
                     }));
             }
         },
@@ -935,14 +947,19 @@
                             }
                         }
 
+                        // update URL deep linking params
+                        nfCanvasUtils.setURLParameters();
+
                         // refresh the birdseye
                         nfBirdseye.refresh();
                         // inform Angular app values have changed
                         nfNgBridge.digest();
                     }).fail(nfErrorHandler.handleAjaxError);
                 } else {
+                    var parentGroupId = nfCanvasUtils.getGroupId();
+
                     // create a snippet for the specified component and link to the data flow
-                    var snippet = nfSnippet.marshal(selection);
+                    var snippet = nfSnippet.marshal(selection, parentGroupId);
                     nfSnippet.create(snippet).done(function (response) {
                         // remove the snippet, effectively removing the components
                         nfSnippet.remove(response.snippet.id).done(function () {
@@ -983,6 +1000,9 @@
                             if (components.has('Connection')) {
                                 nfConnection.remove(components.get('Connection'));
                             }
+
+                            // update URL deep linking params
+                            nfCanvasUtils.setURLParameters();
 
                             // refresh the birdseye
                             nfBirdseye.refresh();
@@ -1211,6 +1231,23 @@
 
             // view the state for the selected processor
             nfComponentState.showState(processor, nfCanvasUtils.isConfigurable(selection));
+        },
+
+        /**
+         * Views the state for the specified processor.
+         *
+         * @param {selection} selection
+         */
+        changeVersion: function (selection) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isProcessor(selection)) {
+                return;
+            }
+
+            // get the processor data
+            var processor = selection.datum();
+
+            // attempt to change the version of the specified component
+            nfComponentVersion.promptForVersionChange(processor);
         },
 
         /**
@@ -1502,7 +1539,8 @@
                         var templateDescription = $('#new-template-description').val();
 
                         // create a snippet
-                        var snippet = nfSnippet.marshal(selection);
+                        var parentGroupId = nfCanvasUtils.getGroupId();
+                        var snippet = nfSnippet.marshal(selection, parentGroupId);
 
                         // create the snippet
                         nfSnippet.create(snippet).done(function (response) {
@@ -1569,8 +1607,9 @@
             var origin = nfCanvasUtils.getOrigin(selection);
 
             // copy the snippet details
+            var parentGroupId = nfCanvasUtils.getGroupId();
             nfClipboard.copy({
-                snippet: nfSnippet.marshal(selection),
+                snippet: nfSnippet.marshal(selection, parentGroupId),
                 origin: origin
             });
         },
@@ -1608,6 +1647,8 @@
                         deferred.reject(xhr.responseText);
                     };
 
+                    var destinationProcessGroupId = nfCanvasUtils.getGroupId();
+
                     // create a snippet from the details
                     nfSnippet.create(data['snippet']).done(function (createResponse) {
                         // determine the origin of the bounding box of the copy
@@ -1622,7 +1663,7 @@
                         }
 
                         // copy the snippet to the new location
-                        nfSnippet.copy(createResponse.snippet.id, origin).done(function (copyResponse) {
+                        nfSnippet.copy(createResponse.snippet.id, origin, destinationProcessGroupId).done(function (copyResponse) {
                             var snippetFlow = copyResponse.flow;
 
                             // update the graph accordingly

@@ -197,16 +197,23 @@ public class TestGenerateTableFetch {
         // Set name as the max value column name (and clear the state), all rows should be returned since the max value for name has not been set
         runner.getStateManager().clear(Scope.CLUSTER);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "name");
+        runner.setProperty(GenerateTableFetch.COLUMN_NAMES, "id, name, scale, created_on");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4); // 7 records with partition size 2 means 4 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE ORDER BY name FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(2);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(3);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
+        assertEquals("id, name, scale, created_on", flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals("name", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
+        assertEquals("2", flowFile.getAttribute("generatetablefetch.limit"));
+        assertEquals("6", flowFile.getAttribute("generatetablefetch.offset"));
 
         runner.clearTransferState();
     }
@@ -415,6 +422,12 @@ public class TestGenerateTableFetch {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
+        assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
+        assertEquals("0", flowFile.getAttribute("generatetablefetch.offset"));
 
         runner.clearTransferState();
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
@@ -428,6 +441,12 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertEquals("id > 1", flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
+        assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
+        assertEquals("0", flowFile.getAttribute("generatetablefetch.offset"));
     }
 
     @Test

@@ -136,6 +136,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         if (!isNumber(statusCodeValue)) {
             session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", new Object[]{flowFile, statusCodeValue});
+            return;
         }
 
         final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
@@ -165,6 +166,11 @@ public class HandleHttpResponse extends AbstractProcessor {
         try {
             session.exportTo(flowFile, response.getOutputStream());
             response.flushBuffer();
+        } catch (final ProcessException e) {
+            session.transfer(flowFile, REL_FAILURE);
+            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            contextMap.complete(contextIdentifier);
+            return;
         } catch (final Exception e) {
             session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});

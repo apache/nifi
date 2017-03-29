@@ -61,4 +61,9 @@ public interface ConfigurableComponentAuthorizable {
      * @return value
      */
     String getValue(PropertyDescriptor propertyDescriptor);
+
+    /**
+     * Cleans up any resources resulting from the creation of these temporary components.
+     */
+    void cleanUpResources();
 }

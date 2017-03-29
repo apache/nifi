@@ -104,8 +104,8 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     }
 
     @Override
-    public boolean isComplete() {
-        return getMergedResponse() != null;
+    public synchronized boolean isComplete() {
+        return failure != null || mergedResponse != null || requestsCompleted.get() >= responseMap.size();
     }
 
     @Override
@@ -125,6 +125,10 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
 
     public synchronized NodeResponse getMergedResponse(final boolean triggerCallback) {
         if (failure != null) {
+            if (completedResultFetchedCallback != null) {
+                completedResultFetchedCallback.run();
+            }
+
             throw failure;
         }
 

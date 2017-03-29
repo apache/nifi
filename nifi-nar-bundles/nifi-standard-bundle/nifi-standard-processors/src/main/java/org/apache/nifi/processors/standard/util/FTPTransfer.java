@@ -74,6 +74,7 @@ public class FTPTransfer implements FileTransfer {
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .required(true)
         .defaultValue("21")
+        .expressionLanguageSupported(true)
         .build();
     public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
         .name("Proxy Type")
@@ -547,7 +548,7 @@ public class FTPTransfer implements FileTransfer {
             client.enterLocalPassiveMode();
         }
 
-        final String transferMode = ctx.getProperty(TRANSFER_MODE).evaluateAttributeExpressions(flowFile).getValue();
+        final String transferMode = ctx.getProperty(TRANSFER_MODE).getValue();
         final int fileType = (transferMode.equalsIgnoreCase(TRANSFER_MODE_ASCII)) ? FTPClient.ASCII_FILE_TYPE : FTPClient.BINARY_FILE_TYPE;
         if (!client.setFileType(fileType)) {
             throw new IOException("Unable to set transfer mode to type " + transferMode);

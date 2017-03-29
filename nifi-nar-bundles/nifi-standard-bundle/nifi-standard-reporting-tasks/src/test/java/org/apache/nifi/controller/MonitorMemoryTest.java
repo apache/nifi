@@ -19,10 +19,13 @@ package org.apache.nifi.controller;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.util.CapturingLogger;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.Tuple;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -32,6 +35,7 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +45,7 @@ import static org.mockito.Mockito.mock;
 public class MonitorMemoryTest {
 
     private FlowController fc;
+    private Bundle systemBundle;
 
     @Before
     public void before() throws Exception {
@@ -49,7 +54,10 @@ public class MonitorMemoryTest {
         addProps.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
         addProps.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
         addProps.put(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
-        fc = this.buildFlowControllerForTest(addProps);
+
+        final Tuple<FlowController, Bundle> tuple = this.buildFlowControllerForTest(addProps);
+        fc = tuple.getKey();
+        systemBundle = tuple.getValue();
     }
 
     @After
@@ -61,7 +69,7 @@ public class MonitorMemoryTest {
 
     @Test(expected = IllegalStateException.class)
     public void validatevalidationKicksInOnWrongPoolNames() throws Exception {
-        ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName());
+        ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName(), systemBundle.getBundleDetails().getCoordinate());
 
         Map<String,String> props = new HashMap<>();
         props.put(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "foo");
@@ -92,7 +100,7 @@ public class MonitorMemoryTest {
 
     public void doValidate(String threshold) throws Exception {
         CapturingLogger capturingLogger = this.wrapAndReturnCapturingLogger();
-        ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName());
+        ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName(), systemBundle.getBundleDetails().getCoordinate());
         reportingTask.setSchedulingPeriod("1 sec");
 
         Map<String,String> props = new HashMap<>();
@@ -136,19 +144,23 @@ public class MonitorMemoryTest {
         return capturingLogger;
     }
 
-    private FlowController buildFlowControllerForTest(final Map<String, String> addProps) throws Exception {
+    private Tuple<FlowController, Bundle> buildFlowControllerForTest(final Map<String, String> addProps) throws Exception {
         addProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         addProps.put("nifi.remote.input.socket.port", "");
         addProps.put("nifi.remote.input.secure", "");
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
-        return FlowController.createStandaloneInstance(
+        // build the system bundle
+        final Bundle bundle = ExtensionManager.createSystemBundle(nifiProperties);
+        ExtensionManager.discoverExtensions(bundle, Collections.emptySet());
+
+        return new Tuple<>(FlowController.createStandaloneInstance(
                 mock(FlowFileEventRepository.class),
                 nifiProperties,
                 mock(Authorizer.class),
                 mock(AuditService.class),
                 null,
                 null,
-                null);
+                null), bundle);
     }
 }

@@ -80,10 +80,19 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
             // merge the validation errors and aggregate the property descriptors, if authorized
             if (nodeProcessor != null) {
                 final NodeIdentifier nodeId = nodeEntry.getKey();
+
+                // merge the validation errors
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeProcessor.getValidationErrors());
+
+                // aggregate the property descriptors
                 nodeProcessor.getConfig().getDescriptors().values().stream().forEach(propertyDescriptor -> {
                     propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
                 });
+
+                // if any node does not support multiple versions (null or false), make it unavailable
+                if (clientDto.getMultipleVersionsAvailable() == null || !Boolean.TRUE.equals(nodeProcessor.getMultipleVersionsAvailable())) {
+                    clientDto.setMultipleVersionsAvailable(Boolean.FALSE);
+                }
             }
         }
 

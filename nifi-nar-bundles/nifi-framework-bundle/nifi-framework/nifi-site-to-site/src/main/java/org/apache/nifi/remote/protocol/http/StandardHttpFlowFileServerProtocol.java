@@ -228,7 +228,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, String remoteInputHost, int remoteInputPort, int remoteInputHttpPort,
+    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, String remoteInputHost, Integer remoteInputPort, Integer remoteInputHttpPort,
                              boolean isSiteToSiteSecure) throws IOException {
     }
 

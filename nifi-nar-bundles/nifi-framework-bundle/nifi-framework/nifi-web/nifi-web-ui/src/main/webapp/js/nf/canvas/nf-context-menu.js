@@ -325,6 +325,28 @@
     };
 
     /**
+     * Determines whether the current selection is a processor with more than one version.
+     *
+     * @param {selection} selection
+     */
+    var canChangeProcessorVersion = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (nfCanvasUtils.canRead(selection) === false || nfCanvasUtils.canModify(selection) === false) {
+            return false;
+        }
+
+        if (nfCanvasUtils.isProcessor(selection)) {
+            var processorData = selection.datum();
+            return processorData.component.multipleVersionsAvailable === true;
+        } else {
+            return false;
+        }
+    };
+
+    /**
      * Determines whether the current selection is a process group.
      *
      * @param {selection} selection
@@ -513,6 +535,7 @@
         {condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'Status History', action: 'showStats'}},
         {condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
         {condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
+        {condition: canChangeProcessorVersion, menuItem: {clazz: 'fa fa-exchange', text: 'Change version', action: 'changeVersion'}},
         {condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
         {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
         {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
@@ -530,8 +553,8 @@
         {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
         {condition: canManagePolicies, menuItem: {clazz: 'fa fa-key', text: 'Access policies', action: 'managePolicies'}},
-        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertical', action: 'alignVertical'}},
-        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}},
+        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertically', action: 'alignVertical'}},
+        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontally', action: 'alignHorizontal'}},
         {condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
         {condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}}
     ];

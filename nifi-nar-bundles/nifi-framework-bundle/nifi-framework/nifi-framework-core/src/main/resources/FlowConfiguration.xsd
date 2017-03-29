@@ -59,6 +59,7 @@
 
             <!-- "class" is the actual Java class that performs the type of processing desired-->
             <xs:element name="class" type="NonEmptyStringType"/>
+            <xs:element name="bundle" type="BundleType" />
 
             <!-- the number of concurrent tasks for this configured
             processor that can be executed at any one time. This value can be 0 
@@ -145,6 +146,7 @@
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     
@@ -169,6 +171,7 @@
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     
@@ -205,6 +208,7 @@
             <xs:element name="proxyPort" type="xs:int" minOccurs="0" maxOccurs="1" />
             <xs:element name="proxyUser" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="proxyPassword" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="networkInterface" type="xs:string" minOccurs="0" maxOccurs="1" />
 
             <!-- The input ports and output ports of the remote group may change without our knowledge; however,
             they are persisted here because on a restart of NiFi, we need to have the Input & Output Ports' IDs
@@ -280,6 +284,14 @@
                 </xs:sequence>
             </xs:extension>
         </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="BundleType">
+        <xs:sequence>
+            <xs:element name="group" type="NonEmptyStringType" />
+            <xs:element name="artifact" type="NonEmptyStringType" />
+            <xs:element name="version" type="NonEmptyStringType" />
+        </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="PositionType">
@@ -364,6 +376,7 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="comment" type="xs:string" />
             <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="bundle" type="BundleType" />
             <xs:element name="enabled" type="xs:boolean" />
     		
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
@@ -383,6 +396,7 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="comment" type="xs:string" />
             <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="bundle" type="BundleType" />
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             <xs:element name="scheduledState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
@@ -391,4 +405,24 @@
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
+
+    <xs:complexType name="TemplateType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" />
+            <xs:element name="groupId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="snippet" type="SnippetType" />
+            <xs:element name="timestamp" type="xs:string" />
+        </xs:sequence>
+        <xs:attribute name="encoding-version" type="xs:string" />
+    </xs:complexType>
+
+    <xs:complexType name="SnippetType">
+        <xs:sequence>
+            <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:anyAttribute processContents="skip" />
+    </xs:complexType>
+
 </xs:schema>

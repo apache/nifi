@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -57,7 +58,7 @@ public class TestJaxbProtocolUtils {
 
         final ConnectionResponseMessage msg = new ConnectionResponseMessage();
         final NodeIdentifier nodeId = new NodeIdentifier("id", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, true);
-        final DataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0]);
+        final DataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>());
         final List<NodeConnectionStatus> nodeStatuses = Collections.singletonList(new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
         final List<ComponentRevision> componentRevisions = Collections.singletonList(ComponentRevision.fromRevision(new Revision(8L, "client-1", "component-1")));
         msg.setConnectionResponse(new ConnectionResponse(nodeId, dataFlow, "instance-1", nodeStatuses, componentRevisions));

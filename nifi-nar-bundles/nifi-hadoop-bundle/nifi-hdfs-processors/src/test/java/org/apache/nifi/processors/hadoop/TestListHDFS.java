@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -484,6 +487,23 @@ public class TestListHDFS {
             verifyNotFail();
             values.remove(key);
             return true;
+        }
+
+        @Override
+        public long removeByPattern(String regex) throws IOException {
+            verifyNotFail();
+            final List<Object> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (Object key : values.keySet()) {
+                // Key must be backed by something that array() returns a byte[] that can be converted into a String via the default charset
+                Matcher m = p.matcher(key.toString());
+                if (m.matches()) {
+                    removedRecords.add(values.get(key));
+                }
+            }
+            final long numRemoved = removedRecords.size();
+            removedRecords.forEach(values::remove);
+            return numRemoved;
         }
     }
 }

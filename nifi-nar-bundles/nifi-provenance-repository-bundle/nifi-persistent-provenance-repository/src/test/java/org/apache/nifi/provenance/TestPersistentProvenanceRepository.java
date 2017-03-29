@@ -1905,13 +1905,6 @@ public class TestPersistentProvenanceRepository {
 
         testRepo.recoverJournalFiles();
 
-        assertEquals("mergeJournals() should report a skipped journal", 1, reportedEvents.size());
-        assertEquals("mergeJournals() should report a skipped journal",
-                "Failed to read Provenance Event Record from Journal due to java.lang.IllegalArgumentException: "
-                        + "No enum constant org.apache.nifi.provenance.ProvenanceEventType.BADTYPE; it's possible "
-                        + "that the record wasn't completely written to the file. This journal will be skipped.",
-                reportedEvents.get(reportedEvents.size() - 1).getMessage());
-
         final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertTrue(checkJournalRecords(storageDir, false) < 10000);
     }
@@ -1937,7 +1930,7 @@ public class TestPersistentProvenanceRepository {
         final ProvenanceEventRecord record = builder.build();
 
         final ExecutorService exec = Executors.newFixedThreadPool(10);
-        final List<Future> futures = new ArrayList<>();
+        final List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < 10000; i++) {
             futures.add(exec.submit(new Runnable() {
                 @Override
@@ -1948,7 +1941,7 @@ public class TestPersistentProvenanceRepository {
         }
 
         // corrupt the first record of the first journal file
-        for (Future future : futures) {
+        for (Future<?> future : futures) {
             while (!future.isDone()) {
                 Thread.sleep(10);
             }
@@ -1957,14 +1950,6 @@ public class TestPersistentProvenanceRepository {
         corruptJournalFile(firstWriter.getFile(), headerSize + 15 + recordSize, "RECEIVE", "BADTYPE");
 
         testRepo.recoverJournalFiles();
-
-        assertEquals("mergeJournals should report a skipped journal", 1, reportedEvents.size());
-        assertEquals("mergeJournals should report a skipped journal",
-                "Failed to read Provenance Event Record from Journal due to java.lang.IllegalArgumentException: "
-                        + "No enum constant org.apache.nifi.provenance.ProvenanceEventType.BADTYPE; it's possible "
-                        + "that the record wasn't completely written to the file. The remainder of this journal will "
-                        + "be skipped.",
-                reportedEvents.get(reportedEvents.size() - 1).getMessage());
 
         final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertTrue(checkJournalRecords(storageDir, false) < 10000);

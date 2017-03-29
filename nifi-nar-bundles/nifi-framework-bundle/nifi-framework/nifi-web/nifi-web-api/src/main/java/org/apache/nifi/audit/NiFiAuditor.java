@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * A NiFi audit service.
@@ -89,6 +90,24 @@ public abstract class NiFiAuditor {
         }
 
         return moveDetails;
+    }
+
+    protected String formatExtensionVersion(final String type, final BundleCoordinate bundle) {
+        final String formattedType;
+        if (BundleCoordinate.DEFAULT_VERSION.equals(bundle.getVersion())) {
+            formattedType = type;
+        } else {
+            formattedType = type + " " + bundle.getVersion();
+        }
+
+        final String formattedBundle;
+        if (BundleCoordinate.DEFAULT_GROUP.equals(bundle.getGroup())) {
+            formattedBundle = bundle.getId();
+        } else {
+            formattedBundle = bundle.getGroup() + " - " + bundle.getId();
+        }
+
+        return String.format("%s from %s", formattedType, formattedBundle);
     }
 
     /* setters / getters */

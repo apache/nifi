@@ -26,16 +26,19 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.logging.ComponentLog;
 
 public class StandardStateProviderInitializationContext implements StateProviderInitializationContext {
     private final String id;
     private final Map<PropertyDescriptor, PropertyValue> properties;
     private final SSLContext sslContext;
+    private final ComponentLog logger;
 
-    public StandardStateProviderInitializationContext(final String identifier, final Map<PropertyDescriptor, PropertyValue> properties, final SSLContext sslContext) {
+    public StandardStateProviderInitializationContext(final String identifier, final Map<PropertyDescriptor, PropertyValue> properties, final SSLContext sslContext, final ComponentLog logger) {
         this.id = identifier;
         this.properties = new HashMap<>(properties);
         this.sslContext = sslContext;
+        this.logger = logger;
     }
 
     @Override
@@ -56,5 +59,10 @@ public class StandardStateProviderInitializationContext implements StateProvider
     @Override
     public SSLContext getSSLContext() {
         return sslContext;
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return logger;
     }
 }

@@ -16,28 +16,30 @@
  */
 package org.apache.nifi.documentation;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.HashSet;
-import java.util.Set;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
-import org.apache.nifi.documentation.init.ControllerServiceInitializer;
-import org.apache.nifi.documentation.init.ProcessorInitializer;
-import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Set;
 
 /**
  * Uses the ExtensionManager to get a list of Processor, ControllerService, and
@@ -54,25 +56,44 @@ public class DocGenerator {
      * NiFiProperties.
      *
      * @param properties to lookup nifi properties
+     * @param extensionMapping extension mapping
      */
-    public static void generate(final NiFiProperties properties) {
-        @SuppressWarnings("rawtypes")
-        final Set<Class> extensionClasses = new HashSet<>();
-        extensionClasses.addAll(ExtensionManager.getExtensions(Processor.class));
-        extensionClasses.addAll(ExtensionManager.getExtensions(ControllerService.class));
-        extensionClasses.addAll(ExtensionManager.getExtensions(ReportingTask.class));
-
+    public static void generate(final NiFiProperties properties, final ExtensionMapping extensionMapping) {
         final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
-        logger.debug("Generating documentation for: " + extensionClasses.size() + " components in: "
-                + explodedNiFiDocsDir);
+        logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
 
+        documentConfigurableComponent(ExtensionManager.getExtensions(Processor.class), explodedNiFiDocsDir);
+        documentConfigurableComponent(ExtensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir);
+        documentConfigurableComponent(ExtensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir);
+    }
+
+    /**
+     * Documents a type of configurable component.
+     *
+     * @param extensionClasses types of a configurable component
+     * @param explodedNiFiDocsDir base directory of component documentation
+     */
+    private static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir) {
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
+                final String extensionClassName = extensionClass.getCanonicalName();
+
+                final Bundle bundle = ExtensionManager.getBundle(extensionClass.getClassLoader());
+                if (bundle == null) {
+                    logger.warn("No coordinate found for {}, skipping...", new Object[] {extensionClassName});
+                    continue;
+                }
+                final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+
+                final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+                final File componentDirectory = new File(explodedNiFiDocsDir, path);
+                componentDirectory.mkdirs();
+
                 final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
                     logger.debug("Documenting: " + componentClass);
-                    document(explodedNiFiDocsDir, componentClass);
+                    document(componentDirectory, componentClass);
                 } catch (Exception e) {
                     logger.warn("Unable to document: " + componentClass, e);
                 }
@@ -85,33 +106,29 @@ public class DocGenerator {
      * check to see if an "additionalDetails.html" file exists and will link
      * that from the generated documentation.
      *
-     * @param docsDir the work\docs\components dir to stick component
-     * documentation in
+     * @param componentDocsDir the component documentation directory
      * @param componentClass the class to document
      * @throws InstantiationException ie
      * @throws IllegalAccessException iae
      * @throws IOException ioe
      * @throws InitializationException ie
      */
-    private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
+    private static void document(final File componentDocsDir, final Class<? extends ConfigurableComponent> componentClass)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
         final ConfigurableComponent component = componentClass.newInstance();
-        final ConfigurableComponentInitializer initializer = getComponentInitializer(componentClass);
+        final ConfigurableComponentInitializer initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(componentClass);
         initializer.initialize(component);
 
         final DocumentationWriter writer = getDocumentWriter(componentClass);
 
-        final File directory = new File(docsDir, componentClass.getCanonicalName());
-        directory.mkdirs();
-
-        final File baseDocumentationFile = new File(directory, "index.html");
+        final File baseDocumentationFile = new File(componentDocsDir, "index.html");
         if (baseDocumentationFile.exists()) {
             logger.warn(baseDocumentationFile + " already exists, overwriting!");
         }
 
         try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
-            writer.write(component, output, hasAdditionalInfo(directory));
+            writer.write(component, output, hasAdditionalInfo(componentDocsDir));
         }
 
         initializer.teardown(component);
@@ -132,28 +149,6 @@ public class DocGenerator {
             return new HtmlDocumentationWriter();
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
             return new HtmlDocumentationWriter();
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns a ConfigurableComponentInitializer for the type of component.
-     * Currently Processor, ControllerService and ReportingTask are supported.
-     *
-     * @param componentClass the class that requires a
-     * ConfigurableComponentInitializer
-     * @return a ConfigurableComponentInitializer capable of initializing that
-     * specific type of class
-     */
-    private static ConfigurableComponentInitializer getComponentInitializer(
-            final Class<? extends ConfigurableComponent> componentClass) {
-        if (Processor.class.isAssignableFrom(componentClass)) {
-            return new ProcessorInitializer();
-        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new ControllerServiceInitializer();
-        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new ReportingTaskingInitializer();
         }
 
         return null;

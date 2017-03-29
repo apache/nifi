@@ -97,7 +97,10 @@ public class Notify extends AbstractProcessor {
                 "be evaluated against a FlowFile in order to determine the signal counter delta. " +
                 "Specify how much the counter should increase. " +
                 "For example, if multiple signal events are processed at upstream flow in batch oriented way, " +
-                "the number of events processed can be notified with this property at once.")
+                "the number of events processed can be notified with this property at once. " +
+                "Zero (0) has a special meaning, it clears target count back to 0, which is especially useful when used with Wait " +
+                Wait.RELEASABLE_FLOWFILE_COUNT.getDisplayName() + " = Zero (0) mode, to provide 'open-close-gate' type of flow control. " +
+                "One (1) can open a corresponding Wait processor, and Zero (0) can negate it as if closing a gate.")
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
             .expressionLanguageSupported(true)
@@ -171,7 +174,8 @@ public class Notify extends AbstractProcessor {
 
         int incrementDelta(final String counterName, final int delta) {
             int current = deltas.containsKey(counterName) ? deltas.get(counterName) : 0;
-            int updated = current + delta;
+            // Zero (0) clears count.
+            int updated = delta == 0 ? 0 : current + delta;
             deltas.put(counterName, updated);
             return updated;
         }
