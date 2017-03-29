@@ -154,7 +154,6 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
                 ivAndCipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 1, ivAndCipherBytes.length);
             }
 
-            // TODO: IV is constant for initial testing
             byte[] ivBytes = Arrays.copyOfRange(ivAndCipherBytes, 0, 16);
             IvParameterSpec iv = new IvParameterSpec(ivBytes);
 

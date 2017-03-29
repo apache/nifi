@@ -153,7 +153,13 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     protected RecordWriter createWriter(
             final File file,
             final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
-        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, mockKeyProvider, mockEncryptor, 1)
+        createWriter(file, tocWriter, compressed, uncompressedBlockSize, mockKeyProvider, mockEncryptor)
+    }
+
+    protected RecordWriter createWriter(
+            final File file,
+            final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize, KeyProvider keyProvider, ProvenanceEventEncryptor encryptor) throws IOException {
+        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, keyProvider, encryptor, 1)
     }
 
     @Override
