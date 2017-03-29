@@ -85,7 +85,7 @@ import java.util.stream.IntStream;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
+                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
         @WritesAttribute(attribute = "generatetablefetch.tableName", description = "The name of the database table to be queried."),
         @WritesAttribute(attribute = "generatetablefetch.columnNames", description = "The comma-separated list of column names used in the query."),
         @WritesAttribute(attribute = "generatetablefetch.whereClause", description = "Where clause used in the query to get the expected rows."),
@@ -191,7 +191,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final String indexValue =context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -265,7 +265,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 ResultSet resultSet;
 
                 resultSet = st.executeQuery(selectQuery);
-                String newMaxValue=null;
+                String newMaxValue = null;
                 if (resultSet.next()) {
                     // Total row count is in the first column
                     rowCount = resultSet.getLong(1);
@@ -276,7 +276,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         //Some JDBC drivers consider the columns name and label to be very different things.
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
-                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i))?rsmd.getColumnLabel(i):rsmd.getColumnName(i)).toLowerCase();
+                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
                         String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
@@ -292,7 +292,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             columnTypeMap.put(fullyQualifiedStateKey, type);
                         }
                         try {
-                             newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
+                            newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
                             }
@@ -321,17 +321,15 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     if (columnNames != null) {
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.columnNames", columnNames);
                     }
-                    if(!"null".equals(indexValue)){
-                        if(Integer.parseInt(newMaxValue)<limit*i)
-                        {
+                    if (!"null".equals(indexValue)) {
+                        if (Integer.parseInt(newMaxValue) < limit * i) {
                             whereClause = indexValue + " >= " + limit * i;
-                        }else{
-                            whereClause = indexValue + " >= " +newMaxValue;
+                        } else {
+                            whereClause = indexValue + " >= " + newMaxValue;
                         }
-                        
+
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
-                    }
-                    else if (StringUtils.isNotBlank(whereClause)) {
+                    } else if (StringUtils.isNotBlank(whereClause)) {
 
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
                     }
@@ -339,7 +337,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.maxColumnNames", maxColumnNames);
                     }
                     sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.limit", String.valueOf(limit));
-                    if (partitionSize != 0&&"null".equals(indexValue)) {
+                    if (partitionSize != 0 && "null".equals(indexValue)) {
 
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.offset", String.valueOf(offset));
                     }
