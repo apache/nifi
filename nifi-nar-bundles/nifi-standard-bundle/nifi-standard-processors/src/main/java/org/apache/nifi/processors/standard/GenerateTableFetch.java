@@ -123,7 +123,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .defaultValue("null")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .build();
 
     public GenerateTableFetch() {
