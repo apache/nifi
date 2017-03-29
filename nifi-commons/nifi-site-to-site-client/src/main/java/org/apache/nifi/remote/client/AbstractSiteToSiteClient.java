@@ -33,7 +33,7 @@ public abstract class AbstractSiteToSiteClient implements SiteToSiteClient {
         siteInfoProvider.setConnectTimeoutMillis(commsTimeout);
         siteInfoProvider.setReadTimeoutMillis(commsTimeout);
         siteInfoProvider.setProxy(config.getHttpProxy());
-
+        siteInfoProvider.setLocalAddress(config.getLocalAddress());
     }
 
     @Override
