@@ -85,7 +85,14 @@ import java.util.stream.IntStream;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message.")
+                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
+        @WritesAttribute(attribute = "generatetablefetch.tableName", description = "The name of the database table to be queried."),
+        @WritesAttribute(attribute = "generatetablefetch.columnNames", description = "The comma-separated list of column names used in the query."),
+        @WritesAttribute(attribute = "generatetablefetch.whereClause", description = "Where clause used in the query to get the expected rows."),
+        @WritesAttribute(attribute = "generatetablefetch.maxColumnNames", description = "The comma-separated list of column names used to keep track of data "
+                + "that has been returned since the processor started running."),
+        @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
+        @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
@@ -105,8 +112,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
-                    + "If no incoming connection(s) are specified, this relationship is unused.")
-            .build();
+                    + "If no incoming connection(s) are specified, this relationship is unused.").build();
 
     public static final PropertyDescriptor AUTO_INCREMENT_KEY = new PropertyDescriptor.Builder()
             .name("gen-table-fetch-partition-index")
@@ -114,9 +120,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .description("The column has AUTO_INCREMENT attribute and index."
                     + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
                     + "The value must start by 1")
-            .required(false)
+            .defaultValue("null")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .required(true)
+            .expressionLanguageSupported(false)
             .build();
 
     public GenerateTableFetch() {
@@ -152,6 +159,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         return super.customValidate(validationContext);
     }
 
+    @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
         // Pre-fetch the column types if using a static table name and max-value columns
@@ -178,12 +186,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
-        String maxValueTmp = null;
+        final String indexValue =context.getProperty(AUTO_INCREMENT_KEY).evaluateAttributeExpressions(fileToProcess).getValue();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -257,7 +265,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 ResultSet resultSet;
 
                 resultSet = st.executeQuery(selectQuery);
-
+                String newMaxValue=null;
                 if (resultSet.next()) {
                     // Total row count is in the first column
                     rowCount = resultSet.getLong(1);
@@ -265,7 +273,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     // Update the state map with the newly-observed maximum values
                     ResultSetMetaData rsmd = resultSet.getMetaData();
                     for (int i = 2; i <= rsmd.getColumnCount(); i++) {
-                        String resultColumnName = rsmd.getColumnName(i).toLowerCase();
+                        //Some JDBC drivers consider the columns name and label to be very different things.
+                        // Since this column has been aliased lets check the label first,
+                        // if there is no label we'll use the column name.
+                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i))?rsmd.getColumnLabel(i):rsmd.getColumnName(i)).toLowerCase();
                         String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
@@ -281,10 +292,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             columnTypeMap.put(fullyQualifiedStateKey, type);
                         }
                         try {
-                            String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
+                             newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
-                                maxValueTmp = newMaxValue;
                             }
                         } catch (ParseException | IOException pie) {
                             // Fail the whole thing here before we start creating flow files and such
@@ -299,35 +309,40 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
-                if (StringUtils.isEmpty(indexValue)) {
-                    // Generate SQL statements to read "pages" of data
-                    for (long i = 0; i < numberOfFetches; i++) {
-                        long limit = partitionSize == 0 ? null : partitionSize;
-                        long offset = partitionSize == 0 ? null : i * partitionSize;
-                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                        session.transfer(sqlFlowFile, REL_SUCCESS);
+                // Generate SQL statements to read "pages" of data
+                for (long i = 0; i < numberOfFetches; i++) {
+                    long limit = partitionSize == 0 ? null : partitionSize;
+                    long offset = partitionSize == 0 ? null : i * partitionSize;
+                    final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset);
+                    FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                    sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.tableName", tableName);
+                    if (columnNames != null) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.columnNames", columnNames);
                     }
-                } else {
-                    for (int i = 0; i < numberOfFetches; i++) {
-                        long limit = partitionSize == 0 ? null : partitionSize;
-                        int maxValue = Integer.parseInt(maxValueTmp);
-                        // to verify
-                        if (limit * i<maxValue) {
+                    if(!"null".equals(indexValue)){
+                        if(Integer.parseInt(newMaxValue)<limit*i)
+                        {
                             whereClause = indexValue + " >= " + limit * i;
-                        } else {
-                            whereClause = indexValue + " >= " + maxValue;
+                        }else{
+                            whereClause = indexValue + " >= " +newMaxValue;
                         }
-
-                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause,
-                                StringUtils.join(maxValueColumnNameList, ", "), limit, null);
-                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                        session.transfer(sqlFlowFile, REL_SUCCESS);
+                        
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
                     }
+                    else if (StringUtils.isNotBlank(whereClause)) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
+                    }
+                    if (StringUtils.isNotBlank(maxColumnNames)) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.maxColumnNames", maxColumnNames);
+                    }
+                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.limit", String.valueOf(limit));
+                    if (partitionSize != 0&&"null".equals(indexValue)) {
+                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.offset", String.valueOf(offset));
+                    }
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
                 }
-
 
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
