@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard.db.impl.mysql.event.io;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.standard.GetChangeDataCaptureMySQL;
+import org.apache.nifi.processors.standard.CaptureChangeMySQL;
 import org.apache.nifi.processors.standard.db.event.ColumnDefinition;
 import org.apache.nifi.processors.standard.db.impl.mysql.event.InsertRowsEventInfo;
 
@@ -58,7 +58,7 @@ public class InsertRowsWriter extends AbstractBinlogTableEventWriter<InsertRowsE
             });
 
             flowFile = session.putAllAttributes(flowFile, getCommonAttributes(seqId.get(), eventInfo));
-            session.transfer(flowFile, GetChangeDataCaptureMySQL.REL_SUCCESS);
+            session.transfer(flowFile, CaptureChangeMySQL.REL_SUCCESS);
             seqId.getAndIncrement();
         }
         return seqId.get();

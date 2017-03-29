@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard.db.impl.mysql.event.io;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.standard.GetChangeDataCaptureMySQL;
+import org.apache.nifi.processors.standard.CaptureChangeMySQL;
 import org.apache.nifi.processors.standard.db.impl.mysql.event.SchemaChangeEventInfo;
 
 /**
@@ -36,7 +36,7 @@ public class SchemaChangeEventWriter extends AbstractBinlogTableEventWriter<Sche
             super.endJson();
         });
         flowFile = session.putAllAttributes(flowFile, getCommonAttributes(currentSequenceId, eventInfo));
-        session.transfer(flowFile, GetChangeDataCaptureMySQL.REL_SUCCESS);
+        session.transfer(flowFile, CaptureChangeMySQL.REL_SUCCESS);
         return currentSequenceId + 1;
     }
 }

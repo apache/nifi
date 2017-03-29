@@ -76,6 +76,7 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.sql.Connection;
@@ -134,7 +135,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "mime.type", description = "The processor outputs flow file content in JSON format, and sets the mime.type attribute to "
                 + "application/json")
 })
-public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
+public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -146,7 +147,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-db-name-pattern")
+            .name("capture-change-mysql-db-name-pattern")
             .displayName("Database/Schema Name Pattern")
             .description("A regular expression (regex) for matching databases or schemas (depending on your RDBMS' terminology) against the list of CDC events. The regex must match "
                     + "the schema name as it is stored in the database. If the property is not set, the schema name will not be used to filter the CDC events.")
@@ -155,7 +156,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor TABLE_NAME_PATTERN = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-name-pattern")
+            .name("capture-change-mysql-name-pattern")
             .displayName("Table Name Pattern")
             .description("A regular expression (regex) for matching CDC events affecting matching tables. The regex must match the table name as it is stored in the database. "
                     + "If the property is not set, no events will be filtered based on table name.")
@@ -164,7 +165,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-max-wait-time")
+            .name("capture-change-mysql-max-wait-time")
             .displayName("Max Wait Time")
             .description("The maximum amount of time allowed for a connection to be established, "
                     + "zero means there is effectively no limit. Max time less than 1 second will be equal to zero.")
@@ -175,7 +176,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor HOSTS = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-hosts")
+            .name("capture-change-mysql-hosts")
             .displayName("MySQL Hosts")
             .description("A list of hostname/port entries corresponding to nodes in a MySQL cluster. The entries should be comma separated "
                     + "using a colon such as host1:port,host2:port,....  For example mysql.myhost.com:3306. This processor will attempt to connect to "
@@ -188,7 +189,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-driver-class")
+            .name("capture-change-mysql-driver-class")
             .displayName("MySQL Driver Class Name")
             .description("The class name of the MySQL database driver class")
             .defaultValue("com.mysql.jdbc.Driver")
@@ -198,7 +199,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-driver-locations")
+            .name("capture-change-mysql-driver-locations")
             .displayName("MySQL Driver Location(s)")
             .description("Comma-separated list of files/folders and/or URLs containing the MySQL driver JAR and its dependencies (if any). "
                     + "For example '/var/tmp/mysql-connector-java-5.1.38-bin.jar'")
@@ -209,7 +210,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-username")
+            .name("capture-change-mysql-username")
             .displayName("Username")
             .description("Username to access the MySQL cluster")
             .required(false)
@@ -218,7 +219,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-password")
+            .name("capture-change-mysql-password")
             .displayName("Password")
             .description("Password to access the MySQL cluster")
             .required(false)
@@ -228,7 +229,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-dist-map-cache-client")
+            .name("capture-change-mysql-dist-map-cache-client")
             .displayName("Distributed Map Cache Client")
             .description("Identifies a Distributed Map Cache Client controller service to be used for keeping information about the various tables, columns, etc. "
                     + "needed by the processor. If a client is not specified, the generated events will not include column type or name information.")
@@ -237,7 +238,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor RETRIEVE_ALL_RECORDS = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-retrieve-all-records")
+            .name("capture-change-mysql-retrieve-all-records")
             .displayName("Retrieve All Records")
             .description("Specifies whether to get all available CDC events, regardless of the current binlog filename and/or position. If this property is set to true, "
                     + "any init.binlog.filename and init.binlog.position dynamic properties are ignored. NOTE: If binlog filename and position values are present in the processor's "
@@ -249,7 +250,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor INIT_SEQUENCE_ID = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-init-seq-id")
+            .name("capture-change-mysql-init-seq-id")
             .displayName("Initial Sequence ID")
             .description("Specifies an initial sequence identifier to use if this processor's State does not have a current "
                     + "sequence identifier. If a sequence identifier is present in the processor's State, this property is ignored. Sequence identifiers are "
@@ -261,7 +262,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor INIT_BINLOG_FILENAME = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-init-binlog-filename")
+            .name("capture-change-mysql-init-binlog-filename")
             .displayName("Initial Binlog Filename")
             .description("Specifies an initial binlog filename to use if this processor's State does not have a current binlog filename. If a filename is present "
                     + "in the processor's State, this property is ignored. This can be used along with Initial Binlog Position to \"skip ahead\" if previous events are not desired. "
@@ -273,7 +274,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor INIT_BINLOG_POSITION = new PropertyDescriptor.Builder()
-            .name("get-cdc-mysql-init-binlog-position")
+            .name("capture-change-mysql-init-binlog-position")
             .displayName("Initial Binlog Position")
             .description("Specifies an initial offset into a binlog (specified by Initial Binlog Filename) to use if this processor's State does not have a current "
                     + "binlog filename. If a filename is present in the processor's State, this property is ignored. This can be used along with Initial Binlog Filename "
@@ -420,7 +421,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
         String seqIdString = stateMap.get(EventWriter.SEQUENCE_ID_KEY);
         if (StringUtils.isEmpty(seqIdString)) {
             // Use Initial Sequence ID property if none is found in state
-            PropertyValue seqIdProp = context.getProperty(GetChangeDataCaptureMySQL.INIT_SEQUENCE_ID);
+            PropertyValue seqIdProp = context.getProperty(INIT_SEQUENCE_ID);
             if (seqIdProp.isSet()) {
                 currentSequenceId.set(seqIdProp.evaluateAttributeExpressions().asInteger());
             }
@@ -430,11 +431,12 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
 
         // Get reference to Distributed Cache if one exists. If it does not, no enrichment (resolution of column names, e.g.) will be performed
         boolean createEnrichmentConnection = false;
-        if (context.getProperty(GetChangeDataCaptureMySQL.DIST_CACHE_CLIENT).isSet()) {
-            cacheClient = context.getProperty(GetChangeDataCaptureMySQL.DIST_CACHE_CLIENT).asControllerService(DistributedMapCacheClient.class);
+        if (context.getProperty(DIST_CACHE_CLIENT).isSet()) {
+            cacheClient = context.getProperty(DIST_CACHE_CLIENT).asControllerService(DistributedMapCacheClient.class);
             createEnrichmentConnection = true;
         } else {
             logger.warn("No Distributed Map Cache Client is specified, so no event enrichment (resolution of column names, e.g.) will be performed.");
+            cacheClient = null;
         }
 
 
@@ -450,7 +452,7 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
                 password = "";
             }
 
-            long connectTimeout = context.getProperty(GetChangeDataCaptureMySQL.CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+            long connectTimeout = context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
             String driverLocation = context.getProperty(DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
             String driverName = context.getProperty(DRIVER_NAME).evaluateAttributeExpressions().getValue();
@@ -482,13 +484,14 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
             outputEvents(currentSession, stateManager, log);
         } catch (IOException ioe) {
             try {
-                // Perform some processor-level "rollback"
+                // Perform some processor-level "rollback", then rollback the session
                 currentBinlogFile = xactBinlogFile == null ? "" : xactBinlogFile;
                 currentBinlogPosition = xactBinlogPosition;
                 currentSequenceId.set(xactSequenceId);
                 inTransaction = false;
                 stop(stateManager);
                 queue.clear();
+                currentSession.rollback();
             } catch (Exception e) {
                 // Not much we can recover from here
             }
@@ -610,13 +613,21 @@ public class GetChangeDataCaptureMySQL extends AbstractSessionFactoryProcessor {
                     if (!skipTable) {
                         TableInfoCacheKey key = new TableInfoCacheKey(this.getIdentifier(), data.getDatabase(), data.getTable(), data.getTableId());
                         if (cacheClient != null) {
-                            currentTable = cacheClient.get(key, cacheKeySerializer, cacheValueDeserializer);
+                            try {
+                                currentTable = cacheClient.get(key, cacheKeySerializer, cacheValueDeserializer);
+                            } catch (ConnectException ce) {
+                                throw new IOException("Could not connect to Distributed Map Cache server to get table information", ce);
+                            }
 
                             if (currentTable == null) {
                                 // We don't have an entry for this table yet, so fetch the info from the database and populate the cache
                                 try {
                                     currentTable = loadTableInfo(key);
-                                    cacheClient.put(key, currentTable, cacheKeySerializer, cacheValueSerializer);
+                                    try {
+                                        cacheClient.put(key, currentTable, cacheKeySerializer, cacheValueSerializer);
+                                    } catch (ConnectException ce) {
+                                        throw new IOException("Could not connect to Distributed Map Cache server to put table information", ce);
+                                    }
                                 } catch (SQLException se) {
                                     // Propagate the error up, so things like rollback and logging/bulletins can be handled
                                     throw new IOException(se.getMessage(), se);
