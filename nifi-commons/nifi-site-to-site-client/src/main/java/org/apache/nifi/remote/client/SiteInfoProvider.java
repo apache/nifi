@@ -17,6 +17,7 @@
 package org.apache.nifi.remote.client;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -48,6 +49,7 @@ public class SiteInfoProvider {
     private Boolean siteToSiteSecure;
     private long remoteRefreshTime;
     private HttpProxy proxy;
+    private InetAddress localAddress;
 
     private final Map<String, String> inputPortMap = new HashMap<>(); // map input port name to identifier
     private final Map<String, String> outputPortMap = new HashMap<>(); // map output port name to identifier
@@ -63,8 +65,6 @@ public class SiteInfoProvider {
         final ControllerDTO controller;
         final URI connectedClusterUrl;
         try (final SiteToSiteRestApiClient apiClient = createSiteToSiteRestApiClient(sslContext, proxy)) {
-            apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
-            apiClient.setReadTimeoutMillis(readTimeoutMillis);
             controller = apiClient.getController(clusterUrls);
             try {
                 connectedClusterUrl = new URI(apiClient.getBaseUrl());
@@ -100,7 +100,11 @@ public class SiteInfoProvider {
     }
 
     protected SiteToSiteRestApiClient createSiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy) {
-        return new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
+        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
+        apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
+        apiClient.setReadTimeoutMillis(readTimeoutMillis);
+        apiClient.setLocalAddress(localAddress);
+        return apiClient;
     }
 
     public boolean isWebInterfaceSecure() {
@@ -270,5 +274,9 @@ public class SiteInfoProvider {
 
     public void setProxy(HttpProxy proxy) {
         this.proxy = proxy;
+    }
+
+    public void setLocalAddress(InetAddress localAddress) {
+        this.localAddress = localAddress;
     }
 }

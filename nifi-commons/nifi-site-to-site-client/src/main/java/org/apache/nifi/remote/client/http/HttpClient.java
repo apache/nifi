@@ -106,6 +106,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
             apiClient.setConnectTimeoutMillis(timeoutMillis);
             apiClient.setReadTimeoutMillis(timeoutMillis);
+            apiClient.setLocalAddress(config.getLocalAddress());
 
             final Collection<PeerDTO> peers = apiClient.getPeers();
             if(peers == null || peers.size() == 0){
@@ -153,6 +154,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             apiClient.setBaseUrl(peer.getUrl());
             apiClient.setConnectTimeoutMillis(timeoutMillis);
             apiClient.setReadTimeoutMillis(timeoutMillis);
+            apiClient.setLocalAddress(config.getLocalAddress());
 
             apiClient.setCompress(config.isUseCompression());
             apiClient.setRequestExpirationMillis(config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS));

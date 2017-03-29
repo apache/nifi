@@ -880,6 +880,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             this.networkInterfaceName = interfaceName;
             if (interfaceName == null) {
+                this.localAddress = null;
                 this.nicValidationResult = null;
             } else {
                 try {
@@ -930,11 +931,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), getEventReporter());
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
-
-        final InetAddress localAddress = getLocalAddress();
-        if (localAddress != null) {
-            apiClient.setLocalAddress(localAddress);
-        }
+        apiClient.setLocalAddress(getLocalAddress());
 
         return apiClient;
     }
