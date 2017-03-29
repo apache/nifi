@@ -20,17 +20,10 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import org.apache.nifi.provenance.schema.EventFieldNames;
@@ -40,6 +33,8 @@ import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
@@ -143,10 +138,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     private byte[] decrypt(byte[] ivAndCipherBytes) throws IOException, EncryptionException {
         String keyId = getKeyId();
-
-        // TODO: Delegate to encryptor with proper error-checking and customization
         try {
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             // TODO: Clean up
             final byte[] SENTINEL = new byte[]{ 0x01};
             // Detect if the first byte is the sentinel and remove it before attempting to decrypt
@@ -161,12 +153,11 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
             byte[] cipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 16, ivAndCipherBytes.length);
 
             SecretKey key = keyProvider.getKey(keyId);
-            cipher.init(Cipher.DECRYPT_MODE, key, iv);
+            Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, false);
 
             byte[] plainBytes = cipher.doFinal(cipherBytes);
             return plainBytes;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException
-                | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException | KeyManagementException e) {
+        } catch (Exception e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);
         }

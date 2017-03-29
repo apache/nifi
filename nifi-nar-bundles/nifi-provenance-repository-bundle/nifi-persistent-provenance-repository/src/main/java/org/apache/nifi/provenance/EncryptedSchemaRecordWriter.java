@@ -170,7 +170,6 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
 
     private byte[] encrypt(byte[] serialized) throws IOException, EncryptionException {
        String keyId = getKeyId();
-        // TODO: Delegate to encryptor with proper error-checking and customization
         try {
             SecretKey key = keyProvider.getKey(keyId);
 
