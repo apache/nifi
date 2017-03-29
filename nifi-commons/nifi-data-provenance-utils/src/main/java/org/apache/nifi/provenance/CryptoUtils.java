@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,7 +81,7 @@ public class CryptoUtils {
      * Returns a List that contains all of the elements of {@code str} split by {@code ","}.
      * Any existing {@code "\,"} that was previously escaped during serialization in one of the list elements will be unescaped to {@code ","}.
      *
-     * @param str      the string to deserialize
+     * @param str the string to deserialize
      * @return the list of delimited elements
      */
     public static List<String> deserializeList(String str) {
@@ -90,7 +92,7 @@ public class CryptoUtils {
      * Returns a List that contains all of the elements of {@code str} split by {@code delimiter}.
      * Any existing {@code delimiter} that was previously escaped during serialization in one of the list elements will be unescaped via {@code Pattern.quote(delimiter)}.
      *
-     * @param str      the string to deserialize
+     * @param str       the string to deserialize
      * @param delimiter the delimiter
      * @return the list of delimited elements
      */
@@ -149,5 +151,13 @@ public class CryptoUtils {
             }
         }
         return str;
+    }
+
+    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        for (byte[] arr : arrays) {
+            boas.write(arr);
+        }
+        return boas.toByteArray();
     }
 }

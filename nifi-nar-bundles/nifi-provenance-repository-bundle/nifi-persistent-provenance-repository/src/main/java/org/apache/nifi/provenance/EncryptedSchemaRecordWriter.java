@@ -180,19 +180,9 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
             byte[] cipherBytes = cipher.doFinal(serialized);
 
             // TODO: Need to serialize and concat encryption details fields (algo, IV, keyId, version) outside of encryption
-
-            byte[] ivAndCipherBytes = new byte[16 + cipherBytes.length];
-            System.arraycopy(ivBytes, 0, ivAndCipherBytes, 0, ivBytes.length);
-            System.arraycopy(cipherBytes, 0, ivAndCipherBytes, 16, cipherBytes.length);
-
-            // TODO: Refactor to use concatByteArrays() for performance
             // Add the sentinel byte of 0x01
-            byte[] sentinelAndAllBytes = new byte[1 + ivAndCipherBytes.length];
             final byte[] SENTINEL = new byte[]{ 0x01};
-            System.arraycopy(SENTINEL, 0, sentinelAndAllBytes, 0, 1);
-            System.arraycopy(ivAndCipherBytes, 0, sentinelAndAllBytes, 1, ivAndCipherBytes.length);
-
-            return sentinelAndAllBytes;
+            return CryptoUtils.concatByteArrays(SENTINEL, ivBytes, cipherBytes);
         } catch (Exception e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);

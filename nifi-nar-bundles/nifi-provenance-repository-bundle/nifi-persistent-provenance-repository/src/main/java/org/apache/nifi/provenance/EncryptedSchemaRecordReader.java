@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
@@ -145,9 +144,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
             if (Arrays.equals(Arrays.copyOfRange(ivAndCipherBytes, 0, 1), SENTINEL)) {
                 ivAndCipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 1, ivAndCipherBytes.length);
             }
-
             byte[] ivBytes = Arrays.copyOfRange(ivAndCipherBytes, 0, 16);
-            IvParameterSpec iv = new IvParameterSpec(ivBytes);
 
             // TODO: Need to deserialize and parse encryption details fields (algo, IV, keyId, version) outside of decryption
             byte[] cipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 16, ivAndCipherBytes.length);
