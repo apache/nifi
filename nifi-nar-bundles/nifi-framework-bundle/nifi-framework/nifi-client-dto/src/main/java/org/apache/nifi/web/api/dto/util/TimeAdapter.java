@@ -17,7 +17,12 @@
 package org.apache.nifi.web.api.dto.util;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -29,18 +34,26 @@ public class TimeAdapter extends XmlAdapter<String, Date> {
 
     public static final String DEFAULT_TIME_FORMAT = "HH:mm:ss z";
 
+    private static final ZoneId ZONE_ID = TimeZone.getDefault().toZoneId();
+
     @Override
     public String marshal(Date date) throws Exception {
-        final SimpleDateFormat formatter = new SimpleDateFormat(DEFAULT_TIME_FORMAT, Locale.US);
-        formatter.setTimeZone(TimeZone.getDefault());
-        return formatter.format(date);
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DEFAULT_TIME_FORMAT, Locale.US);
+        final ZonedDateTime localDateTime = ZonedDateTime.ofInstant(date.toInstant(), ZONE_ID);
+        return formatter.format(localDateTime);
     }
 
     @Override
     public Date unmarshal(String date) throws Exception {
-        final SimpleDateFormat parser = new SimpleDateFormat(DEFAULT_TIME_FORMAT, Locale.US);
-        parser.setTimeZone(TimeZone.getDefault());
-        return parser.parse(date);
+        final LocalDateTime now = LocalDateTime.now();
+        final DateTimeFormatter parser = new DateTimeFormatterBuilder().appendPattern(DEFAULT_TIME_FORMAT)
+                .parseDefaulting(ChronoField.YEAR, now.getYear())
+                .parseDefaulting(ChronoField.MONTH_OF_YEAR, now.getMonthValue())
+                .parseDefaulting(ChronoField.DAY_OF_MONTH, now.getDayOfMonth())
+                .parseDefaulting(ChronoField.MILLI_OF_SECOND, 0)
+                .toFormatter(Locale.US);
+        final LocalDateTime parsedDateTime = LocalDateTime.parse(date, parser);
+        return Date.from(parsedDateTime.toInstant(ZONE_ID.getRules().getOffset(now)));
     }
 
 }
