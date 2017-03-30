@@ -2224,7 +2224,29 @@ public class FlowResource extends ApplicationResource {
                 // ignore as the component may not be a reporting task
             }
 
-            throw new ResourceNotFoundException(String.format("Unable to find component with id '%s'.", componentId));
+            // a component for the specified id could not be found, attempt to authorize based on read to the controller
+            final Map<String, String> userContext;
+            if (!StringUtils.isBlank(user.getClientAddress())) {
+                userContext = new HashMap<>();
+                userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+            } else {
+                userContext = null;
+            }
+
+            final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                    .resource(ResourceFactory.getControllerResource())
+                    .identity(user.getIdentity())
+                    .anonymous(user.isAnonymous())
+                    .accessAttempt(true)
+                    .action(RequestAction.READ)
+                    .userContext(userContext)
+                    .explanationSupplier(() -> String.format("Unable to find component with id '%s' and unable to view the controller.", componentId))
+                    .build();
+
+            final AuthorizationResult result = authorizer.authorize(request);
+            if (!Result.Approved.equals(result.getResult())) {
+                throw new AccessDeniedException(result.getExplanation());
+            }
         });
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
