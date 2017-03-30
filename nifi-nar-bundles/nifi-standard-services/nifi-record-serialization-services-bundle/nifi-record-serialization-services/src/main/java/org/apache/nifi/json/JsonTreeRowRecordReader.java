@@ -19,34 +19,39 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.node.ArrayNode;
 
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
-    private final Map<String, DataType> fieldTypeOverrides;
-    private RecordSchema schema;
+    private final RecordSchema schema;
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
 
-    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final Map<String, DataType> fieldTypeOverrides) throws IOException, MalformedRecordException {
+    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
+        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
         super(in, logger);
-        this.fieldTypeOverrides = fieldTypeOverrides;
+        this.schema = schema;
+
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
     }
+
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema) throws IOException, MalformedRecordException {
@@ -68,48 +73,76 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         return new MapRecord(schema, values);
     }
 
+    protected Object convertField(final JsonNode fieldNode, final String fieldName, final DataType desiredType) throws IOException, MalformedRecordException {
+        if (fieldNode == null || fieldNode.isNull()) {
+            return null;
+        }
+
+        switch (desiredType.getFieldType()) {
+            case BOOLEAN:
+                return DataTypeUtils.toBoolean(getRawNodeValue(fieldNode));
+            case BYTE:
+                return DataTypeUtils.toByte(getRawNodeValue(fieldNode));
+            case CHAR:
+                return DataTypeUtils.toCharacter(getRawNodeValue(fieldNode));
+            case DOUBLE:
+                return DataTypeUtils.toDouble(getRawNodeValue(fieldNode));
+            case FLOAT:
+                return DataTypeUtils.toFloat(getRawNodeValue(fieldNode));
+            case INT:
+                return DataTypeUtils.toInteger(getRawNodeValue(fieldNode));
+            case LONG:
+                return DataTypeUtils.toLong(getRawNodeValue(fieldNode));
+            case SHORT:
+                return DataTypeUtils.toShort(getRawNodeValue(fieldNode));
+            case STRING:
+                return DataTypeUtils.toString(getRawNodeValue(fieldNode), dateFormat, timeFormat, timestampFormat);
+            case DATE:
+                return DataTypeUtils.toDate(getRawNodeValue(fieldNode), dateFormat);
+            case TIME:
+                return DataTypeUtils.toTime(getRawNodeValue(fieldNode), timeFormat);
+            case TIMESTAMP:
+                return DataTypeUtils.toTimestamp(getRawNodeValue(fieldNode), timestampFormat);
+            case ARRAY: {
+                final ArrayNode arrayNode = (ArrayNode) fieldNode;
+                final int numElements = arrayNode.size();
+                final Object[] arrayElements = new Object[numElements];
+                int count = 0;
+                for (final JsonNode node : arrayNode) {
+                    final DataType elementType;
+                    if (desiredType instanceof ArrayDataType) {
+                        elementType = ((ArrayDataType) desiredType).getElementType();
+                    } else {
+                        elementType = determineFieldType(node);
+                    }
+
+                    final Object converted = convertField(node, fieldName, elementType);
+                    arrayElements[count++] = converted;
+                }
+
+                return arrayElements;
+            }
+            case RECORD: {
+                if (fieldNode.isObject()) {
+                    final RecordSchema childSchema;
+                    if (desiredType instanceof RecordDataType) {
+                        childSchema = ((RecordDataType) desiredType).getChildSchema();
+                    } else {
+                        return null;
+                    }
+
+                    return convertJsonNodeToRecord(fieldNode, childSchema);
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
 
     @Override
     public RecordSchema getSchema() {
-        if (schema != null) {
-            return schema;
-        }
-
-        final List<RecordField> recordFields = new ArrayList<>();
-        final Optional<JsonNode> firstNodeOption = getFirstJsonNode();
-
-        if (firstNodeOption.isPresent()) {
-            final Iterator<Map.Entry<String, JsonNode>> itr = firstNodeOption.get().getFields();
-            while (itr.hasNext()) {
-                final Map.Entry<String, JsonNode> entry = itr.next();
-                final String elementName = entry.getKey();
-                final JsonNode node = entry.getValue();
-
-                DataType dataType;
-                final DataType overriddenDataType = fieldTypeOverrides.get(elementName);
-                if (overriddenDataType == null) {
-                    dataType = determineFieldType(node);
-                } else {
-                    dataType = overriddenDataType;
-                }
-
-                recordFields.add(new RecordField(elementName, dataType));
-            }
-        }
-
-        // If there are any overridden field types that we didn't find, add as the last fields.
-        final Set<String> knownFieldNames = recordFields.stream()
-            .map(f -> f.getFieldName())
-            .collect(Collectors.toSet());
-
-        for (final Map.Entry<String, DataType> entry : fieldTypeOverrides.entrySet()) {
-            if (!knownFieldNames.contains(entry.getKey())) {
-                recordFields.add(new RecordField(entry.getKey(), entry.getValue()));
-            }
-        }
-
-        schema = new SimpleRecordSchema(recordFields);
         return schema;
     }
-
 }

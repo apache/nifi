@@ -27,12 +27,14 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -60,14 +62,17 @@ public class TestWriteJsonResult {
                 possibleTypes.add(RecordFieldType.INT.getDataType());
                 possibleTypes.add(RecordFieldType.LONG.getDataType());
 
-                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType(possibleTypes)));
+                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getChoiceDataType(possibleTypes)));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
             }
         }
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final long time = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS").parse("2017/01/01 17:00:00.000").getTime();
+        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+        df.setTimeZone(TimeZone.getTimeZone("gmt"));
+        final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("string", "string");
         valueMap.put("boolean", true);

@@ -17,86 +17,223 @@
     <head>
         <meta charset="utf-8"/>
         <title>JsonTreeReader</title>
-        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <p>
-        	The JsonTreeReader Controller Service, by default, derives the schema for a FlowFile
-        	based on the first JSON Object in the FlowFile. For each field found, the data type
-        	is inferred. However, the type of a field can be overridden by adding a user-defined property to
-        	the Controller Service. The name of the property should be the same as the name of the
-        	JSON field. The value of the property denotes the data type of the corresponding field.
-        	If no JSON field is found with a matching name, then a field will be added to the schema,
-        	and a <code>null</code> value will be used for any record for which the JSON field
-        	is not present. If a field is found with a matching name, but the type is different,
-        	the Controller Service will attempt to coerce the value into the user-defined type. If unable
-        	to do so, an Exception will be thrown.
+        	The JsonTreeReader Controller Service reads a JSON Object and creates a Record object for the entire
+        	JSON Object tree. The Controller Service must be configured with a Schema that describes the structure
+        	of the JSON data. If any field exists in the JSON that is not in the schema, that field will be skipped.
+        	If the schema contains a field for which no JSON field exists, a null value will be used in the Record.
         </p>
         
         <p>
-        	When specifying a data type for a field, the following values are valid:
+        	If the root element of the JSON is a JSON Array, each JSON Object within that array will be treated as
+        	its own separate Record. If the root element is a JSON Object, the JSON will all be treated as a single
+        	Record.
+        </p>
+
+
+		<h2>Schemas and Type Coercion</h2>
+		
+		<p>
+			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+			the schema, that field is omitted from the Record. If the field is found in the schema, the data type of the received data
+			is compared against the data type specified in the schema. If the types match, the value of that field is used as-is. If the
+			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
+			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
+		</p>
+		
+		<p>
+			The following rules apply when attempting to coerce a field value from one data type to another:
+		</p>
+			
+		<ul>
+			<li>Any data type can be coerced into a String type.</li>
+			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+			<li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+			milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+				or "Timestamp Format."</li>
+			<li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+				<code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+				type but not an Integer.</li>
+			<li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+			<li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+				and the rest of the characters are ignored.</li>
+			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
+			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
+				property (Date Format, Time Format, Timestamp Format property).</li>
+		</ul>
+		
+		<p>
+			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+			will be thrown.
+		</p>
+		
+		
+        <h2>Examples</h2>
+        
+        <p>
+        	As an example, consider the following JSON is read:
+        </p>
+<code>
+<pre>
+[{
+    "id": 17,
+    "name": "John",
+    "child": {
+        "id": "1"
+    },
+    "dob": "10-29-1982"
+    "siblings": [
+        { "name": "Jeremy", "id": 4 },
+        { "name": "Julia", "id": 8}
+    ]
+  },
+  {
+    "id": 98,
+    "name": "Jane",
+    "child": {
+        "id": 2
+    },
+    "dob": "08-30-1984"
+    "gender": "F",
+    "siblingIds": [],
+    "siblings": []
+  }]
+</pre>
+</code>
+        
+        <p>
+        	Also, consider that the schema that is configured for this JSON is as follows (assuming that the AvroSchemaRegistry
+        	Controller Service is chosen to denote the Schema:
+        </p>
+
+<code>
+<pre>
+{
+	"namespace": "nifi",
+	"name": "person",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type": "string" },
+		{ "name": "gender", "type": "string" },
+		{ "name": "dob", "type": {
+			"type": "int",
+			"logicalType": "date"
+		}},
+		{ "name": "siblings", "type": {
+			"type": "array",
+			"items": {
+				"type": "record",
+				"fields": [
+					{ "name": "name", "type": "string" }
+				]
+			}
+		}}
+	]
+}
+</pre>
+</code>
+        
+        <p>
+        	Let us also assume that this Controller Service is configured with the "Date Format" property set to "MM-dd-yyyy", as this
+        	matches the date format used for our JSON data. This will result in the JSON creating two separate records, because the root
+        	element is a JSON array with two elements.
         </p>
         
-        <ul>
-        	<li><b>string</b></li>
-        	<li><b>boolean</b></li>
-        	<li><b>byte</b></li>
-        	<li><b>char</b></li>
-        	<li><b>short</b></li>
-        	<li><b>int</b></li>
-        	<li><b>bigint</b></li>
-        	<li><b>long</b></li>
-        	<li><b>float</b></li>
-        	<li><b>double</b></li>
-        	<li><b>date</b> - A date with no time field. By default, the format used is <code>yyyy-MM-dd</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>date:MM/dd/yyyy</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>time</b> - A time with no date field. By default, the format used is <code>HH:mm:ss</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>time:hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>timestamp</b> - A field that represents both a date and time. By default, the format used is
-        		<code>yyyy-MM-dd HH:mm:ss</code>. This can be overridden by adding a colon (:) followed by the desired format. For example:
-        		<code>MM/dd/yyyy hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).</li>
-        	<li><b>object</b> - The value will be returned as a <code>Map&lt;String, Object&gt;</code>. The types of the values in the Map
-        		are always inferred. The type used for the values may not be the same for each record. For example, consider the following
-        		JSON array:
-        			<br /><br />
-        			<code>
-        			[{
-        			    id: 17,
-        			  	name: "John",
-        			    child: {
-        			    	id: "1"
-        			    },
-        			    siblingIds: [4, "8"]
-        			  },
-        			  <br />{
-        			  	id: 98,
-        			    name: "Jane",
-        			    child: {
-        			        id: 2
-        			    },
-        			    siblingIds: []
-        			  }]
-        			</code>
-        			<br /><br />
-        		In this case, the <code>child</code> element would be inferred to be of type <code>object</code>. Since nested types
-        		are inferred on a per-record basis, for the first record, the <code>child</code> field would return a <code>Map</code>
-        		where the value of the <code>id</code> entry is a <code>string</code>. However, for the second record, the <code>child</code>
-        		field would return a <code>Map</code> where the value of the <code>id</code> entry is an <code>int</code>.
-        		<br />
-        		Moreover, the <code>siblingIds</code> of the John will be an <code>array</code> where the first element is an <code>int</code>
-        		and the second element is a <code>string</code>. The <code>siblingIds</code> of Jane will be an empty array.
-        		</li>
-        	<li><b>array</b> - An array of values. The types of the values are always inferred and may not be the same for each element
-        		in the array, or for two arrays from different JSON objects.</li>
-        </ul>
+        <p>
+        	The first Record will consist of the following values:
+        </p>
+        
+        <table>
+        	<tr>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+        	</tr>
+    		<tr>
+    			<td>id</td>
+    			<td>17</td>
+    		</tr>
+    		<tr>
+    			<td>name</td>
+    			<td>John</td>
+    		</tr>
+    		<tr>
+    			<td>gender</td>
+    			<td><i>null</i></td>
+    		</tr>
+    		<tr>
+    			<td>dob</td>
+    			<td>11-30-1983</td>
+    		</tr>
+    		<tr>
+    			<td>siblings</td>
+    			<td>
+    				<i>array with two elements, each of which is itself a Record:</i>
+    				<br />
+    				<table>
+    					<tr>
+							<th>Field Name</th>
+							<th>Field Value</th>
+						</tr>
+						<tr>
+							<td>name</td>
+							<td>Jeremy</td>
+						</tr>
+    				</table>
+    				<br />
+    				<i>and:</i>
+    				<br />
+    				<table>
+						<tr>
+							<th>Field Name</th>
+							<th>Field Value</th>
+						</tr>
+						<tr>
+							<td>name</td>
+							<td>Julia</td>
+						</tr>
+    				</table>
+    			</td>
+    		</tr>
+        </table>
+        
+        <p>
+        	The second Record will consist of the following values:
+        </p>
+        
+		<table>
+			<tr>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+        	</tr>
+    		<tr>
+    			<td>id</td>
+    			<td>98</td>
+    		</tr>
+    		<tr>
+    			<td>name</td>
+    			<td>Jane</td>
+    		</tr>
+    		<tr>
+    			<td>gender</td>
+    			<td>F</td>
+    		</tr>
+    		<tr>
+    			<td>dob</td>
+    			<td>08-30-1984</td>
+    		</tr>
+    		<tr>
+    			<td>siblings</td>
+    			<td><i>empty array</i></td>
+    		</tr>
+        </table>
+        
     </body>
 </html>

@@ -17,35 +17,14 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
 public class DataType {
     private final RecordFieldType fieldType;
     private final String format;
 
-    private final RecordSchema childSchema;
-    private final List<DataType> childTypes;
-
-    DataType(final RecordFieldType fieldType, final String format) {
-        this(fieldType, format, (RecordSchema) null);
-    }
-
-    DataType(final RecordFieldType fieldType, final String format, final RecordSchema childSchema) {
+    protected DataType(final RecordFieldType fieldType, final String format) {
         this.fieldType = fieldType;
         this.format = format;
-        this.childSchema = childSchema;
-        this.childTypes = Collections.emptyList();
     }
-
-    DataType(final RecordFieldType fieldType, final String format, final List<DataType> childTypes) {
-        this.fieldType = fieldType;
-        this.format = format;
-        this.childSchema = null;
-        this.childTypes = Collections.unmodifiableList(childTypes);
-    }
-
 
     public String getFormat() {
         return format;
@@ -53,14 +32,6 @@ public class DataType {
 
     public RecordFieldType getFieldType() {
         return fieldType;
-    }
-
-    public Optional<RecordSchema> getChildRecordSchema() {
-        return Optional.ofNullable(childSchema);
-    }
-
-    public List<DataType> getPossibleTypes() {
-        return childTypes;
     }
 
     @Override

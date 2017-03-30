@@ -17,15 +17,12 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 public class MapRecord implements Record {
     private final RecordSchema schema;
@@ -80,220 +77,52 @@ public class MapRecord implements Record {
             return null;
         }
 
-        if (value instanceof java.sql.Date) {
-            java.sql.Date date = (java.sql.Date) value;
-            final long time = date.getTime();
-            return new SimpleDateFormat(getFormat(format, RecordFieldType.DATE)).format(new java.util.Date(time));
-        }
-        if (value instanceof java.util.Date) {
-            return new SimpleDateFormat(getFormat(format, RecordFieldType.DATE)).format((java.util.Date) value);
-        }
-        if (value instanceof Timestamp) {
-            java.sql.Timestamp date = (java.sql.Timestamp) value;
-            final long time = date.getTime();
-            return new SimpleDateFormat(getFormat(format, RecordFieldType.TIMESTAMP)).format(new java.util.Date(time));
-        }
-        if (value instanceof Time) {
-            java.sql.Time date = (java.sql.Time) value;
-            final long time = date.getTime();
-            return new SimpleDateFormat(getFormat(format, RecordFieldType.TIME)).format(new java.util.Date(time));
-        }
-
-        return value.toString();
+        final String dateFormat = getFormat(format, RecordFieldType.DATE);
+        final String timestampFormat = getFormat(format, RecordFieldType.TIMESTAMP);
+        final String timeFormat = getFormat(format, RecordFieldType.TIME);
+        return DataTypeUtils.toString(value, dateFormat, timeFormat, timestampFormat);
     }
 
     @Override
     public Long getAsLong(final String fieldName) {
-        return convertToLong(getValue(fieldName), fieldName);
-    }
-
-    private Long convertToLong(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof String) {
-            return Long.parseLong((String) value);
-        }
-        if (value instanceof Date) {
-            return ((Date) value).getTime();
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Long for field " + fieldDesc);
+        return DataTypeUtils.toLong(getValue(fieldName));
     }
 
     @Override
     public Integer getAsInt(final String fieldName) {
-        return convertToInt(getValue(fieldName), fieldName);
+        return DataTypeUtils.toInteger(getValue(fieldName));
     }
-
-    private Integer convertToInt(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        if (value instanceof String) {
-            return Integer.parseInt((String) value);
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Integer for field " + fieldDesc);
-    }
-
 
     @Override
     public Double getAsDouble(final String fieldName) {
-        return convertToDouble(getValue(fieldName), fieldName);
-    }
-
-    private Double convertToDouble(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        if (value instanceof String) {
-            return Double.parseDouble((String) value);
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Double for field " + fieldDesc);
+        return DataTypeUtils.toDouble(getValue(fieldName));
     }
 
     @Override
     public Float getAsFloat(final String fieldName) {
-        return convertToFloat(getValue(fieldName), fieldName);
-    }
-
-    private Float convertToFloat(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Number) {
-            return ((Number) value).floatValue();
-        }
-        if (value instanceof String) {
-            return Float.parseFloat((String) value);
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Float for field " + fieldDesc);
+        return DataTypeUtils.toFloat(getValue(fieldName));
     }
 
     @Override
-    public Record getAsRecord(String fieldName) {
-        return convertToRecord(getValue(fieldName), fieldName);
+    public Record getAsRecord(String fieldName, final RecordSchema schema) {
+        return DataTypeUtils.toRecord(getValue(fieldName), schema);
     }
-
-    private Record convertToRecord(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Record) {
-            return (Record) value;
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Record for field " + fieldDesc);
-    }
-
 
     @Override
     public Boolean getAsBoolean(final String fieldName) {
-        return convertToBoolean(getValue(fieldName), fieldName);
-    }
-
-    private Boolean convertToBoolean(final Object value, final Object fieldDesc) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-        if (value instanceof String) {
-            final String string = (String) value;
-            if (string.equalsIgnoreCase("true") || string.equalsIgnoreCase("t")) {
-                return Boolean.TRUE;
-            }
-
-            if (string.equalsIgnoreCase("false") || string.equals("f")) {
-                return Boolean.FALSE;
-            }
-
-            throw new TypeMismatchException("Cannot convert String value to Boolean for field " + fieldDesc + " because it is not a valid boolean value");
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Boolean for field " + fieldDesc);
-    }
-
-    @Override
-    public Date getAsDate(final String fieldName) {
-        final Optional<DataType> dataTypeOption = schema.getDataType(fieldName);
-        if (!dataTypeOption.isPresent()) {
-            return null;
-        }
-
-        return convertToDate(getValue(fieldName), fieldName, dataTypeOption.get().getFormat());
+        return DataTypeUtils.toBoolean(getValue(fieldName));
     }
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return convertToDate(getValue(fieldName), fieldName, format);
-    }
-
-    private Date convertToDate(final Object value, final Object fieldDesc, final String format) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Date) {
-            return (Date) value;
-        }
-        if (value instanceof Number) {
-            final Long time = ((Number) value).longValue();
-            return new Date(time);
-        }
-        if (value instanceof java.sql.Date) {
-            return new Date(((java.sql.Date) value).getTime());
-        }
-        if (value instanceof String) {
-            try {
-                return new SimpleDateFormat(getFormat(format, RecordFieldType.DATE)).parse((String) value);
-            } catch (final ParseException e) {
-                throw new TypeMismatchException("Cannot convert String value to date for field " + fieldDesc + " because it is not in the correct format of: " + format, e);
-            }
-        }
-
-        throw new TypeMismatchException("Cannot convert value of type " + value.getClass() + " to Boolean for field " + fieldDesc);
+        return DataTypeUtils.toDate(getValue(fieldName), format);
     }
 
     @Override
     public Object[] getAsArray(final String fieldName) {
-        return convertToArray(getValue(fieldName));
+        return DataTypeUtils.toArray(getValue(fieldName));
     }
 
-    private Object[] convertToArray(final Object value) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Object[]) {
-            return (Object[]) value;
-        }
-
-        if (value instanceof List) {
-            return ((List<?>) value).toArray();
-        }
-
-        return new Object[] {value};
-    }
 
     @Override
     public int hashCode() {

@@ -19,31 +19,63 @@ package org.apache.nifi.csv;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.UserTypeOverrideRowReader;
+import org.apache.nifi.serialization.SchemaRegistryRecordReader;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"csv", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses CSV-formatted data, returning each row in the CSV file as a separate record. "
     + "This reader assumes that the first line in the content is the column names and all subsequent lines are "
-    + "the values. By default, the reader will assume that all columns are of 'String' type, but this can be "
-    + "overridden by adding a user-defined Property where the key is the name of a column and the value is the "
-    + "type of the column. For example, if a Property has the name \"balance\" with a value of float, it the "
-    + "reader will attempt to coerce all values in the \"balance\" column into a floating-point number. See "
-    + "Controller Service's Usage for further documentation.")
-@DynamicProperty(name = "<name of column in CSV>", value = "<type of column values in CSV>",
-    description = "User-defined properties are used to indicate that the values of a specific column should be interpreted as a "
-    + "user-defined data type (e.g., int, double, float, date, etc.)", supportsExpressionLanguage = false)
-public class CSVReader extends UserTypeOverrideRowReader implements RowRecordReaderFactory {
+    + "the values. See Controller Service's Usage for further documentation.")
+public class CSVReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
+
+    private volatile CSVFormat csvFormat;
+    private volatile String dateFormat;
+    private volatile String timeFormat;
+    private volatile String timestampFormat;
+
 
     @Override
-    public RecordReader createRecordReader(final InputStream in, final ComponentLog logger) throws IOException {
-        return new CSVRecordReader(in, logger, getFieldTypeOverrides());
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(DateTimeUtils.DATE_FORMAT);
+        properties.add(DateTimeUtils.TIME_FORMAT);
+        properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(CSVUtils.CSV_FORMAT);
+        properties.add(CSVUtils.VALUE_SEPARATOR);
+        properties.add(CSVUtils.QUOTE_CHAR);
+        properties.add(CSVUtils.ESCAPE_CHAR);
+        properties.add(CSVUtils.COMMENT_MARKER);
+        properties.add(CSVUtils.NULL_STRING);
+        properties.add(CSVUtils.TRIM_FIELDS);
+        return properties;
+    }
+
+    @OnEnabled
+    public void storeCsvFormat(final ConfigurationContext context) {
+        this.csvFormat = CSVUtils.createCSVFormat(context);
+        this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
+        this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
+        this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+    }
+
+    @Override
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException {
+        final RecordSchema schema = getSchema(flowFile);
+        return new CSVRecordReader(in, logger, schema, csvFormat, dateFormat, timeFormat, timestampFormat);
     }
 
 }

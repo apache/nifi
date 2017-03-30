@@ -491,6 +491,15 @@ public class QueryFlowFile extends AbstractProcessor {
     private static class SqlValidator implements Validator {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if (context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(true)
+                    .explanation("Expression Language Present")
+                    .build();
+            }
+
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
             final SqlParser parser = SqlParser.create(substituted);
             try {

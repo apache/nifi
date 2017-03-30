@@ -19,38 +19,56 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.UserTypeOverrideRowReader;
+import org.apache.nifi.serialization.SchemaRegistryRecordReader;
 
 @Tags({"json", "tree", "record", "reader", "parser"})
 @CapabilityDescription("Parses JSON into individual Record objects. The Record that is produced will contain all top-level "
-    + "elements of the corresponding JSON Object. If the JSON has nested arrays, those values will be represented as an Object array for that field. "
-    + "Nested JSON objects will be represented as a Map. "
+    + "elements of the corresponding JSON Object. "
     + "The root JSON element can be either a single element or an array of JSON elements, and each "
-    + "element in that array will be treated as a separate record. If any of the elements has a nested array or a nested "
-    + "element, they will be returned as OBJECT or ARRAY types (respectively), not flattened out into individual fields. "
-    + "The schema for the record is determined by the first JSON element in the array, if the incoming FlowFile is a JSON array. "
-    + "This means that if a field does not exist in the first JSON object, then it will be skipped in all subsequent JSON objects. "
-    + "The data type of a field can be overridden by adding a property to "
-    + "the controller service where the name of the property matches the JSON field name and the value of the property is "
-    + "the data type to use. If that field does not exist in a JSON element, the field will be assumed to be null. "
-    + "See the Usage of the Controller Service for more information.")
+    + "element in that array will be treated as a separate record. "
+    + "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. If the JSON contains "
+    + "a field that is not present in the schema, that field will be skipped. "
+    + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
-@DynamicProperty(name = "<name of JSON field>", value = "<data type of JSON field>",
-    description = "User-defined properties are used to indicate that the values of a specific field should be interpreted as a "
-    + "user-defined data type (e.g., int, double, float, date, etc.)", supportsExpressionLanguage = false)
-public class JsonTreeReader extends UserTypeOverrideRowReader implements RowRecordReaderFactory {
+public class JsonTreeReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
+
+    private volatile String dateFormat;
+    private volatile String timeFormat;
+    private volatile String timestampFormat;
 
     @Override
-    public RecordReader createRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
-        return new JsonTreeRowRecordReader(in, logger, getFieldTypeOverrides());
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(DateTimeUtils.DATE_FORMAT);
+        properties.add(DateTimeUtils.TIME_FORMAT);
+        properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        return properties;
+    }
+
+    @OnEnabled
+    public void storeFormats(final ConfigurationContext context) {
+        this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
+        this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
+        this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+    }
+
+    @Override
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
+        return new JsonTreeRowRecordReader(in, logger, getSchema(flowFile), dateFormat, timeFormat, timestampFormat);
     }
 }

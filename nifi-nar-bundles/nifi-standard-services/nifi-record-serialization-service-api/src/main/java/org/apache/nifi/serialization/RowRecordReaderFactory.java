@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 /**
  * <p>
@@ -29,5 +31,8 @@ import org.apache.nifi.logging.ComponentLog;
  * </p>
  */
 public interface RowRecordReaderFactory extends ControllerService {
-    RecordReader createRecordReader(InputStream in, ComponentLog logger) throws MalformedRecordException, IOException;
+
+    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException;
+
+    RecordSchema getSchema(FlowFile flowFile) throws MalformedRecordException, IOException;
 }

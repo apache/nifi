@@ -23,15 +23,20 @@ import static org.junit.Assert.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
@@ -52,46 +57,100 @@ import org.junit.Test;
 
 public class TestAvroRecordReader {
 
+
     @Test
+    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final String expectedTime = "2017-04-04 14:20:33.000";
+        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        df.setTimeZone(TimeZone.getTimeZone("gmt"));
+        final long timeLong = df.parse(expectedTime).getTime();
+
+        final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
+        final long millisSinceMidnight = secondsSinceMidnight * 1000L;
+
+
+        final byte[] serialized;
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter);
+            final DataFileWriter<GenericRecord> writer = dataFileWriter.create(schema, baos)) {
+
+            final GenericRecord record = new GenericData.Record(schema);
+            record.put("timeMillis", millisSinceMidnight);
+            record.put("timeMicros", millisSinceMidnight * 1000L);
+            record.put("timestampMillis", timeLong);
+            record.put("timestampMicros", timeLong * 1000L);
+            record.put("date", 17261);
+
+            writer.append(record);
+            writer.flush();
+
+            serialized = baos.toByteArray();
+        }
+
+        try (final InputStream in = new ByteArrayInputStream(serialized)) {
+            final AvroRecordReader reader = new AvroRecordReader(in);
+            final RecordSchema recordSchema = reader.getSchema();
+
+            assertEquals(RecordFieldType.TIME, recordSchema.getDataType("timeMillis").get().getFieldType());
+            assertEquals(RecordFieldType.TIME, recordSchema.getDataType("timeMicros").get().getFieldType());
+            assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMillis").get().getFieldType());
+            assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMicros").get().getFieldType());
+            assertEquals(RecordFieldType.DATE, recordSchema.getDataType("date").get().getFieldType());
+
+            final Record record = reader.nextRecord();
+            assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMillis"));
+            assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMicros"));
+            assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMillis"));
+            assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
+            assertEquals(new java.sql.Date(timeLong).toString(), record.getValue("date").toString());
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void testDataTypes() throws IOException, MalformedRecordException {
         final List<Field> accountFields = new ArrayList<>();
-        accountFields.add(new Field("accountId", Schema.create(Type.LONG), null, null));
-        accountFields.add(new Field("accountName", Schema.create(Type.STRING), null, null));
+        accountFields.add(new Field("accountId", Schema.create(Type.LONG), null, (Object) null));
+        accountFields.add(new Field("accountName", Schema.create(Type.STRING), null, (Object) null));
         final Schema accountSchema = Schema.createRecord("account", null, null, false);
         accountSchema.setFields(accountFields);
 
         final List<Field> catFields = new ArrayList<>();
-        catFields.add(new Field("catTailLength", Schema.create(Type.INT), null, null));
-        catFields.add(new Field("catName", Schema.create(Type.STRING), null, null));
+        catFields.add(new Field("catTailLength", Schema.create(Type.INT), null, (Object) null));
+        catFields.add(new Field("catName", Schema.create(Type.STRING), null, (Object) null));
         final Schema catSchema = Schema.createRecord("cat", null, null, false);
         catSchema.setFields(catFields);
 
         final List<Field> dogFields = new ArrayList<>();
-        dogFields.add(new Field("dogTailLength", Schema.create(Type.INT), null, null));
-        dogFields.add(new Field("dogName", Schema.create(Type.STRING), null, null));
+        dogFields.add(new Field("dogTailLength", Schema.create(Type.INT), null, (Object) null));
+        dogFields.add(new Field("dogName", Schema.create(Type.STRING), null, (Object) null));
         final Schema dogSchema = Schema.createRecord("dog", null, null, false);
         dogSchema.setFields(dogFields);
 
         final List<Field> fields = new ArrayList<>();
-        fields.add(new Field("name", Schema.create(Type.STRING), null, null));
-        fields.add(new Field("age", Schema.create(Type.INT), null, null));
-        fields.add(new Field("balance", Schema.create(Type.DOUBLE), null, null));
-        fields.add(new Field("rate", Schema.create(Type.FLOAT), null, null));
-        fields.add(new Field("debt", Schema.create(Type.BOOLEAN), null, null));
-        fields.add(new Field("nickname", Schema.create(Type.NULL), null, null));
-        fields.add(new Field("binary", Schema.create(Type.BYTES), null, null));
-        fields.add(new Field("fixed", Schema.createFixed("fixed", null, null, 5), null, null));
-        fields.add(new Field("map", Schema.createMap(Schema.create(Type.STRING)), null, null));
-        fields.add(new Field("array", Schema.createArray(Schema.create(Type.LONG)), null, null));
-        fields.add(new Field("account", accountSchema, null, null));
+        fields.add(new Field("name", Schema.create(Type.STRING), null, (Object) null));
+        fields.add(new Field("age", Schema.create(Type.INT), null, (Object) null));
+        fields.add(new Field("balance", Schema.create(Type.DOUBLE), null, (Object) null));
+        fields.add(new Field("rate", Schema.create(Type.FLOAT), null, (Object) null));
+        fields.add(new Field("debt", Schema.create(Type.BOOLEAN), null, (Object) null));
+        fields.add(new Field("nickname", Schema.create(Type.NULL), null, (Object) null));
+        fields.add(new Field("binary", Schema.create(Type.BYTES), null, (Object) null));
+        fields.add(new Field("fixed", Schema.createFixed("fixed", null, null, 5), null, (Object) null));
+        fields.add(new Field("map", Schema.createMap(Schema.create(Type.STRING)), null, (Object) null));
+        fields.add(new Field("array", Schema.createArray(Schema.create(Type.LONG)), null, (Object) null));
+        fields.add(new Field("account", accountSchema, null, (Object) null));
         fields.add(new Field("desiredbalance", Schema.createUnion( // test union of NULL and other type with no value
             Arrays.asList(Schema.create(Type.NULL), Schema.create(Type.DOUBLE))),
-            null, null));
+            null, (Object) null));
         fields.add(new Field("dreambalance", Schema.createUnion( // test union of NULL and other type with a value
             Arrays.asList(Schema.create(Type.NULL), Schema.create(Type.DOUBLE))),
-            null, null));
-        fields.add(new Field("favAnimal", Schema.createUnion(Arrays.asList(catSchema, dogSchema)), null, null));
-        fields.add(new Field("otherFavAnimal", Schema.createUnion(Arrays.asList(catSchema, dogSchema)), null, null));
+            null, (Object) null));
+        fields.add(new Field("favAnimal", Schema.createUnion(Arrays.asList(catSchema, dogSchema)), null, (Object) null));
+        fields.add(new Field("otherFavAnimal", Schema.createUnion(Arrays.asList(catSchema, dogSchema)), null, (Object) null));
 
         final Schema schema = Schema.createRecord("record", null, null, false);
         schema.setFields(fields);
@@ -102,6 +161,12 @@ public class TestAvroRecordReader {
         final Map<String, String> map = new HashMap<>();
         map.put("greeting", "hello");
         map.put("salutation", "good-bye");
+
+        final List<RecordField> mapFields = new ArrayList<>();
+        mapFields.add(new RecordField("greeting", RecordFieldType.STRING.getDataType()));
+        mapFields.add(new RecordField("salutation", RecordFieldType.STRING.getDataType()));
+        final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
+        final Record expectedRecord = new MapRecord(mapSchema, (Map) map);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter);
@@ -168,9 +233,9 @@ public class TestAvroRecordReader {
             assertEquals(0.045F, values[3]);
             assertEquals(false, values[4]);
             assertEquals(null, values[5]);
-            assertArrayEquals("binary".getBytes(StandardCharsets.UTF_8), (byte[]) values[6]);
-            assertArrayEquals("fixed".getBytes(StandardCharsets.UTF_8), (byte[]) values[7]);
-            assertEquals(map, values[8]);
+            assertArrayEquals(toObjectArray("binary".getBytes(StandardCharsets.UTF_8)), (Object[]) values[6]);
+            assertArrayEquals(toObjectArray("fixed".getBytes(StandardCharsets.UTF_8)), (Object[]) values[7]);
+            assertEquals(expectedRecord, values[8]);
             assertArrayEquals(new Object[] {1L, 2L}, (Object[]) values[9]);
 
             final Map<String, Object> accountValues = new HashMap<>();
@@ -213,6 +278,14 @@ public class TestAvroRecordReader {
 
             assertEquals(catRecord, values[14]);
         }
+    }
+
+    private Object[] toObjectArray(final byte[] bytes) {
+        final Object[] array = new Object[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            array[i] = Byte.valueOf(bytes[i]);
+        }
+        return array;
     }
 
     public static enum Status {

@@ -25,8 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +34,10 @@ import java.util.stream.Collectors;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Assert;
@@ -43,13 +45,38 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestJsonTreeRowRecordReader {
+    private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
+    private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
+    private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
+
+    private List<RecordField> getDefaultFields() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("address", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("zipCode", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("country", RecordFieldType.STRING.getDataType()));
+        return fields;
+    }
+
+    private RecordSchema getAccountSchema() {
+        final List<RecordField> accountFields = new ArrayList<>();
+        accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+
+        final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
+        return accountSchema;
+    }
 
     @Test
     public void testReadArray() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -72,10 +99,10 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testSingleJsonElement() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -95,14 +122,14 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testElementWithNestedData() throws IOException, MalformedRecordException {
+        final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("account", accountType));
+        fields.remove(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
-
-            final RecordSchema schema = reader.getSchema();
-
-            final List<String> fieldNames = schema.getFieldNames();
-            final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "address", "city", "state", "zipCode", "country", "account"});
-            assertEquals(expectedFieldNames, fieldNames);
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
@@ -125,10 +152,16 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testElementWithNestedArray() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
+        final DataType accountRecordType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountRecordType);
 
-            final RecordSchema schema = reader.getSchema();
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("accounts", accountsType));
+        fields.remove(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {
@@ -153,10 +186,10 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testReadArrayDifferentSchemas() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -185,10 +218,12 @@ public class TestJsonTreeRowRecordReader {
         final Map<String, DataType> overrides = new HashMap<>();
         overrides.put("address2", RecordFieldType.STRING.getDataType());
 
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), overrides)) {
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("address2", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country", "address2"});
@@ -214,13 +249,10 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testReadArrayDifferentSchemasWithOptionalElementOverridden() throws IOException, MalformedRecordException {
-        final Map<String, DataType> overrides = new HashMap<>();
-        overrides.put("balance", RecordFieldType.DOUBLE.getDataType());
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-optional-balance.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), overrides)) {
-
-            final RecordSchema schema = reader.getSchema();
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -247,8 +279,22 @@ public class TestJsonTreeRowRecordReader {
 
     @Test
     public void testReadUnicodeCharacters() throws IOException, MalformedRecordException {
+
+        final List<RecordField> fromFields = new ArrayList<>();
+        fromFields.add(new RecordField("id", RecordFieldType.LONG.getDataType()));
+        fromFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema fromSchema = new SimpleRecordSchema(fromFields);
+        final DataType fromType = RecordFieldType.RECORD.getRecordDataType(fromSchema);
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("created_at", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("id", RecordFieldType.LONG.getDataType()));
+        fields.add(new RecordField("unicode", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("from", fromType));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/json-with-unicode.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), Collections.emptyMap())) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
 

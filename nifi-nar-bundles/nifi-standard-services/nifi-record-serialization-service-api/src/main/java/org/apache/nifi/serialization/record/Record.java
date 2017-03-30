@@ -50,11 +50,9 @@ public interface Record {
 
     Float getAsFloat(String fieldName);
 
-    Record getAsRecord(String fieldName);
+    Record getAsRecord(String fieldName, RecordSchema schema);
 
     Boolean getAsBoolean(String fieldName);
-
-    Date getAsDate(String fieldName);
 
     Date getAsDate(String fieldName, String format);
 

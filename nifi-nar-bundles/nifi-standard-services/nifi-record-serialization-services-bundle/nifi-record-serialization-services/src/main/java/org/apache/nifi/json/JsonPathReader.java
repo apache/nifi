@@ -19,12 +19,11 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -34,13 +33,15 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.SchemaRegistryRecordReader;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 import com.jayway.jsonpath.JsonPath;
 
@@ -50,16 +51,27 @@ import com.jayway.jsonpath.JsonPath;
     + "User-defined properties define the fields that should be extracted from the JSON in order to form the fields of a Record. Any JSON field "
     + "that is not extracted via a JSONPath will not be returned in the JSON Records.")
 @SeeAlso(JsonTreeReader.class)
-@DynamicProperty(name = "The field name for the record. If it is desirable to enforce that the value be coerced into a given type, its type can be included "
-    + "in the name by using a syntax of <field name>:<field type>. For example, \"balance:double\".",
+@DynamicProperty(name = "The field name for the record.",
     value="A JSONPath Expression that will be evaluated against each JSON record. The result of the JSONPath will be the value of the "
         + "field whose name is the same as the property name.",
     description="User-defined properties identifiy how to extract specific fields from a JSON object in order to create a Record",
     supportsExpressionLanguage=false)
-public class JsonPathReader extends AbstractControllerService implements RowRecordReaderFactory {
+public class JsonPathReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
 
+    private volatile String dateFormat;
+    private volatile String timeFormat;
+    private volatile String timestampFormat;
     private volatile LinkedHashMap<String, JsonPath> jsonPaths;
-    private volatile Map<String, DataType> fieldTypeOverrides;
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(DateTimeUtils.DATE_FORMAT);
+        properties.add(DateTimeUtils.TIME_FORMAT);
+        properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        return properties;
+    }
+
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -74,7 +86,9 @@ public class JsonPathReader extends AbstractControllerService implements RowReco
 
     @OnEnabled
     public void compileJsonPaths(final ConfigurationContext context) {
-        final Map<String, DataType> fieldTypes = new HashMap<>(context.getProperties().size());
+        this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
+        this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
+        this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
 
         final LinkedHashMap<String, JsonPath> compiled = new LinkedHashMap<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -82,19 +96,13 @@ public class JsonPathReader extends AbstractControllerService implements RowReco
                 continue;
             }
 
-            final String fieldName = PropertyNameUtil.getFieldName(descriptor.getName());
-            final Optional<DataType> dataTypeOption = PropertyNameUtil.getDataType(descriptor.getName());
-            if (dataTypeOption.isPresent()) {
-                fieldTypes.put(fieldName, dataTypeOption.get());
-            }
-
+            final String fieldName = descriptor.getName();
             final String expression = context.getProperty(descriptor).getValue();
             final JsonPath jsonPath = JsonPath.compile(expression);
             compiled.put(fieldName, jsonPath);
         }
 
         jsonPaths = compiled;
-        fieldTypeOverrides = fieldTypes;
     }
 
     @Override
@@ -119,8 +127,9 @@ public class JsonPathReader extends AbstractControllerService implements RowReco
     }
 
     @Override
-    public RecordReader createRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
-        return new JsonPathRowRecordReader(jsonPaths, fieldTypeOverrides, in, logger);
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
+        final RecordSchema schema = getSchema(flowFile);
+        return new JsonPathRowRecordReader(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat);
     }
 
 }

@@ -23,6 +23,8 @@ import java.io.OutputStreamWriter;
 import java.util.Collections;
 import java.util.Optional;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
@@ -31,14 +33,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
 public class WriteCSVResult implements RecordSetWriter {
+    private final CSVFormat csvFormat;
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
 
-    public WriteCSVResult(final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public WriteCSVResult(final CSVFormat csvFormat, final String dateFormat, final String timeFormat, final String timestampFormat) {
+        this.csvFormat = csvFormat;
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
@@ -66,24 +68,25 @@ public class WriteCSVResult implements RecordSetWriter {
     @Override
     public WriteResult write(final RecordSet rs, final OutputStream rawOut) throws IOException {
         int count = 0;
+
+        final RecordSchema schema = rs.getSchema();
+        final String[] columnNames = schema.getFieldNames().toArray(new String[0]);
+        final CSVFormat formatWithHeader = csvFormat.withHeader(columnNames);
+
         try (final OutputStream nonCloseable = new NonCloseableOutputStream(rawOut);
             final OutputStreamWriter streamWriter = new OutputStreamWriter(nonCloseable);
-            final CSVWriter writer = new CSVWriter(streamWriter)) {
+            final CSVPrinter printer = new CSVPrinter(streamWriter, formatWithHeader)) {
 
             try {
-                final RecordSchema schema = rs.getSchema();
-                final String[] columnNames = schema.getFieldNames().toArray(new String[0]);
-                writer.writeNext(columnNames);
-
                 Record record;
                 while ((record = rs.next()) != null) {
-                    final String[] colVals = new String[schema.getFieldCount()];
+                    final Object[] colVals = new Object[schema.getFieldCount()];
                     int i = 0;
                     for (final String fieldName : schema.getFieldNames()) {
                         colVals[i++] = record.getAsString(fieldName, getFormat(record, fieldName));
                     }
 
-                    writer.writeNext(colVals);
+                    printer.printRecord(colVals);
                     count++;
                 }
             } catch (final Exception e) {
@@ -96,22 +99,20 @@ public class WriteCSVResult implements RecordSetWriter {
 
     @Override
     public WriteResult write(final Record record, final OutputStream rawOut) throws IOException {
+
         try (final OutputStream nonCloseable = new NonCloseableOutputStream(rawOut);
             final OutputStreamWriter streamWriter = new OutputStreamWriter(nonCloseable);
-            final CSVWriter writer = new CSVWriter(streamWriter)) {
+            final CSVPrinter printer = new CSVPrinter(streamWriter, csvFormat)) {
 
             try {
                 final RecordSchema schema = record.getSchema();
-                final String[] columnNames = schema.getFieldNames().toArray(new String[0]);
-                writer.writeNext(columnNames);
-
-                final String[] colVals = new String[schema.getFieldCount()];
+                final Object[] colVals = new Object[schema.getFieldCount()];
                 int i = 0;
                 for (final String fieldName : schema.getFieldNames()) {
                     colVals[i++] = record.getAsString(fieldName, getFormat(record, fieldName));
                 }
 
-                writer.writeNext(colVals);
+                printer.printRecord(colVals);
             } catch (final Exception e) {
                 throw new IOException("Failed to serialize results", e);
             }

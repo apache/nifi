@@ -33,10 +33,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
-@Tags({"text", "freeform", "expression", "language", "el", "resultset", "writer", "serialize"})
-@CapabilityDescription("Writes the contents of a Database ResultSet as free-form text. The configured "
+@Tags({"text", "freeform", "expression", "language", "el", "record", "recordset", "resultset", "writer", "serialize"})
+@CapabilityDescription("Writes the contents of a RecordSet as free-form text. The configured "
     + "text is able to make use of the Expression Language to reference each of the columns that are available "
-    + "in the ResultSet. Each record in the ResultSet will be separated by a single newline character.")
+    + "in a Record. Each record in the RecordSet will be separated by a single newline character.")
 public class FreeFormTextRecordSetWriter extends AbstractControllerService implements RecordSetWriterFactory {
     static final PropertyDescriptor TEXT = new PropertyDescriptor.Builder()
         .name("Text")

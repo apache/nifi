@@ -18,47 +18,41 @@
 package org.apache.nifi.avro;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.EnumSymbol;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public class WriteAvroResult implements RecordSetWriter {
     private final Schema schema;
-    private final DateFormat dateFormat;
-    private final DateFormat timeFormat;
-    private final DateFormat timestampFormat;
 
-    public WriteAvroResult(final Schema schema, final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public WriteAvroResult(final Schema schema) {
         this.schema = schema;
-        this.dateFormat = new SimpleDateFormat(dateFormat);
-        this.timeFormat = new SimpleDateFormat(timeFormat);
-        this.timestampFormat = new SimpleDateFormat(timestampFormat);
     }
 
     @Override
@@ -68,34 +62,13 @@ public class WriteAvroResult implements RecordSetWriter {
             return WriteResult.of(0, Collections.emptyMap());
         }
 
-        final GenericRecord rec = new GenericData.Record(schema);
-
         int nrOfRows = 0;
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(schema, outStream);
 
-            final RecordSchema recordSchema = rs.getSchema();
-
             do {
-                for (final String fieldName : recordSchema.getFieldNames()) {
-                    final Object value = record.getValue(fieldName);
-
-                    final Field field = schema.getField(fieldName);
-                    if (field == null) {
-                        continue;
-                    }
-
-                    final Object converted;
-                    try {
-                        converted = convert(value, field.schema(), fieldName);
-                    } catch (final SQLException e) {
-                        throw new IOException("Failed to write records to stream", e);
-                    }
-
-                    rec.put(fieldName, converted);
-                }
-
+                final GenericRecord rec = createAvroRecord(record, schema);
                 dataFileWriter.append(rec);
                 nrOfRows++;
             } while ((record = rs.next()) != null);
@@ -104,33 +77,145 @@ public class WriteAvroResult implements RecordSetWriter {
         return WriteResult.of(nrOfRows, Collections.emptyMap());
     }
 
+    private GenericRecord createAvroRecord(final Record record, final Schema avroSchema) throws IOException {
+        final GenericRecord rec = new GenericData.Record(avroSchema);
+        final RecordSchema recordSchema = record.getSchema();
+
+        for (final String fieldName : recordSchema.getFieldNames()) {
+            final Object rawValue = record.getValue(fieldName);
+
+            final Field field = avroSchema.getField(fieldName);
+            if (field == null) {
+                continue;
+            }
+
+            final Object converted = convertToAvroObject(rawValue, field.schema());
+            rec.put(fieldName, converted);
+        }
+
+        return rec;
+    }
+
+    private Object convertToAvroObject(final Object rawValue, final Schema fieldSchema) throws IOException {
+        if (rawValue == null) {
+            return null;
+        }
+
+        switch (fieldSchema.getType()) {
+            case INT: {
+                final LogicalType logicalType = fieldSchema.getLogicalType();
+                if (logicalType == null) {
+                    return DataTypeUtils.toInteger(rawValue);
+                }
+
+                if (LogicalTypes.date().getName().equals(logicalType.getName())) {
+                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final Date date = new Date(longValue);
+                    final Duration duration = Duration.between(new Date(0L).toInstant(), date.toInstant());
+                    final long days = duration.toDays();
+                    return (int) days;
+                } else if (LogicalTypes.timeMillis().getName().equals(logicalType.getName())) {
+                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final Date date = new Date(longValue);
+                    final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
+                    final long millisSinceMidnight = duration.toMillis();
+                    return (int) millisSinceMidnight;
+                }
+
+                return DataTypeUtils.toInteger(rawValue);
+            }
+            case LONG: {
+                final LogicalType logicalType = fieldSchema.getLogicalType();
+                if (logicalType == null) {
+                    return DataTypeUtils.toLong(rawValue);
+                }
+
+                if (LogicalTypes.timeMicros().getName().equals(logicalType.getName())) {
+                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final Date date = new Date(longValue);
+                    final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
+                    return duration.toMillis() * 1000L;
+                } else if (LogicalTypes.timestampMillis().getName().equals(logicalType.getName())) {
+                    return DataTypeUtils.toLong(rawValue);
+                } else if (LogicalTypes.timestampMicros().getName().equals(logicalType.getName())) {
+                    return DataTypeUtils.toLong(rawValue) * 1000L;
+                }
+
+                return DataTypeUtils.toLong(rawValue);
+            }
+            case BYTES:
+            case FIXED:
+                if (rawValue instanceof byte[]) {
+                    return ByteBuffer.wrap((byte[]) rawValue);
+                }
+                if (rawValue instanceof Object[]) {
+                    return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
+                }
+            case MAP:
+                if (rawValue instanceof Record) {
+                    final Record recordValue = (Record) rawValue;
+                    final Map<String, Object> map = new HashMap<>();
+                    for (final String recordFieldName : recordValue.getSchema().getFieldNames()) {
+                        final Object v = recordValue.getValue(recordFieldName);
+                        if (v != null) {
+                            map.put(recordFieldName, v);
+                        }
+                    }
+
+                    return map;
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Map");
+                }
+            case RECORD:
+                final GenericData.Record avroRecord = new GenericData.Record(fieldSchema);
+
+                final Record record = (Record) rawValue;
+                for (final String recordFieldName : record.getSchema().getFieldNames()) {
+                    final Object recordFieldValue = record.getValue(recordFieldName);
+
+                    final Field field = fieldSchema.getField(recordFieldName);
+                    if (field == null) {
+                        continue;
+                    }
+
+                    final Object converted = convertToAvroObject(recordFieldValue, field.schema());
+                    avroRecord.put(recordFieldName, converted);
+                }
+                return avroRecord;
+            case ARRAY:
+                final Object[] objectArray = (Object[]) rawValue;
+                final List<Object> list = new ArrayList<>(objectArray.length);
+                for (final Object o : objectArray) {
+                    final Object converted = convertToAvroObject(o, fieldSchema.getElementType());
+                    list.add(converted);
+                }
+                return list;
+            case BOOLEAN:
+                return DataTypeUtils.toBoolean(rawValue);
+            case DOUBLE:
+                return DataTypeUtils.toDouble(rawValue);
+            case FLOAT:
+                return DataTypeUtils.toFloat(rawValue);
+            case NULL:
+                return null;
+            case ENUM:
+                return new EnumSymbol(fieldSchema, rawValue);
+            case STRING:
+                return DataTypeUtils.toString(rawValue, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+        }
+
+        return rawValue;
+    }
+
     @Override
     public WriteResult write(final Record record, final OutputStream out) throws IOException {
-        final GenericRecord rec = new GenericData.Record(schema);
+        final GenericRecord rec = createAvroRecord(record, schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(schema, out);
-            final RecordSchema recordSchema = record.getSchema();
-
-            for (final String fieldName : recordSchema.getFieldNames()) {
-                final Object value = record.getValue(fieldName);
-
-                final Field field = schema.getField(fieldName);
-                if (field == null) {
-                    continue;
-                }
-
-                final Object converted;
-                try {
-                    converted = convert(value, field.schema(), fieldName);
-                } catch (final SQLException e) {
-                    throw new IOException("Failed to write records to stream", e);
-                }
-
-                rec.put(fieldName, converted);
-            }
-
             dataFileWriter.append(rec);
         }
 
@@ -138,143 +223,10 @@ public class WriteAvroResult implements RecordSetWriter {
     }
 
 
-    private Object convert(final Object value, final Schema schema, final String fieldName) throws SQLException, IOException {
-        if (value == null) {
-            return null;
-        }
-
-        // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
-        if (value instanceof Clob) {
-            final Clob clob = (Clob) value;
-
-            long numChars = clob.length();
-            char[] buffer = new char[(int) numChars];
-            InputStream is = clob.getAsciiStream();
-            int index = 0;
-            int c = is.read();
-            while (c > 0) {
-                buffer[index++] = (char) c;
-                c = is.read();
-            }
-
-            clob.free();
-            return new String(buffer);
-        }
-
-        if (value instanceof Blob) {
-            final Blob blob = (Blob) value;
-
-            final long numChars = blob.length();
-            final byte[] buffer = new byte[(int) numChars];
-            final InputStream is = blob.getBinaryStream();
-            int index = 0;
-            int c = is.read();
-            while (c > 0) {
-                buffer[index++] = (byte) c;
-                c = is.read();
-            }
-
-            final ByteBuffer bb = ByteBuffer.wrap(buffer);
-            blob.free();
-            return bb;
-        }
-
-        if (value instanceof byte[]) {
-            // bytes requires little bit different handling
-            return ByteBuffer.wrap((byte[]) value);
-        } else if (value instanceof Byte) {
-            // tinyint(1) type is returned by JDBC driver as java.sql.Types.TINYINT
-            // But value is returned by JDBC as java.lang.Byte
-            // (at least H2 JDBC works this way)
-            // direct put to avro record results:
-            // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
-            return ((Byte) value).intValue();
-        } else if (value instanceof Short) {
-            //MS SQL returns TINYINT as a Java Short, which Avro doesn't understand.
-            return ((Short) value).intValue();
-        } else if (value instanceof BigDecimal) {
-            // Avro can't handle BigDecimal as a number - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
-            return value.toString();
-        } else if (value instanceof BigInteger) {
-            // Check the precision of the BIGINT. Some databases allow arbitrary precision (> 19), but Avro won't handle that.
-            // It the SQL type is BIGINT and the precision is between 0 and 19 (inclusive); if so, the BigInteger is likely a
-            // long (and the schema says it will be), so try to get its value as a long.
-            // Otherwise, Avro can't handle BigInteger as a number - it will throw an AvroRuntimeException
-            // such as: "Unknown datum type: java.math.BigInteger: 38". In this case the schema is expecting a string.
-            final BigInteger bigInt = (BigInteger) value;
-            if (bigInt.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
-                return value.toString();
-            } else {
-                return bigInt.longValue();
-            }
-        } else if (value instanceof Boolean) {
-            return value;
-        } else if (value instanceof Map) {
-            // TODO: Revisit how we handle a lot of these cases....
-            switch (schema.getType()) {
-                case MAP:
-                    return value;
-                case RECORD:
-                    final GenericData.Record avroRecord = new GenericData.Record(schema);
-
-                    final Record record = (Record) value;
-                    for (final String recordFieldName : record.getSchema().getFieldNames()) {
-                        final Object recordFieldValue = record.getValue(recordFieldName);
-
-                        final Field field = schema.getField(recordFieldName);
-                        if (field == null) {
-                            continue;
-                        }
-
-                        final Object converted = convert(recordFieldValue, field.schema(), recordFieldName);
-                        avroRecord.put(recordFieldName, converted);
-                    }
-                    return avroRecord;
-            }
-
-            return value.toString();
-
-        } else if (value instanceof List) {
-            return value;
-        } else if (value instanceof Object[]) {
-            final List<Object> list = new ArrayList<>();
-            for (final Object o : ((Object[]) value)) {
-                final Object converted = convert(o, schema.getElementType(), fieldName);
-                list.add(converted);
-            }
-            return list;
-        } else if (value instanceof Number) {
-            return value;
-        } else if (value instanceof java.util.Date) {
-            final java.util.Date date = (java.util.Date) value;
-            return dateFormat.format(date);
-        } else if (value instanceof java.sql.Date) {
-            final java.sql.Date sqlDate = (java.sql.Date) value;
-            final java.util.Date date = new java.util.Date(sqlDate.getTime());
-            return dateFormat.format(date);
-        } else if (value instanceof Time) {
-            final Time time = (Time) value;
-            final java.util.Date date = new java.util.Date(time.getTime());
-            return timeFormat.format(date);
-        } else if (value instanceof Timestamp) {
-            final Timestamp time = (Timestamp) value;
-            final java.util.Date date = new java.util.Date(time.getTime());
-            return timestampFormat.format(date);
-        }
-
-        // The different types that we support are numbers (int, long, double, float),
-        // as well as boolean values and Strings. Since Avro doesn't provide
-        // timestamp types, we want to convert those to Strings. So we will cast anything other
-        // than numbers or booleans to strings by using the toString() method.
-        return value.toString();
-    }
-
-
     @Override
     public String getMimeType() {
         return "application/avro-binary";
     }
-
 
     public static String normalizeNameForAvro(String inputName) {
         String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");

@@ -20,18 +20,24 @@ package org.apache.nifi.csv;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.sql.Date;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
-import java.util.Map;
+import java.util.TimeZone;
 
+import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Assert;
@@ -39,21 +45,50 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestCSVRecordReader {
-    private final DataType stringDataType = RecordFieldType.STRING.getDataType();
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final DataType timeDataType = RecordFieldType.TIME.getDataType();
+    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
+
+    private List<RecordField> getDefaultFields() {
+        final List<RecordField> fields = new ArrayList<>();
+        for (final String fieldName : new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"}) {
+            fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+        }
+        return fields;
+    }
+
+    @Test
+    public void testDate() throws IOException, MalformedRecordException {
+        final String text = "date\n11/30/1983";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+            final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format,
+                "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+
+            final Record record = reader.nextRecord();
+            final java.sql.Date date = (Date) record.getValue("date");
+            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
+            calendar.setTimeInMillis(date.getTime());
+
+            assertEquals(1983, calendar.get(Calendar.YEAR));
+            assertEquals(10, calendar.get(Calendar.MONTH));
+            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+        }
+    }
 
     @Test
     public void testSimpleParse() throws IOException, MalformedRecordException {
-        final Map<String, DataType> overrides = new HashMap<>();
-        overrides.put("balance", doubleDataType);
-        overrides.put("other", timeDataType);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/single-bank-account.csv"))) {
-            final CSVRecordReader reader = new CSVRecordReader(fis, null, overrides);
-
-            final RecordSchema schema = reader.getSchema();
-            verifyFields(schema);
+            final CSVRecordReader reader = new CSVRecordReader(fis, Mockito.mock(ComponentLog.class), schema, format,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -65,14 +100,14 @@ public class TestCSVRecordReader {
 
     @Test
     public void testMultipleRecords() throws IOException, MalformedRecordException {
-        final Map<String, DataType> overrides = new HashMap<>();
-        overrides.put("balance", doubleDataType);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/multi-bank-account.csv"))) {
-            final CSVRecordReader reader = new CSVRecordReader(fis, null, overrides);
-
-            final RecordSchema schema = reader.getSchema();
-            verifyFields(schema);
+            final CSVRecordReader reader = new CSVRecordReader(fis, Mockito.mock(ComponentLog.class), schema, format,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -88,14 +123,14 @@ public class TestCSVRecordReader {
 
     @Test
     public void testExtraWhiteSpace() throws IOException, MalformedRecordException {
-        final Map<String, DataType> overrides = new HashMap<>();
-        overrides.put("balance", doubleDataType);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/extra-white-space.csv"))) {
-            final CSVRecordReader reader = new CSVRecordReader(fis, Mockito.mock(ComponentLog.class), overrides);
-
-            final RecordSchema schema = reader.getSchema();
-            verifyFields(schema);
+            final CSVRecordReader reader = new CSVRecordReader(fis, Mockito.mock(ComponentLog.class), schema, format,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -107,16 +142,5 @@ public class TestCSVRecordReader {
 
             assertNull(reader.nextRecord());
         }
-    }
-
-    private void verifyFields(final RecordSchema schema) {
-        final List<String> fieldNames = schema.getFieldNames();
-        final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
-        assertEquals(expectedFieldNames, fieldNames);
-
-        final List<DataType> dataTypes = schema.getDataTypes();
-        final List<DataType> expectedDataTypes = Arrays.asList(stringDataType, stringDataType, doubleDataType,
-            stringDataType, stringDataType, stringDataType, stringDataType, stringDataType);
-        assertEquals(expectedDataTypes, dataTypes);
     }
 }

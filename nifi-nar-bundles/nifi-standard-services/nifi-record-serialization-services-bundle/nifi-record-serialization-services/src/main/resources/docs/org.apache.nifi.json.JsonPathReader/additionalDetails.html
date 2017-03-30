@@ -17,15 +17,15 @@
     <head>
         <meta charset="utf-8"/>
         <title>JsonPathReader</title>
-        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <p>
         	The JsonPathReader Controller Service, parses FlowFiles that are in the JSON format. User-defined properties
-        	specify how to extract all relevant fields from the JSON in order to create a row-oriented record. The Controller
+        	specify how to extract all relevant fields from the JSON in order to create a Record. The Controller
         	Service will not be valid unless at least one JSON Path is provided. Unlike the
-        	<a href="../org.apache.nifi.json.FlatJsonReader/additionalDetails.html">FlatJsonReader</a> Controller Service, this
+        	<a href="../org.apache.nifi.json.JsonTreeReader/additionalDetails.html">JsonTreeReader</a> Controller Service, this
         	service will return a record that contains only those fields that have been configured via JSON Path.
         </p>
         
@@ -39,129 +39,143 @@
         	Supplying a JSON Path is accomplished by adding a user-defined property where the name of the property becomes the name
         	of the field in the Record that is returned. The value of the property must be a valid JSON Path expression. This JSON Path
         	will be evaluated against each top-level JSON Object in the FlowFile, and the result will be the value of the field whose
-        	name is specified by the property name. By default, the type of each field is inferred automatically based on the values of
-        	the first JSON Object encountered for the FlowFile. This can be overridden by changing the name of the user-defined property
-        	by adding a colon (:) and specifying the data type. For example: <code>balance:double</code> or <code>dob:date:MM/dd/yyyy</code>.
-        	In this case, the data type and option format are not included in the field name. So for the aforementioned examples, we would
-        	end up with field names <code>balance</code> and <code>dob</code>.
+        	name is specified by the property name. If any JSON Path is given but no field is present in the Schema with the proper name,
+        	then the field will be skipped.
         </p>
         
 		<p>
-        	When specifying a data type for a field, the following values are valid:
-        </p>
-        
-        <ul>
-        	<li><b>string</b></li>
-        	<li><b>boolean</b></li>
-        	<li><b>byte</b></li>
-        	<li><b>char</b></li>
-        	<li><b>short</b></li>
-        	<li><b>int</b></li>
-        	<li><b>bigint</b></li>
-        	<li><b>long</b></li>
-        	<li><b>float</b></li>
-        	<li><b>double</b></li>
-        	<li><b>date</b> - A date with no time field. By default, the format used is <code>yyyy-MM-dd</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>date:MM/dd/yyyy</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>time</b> - A time with no date field. By default, the format used is <code>HH:mm:ss</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>time:hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>timestamp</b> - A field that represents both a date and time. By default, the format used is
-        		<code>yyyy-MM-dd HH:mm:ss</code>. This can be overridden by adding a colon (:) followed by the desired format. For example:
-        		<code>MM/dd/yyyy hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).</li>
-        	<li><b>object</b> - The value will be returned as a <code>Map&lt;String, Object&gt;</code>. The types of the values in the Map
-        		are always inferred. The type used for the values may not be the same for each record. For example, consider the following
-        		JSON array:
-        			<br /><br />
-        			<code>
-        			[{
-        			    id: 17,
-        			  	name: "John",
-        			    child: {
-        			    	id: "1"
-        			    },
-        			    siblingIds: [4, "8"]
-        			  },
-        			  <br />{
-        			  	id: 98,
-        			    name: "Jane",
-        			    child: {
-        			        id: 2
-        			    },
-        			    siblingIds: []
-        			  }]
-        			</code>
-        			<br /><br />
-        		In this case, the <code>child</code> element would be inferred to be of type <code>object</code>. Since nested types
-        		are inferred on a per-record basis, for the first record, the <code>child</code> field would return a <code>Map</code>
-        		where the value of the <code>id</code> entry is a <code>string</code>. However, for the second record, the <code>child</code>
-        		field would return a <code>Map</code> where the value of the <code>id</code> entry is an <code>int</code>.
-        		<br />
-        		Moreover, the <code>siblingIds</code> of the John will be an <code>array</code> where the first element is an <code>int</code>
-        		and the second element is a <code>string</code>. The <code>siblingIds</code> of Jane will be an empty array.
-        		</li>
-        	<li><b>array</b> - An array of values. The types of the values are always inferred and may not be the same for each element
-        		in the array, or for two arrays from different JSON objects.</li>
-        </ul>
+			This Controller Service must be configured with a schema. Each JSON Path that is evaluated and is found in the "root level"
+			of the schema will produce a Field in the Record. I.e., the schema should match the Record that is created by evaluating all
+			of the JSON Paths. It should not match the "incoming JSON" that is read from the FlowFile.
+		</p>
 
+
+		<h2>Schemas and Type Coercion</h2>
+		
+		<p>
+			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+			the schema, that field is omitted from the Record. If the field is found in the schema, the data type of the received data
+			is compared against the data type specified in the schema. If the types match, the value of that field is used as-is. If the
+			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
+			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
+		</p>
+		
+		<p>
+			The following rules apply when attempting to coerce a field value from one data type to another:
+		</p>
+			
+		<ul>
+			<li>Any data type can be coerced into a String type.</li>
+			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+			<li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+			milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+				or "Timestamp Format."</li>
+			<li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+				<code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+				type but not an Integer.</li>
+			<li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+			<li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+				and the rest of the characters are ignored.</li>
+			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
+			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
+				property (Date Format, Time Format, Timestamp Format property).</li>
+		</ul>
+		
+		<p>
+			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+			will be thrown.
+		</p>
+		
+		
+
+		<h2>Examples</h2>
 
         <p>
         	As an example, consider a FlowFile whose content contains the following JSON:
         </p>
         
         <code>
-			[{
-			    id: 17,
-			  	name: "John",
-			    child: {
-			    	id: "1"
-			    },
-			    siblingIds: [4, "8"]
-			  },
-			  <br />{
-			  	id: 98,
-			    name: "Jane",
-			    child: {
-			        id: 2
-			    },
-			    gender: "F",
-			    siblingIds: []
-			  }]
+        <pre>
+[{
+    "id": 17,
+    "name": "John",
+    "child": {
+        "id": "1"
+    },
+    "siblingIds": [4, 8],
+    "siblings": [
+        { "name": "Jeremy", "id": 4 },
+        { "name": "Julia", "id": 8}
+    ]
+  },
+  {
+    "id": 98,
+    "name": "Jane",
+    "child": {
+        "id": 2
+    },
+    "gender": "F",
+    "siblingIds": [],
+    "siblings": []
+  }]
+		</pre>
+        </code>
+        
+        <p>
+    		And the following schema has been configured:
+        </p>
+        
+        <code>
+        <pre>
+{
+	"namespace": "nifi",
+	"name": "person",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type": "string" },
+		{ "name": "childId", "type": "long" },
+		{ "name": "gender", "type": "string" },
+		{ "name": "siblingNames", "type": {
+			"type": "array",
+			"items": "string"
+		}}
+	]
+}
+        </pre>
         </code>
         
         <p>
         	If we configure this Controller Service with the following user-defined properties:
         	
         	<table>
-        		<head>
+        		<tr>
         			<th>Property Name</th>
         			<th>Property Value</th>
-        		</head>
-        		<body>
-        			<tr>
-        				<td>id</td>
-        				<td><code>$.id</code></td>
-        			</tr>
-        			<tr>
-        				<td>name</td>
-        				<td><code>$.name</code></td>
-        			</tr>
-        			<tr>
-        				<td>childId:long</td>
-        				<td><code>$.child.id</code></td>
-        			</tr>
-        			<tr>
-        				<td>gender:string</td>
-        				<td><code>$.gender</code></td>
-        			</tr>
-        		</body>
+        		</tr>
+    			<tr>
+    				<td>id</td>
+    				<td><code>$.id</code></td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td><code>$.name</code></td>
+    			</tr>
+    			<tr>
+    				<td>childId</td>
+    				<td><code>$.child.id</code></td>
+    			</tr>
+    			<tr>
+    				<td>gender</td>
+    				<td><code>$.gender</code></td>
+    			</tr>
+    			<tr>
+    				<td>siblingNames</td>
+    				<td><code>$.siblings[*].name</code></td>
+    			</tr>
         	</table>
         </p>
         
@@ -169,28 +183,30 @@
 			In this case, the FlowFile will generate two Records. The first record will consist of the following key/value pairs:
 
         	<table>
-        		<head>
-        			<th>Field Name</th>
-        			<th>Field Value</th>
-        		</head>
-        		<body>
-        			<tr>
-        				<td>id</td>
-        				<td>17</td>
-        			</tr>
-        			<tr>
-        				<td>name</td>
-        				<td>John</td>
-        			</tr>
-        			<tr>
-        				<td>childId</td>
-        				<td>1</td>
-        			</tr>
-        			<tr>
-        				<td>gender</td>
-        				<td><i>null</i></td>
-        			</tr>
-				</body>
+        		<tr>
+	    			<th>Field Name</th>
+	    			<th>Field Value</th>
+				</tr>
+    			<tr>
+    				<td>id</td>
+    				<td>17</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John</td>
+    			</tr>
+    			<tr>
+    				<td>childId</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>gender</td>
+    				<td><i>null</i></td>
+    			</tr>
+    			<tr>
+    				<td>siblingNames</td>
+    				<td><i>array of two elements: </i><code>Jeremy</code><i> and </i><code>Julia</code></td>
+    			</tr>
 			</table>
 		</p>
 		
@@ -198,28 +214,30 @@
 			The second record will consist of the following key/value pairs:
 
         	<table>
-        		<head>
+        		<tr>
         			<th>Field Name</th>
         			<th>Field Value</th>
-        		</head>
-        		<body>
-        			<tr>
-        				<td>id</td>
-        				<td>98</td>
-        			</tr>
-        			<tr>
-        				<td>name</td>
-        				<td>Jane</td>
-        			</tr>
-        			<tr>
-        				<td>childId</td>
-        				<td>2</td>
-        			</tr>
-        			<tr>
-        				<td>gender</td>
-        				<td>F</td>
-        			</tr>
-				</body>
+        		</tr>
+    			<tr>
+    				<td>id</td>
+    				<td>98</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>Jane</td>
+    			</tr>
+    			<tr>
+    				<td>childId</td>
+    				<td>2</td>
+    			</tr>
+    			<tr>
+    				<td>gender</td>
+    				<td>F</td>
+    			</tr>
+    			<tr>
+    				<td>siblingNames</td>
+    				<td><i>empty array</i></td>
+    			</tr>
 			</table>
 		</p>
 		

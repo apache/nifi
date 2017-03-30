@@ -50,10 +50,9 @@ import io.thekraken.grok.api.Match;
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
     private final Grok grok;
-    private final Map<String, DataType> fieldTypeOverrides;
+    private RecordSchema schema;
 
     private String nextLine;
-    private RecordSchema schema;
 
     static final String STACK_TRACE_COLUMN_NAME = "STACK_TRACE";
     private static final Pattern STACK_TRACE_PATTERN = Pattern.compile(
@@ -74,10 +73,10 @@ public class GrokRecordReader implements RecordReader {
         TIME_FORMAT_TIMESTAMP = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
     }
 
-    public GrokRecordReader(final InputStream in, final Grok grok, final Map<String, DataType> fieldTypeOverrides) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
-        this.fieldTypeOverrides = fieldTypeOverrides;
+        this.schema = schema;
     }
 
     @Override
@@ -298,11 +297,7 @@ public class GrokRecordReader implements RecordReader {
                 final Map<String, String> namedGroups = GrokUtils.namedGroups(matcher, grokExpression);
                 final String fieldName = namedGroups.get("subname");
 
-                DataType dataType = fieldTypeOverrides.get(fieldName);
-                if (dataType == null) {
-                    dataType = RecordFieldType.STRING.getDataType();
-                }
-
+                DataType dataType = RecordFieldType.STRING.getDataType();
                 final RecordField recordField = new RecordField(fieldName, dataType);
                 fields.add(recordField);
 

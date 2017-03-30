@@ -19,6 +19,8 @@ package org.apache.nifi.serialization.record;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -39,9 +41,11 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private final ResultSet rs;
     private final RecordSchema schema;
     private final Set<String> rsColumnNames;
+    private boolean moreRows;
 
     public ResultSetRecordSet(final ResultSet rs) throws SQLException {
         this.rs = rs;
+        moreRows = rs.next();
         this.schema = createSchema(rs);
 
         rsColumnNames = new HashSet<>();
@@ -59,14 +63,16 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     @Override
     public Record next() throws IOException {
         try {
-            if (rs.next()) {
-                return createRecord(rs);
+            if (moreRows) {
+                final Record record = createRecord(rs);
+                moreRows = rs.next();
+                return record;
+            } else {
+                return null;
             }
         } catch (final SQLException e) {
             throw new IOException("Could not obtain next record from ResultSet", e);
         }
-
-        return null;
     }
 
     @Override
@@ -86,7 +92,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
             final Object value;
             if (rsColumnNames.contains(fieldName)) {
-                value = rs.getObject(field.getFieldName());
+                value = normalizeValue(rs.getObject(fieldName));
             } else {
                 value = null;
             }
@@ -95,6 +101,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
 
         return new MapRecord(schema, values);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Object normalizeValue(final Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof List) {
+            return ((List) value).toArray();
+        }
+
+        return value;
     }
 
     private static RecordSchema createSchema(final ResultSet rs) throws SQLException {
@@ -106,26 +125,149 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             final int column = i + 1;
             final int sqlType = metadata.getColumnType(column);
 
-            final RecordFieldType fieldType = getFieldType(sqlType);
+            final DataType dataType = getDataType(sqlType, rs, column);
             final String fieldName = metadata.getColumnLabel(column);
-            final RecordField field = new RecordField(fieldName, fieldType.getDataType());
+            final RecordField field = new RecordField(fieldName, dataType);
             fields.add(field);
         }
 
         return new SimpleRecordSchema(fields);
     }
 
-    private static RecordFieldType getFieldType(final int sqlType) {
+    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex) throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
-                return RecordFieldType.ARRAY;
-            case Types.BIGINT:
-            case Types.ROWID:
-                return RecordFieldType.LONG;
+                // The JDBC API does not allow us to know what the base type of an array is through the metadata.
+                // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
+                // the base type. However, if the base type is, itself, an array, we will simply return a base type of
+                // String because otherwise, we need the ResultSet for the array itself, and many JDBC Drivers do not
+                // support calling Array.getResultSet() and will throw an Exception if that is not supported.
+                if (rs.isAfterLast()) {
+                    return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+                }
+
+                final Array array = rs.getArray(columnIndex);
+                if (array == null) {
+                    return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+                }
+
+                final DataType baseType = getArrayBaseType(array);
+                return RecordFieldType.ARRAY.getArrayDataType(baseType);
             case Types.BINARY:
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
-                return RecordFieldType.ARRAY;
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            default:
+                return getFieldType(sqlType).getDataType();
+        }
+    }
+
+    private static DataType getArrayBaseType(final Array array) throws SQLException {
+        final Object arrayValue = array.getArray();
+        if (arrayValue == null) {
+            return RecordFieldType.STRING.getDataType();
+        }
+
+        if (arrayValue instanceof byte[]) {
+            return RecordFieldType.BYTE.getDataType();
+        }
+        if (arrayValue instanceof int[]) {
+            return RecordFieldType.INT.getDataType();
+        }
+        if (arrayValue instanceof long[]) {
+            return RecordFieldType.LONG.getDataType();
+        }
+        if (arrayValue instanceof boolean[]) {
+            return RecordFieldType.BOOLEAN.getDataType();
+        }
+        if (arrayValue instanceof short[]) {
+            return RecordFieldType.SHORT.getDataType();
+        }
+        if (arrayValue instanceof byte[]) {
+            return RecordFieldType.BYTE.getDataType();
+        }
+        if (arrayValue instanceof float[]) {
+            return RecordFieldType.FLOAT.getDataType();
+        }
+        if (arrayValue instanceof double[]) {
+            return RecordFieldType.DOUBLE.getDataType();
+        }
+        if (arrayValue instanceof char[]) {
+            return RecordFieldType.CHAR.getDataType();
+        }
+        if (arrayValue instanceof Object[]) {
+            final Object[] values = (Object[]) arrayValue;
+            if (values.length == 0) {
+                return RecordFieldType.STRING.getDataType();
+            }
+
+            Object valueToLookAt = null;
+            for (int i = 0; i < values.length; i++) {
+                valueToLookAt = values[i];
+                if (valueToLookAt != null) {
+                    break;
+                }
+            }
+            if (valueToLookAt == null) {
+                return RecordFieldType.STRING.getDataType();
+            }
+
+            if (valueToLookAt instanceof String) {
+                return RecordFieldType.STRING.getDataType();
+            }
+            if (valueToLookAt instanceof Long) {
+                return RecordFieldType.LONG.getDataType();
+            }
+            if (valueToLookAt instanceof Integer) {
+                return RecordFieldType.INT.getDataType();
+            }
+            if (valueToLookAt instanceof Short) {
+                return RecordFieldType.SHORT.getDataType();
+            }
+            if (valueToLookAt instanceof Byte) {
+                return RecordFieldType.BYTE.getDataType();
+            }
+            if (valueToLookAt instanceof Float) {
+                return RecordFieldType.FLOAT.getDataType();
+            }
+            if (valueToLookAt instanceof Double) {
+                return RecordFieldType.DOUBLE.getDataType();
+            }
+            if (valueToLookAt instanceof Boolean) {
+                return RecordFieldType.BOOLEAN.getDataType();
+            }
+            if (valueToLookAt instanceof Character) {
+                return RecordFieldType.CHAR.getDataType();
+            }
+            if (valueToLookAt instanceof BigInteger) {
+                return RecordFieldType.BIGINT.getDataType();
+            }
+            if (valueToLookAt instanceof Integer) {
+                return RecordFieldType.INT.getDataType();
+            }
+            if (valueToLookAt instanceof java.sql.Time) {
+                return RecordFieldType.TIME.getDataType();
+            }
+            if (valueToLookAt instanceof java.sql.Date) {
+                return RecordFieldType.DATE.getDataType();
+            }
+            if (valueToLookAt instanceof java.sql.Timestamp) {
+                return RecordFieldType.TIMESTAMP.getDataType();
+            }
+            if (valueToLookAt instanceof Record) {
+                return RecordFieldType.RECORD.getDataType();
+            }
+        }
+
+        return RecordFieldType.STRING.getDataType();
+    }
+
+
+    private static RecordFieldType getFieldType(final int sqlType) {
+        switch (sqlType) {
+            case Types.BIGINT:
+            case Types.ROWID:
+                return RecordFieldType.LONG;
             case Types.BIT:
             case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN;

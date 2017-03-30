@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -247,6 +248,13 @@ public class TestQueryFlowFile {
 
                     Assert.assertEquals(columnNames, colNames);
 
+                    // Iterate over the rest of the records to ensure that we read the entire stream. If we don't
+                    // do this, we won't consume all of the data and as a result we will not close the stream properly
+                    Record record;
+                    while ((record = rs.next()) != null) {
+                        System.out.println(record);
+                    }
+
                     return WriteResult.of(0, Collections.emptyMap());
                 }
 
@@ -337,7 +345,7 @@ public class TestQueryFlowFile {
         }
 
         @Override
-        public RecordReader createRecordReader(InputStream in, ComponentLog logger) throws IOException {
+        public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws IOException {
             final Iterator<Object[]> itr = records.iterator();
 
             return new RecordReader() {
@@ -374,6 +382,11 @@ public class TestQueryFlowFile {
                     return new SimpleRecordSchema(fields);
                 }
             };
+        }
+
+        @Override
+        public RecordSchema getSchema(FlowFile flowFile) throws MalformedRecordException, IOException {
+            return null;
         }
     }
 }

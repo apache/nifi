@@ -27,18 +27,6 @@ public class JsonPathValidator implements Validator {
 
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-        if (PropertyNameUtil.hasFieldType(subject) && !PropertyNameUtil.isFieldTypeValid(subject)) {
-            final String fieldType = PropertyNameUtil.getFieldTypeName(subject).get();
-
-            return new ValidationResult.Builder()
-                .subject(subject)
-                .input(input)
-                .valid(false)
-                .explanation("Invalid field type. If property name contains a colon (:) it must use syntax of "
-                    + "<field name>:<field type> but the specified field type ('" + fieldType + "') is not a valid field type")
-                .build();
-        }
-
         try {
             JsonPath.compile(input);
         } catch (final Exception e) {
