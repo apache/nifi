@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
-import java.util.Properties;
+import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 /**
  * Represents {@link ControllerService} strategy to expose internal and/or
@@ -42,5 +43,12 @@ public interface SchemaRegistry extends ControllerService, AutoCloseable {
      * additional attributes. Will throw an runtime exception if schema can not
      * be found.
      */
-    String retrieveSchemaText(String schemaName, Properties attributes);
+    String retrieveSchemaText(String schemaName, Map<String, String> attributes);
+    
+    
+    RecordSchema retrieveSchema(String schemaName);
+    
+    
+    RecordSchema retrieveSchema(String schemaName, Map<String, String> attributes);
+    
 }
