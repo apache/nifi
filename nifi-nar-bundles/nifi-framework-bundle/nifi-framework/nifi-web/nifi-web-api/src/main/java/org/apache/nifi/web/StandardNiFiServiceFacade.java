@@ -3150,7 +3150,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String sourceId = action.getSourceId();
         final Component type = action.getSourceType();
 
-        final Authorizable authorizable;
+        Authorizable authorizable;
         try {
             switch (type) {
                 case Processor:
@@ -3194,8 +3194,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());
             }
         } catch (final ResourceNotFoundException e) {
-            // if the underlying component is gone, disallow
-            return AuthorizationResult.denied("The component of this action is no longer in the data flow.");
+            // if the underlying component is gone, use the controller to see if permissions should be allowed
+            authorizable = controllerFacade;
         }
 
         // perform the authorization
