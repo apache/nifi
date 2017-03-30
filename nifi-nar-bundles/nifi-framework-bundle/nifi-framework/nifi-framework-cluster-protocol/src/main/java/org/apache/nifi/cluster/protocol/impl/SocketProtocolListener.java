@@ -144,7 +144,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             try {
                 request = unmarshaller.unmarshal(wrappedInStream);
             } finally {
-                if (logger.isDebugEnabled()) {
+                if (logger.isDebugEnabled() && wrappedInStream instanceof CopyingInputStream) {
                     final CopyingInputStream copyingInputStream = (CopyingInputStream) wrappedInStream;
                     byte[] receivedMessage = copyingInputStream.getBytesRead();
                     logger.debug("Received message: " + new String(receivedMessage));
