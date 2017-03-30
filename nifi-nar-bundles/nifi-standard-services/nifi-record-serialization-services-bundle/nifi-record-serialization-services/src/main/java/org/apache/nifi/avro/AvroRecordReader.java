@@ -24,11 +24,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
-import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Array;
@@ -44,14 +45,15 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 public class AvroRecordReader implements RecordReader {
     private final InputStream in;
     private final Schema avroSchema;
     private final DataFileStream<GenericRecord> dataFileStream;
     private RecordSchema recordSchema;
+
 
     public AvroRecordReader(final InputStream in) throws IOException, MalformedRecordException {
         this.in = in;
@@ -79,65 +81,78 @@ public class AvroRecordReader implements RecordReader {
         }
 
         final RecordSchema schema = getSchema();
-        final Map<String, Object> values = convertRecordToObjectArray(record, schema);
+        final Map<String, Object> values = convertAvroRecordToMap(record, schema);
         return new MapRecord(schema, values);
     }
 
 
-    private Map<String, Object> convertRecordToObjectArray(final GenericRecord record, final RecordSchema schema) {
-        final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
+    private Map<String, Object> convertAvroRecordToMap(final GenericRecord avroRecord, final RecordSchema recordSchema) {
+        final Map<String, Object> values = new HashMap<>(recordSchema.getFieldCount());
 
-        for (final String fieldName : schema.getFieldNames()) {
-            final Object value = record.get(fieldName);
+        for (final String fieldName : recordSchema.getFieldNames()) {
+            final Object value = avroRecord.get(fieldName);
 
-            final Field avroField = record.getSchema().getField(fieldName);
+            final Field avroField = avroRecord.getSchema().getField(fieldName);
             if (avroField == null) {
                 values.put(fieldName, null);
                 continue;
             }
 
             final Schema fieldSchema = avroField.schema();
-            final DataType dataType = schema.getDataType(fieldName).orElse(null);
-            final Object converted = convertValue(value, fieldSchema, avroField.name(), dataType);
-            values.put(fieldName, converted);
+            final Object rawValue = normalizeValue(value, fieldSchema);
+
+            final DataType desiredType = recordSchema.getDataType(fieldName).get();
+            final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType);
+
+            values.put(fieldName, coercedValue);
         }
 
         return values;
     }
 
-
-    @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
-        if (recordSchema != null) {
-            return recordSchema;
-        }
-
-        recordSchema = createSchema(avroSchema);
-        return recordSchema;
-    }
-
-    private RecordSchema createSchema(final Schema avroSchema) {
-        final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
-        for (final Field field : avroSchema.getFields()) {
-            final String fieldName = field.name();
-            final DataType dataType = determineDataType(field.schema());
-            recordFields.add(new RecordField(fieldName, dataType));
-        }
-
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
-        return recordSchema;
-    }
-
-    private Object convertValue(final Object value, final Schema avroSchema, final String fieldName, final DataType desiredType) {
+    private Object normalizeValue(final Object value, final Schema avroSchema) {
         if (value == null) {
             return null;
         }
 
         switch (avroSchema.getType()) {
+            case INT: {
+                final LogicalType logicalType = avroSchema.getLogicalType();
+                if (logicalType == null) {
+                    return value;
+                }
+
+                final String logicalName = logicalType.getName();
+                if (LogicalTypes.date().getName().equals(logicalName)) {
+                    // date logical name means that the value is number of days since Jan 1, 1970
+                    return new java.sql.Date(TimeUnit.DAYS.toMillis((int) value));
+                } else if (LogicalTypes.timeMillis().equals(logicalName)) {
+                    // time-millis logical name means that the value is number of milliseconds since midnight.
+                    return new java.sql.Time((int) value);
+                }
+
+                break;
+            }
+            case LONG: {
+                final LogicalType logicalType = avroSchema.getLogicalType();
+                if (logicalType == null) {
+                    return value;
+                }
+
+                final String logicalName = logicalType.getName();
+                if (LogicalTypes.timeMicros().getName().equals(logicalName)) {
+                    return new java.sql.Time(TimeUnit.MICROSECONDS.toMillis((long) value));
+                } else if (LogicalTypes.timestampMillis().getName().equals(logicalName)) {
+                    return new java.sql.Timestamp((long) value);
+                } else if (LogicalTypes.timestampMicros().getName().equals(logicalName)) {
+                    return new java.sql.Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                }
+                break;
+            }
             case UNION:
                 if (value instanceof GenericData.Record) {
-                    final GenericData.Record record = (GenericData.Record) value;
-                    return convertValue(value, record.getSchema(), fieldName, desiredType);
+                    final GenericData.Record avroRecord = (GenericData.Record) value;
+                    return normalizeValue(value, avroRecord.getSchema());
                 }
                 break;
             case RECORD:
@@ -146,19 +161,18 @@ public class AvroRecordReader implements RecordReader {
                 final List<Field> recordFields = recordSchema.getFields();
                 final Map<String, Object> values = new HashMap<>(recordFields.size());
                 for (final Field field : recordFields) {
-                    final DataType desiredFieldType = determineDataType(field.schema());
                     final Object avroFieldValue = record.get(field.name());
-                    final Object fieldValue = convertValue(avroFieldValue, field.schema(), field.name(), desiredFieldType);
+                    final Object fieldValue = normalizeValue(avroFieldValue, field.schema());
                     values.put(field.name(), fieldValue);
                 }
-                final RecordSchema childSchema = createSchema(recordSchema);
+                final RecordSchema childSchema = AvroTypeUtil.createSchema(recordSchema);
                 return new MapRecord(childSchema, values);
             case BYTES:
                 final ByteBuffer bb = (ByteBuffer) value;
-                return bb.array();
+                return AvroTypeUtil.convertByteArray(bb.array());
             case FIXED:
                 final GenericFixed fixed = (GenericFixed) value;
-                return fixed.bytes();
+                return AvroTypeUtil.convertByteArray(fixed.bytes());
             case ENUM:
                 return value.toString();
             case NULL:
@@ -170,7 +184,7 @@ public class AvroRecordReader implements RecordReader {
                 final Object[] valueArray = new Object[array.size()];
                 for (int i = 0; i < array.size(); i++) {
                     final Schema elementSchema = avroSchema.getElementType();
-                    valueArray[i] = convertValue(array.get(i), elementSchema, fieldName, determineDataType(elementSchema));
+                    valueArray[i] = normalizeValue(array.get(i), elementSchema);
                 }
                 return valueArray;
             case MAP:
@@ -182,73 +196,32 @@ public class AvroRecordReader implements RecordReader {
                         obj = obj.toString();
                     }
 
-                    map.put(entry.getKey().toString(), obj);
+                    final String key = entry.getKey().toString();
+                    obj = normalizeValue(obj, avroSchema.getValueType());
+
+                    map.put(key, obj);
                 }
-                return map;
+
+                final DataType elementType = AvroTypeUtil.determineDataType(avroSchema.getValueType());
+                final List<RecordField> mapFields = new ArrayList<>();
+                for (final String key : map.keySet()) {
+                    mapFields.add(new RecordField(key, elementType));
+                }
+                final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
+                return new MapRecord(mapSchema, map);
         }
 
         return value;
     }
 
 
-    private DataType determineDataType(final Schema avroSchema) {
-        final Type avroType = avroSchema.getType();
-
-        switch (avroType) {
-            case ARRAY:
-            case BYTES:
-            case FIXED:
-                return RecordFieldType.ARRAY.getDataType();
-            case BOOLEAN:
-                return RecordFieldType.BOOLEAN.getDataType();
-            case DOUBLE:
-                return RecordFieldType.DOUBLE.getDataType();
-            case ENUM:
-            case STRING:
-                return RecordFieldType.STRING.getDataType();
-            case FLOAT:
-                return RecordFieldType.FLOAT.getDataType();
-            case INT:
-                return RecordFieldType.INT.getDataType();
-            case LONG:
-                return RecordFieldType.LONG.getDataType();
-            case RECORD: {
-                final List<Field> avroFields = avroSchema.getFields();
-                final List<RecordField> recordFields = new ArrayList<>(avroFields.size());
-
-                for (final Field field : avroFields) {
-                    final String fieldName = field.name();
-                    final Schema fieldSchema = field.schema();
-                    final DataType fieldType = determineDataType(fieldSchema);
-                    recordFields.add(new RecordField(fieldName, fieldType));
-                }
-
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
-                return RecordFieldType.RECORD.getDataType(recordSchema);
-            }
-            case NULL:
-            case MAP:
-                return RecordFieldType.RECORD.getDataType();
-            case UNION: {
-                final List<Schema> nonNullSubSchemas = avroSchema.getTypes().stream()
-                    .filter(s -> s.getType() != Type.NULL)
-                    .collect(Collectors.toList());
-
-                if (nonNullSubSchemas.size() == 1) {
-                    return determineDataType(nonNullSubSchemas.get(0));
-                }
-
-                final List<DataType> possibleChildTypes = new ArrayList<>(nonNullSubSchemas.size());
-                for (final Schema subSchema : nonNullSubSchemas) {
-                    final DataType childDataType = determineDataType(subSchema);
-                    possibleChildTypes.add(childDataType);
-                }
-
-                return RecordFieldType.CHOICE.getDataType(possibleChildTypes);
-            }
+    @Override
+    public RecordSchema getSchema() throws MalformedRecordException {
+        if (recordSchema != null) {
+            return recordSchema;
         }
 
-        return null;
+        recordSchema = AvroTypeUtil.createSchema(avroSchema);
+        return recordSchema;
     }
-
 }

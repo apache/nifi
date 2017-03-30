@@ -39,7 +39,6 @@ public interface RecordReader extends Closeable {
     /**
      * Returns the next record in the stream or <code>null</code> if no more records are available.
      *
-     * @param schema the schema to use in order to determine how to interprets the fields in a record
      * @return the next record in the stream or <code>null</code> if no more records are available.
      *
      * @throws IOException if unable to read from the underlying data

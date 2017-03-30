@@ -136,7 +136,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
 
         RecordSchema schema;
         try (final InputStream in = session.read(flowFile)) {
-            final RecordReader recordParser = recordParserFactory.createRecordReader(in, logger);
+            final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, logger);
             schema = recordParser.getSchema();
         } catch (final MalformedRecordException | IOException e) {
             throw new ProcessException("Failed to determine schema of data records for " + flowFile, e);
@@ -189,7 +189,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
                 return typeFactory.createJavaType(String.class);
             case ARRAY:
                 return typeFactory.createJavaType(Object[].class);
-            case OBJECT:
+            case RECORD:
                 return typeFactory.createJavaType(Object.class);
         }
 

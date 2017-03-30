@@ -19,16 +19,11 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TimeZone;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -45,7 +40,6 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
 
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
@@ -56,8 +50,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final JsonNode firstJsonNode;
 
     private boolean firstObjectConsumed = false;
-
-    private static final TimeZone gmt = TimeZone.getTimeZone("GMT");
 
 
     public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
@@ -136,7 +128,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
 
         final RecordSchema childSchema = determineSchema(node);
-        return RecordFieldType.RECORD.getDataType(childSchema);
+        return RecordFieldType.RECORD.getRecordDataType(childSchema);
     }
 
     protected RecordSchema determineSchema(final JsonNode jsonNode) {
@@ -155,110 +147,30 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return new SimpleRecordSchema(recordFields);
     }
 
-    protected Object convertField(final JsonNode fieldNode, final String fieldName, final DataType desiredType) throws IOException, MalformedRecordException {
-        if (fieldNode == null || fieldNode.isNull()) {
+    protected Object getRawNodeValue(final JsonNode fieldNode) throws IOException {
+        if (fieldNode == null || !fieldNode.isValueNode()) {
             return null;
         }
 
-        switch (desiredType.getFieldType()) {
-            case BOOLEAN:
-                return fieldNode.asBoolean();
-            case BYTE:
-                return (byte) fieldNode.asInt();
-            case CHAR:
-                final String text = fieldNode.asText();
-                if (text.isEmpty()) {
-                    return null;
-                }
-                return text.charAt(0);
-            case DOUBLE:
-                return fieldNode.asDouble();
-            case FLOAT:
-                return (float) fieldNode.asDouble();
-            case INT:
-                return fieldNode.asInt();
-            case LONG:
-                return fieldNode.asLong();
-            case SHORT:
-                return (short) fieldNode.asInt();
-            case STRING:
-                return fieldNode.asText();
-            case DATE: {
-                final String string = fieldNode.asText();
-                if (string.isEmpty()) {
-                    return null;
-                }
-
-                try {
-                    final DateFormat dateFormat = new SimpleDateFormat(desiredType.getFormat());
-                    dateFormat.setTimeZone(gmt);
-                    final Date date = dateFormat.parse(string);
-                    return new java.sql.Date(date.getTime());
-                } catch (ParseException e) {
-                    logger.warn("Failed to convert JSON field to Date for field {} (value {})", new Object[] {fieldName, string, e});
-                    return null;
-                }
-            }
-            case TIME: {
-                final String string = fieldNode.asText();
-                if (string.isEmpty()) {
-                    return null;
-                }
-
-                try {
-                    final DateFormat dateFormat = new SimpleDateFormat(desiredType.getFormat());
-                    dateFormat.setTimeZone(gmt);
-                    final Date date = dateFormat.parse(string);
-                    return new java.sql.Date(date.getTime());
-                } catch (ParseException e) {
-                    logger.warn("Failed to convert JSON field to Time for field {} (value {})", new Object[] {fieldName, string, e});
-                    return null;
-                }
-            }
-            case TIMESTAMP: {
-                final String string = fieldNode.asText();
-                if (string.isEmpty()) {
-                    return null;
-                }
-
-                try {
-                    final DateFormat dateFormat = new SimpleDateFormat(desiredType.getFormat());
-                    dateFormat.setTimeZone(gmt);
-                    final Date date = dateFormat.parse(string);
-                    return new java.sql.Date(date.getTime());
-                } catch (ParseException e) {
-                    logger.warn("Failed to convert JSON field to Timestamp for field {} (value {})", new Object[] {fieldName, string, e});
-                    return null;
-                }
-            }
-            case ARRAY: {
-                final ArrayNode arrayNode = (ArrayNode) fieldNode;
-                final int numElements = arrayNode.size();
-                final Object[] arrayElements = new Object[numElements];
-                int count = 0;
-                for (final JsonNode node : arrayNode) {
-                    final Object converted = convertField(node, fieldName, determineFieldType(node));
-                    arrayElements[count++] = converted;
-                }
-
-                return arrayElements;
-            }
-            case RECORD: {
-                if (fieldNode.isObject()) {
-                    final Optional<RecordSchema> childSchema = desiredType.getChildRecordSchema();
-                    if (!childSchema.isPresent()) {
-                        return null;
-                    }
-
-                    return convertJsonNodeToRecord(fieldNode, childSchema.get());
-                } else {
-                    return fieldNode.toString();
-                }
-            }
+        if (fieldNode.isNumber()) {
+            return fieldNode.getNumberValue();
         }
 
-        return fieldNode.toString();
+        if (fieldNode.isBinary()) {
+            return fieldNode.getBinaryValue();
+        }
+
+        if (fieldNode.isBoolean()) {
+            return fieldNode.getBooleanValue();
+        }
+
+        if (fieldNode.isTextual()) {
+            return fieldNode.getTextValue();
+        }
+
+        return null;
     }
+
 
     private JsonNode getNextJsonNode() throws JsonParseException, IOException, MalformedRecordException {
         if (!firstObjectConsumed) {
@@ -285,6 +197,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             }
         }
     }
+
 
     @Override
     public void close() throws IOException {

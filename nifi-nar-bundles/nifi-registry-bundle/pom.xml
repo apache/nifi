@@ -21,12 +21,7 @@
 	<packaging>pom</packaging>
 	<description>A bundle of processors that rely on external service to obtain schema.</description>
 
-	<properties>
-		<commons-lang3.version>3.0</commons-lang3.version>
-	</properties>
-
 	<modules>
-		<module>nifi-registry-processors</module>
 		<module>nifi-registry-service</module>
 		<module>nifi-registry-nar</module>
 	</modules>

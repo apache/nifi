@@ -26,17 +26,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Assert;
@@ -47,6 +48,10 @@ import org.mockito.Mockito;
 import com.jayway.jsonpath.JsonPath;
 
 public class TestJsonPathRowRecordReader {
+    private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
+    private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
+    private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
+
     private final LinkedHashMap<String, JsonPath> allJsonPaths = new LinkedHashMap<>();
 
     @Before
@@ -63,12 +68,36 @@ public class TestJsonPathRowRecordReader {
         allJsonPaths.put("country", JsonPath.compile("$.country"));
     }
 
+
+    private List<RecordField> getDefaultFields() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("address", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("zipCode", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("country", RecordFieldType.STRING.getDataType()));
+        return fields;
+    }
+
+    private RecordSchema getAccountSchema() {
+        final List<RecordField> accountFields = new ArrayList<>();
+        accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+
+        final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
+        return accountSchema;
+    }
+
+
     @Test
     public void testReadArray() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -91,10 +120,10 @@ public class TestJsonPathRowRecordReader {
 
     @Test
     public void testSingleJsonElement() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -119,17 +148,20 @@ public class TestJsonPathRowRecordReader {
         final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("account", JsonPath.compile("$.account"));
 
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("account", accountType));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country", "account"});
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.RECORD});
             assertEquals(expectedTypes, dataTypes);
 
@@ -152,10 +184,15 @@ public class TestJsonPathRowRecordReader {
         final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("accounts", JsonPath.compile("$.accounts"));
 
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested-array.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final DataType accountRecordType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountRecordType);
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("accounts", accountsType));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-            final RecordSchema schema = reader.getSchema();
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested-array.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {
@@ -163,7 +200,7 @@ public class TestJsonPathRowRecordReader {
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.ARRAY});
             assertEquals(expectedTypes, dataTypes);
 
@@ -177,17 +214,17 @@ public class TestJsonPathRowRecordReader {
             final Object[] array = (Object[]) lastRecord;
             assertEquals(2, array.length);
             final Object firstElement = array[0];
-            assertTrue(firstElement instanceof Map);
+            assertTrue(firstElement instanceof Record);
 
-            final Map<?, ?> firstMap = (Map<?, ?>) firstElement;
-            assertEquals(42, firstMap.get("id"));
-            assertEquals(4750.89D, firstMap.get("balance"));
+            final Record firstRecord = (Record) firstElement;
+            assertEquals(42, firstRecord.getValue("id"));
+            assertEquals(4750.89D, firstRecord.getValue("balance"));
 
             final Object secondElement = array[1];
-            assertTrue(secondElement instanceof Map);
-            final Map<?, ?> secondMap = (Map<?, ?>) secondElement;
-            assertEquals(43, secondMap.get("id"));
-            assertEquals(48212.38D, secondMap.get("balance"));
+            assertTrue(secondElement instanceof Record);
+            final Record secondRecord = (Record) secondElement;
+            assertEquals(43, secondRecord.getValue("id"));
+            assertEquals(48212.38D, secondRecord.getValue("balance"));
 
             assertNull(reader.nextRecord());
         }
@@ -195,10 +232,10 @@ public class TestJsonPathRowRecordReader {
 
     @Test
     public void testReadArrayDifferentSchemas() throws IOException, MalformedRecordException {
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(allJsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -226,11 +263,14 @@ public class TestJsonPathRowRecordReader {
     public void testReadArrayDifferentSchemasWithOverride() throws IOException, MalformedRecordException {
         final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("address2", JsonPath.compile("$.address2"));
-        final Map<String, DataType> typeOverrides = Collections.singletonMap("address2", RecordFieldType.STRING.getDataType());
+
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("address2", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, typeOverrides, in, Mockito.mock(ComponentLog.class))) {
-            final RecordSchema schema = reader.getSchema();
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country", "address2"});
@@ -259,10 +299,13 @@ public class TestJsonPathRowRecordReader {
         final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
         jsonPaths.put("accountIds", JsonPath.compile("$.accountIds"));
 
-        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/primitive-type-array.json"));
-            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, Collections.emptyMap(), in, Mockito.mock(ComponentLog.class))) {
+        final List<RecordField> fields = getDefaultFields();
+        final DataType idsType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType());
+        fields.add(new RecordField("accountIds", idsType));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-            final RecordSchema schema = reader.getSchema();
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/primitive-type-array.json"));
+            final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country", "accountIds"});

@@ -50,10 +50,9 @@ import io.thekraken.grok.api.Match;
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
     private final Grok grok;
-    private final Map<String, DataType> fieldTypeOverrides;
+    private RecordSchema schema;
 
     private String nextLine;
-    private RecordSchema schema;
 
     static final String STACK_TRACE_COLUMN_NAME = "STACK_TRACE";
     private static final Pattern STACK_TRACE_PATTERN = Pattern.compile(
@@ -74,10 +73,10 @@ public class GrokRecordReader implements RecordReader {
         TIME_FORMAT_TIMESTAMP = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
     }
 
-    public GrokRecordReader(final InputStream in, final Grok grok, final Map<String, DataType> fieldTypeOverrides) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
-        this.fieldTypeOverrides = fieldTypeOverrides;
+        this.schema = schema;
     }
 
     @Override
@@ -210,46 +209,33 @@ public class GrokRecordReader implements RecordReader {
         if (fieldType == null) {
             return string;
         }
+
+        if (string == null) {
+            return null;
+        }
+
+        // If string is empty then return an empty string if field type is STRING. If field type is
+        // anything else, we can't really convert it so return null
+        if (string.isEmpty() && fieldType.getFieldType() != RecordFieldType.STRING) {
+            return null;
+        }
+
         switch (fieldType.getFieldType()) {
             case BOOLEAN:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Boolean.parseBoolean(string);
             case BYTE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Byte.parseByte(string);
             case SHORT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Short.parseShort(string);
             case INT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Integer.parseInt(string);
             case LONG:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Long.parseLong(string);
             case FLOAT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Float.parseFloat(string);
             case DOUBLE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Double.parseDouble(string);
             case DATE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_DATE.parse(string);
                     return new java.sql.Date(date.getTime());
@@ -257,9 +243,6 @@ public class GrokRecordReader implements RecordReader {
                     return null;
                 }
             case TIME:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_TIME.parse(string);
                     return new java.sql.Time(date.getTime());
@@ -267,9 +250,6 @@ public class GrokRecordReader implements RecordReader {
                     return null;
                 }
             case TIMESTAMP:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_TIMESTAMP.parse(string);
                     return new java.sql.Timestamp(date.getTime());
@@ -298,11 +278,7 @@ public class GrokRecordReader implements RecordReader {
                 final Map<String, String> namedGroups = GrokUtils.namedGroups(matcher, grokExpression);
                 final String fieldName = namedGroups.get("subname");
 
-                DataType dataType = fieldTypeOverrides.get(fieldName);
-                if (dataType == null) {
-                    dataType = RecordFieldType.STRING.getDataType();
-                }
-
+                DataType dataType = RecordFieldType.STRING.getDataType();
                 final RecordField recordField = new RecordField(fieldName, dataType);
                 fields.add(recordField);
 

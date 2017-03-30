@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.util;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -27,14 +35,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class TestMockProcessSession {
 

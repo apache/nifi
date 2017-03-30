@@ -26,14 +26,14 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.AbstractRecordSetWriter;
+import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
-@Tags({"json", "resultset", "writer", "serialize", "record", "row"})
-@CapabilityDescription("Writes the results of a Database ResultSet as a JSON Array. Even if the ResultSet "
+@Tags({"json", "resultset", "writer", "serialize", "record", "recordset", "row"})
+@CapabilityDescription("Writes the results of a RecordSet as a JSON Array. Even if the RecordSet "
     + "consists of a single row, it will be written as an array with a single element.")
-public class JsonRecordSetWriter extends AbstractRecordSetWriter implements RecordSetWriterFactory {
+public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
     static final PropertyDescriptor PRETTY_PRINT_JSON = new PropertyDescriptor.Builder()
         .name("Pretty Print JSON")

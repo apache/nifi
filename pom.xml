@@ -681,7 +681,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.7.7</version>
+                <version>1.8.1</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey</groupId>
@@ -921,6 +921,11 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-registry-service</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
@@ -967,6 +972,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-service-api</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-schema-registry-service-api</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>

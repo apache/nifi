@@ -23,18 +23,27 @@ import java.io.InputStream;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RowRecordReaderFactory;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"avro", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
-@CapabilityDescription("Parses Avro data and returns each Avro record as an separate record.")
+@CapabilityDescription("Parses Avro data and returns each Avro record as an separate Record object. The Avro data must contain "
+    + "the schema itself.")
 public class AvroReader extends AbstractControllerService implements RowRecordReaderFactory {
 
     @Override
-    public RecordReader createRecordReader(final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException {
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException {
         return new AvroRecordReader(in);
+    }
+
+    @Override
+    public RecordSchema getSchema(final FlowFile flowFile) throws MalformedRecordException, IOException {
+        // TODO: Need to support retrieving schema from registry instead of requiring that it be in the Avro file.
+        return null;
     }
 
 }

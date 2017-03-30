@@ -98,19 +98,22 @@ import org.apache.nifi.util.StopWatch;
         + "that is selected being routed to the relationship whose name is the property name")
 public class QueryFlowFile extends AbstractProcessor {
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-        .name("Record Reader")
+        .name("record-reader")
+        .displayName("Record Reader")
         .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
         .identifiesControllerService(RowRecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-        .name("Record Writer")
+        .name("record-writer")
+        .displayName("Record Writer")
         .description("Specifies the Controller Service to use for writing results to a FlowFile")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
-        .name("Include Zero Record FlowFiles")
+        .name("include-zero-record-flowfiles")
+        .displayName("Include Zero Record FlowFiles")
         .description("When running the SQL statement against an incoming FlowFile, if the result has no data, "
             + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
         .expressionLanguageSupported(false)
@@ -119,7 +122,8 @@ public class QueryFlowFile extends AbstractProcessor {
         .required(true)
         .build();
     static final PropertyDescriptor CACHE_SCHEMA = new PropertyDescriptor.Builder()
-        .name("Cache Schema")
+        .name("cache-schema")
+        .displayName("Cache Schema")
         .description("Parsing the SQL query and deriving the FlowFile's schema is relatively expensive. If this value is set to true, "
             + "the Processor will cache these values so that the Processor is much more efficient and much faster. However, if this is done, "
             + "then the schema that is derived for the first FlowFile processed must apply to all FlowFiles. If all FlowFiles will not have the exact "
@@ -391,7 +395,7 @@ public class QueryFlowFile extends AbstractProcessor {
 
         final Supplier<CalciteConnection> connectionSupplier = () -> {
             final Properties properties = new Properties();
-            properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.JAVA.name());
+            properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
 
             try {
                 final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
@@ -491,6 +495,15 @@ public class QueryFlowFile extends AbstractProcessor {
     private static class SqlValidator implements Validator {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if (context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(true)
+                    .explanation("Expression Language Present")
+                    .build();
+            }
+
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
             final SqlParser parser = SqlParser.create(substituted);
             try {

@@ -29,11 +29,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.UserTypeOverrideRowReader;
+import org.apache.nifi.serialization.SchemaRegistryRecordReader;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 import io.thekraken.grok.api.Grok;
 import io.thekraken.grok.api.exception.GrokException;
@@ -45,9 +47,11 @@ import io.thekraken.grok.api.exception.GrokException;
     + "If a line in the input does not match the expected message pattern, the line of text is considered to be part of the previous "
     + "message, with the exception of stack traces. A stack trace that is found at the end of a log message is considered to be part "
     + "of the previous message but is added to the 'STACK_TRACE' field of the Record. If a record has no stack trace, it will have a NULL value "
-    + "for the STACK_TRACE field.")
-public class GrokReader extends UserTypeOverrideRowReader implements RowRecordReaderFactory {
+    + "for the STACK_TRACE field. All fields that are parsed are considered to be of type String by default. If there is need to change the type of a field, "
+    + "this can be accomplished by configuring the Schema Registry to use and adding the appropriate schema.")
+public class GrokReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
     private volatile Grok grok;
+    private volatile boolean useSchemaRegistry;
 
     private static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
 
@@ -60,6 +64,7 @@ public class GrokReader extends UserTypeOverrideRowReader implements RowRecordRe
         .expressionLanguageSupported(true)
         .required(false)
         .build();
+
     static final PropertyDescriptor GROK_EXPRESSION = new PropertyDescriptor.Builder()
         .name("Grok Expression")
         .description("Specifies the format of a log line in Grok format. This allows the Record Reader to understand how to parse each log line. "
@@ -70,7 +75,7 @@ public class GrokReader extends UserTypeOverrideRowReader implements RowRecordRe
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PATTERN_FILE);
         properties.add(GROK_EXPRESSION);
         return properties;
@@ -86,14 +91,21 @@ public class GrokReader extends UserTypeOverrideRowReader implements RowRecordRe
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
-            grok.addPatternFromFile(context.getProperty(PATTERN_FILE).getValue());
+            grok.addPatternFromFile(context.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue());
         }
 
         grok.compile(context.getProperty(GROK_EXPRESSION).getValue());
+        useSchemaRegistry = context.getProperty(OPTIONAL_SCHEMA_NAME).isSet() && context.getProperty(OPTIONAL_SCHEMA_REGISTRY).isSet();
     }
 
     @Override
-    public RecordReader createRecordReader(final InputStream in, final ComponentLog logger) throws IOException {
-        return new GrokRecordReader(in, grok, getFieldTypeOverrides());
+    protected boolean isSchemaRequired() {
+        return false;
+    }
+
+    @Override
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException {
+        final RecordSchema schema = useSchemaRegistry ? getSchema(flowFile) : null;
+        return new GrokRecordReader(in, grok, schema);
     }
 }

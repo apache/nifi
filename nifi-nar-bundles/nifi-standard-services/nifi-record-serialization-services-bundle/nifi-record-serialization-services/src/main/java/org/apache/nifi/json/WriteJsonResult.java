@@ -20,17 +20,10 @@ package org.apache.nifi.json;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.sql.Array;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.DataTypeUtils;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
@@ -38,25 +31,29 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
 
 public class WriteJsonResult implements RecordSetWriter {
-    private final boolean prettyPrint;
-
     private final ComponentLog logger;
+    private final boolean prettyPrint;
     private final JsonFactory factory = new JsonFactory();
-    private final DateFormat dateFormat;
-    private final DateFormat timeFormat;
-    private final DateFormat timestampFormat;
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
 
     public WriteJsonResult(final ComponentLog logger, final boolean prettyPrint, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.prettyPrint = prettyPrint;
-        this.dateFormat = new SimpleDateFormat(dateFormat);
-        this.timeFormat = new SimpleDateFormat(timeFormat);
-        this.timestampFormat = new SimpleDateFormat(timestampFormat);
+
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
+
         this.logger = logger;
     }
 
@@ -127,26 +124,6 @@ public class WriteJsonResult implements RecordSetWriter {
         }
     }
 
-    private String createDate(final Object value, final DateFormat format) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Date) {
-            return format.format((Date) value);
-        }
-        if (value instanceof java.sql.Date) {
-            return format.format(new Date(((java.sql.Date) value).getTime()));
-        }
-        if (value instanceof java.sql.Time) {
-            return format.format(new Date(((java.sql.Time) value).getTime()));
-        }
-        if (value instanceof java.sql.Timestamp) {
-            return format.format(new Date(((java.sql.Timestamp) value).getTime()));
-        }
-
-        return null;
-    }
 
     private void writeValue(final JsonGenerator generator, final Object value, final DataType dataType, final boolean moreCols)
         throws JsonGenerationException, IOException, SQLException {
@@ -155,50 +132,46 @@ public class WriteJsonResult implements RecordSetWriter {
             return;
         }
 
-        final DataType resolvedDataType;
-        if (dataType.getFieldType() == RecordFieldType.CHOICE) {
-            resolvedDataType = DataTypeUtils.inferDataType(value);
-        } else {
-            resolvedDataType = dataType;
+        final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType);
+        if (coercedValue == null) {
+            generator.writeNull();
+            return;
         }
 
-        switch (resolvedDataType.getFieldType()) {
+        switch (chosenDataType.getFieldType()) {
             case DATE:
-                generator.writeString(createDate(value, dateFormat));
-                break;
             case TIME:
-                generator.writeString(createDate(value, timeFormat));
-                break;
             case TIMESTAMP:
-                generator.writeString(createDate(value, timestampFormat));
+                generator.writeString(DataTypeUtils.toString(coercedValue, dateFormat, timeFormat, timestampFormat));
                 break;
             case DOUBLE:
-                generator.writeNumber(DataTypeUtils.toDouble(value, 0D));
+                generator.writeNumber(DataTypeUtils.toDouble(coercedValue));
                 break;
             case FLOAT:
-                generator.writeNumber(DataTypeUtils.toFloat(value, 0F));
+                generator.writeNumber(DataTypeUtils.toFloat(coercedValue));
                 break;
             case LONG:
-                generator.writeNumber(DataTypeUtils.toLong(value, 0L));
+                generator.writeNumber(DataTypeUtils.toLong(coercedValue));
                 break;
             case INT:
             case BYTE:
             case SHORT:
-                generator.writeNumber(DataTypeUtils.toInteger(value, 0));
+                generator.writeNumber(DataTypeUtils.toInteger(coercedValue));
                 break;
             case CHAR:
             case STRING:
-                generator.writeString(value.toString());
+                generator.writeString(coercedValue.toString());
                 break;
             case BIGINT:
-                if (value instanceof Long) {
-                    generator.writeNumber(((Long) value).longValue());
+                if (coercedValue instanceof Long) {
+                    generator.writeNumber(((Long) coercedValue).longValue());
                 } else {
-                    generator.writeNumber((BigInteger) value);
+                    generator.writeNumber((BigInteger) coercedValue);
                 }
                 break;
             case BOOLEAN:
-                final String stringValue = value.toString();
+                final String stringValue = coercedValue.toString();
                 if ("true".equalsIgnoreCase(stringValue)) {
                     generator.writeBoolean(true);
                 } else if ("false".equalsIgnoreCase(stringValue)) {
@@ -208,95 +181,34 @@ public class WriteJsonResult implements RecordSetWriter {
                 }
                 break;
             case RECORD: {
-                final Record record = (Record) value;
+                final Record record = (Record) coercedValue;
                 writeRecord(record, generator, gen -> gen.writeStartObject(), gen -> gen.writeEndObject());
                 break;
             }
             case ARRAY:
             default:
-                if ("null".equals(value.toString())) {
-                    generator.writeNull();
-                } else if (value instanceof Map) {
-                    final Map<?, ?> map = (Map<?, ?>) value;
-                    generator.writeStartObject();
-
-                    int i = 0;
-                    for (final Map.Entry<?, ?> entry : map.entrySet()) {
-                        generator.writeFieldName(entry.getKey().toString());
-                        final boolean moreEntries = ++i < map.size();
-                        writeValue(generator, entry.getValue(), getColType(entry.getValue()), moreEntries);
-                    }
-                    generator.writeEndObject();
-                } else if (value instanceof List) {
-                    final List<?> list = (List<?>) value;
-                    writeArray(list.toArray(), generator);
-                } else if (value instanceof Array) {
-                    final Array array = (Array) value;
-                    final Object[] values = (Object[]) array.getArray();
-                    writeArray(values, generator);
-                } else if (value instanceof Object[]) {
-                    final Object[] values = (Object[]) value;
-                    writeArray(values, generator);
+                if (coercedValue instanceof Object[]) {
+                    final Object[] values = (Object[]) coercedValue;
+                    final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                    final DataType elementType = arrayDataType.getElementType();
+                    writeArray(values, generator, elementType);
                 } else {
-                    generator.writeString(value.toString());
+                    generator.writeString(coercedValue.toString());
                 }
                 break;
         }
     }
 
-    private void writeArray(final Object[] values, final JsonGenerator generator) throws JsonGenerationException, IOException, SQLException {
+    private void writeArray(final Object[] values, final JsonGenerator generator, final DataType elementType) throws JsonGenerationException, IOException, SQLException {
         generator.writeStartArray();
         for (int i = 0; i < values.length; i++) {
             final boolean moreEntries = i < values.length - 1;
             final Object element = values[i];
-            writeValue(generator, element, getColType(element), moreEntries);
+            writeValue(generator, element, elementType, moreEntries);
         }
         generator.writeEndArray();
     }
 
-    private DataType getColType(final Object value) {
-        if (value instanceof String) {
-            return RecordFieldType.STRING.getDataType();
-        }
-        if (value instanceof Double) {
-            return RecordFieldType.DOUBLE.getDataType();
-        }
-        if (value instanceof Float) {
-            return RecordFieldType.FLOAT.getDataType();
-        }
-        if (value instanceof Integer) {
-            return RecordFieldType.INT.getDataType();
-        }
-        if (value instanceof Long) {
-            return RecordFieldType.LONG.getDataType();
-        }
-        if (value instanceof BigInteger) {
-            return RecordFieldType.BIGINT.getDataType();
-        }
-        if (value instanceof Boolean) {
-            return RecordFieldType.BOOLEAN.getDataType();
-        }
-        if (value instanceof Byte || value instanceof Short) {
-            return RecordFieldType.INT.getDataType();
-        }
-        if (value instanceof Character) {
-            return RecordFieldType.STRING.getDataType();
-        }
-        if (value instanceof java.util.Date || value instanceof java.sql.Date) {
-            return RecordFieldType.DATE.getDataType();
-        }
-        if (value instanceof java.sql.Time) {
-            return RecordFieldType.TIME.getDataType();
-        }
-        if (value instanceof java.sql.Timestamp) {
-            return RecordFieldType.TIMESTAMP.getDataType();
-        }
-        if (value instanceof Object[] || value instanceof List || value instanceof Array) {
-            return RecordFieldType.ARRAY.getDataType();
-        }
-
-        return RecordFieldType.RECORD.getDataType();
-    }
 
     @Override
     public String getMimeType() {

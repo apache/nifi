@@ -99,10 +99,6 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
         }
 
         // Create a new Object array that contains only the desired fields.
-        if (row.length <= fields.length) {
-            return row;
-        }
-
         final Object[] filtered = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
             final int indexToKeep = fields[i];
@@ -125,7 +121,7 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
         rawIn = session.read(flowFile);
 
         try {
-            recordParser = recordParserFactory.createRecordReader(rawIn, logger);
+            recordParser = recordParserFactory.createRecordReader(flowFile, rawIn, logger);
         } catch (final MalformedRecordException | IOException e) {
             throw new ProcessException("Failed to reset stream", e);
         }

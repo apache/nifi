@@ -64,11 +64,14 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Copyright 2011 JSON-SMART authors
 
-   (ASLv2) JsonPath
-     The following NOTICE information applies:
-       Copyright 2011 JsonPath authors
+  (ASLv2) JsonPath
+    The following NOTICE information applies:
+      Copyright 2011 JsonPath authors
 
-  (ASLv2) opencsv (net.sf.opencsv:opencsv:2.3)
+  (ASLv2) Apache Commons CSV
+	The following NOTICE information applies:
+	  Apache Commons CSV
+	  Copyright 2005-2016 The Apache Software Foundation
 
   (ASLv2) Apache Avro
     The following NOTICE information applies:

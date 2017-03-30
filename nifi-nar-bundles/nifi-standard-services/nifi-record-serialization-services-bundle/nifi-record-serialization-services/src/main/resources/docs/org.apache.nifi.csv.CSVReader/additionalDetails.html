@@ -17,83 +17,103 @@
     <head>
         <meta charset="utf-8"/>
         <title>CSVReader</title>
-        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <p>
         	The CSVReader Controller Service, expects input in such a way that the first line of a FlowFile specifies the name of
         	each column in the data. Following the first line, the rest of the FlowFile is expected to be valid CSV data from which
-        	to form appropriate Records. By default, the schema for a FlowFile is inferred by extracting the name of each column from
-        	the first line of the CSV and assumes that all columns are of type <code>string</code>. Of course, we may want to treat some
-        	columns as a data type other than <code>string</code>. This can be accomplished by adding a user-defined property where the
-        	name of the property is the same as the name of a CSV column and the value of the property is the data type to use.
+        	to form appropriate Records. The reader allows for customization of the CSV Format, such as which character should be used
+        	to separate CSV fields, which character should be used for quoting and when to quote fields, which character should denote
+        	a comment, etc.
         </p>
-        
-        <p>
-        	When specifying a data type for a field, the following values are valid:
-        </p>
-        
-        <ul>
-        	<li><b>string</b></li>
-        	<li><b>boolean</b></li>
-        	<li><b>byte</b></li>
-        	<li><b>char</b></li>
-        	<li><b>short</b></li>
-        	<li><b>int</b></li>
-        	<li><b>bigint</b></li>
-        	<li><b>long</b></li>
-        	<li><b>float</b></li>
-        	<li><b>double</b></li>
-        	<li><b>date</b> - A date with no time field. By default, the format used is <code>yyyy-MM-dd</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>date:MM/dd/yyyy</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>time</b> - A time with no date field. By default, the format used is <code>HH:mm:ss</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>time:hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>timestamp</b> - A field that represents both a date and time. By default, the format used is
-        		<code>yyyy-MM-dd HH:mm:ss</code>. This can be overridden by adding a colon (:) followed by the desired format. For example:
-        		<code>MM/dd/yyyy hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).</li>
-        	<li><b>object</b> - <i>This data type does not apply to CSV data.</i></li>
-        	<li><b>array</b> - <i>This data type does not apply to CSV data.</i></li>
-        </ul>
-        
+
+
+		<h2>Schemas and Type Coercion</h2>
+		
+		<p>
+			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+			the schema, that field is omitted from the Record. If the field is found in the schema, the data type of the received data
+			is compared against the data type specified in the schema. If the types match, the value of that field is used as-is. If the
+			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
+			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
+		</p>
+		
+		<p>
+			The following rules apply when attempting to coerce a field value from one data type to another:
+		</p>
+			
+		<ul>
+			<li>Any data type can be coerced into a String type.</li>
+			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+			<li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+			milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+				or "Timestamp Format."</li>
+			<li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+				<code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+				type but not an Integer.</li>
+			<li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+			<li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+				and the rest of the characters are ignored.</li>
+			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
+			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
+				property (Date Format, Time Format, Timestamp Format property).</li>
+		</ul>
+		
+		<p>
+			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+			will be thrown.
+		</p>
+			
+			
+
+		<h2>Examples</h2>
+		
         <p>
         	As an example, consider a FlowFile whose contents consists of the following:
         </p>
-        
+
         <code>
-        	id, name, balance, notes<br />
-        	1, John, 48.23, "Our very<br />
+        	id, name, balance, join_date, notes<br />
+        	1, John, 48.23, 04/03/2007 "Our very<br />
 first customer!"<br />
-        	2, Jane, 1245.89,<br />
-        	3, Frank Franklin, "48481.29",<br />
+        	2, Jane, 1245.89, 08/22/2009,<br />
+        	3, Frank Franklin, "48481.29", 04/04/2016,<br />
         </code>
         
         <p>
-        	Additionally, let's consider that this Controller Service is configured with the following user-defined properties:
+        	Additionally, let's consider that this Controller Service is configured with the Schema Registry pointing to an AvroSchemaRegistry and the schema is
+        	configured as the following:
         </p>
         
-		<table>
-    		<head>
-    			<th>Property Name</th>
-    			<th>Property Value</th>
-    		</head>
-    		<body>
-    			<tr>
-    				<td>balance</td>
-    				<td><code>float</code></td>
-    			</tr>
-    		</body>
-    	</table>
-    	
+		<code>
+		<pre>
+		{
+		  "namespace": "nifi",
+		  "name": "balances",
+		  "type": "record",
+		  "fields": [
+		  		{ "name": "id", "type": "int" },
+		  		{ "name": "name": "type": "string" },
+		  		{ "name": "balance": "type": "double" },
+		  		{ "name": "join_date", "type": {
+		  			"type": "int",
+		  			"logicalType": "date"
+		  		},
+		  		{ "name": "notes": "type": "string" }
+		  ]
+		}
+		</pre>
+		</code>
+
     	<p>
+    		In the example above, we see that the 'join_date' column is a Date type. In order for the CSV Reader to be able to properly parse a value as a date,
+    		we need to provide the reader with the date format to use. In this example, we would configure the Date Format property to be <code>MM/dd/yyyy</code>
+    		to indicate that it is a two-digit month, followed by a two-digit day, followed by a four-digit year - each separated by a slash.
     		In this case, the result will be that this FlowFile consists of 3 different records. The first record will contain the following values:
     	</p>
 
@@ -114,6 +134,10 @@ first customer!"<br />
     			<tr>
     				<td>balance</td>
     				<td>48.23</td>
+    			</tr>
+    			<tr>
+    				<td>join_date</td>
+    				<td>04/03/2007</td>
     			</tr>
     			<tr>
     				<td>notes</td>
@@ -145,6 +169,10 @@ first customer!"<br />
     				<td>1245.89</td>
     			</tr>
     			<tr>
+    				<td>join_date</td>
+    				<td>08/22/2009</td>
+    			</tr>
+    			<tr>
     				<td>notes</td>
     				<td></td>
     			</tr>
@@ -172,6 +200,10 @@ first customer!"<br />
     			<tr>
     				<td>balance</td>
     				<td>48481.29</td>
+    			</tr>
+    			<tr>
+    				<td>join_date</td>
+    				<td>04/04/2016</td>
     			</tr>
     			<tr>
     				<td>notes</td>

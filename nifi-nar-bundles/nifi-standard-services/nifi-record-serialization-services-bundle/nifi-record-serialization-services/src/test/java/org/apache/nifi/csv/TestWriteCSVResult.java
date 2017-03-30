@@ -26,12 +26,16 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -47,7 +51,8 @@ public class TestWriteCSVResult {
 
     @Test
     public void testDataTypes() throws IOException {
-        final WriteCSVResult result = new WriteCSVResult(RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.ALL).withRecordSeparator("\n");
+        final WriteCSVResult result = new WriteCSVResult(csvFormat, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
 
         final StringBuilder headerBuilder = new StringBuilder();
         final List<RecordField> fields = new ArrayList<>();
@@ -57,7 +62,7 @@ public class TestWriteCSVResult {
                 possibleTypes.add(RecordFieldType.INT.getDataType());
                 possibleTypes.add(RecordFieldType.LONG.getDataType());
 
-                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType(possibleTypes)));
+                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getChoiceDataType(possibleTypes)));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
             }
@@ -81,7 +86,7 @@ public class TestWriteCSVResult {
         valueMap.put("date", new Date(now));
         valueMap.put("time", new Time(now));
         valueMap.put("timestamp", new Timestamp(now));
-        valueMap.put("object", null);
+        valueMap.put("record", null);
         valueMap.put("choice", 48L);
         valueMap.put("array", null);
 
@@ -105,9 +110,9 @@ public class TestWriteCSVResult {
         final StringBuilder expectedBuilder = new StringBuilder();
         expectedBuilder.append("\"string\",\"true\",\"1\",\"c\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",");
 
-        final String dateValue = new SimpleDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
-        final String timeValue = new SimpleDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
-        final String timestampValue = new SimpleDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
+        final String dateValue = getDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
+        final String timeValue = getDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
+        final String timestampValue = getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
 
         expectedBuilder.append('"').append(dateValue).append('"').append(',');
         expectedBuilder.append('"').append(timeValue).append('"').append(',');
@@ -116,6 +121,12 @@ public class TestWriteCSVResult {
         final String expectedValues = expectedBuilder.toString();
 
         assertEquals(expectedValues, values);
+    }
+
+    private DateFormat getDateFormat(final String format) {
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone("gmt"));
+        return df;
     }
 
 }

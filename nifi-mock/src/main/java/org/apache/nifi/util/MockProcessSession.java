@@ -218,8 +218,8 @@ public class MockProcessSession implements ProcessSession {
                 }
             }
 
-            //            throw new FlowFileHandlingException("Cannot commit session because the following Input Streams were created via "
-            //                + "calls to ProcessSession.read(FlowFile) and never closed: " + openStreamCopy);
+            throw new FlowFileHandlingException("Cannot commit session because the following Input Streams were created via "
+                + "calls to ProcessSession.read(FlowFile) and never closed: " + openStreamCopy);
         }
 
         committed = true;

@@ -17,18 +17,23 @@
     <head>
         <meta charset="utf-8"/>
         <title>GrokReader</title>
-        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <p>
-        	The GrokReader Controller Service, provides a means for parsing and structuring input that is
+        	The GrokReader Controller Service provides a means for parsing and structuring input that is
         	made up of unstructured text, such as log files. Grok allows users to add a naming construct to
         	Regular Expressions such that they can be composed in order to create expressions that are easier
-        	to manage and work with. This Controller Service consists of one Required Property and one Optional
-        	Property. The Optional Property is named <code>Grok Pattern File</code> and specifies the filename of
+        	to manage and work with. This Controller Service consists of one Required Property and a few Optional
+        	Properties. The is named <code>Grok Pattern File</code> property specifies the filename of
         	a file that contains Grok Patterns that can be used for parsing log data. If not specified, a default
-        	patterns file will be used. Its contains are provided below.
+        	patterns file will be used. Its contents are provided below. There are also properties for specifying
+        	the schema to use when parsing data. The schema is not required. However, when data is parsed
+        	a Record is created that contains all of the fields present in the Grok Expression (explained below),
+        	and all fields are of type String. If a schema is chosen, the field can be declared to be a different,
+        	compatible type, such as number. Additionally, if the schema does not contain one of the fields in the
+        	parsed data, that field will be ignored. This can be used to filter out fields that are not of interest.
 		</p>
 		
 		<p>
@@ -48,45 +53,49 @@
         	to a field named <code>STACK_TRACE</code>. Otherwise, the line is appended to the last field defined in the Grok Expression. This
         	is done because typically the last field is a 'message' type of field, which can consist of new-lines.
         </p>
-        
-        <p>
-        	By default, all fields that are extracted are considered to be of type <code>string</code>. This can be overridden
-        	by adding a user-defined property where the name of the property matches the name of the field that is present in the
-        	configured Grok Expression. The value of the user-defined property is the data type to use.
-        	When specifying a data type for a field, the following values are valid:
-        </p>
-        
-        <ul>
-        	<li><b>string</b></li>
-        	<li><b>boolean</b></li>
-        	<li><b>byte</b></li>
-        	<li><b>char</b></li>
-        	<li><b>short</b></li>
-        	<li><b>int</b></li>
-        	<li><b>bigint</b></li>
-        	<li><b>long</b></li>
-        	<li><b>float</b></li>
-        	<li><b>double</b></li>
-        	<li><b>date</b> - A date with no time field. By default, the format used is <code>yyyy-MM-dd</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>date:MM/dd/yyyy</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>time</b> - A time with no date field. By default, the format used is <code>HH:mm:ss</code>. This can be overridden
-        		by adding a colon (:) followed by the desired format. For example: <code>time:hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).
-        	</li>
-        	<li><b>timestamp</b> - A field that represents both a date and time. By default, the format used is
-        		<code>yyyy-MM-dd HH:mm:ss</code>. This can be overridden by adding a colon (:) followed by the desired format. For example:
-        		<code>MM/dd/yyyy hh:mm:ss a</code>. The format to use is
-        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
-        		SimpleDateFormat Patterns</a> for more information).</li>
-        	<li><b>object</b> - <i>This data type does not apply to CSV data.</i></li>
-        	<li><b>array</b> - <i>This data type does not apply to CSV data.</i></li>
-        </ul>
-        
-        
+
+
+		<h2>Schemas and Type Coercion</h2>
+		
+		<p>
+			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+			the schema, that field is omitted from the Record. If the field is found in the schema, the data type of the received data
+			is compared against the data type specified in the schema. If the types match, the value of that field is used as-is. If the
+			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
+			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
+		</p>
+		
+		<p>
+			The following rules apply when attempting to coerce a field value from one data type to another:
+		</p>
+			
+		<ul>
+			<li>Any data type can be coerced into a String type.</li>
+			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+			<li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+			milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+				or "Timestamp Format."</li>
+			<li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+				<code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+				type but not an Integer.</li>
+			<li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+			<li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+				and the rest of the characters are ignored.</li>
+			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
+			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
+				property (Date Format, Time Format, Timestamp Format property).</li>
+		</ul>
+		
+		<p>
+			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+			will be thrown.
+		</p>
+		
+		
+
         <h2>
         	Examples
 		</h2>
