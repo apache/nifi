@@ -66,7 +66,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     protected static String calculateDefaultOutputDirectory(Path currentPath) {
         Path currentAbsolutePath = currentPath.toAbsolutePath();
         Path parent = currentAbsolutePath.getParent();
-        if (parent == currentAbsolutePath.getRoot()) {
+        if (currentAbsolutePath.getRoot().equals(parent)) {
             return parent.toString();
         } else {
             Path currentNormalizedPath = currentAbsolutePath.normalize();
