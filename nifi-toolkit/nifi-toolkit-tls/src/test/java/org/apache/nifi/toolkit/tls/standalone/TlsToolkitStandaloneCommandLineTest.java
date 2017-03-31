@@ -50,7 +50,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -424,13 +423,8 @@ public class TlsToolkitStandaloneCommandLineTest {
         tlsToolkitStandaloneCommandLine.parse("-n", "notInGlobalOrder", "-G", "nifi[1-3]");
     }
 
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
     @Test
     public void testDefaultOutputPathRoot() {
-        assumeFalse(isWindowsEnvironment());
         Path root = Paths.get(".").toAbsolutePath().getRoot().resolve(".");
         String calculateDefaultOutputDirectory = TlsToolkitStandaloneCommandLine.calculateDefaultOutputDirectory(root);
         assertEquals(root.toAbsolutePath().getRoot().toString(), calculateDefaultOutputDirectory);
