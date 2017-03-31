@@ -56,13 +56,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"logs", "syslog", "attributes", "system", "event", "message"})
-@CapabilityDescription("Parses the contents of a Syslog message and adds attributes to the FlowFile for each of the parts of the Syslog message")
+@CapabilityDescription("Attempts to parses the contents of a Syslog message in accordance to RFC5424 and RFC3164 " +
+        "formats and adds attributes to the FlowFile for each of the parts of the Syslog message." +
+        "Note: Be mindfull that RFC3164 is informational and a wide range of different implementations are present in" +
+        " the wild. If messages fail parsing, considering using RFC5424 or using a generic parsing processors such as " +
+        "ExtractGrok.")
 @WritesAttributes({@WritesAttribute(attribute = "syslog.priority", description = "The priority of the Syslog message."),
     @WritesAttribute(attribute = "syslog.severity", description = "The severity of the Syslog message derived from the priority."),
     @WritesAttribute(attribute = "syslog.facility", description = "The facility of the Syslog message derived from the priority."),
     @WritesAttribute(attribute = "syslog.version", description = "The optional version from the Syslog message."),
     @WritesAttribute(attribute = "syslog.timestamp", description = "The timestamp of the Syslog message."),
-    @WritesAttribute(attribute = "syslog.hostname", description = "The hostname of the Syslog message."),
+    @WritesAttribute(attribute = "syslog.hostname", description = "The hostname or IP address of the Syslog message."),
     @WritesAttribute(attribute = "syslog.sender", description = "The hostname of the Syslog server that sent the message."),
     @WritesAttribute(attribute = "syslog.body", description = "The body of the Syslog message, everything after the hostname.")})
 @SeeAlso({ListenSyslog.class, PutSyslog.class})

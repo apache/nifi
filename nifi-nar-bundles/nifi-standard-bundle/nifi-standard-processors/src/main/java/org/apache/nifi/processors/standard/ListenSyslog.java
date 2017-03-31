@@ -91,7 +91,7 @@ import org.apache.nifi.ssl.SSLContextService;
                     @WritesAttribute(attribute="syslog.facility", description="The facility of the Syslog message derived from the priority."),
                     @WritesAttribute(attribute="syslog.version", description="The optional version from the Syslog message."),
                     @WritesAttribute(attribute="syslog.timestamp", description="The timestamp of the Syslog message."),
-                    @WritesAttribute(attribute="syslog.hostname", description="The hostname of the Syslog message."),
+                    @WritesAttribute(attribute="syslog.hostname", description="The hostname or IP address of the Syslog message."),
                     @WritesAttribute(attribute="syslog.sender", description="The hostname of the Syslog server that sent the message."),
                     @WritesAttribute(attribute="syslog.body", description="The body of the Syslog message, everything after the hostname."),
                     @WritesAttribute(attribute="syslog.valid", description="An indicator of whether this message matched the expected formats. " +

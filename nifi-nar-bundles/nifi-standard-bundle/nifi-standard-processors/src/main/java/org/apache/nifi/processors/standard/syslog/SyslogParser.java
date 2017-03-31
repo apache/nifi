@@ -52,7 +52,7 @@ public class SyslogParser {
                     // stamp MMM d HH:mm:ss, single digit date has two spaces
                     "([A-Z][a-z][a-z]\\s{1,2}\\d{1,2}\\s\\d{2}[:]\\d{2}[:]\\d{2})" +
                     "\\s" + // separator
-                    "([\\w][\\w\\d\\.@-]*)" + // host
+                    "([\\w][\\w\\d(\\.|\\:)@-]*)" + // host
                     "\\s(.*)$";  // body
 
     public static final Collection<Pattern> MESSAGE_PATTERNS;
