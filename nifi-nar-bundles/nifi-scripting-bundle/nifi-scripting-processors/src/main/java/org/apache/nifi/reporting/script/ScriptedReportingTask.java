@@ -122,7 +122,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
         scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
         scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(modulePath)) {
             scriptingComponentHelper.setModules(modulePath.split(","));
         } else {

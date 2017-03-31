@@ -60,7 +60,7 @@ public class ScriptingComponentUtils {
             .name("Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 }
