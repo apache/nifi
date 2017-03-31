@@ -57,6 +57,7 @@ import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.store.StorageResult;
+import static org.junit.Assume.assumeFalse;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,9 +78,13 @@ public class TestLuceneEventIndex {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
 
     @Test(timeout = 5000)
     public void testGetMinimumIdToReindex() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
@@ -104,6 +109,7 @@ public class TestLuceneEventIndex {
 
     @Test(timeout = 5000)
     public void testUnauthorizedEventsGetPlaceholdersForLineage() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
@@ -140,6 +146,7 @@ public class TestLuceneEventIndex {
 
     @Test(timeout = 5000)
     public void testUnauthorizedEventsGetPlaceholdersForExpandChildren() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
@@ -215,6 +222,7 @@ public class TestLuceneEventIndex {
 
     @Test(timeout = 5000)
     public void testUnauthorizedEventsGetPlaceholdersForFindParents() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
@@ -290,6 +298,7 @@ public class TestLuceneEventIndex {
 
     @Test(timeout = 5000)
     public void testUnauthorizedEventsGetFilteredForQuery() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
@@ -398,6 +407,7 @@ public class TestLuceneEventIndex {
 
     @Test(timeout = 5000)
     public void addThenQueryWithEmptyQuery() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig();
         final IndexManager indexManager = new SimpleIndexManager(repoConfig);
 

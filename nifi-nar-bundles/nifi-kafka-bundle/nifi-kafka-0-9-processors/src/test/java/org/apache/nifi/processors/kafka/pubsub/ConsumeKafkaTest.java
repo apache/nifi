@@ -29,6 +29,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import org.junit.Before;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeast;
@@ -167,8 +168,13 @@ public class ConsumeKafkaTest {
         verifyNoMoreInteractions(mockLease);
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void validateConsumerRetainer() throws Exception {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final ConsumerPool consumerPool = mock(ConsumerPool.class);
 
         final ConsumeKafka processor = new ConsumeKafka() {

@@ -33,6 +33,7 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
+import static org.junit.Assume.assumeFalse;
 
 public class TestAttributeRollingWindow {
 
@@ -90,6 +91,9 @@ public class TestAttributeRollingWindow {
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_MEAN_KEY);
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
 
     @Test
     public void testBasic() throws InterruptedException {
@@ -137,6 +141,7 @@ public class TestAttributeRollingWindow {
 
     @Test
     public void testVerifyCount() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
@@ -190,6 +195,7 @@ public class TestAttributeRollingWindow {
 
     @Test
     public void testMicroBatching() throws InterruptedException {
+        assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
