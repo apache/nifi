@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -102,9 +103,13 @@ public class TestJettyWebSocketCommunication {
     protected interface MockWebSocketProcessor extends Processor, ConnectedListener, TextMessageConsumer, BinaryMessageConsumer {
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testClientServerCommunication() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());
         // Expectations.
         final CountDownLatch serverIsConnectedByClient = new CountDownLatch(1);
         final CountDownLatch clientConnectedServer = new CountDownLatch(1);

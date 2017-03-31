@@ -36,6 +36,7 @@ import org.junit.runner.RunWith;
 
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
+import static org.junit.Assume.assumeFalse;
 
 @RunWith(JUnitParamsRunner.class)
 public class TransformersTest {
@@ -127,16 +128,22 @@ public class TransformersTest {
             "input_csv/primitive_types_with_matching_default.txt,input_avro/primitive_types_with_matching_default.txt,expected_ouput_csv/primitive_types_with_matching_default.txt",
             "input_csv/decimal_logicalType_missing_value.txt,input_avro/decimal_logicalType_invalid_scale_with_default.txt,expected_ouput_csv/decimal_logicalType_with_default.txt"})
     public void testCSVRoundtrip(final String inputCSVFileName, final String inputAvroSchema, final String expectedOuput) throws Exception {
+        assumeFalse(isWindowsEnvironment());
         final String data = getResourceAsString(inputCSVFileName);
         final String schemaText = getResourceAsString(inputAvroSchema);
         final String result = getResourceAsString(expectedOuput);
         csvRoundTrip(data, schemaText, result);
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     @Parameters({"input_csv/union_with_missing_value.txt,input_avro/union_and_mismatch_defaults.txt",
             "input_csv/primitive_types_with_matching_default.txt,input_avro/primitive_types_with_mismatch_default.txt"})
     public void testCSVMismatchDefaults(final String inputCSVFileName, final String inputAvroSchema)  {
+        assumeFalse(isWindowsEnvironment());
         try {
             final String data = getResourceAsString(inputCSVFileName);
             final String schemaText = getResourceAsString(inputAvroSchema);
@@ -153,6 +160,7 @@ public class TransformersTest {
 
     @Test
     public void testCSVRoundTrip() throws IOException {
+        assumeFalse(isWindowsEnvironment());
         NumberFormat numberFormat = DecimalFormat.getInstance();
         numberFormat.setGroupingUsed(false);
         ((DecimalFormat) numberFormat).setParseBigDecimal(true);

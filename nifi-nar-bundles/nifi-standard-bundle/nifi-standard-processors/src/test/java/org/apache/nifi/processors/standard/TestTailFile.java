@@ -43,6 +43,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import static org.junit.Assume.assumeFalse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -836,9 +837,13 @@ public class TestTailFile {
         runner.clearTransferState();
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testMigrateFrom100To110() throws IOException {
-
+        assumeFalse(isWindowsEnvironment());
         runner.setProperty(TailFile.FILENAME, "target/existing-log.txt");
 
         final MockStateManager stateManager = runner.getStateManager();
@@ -886,6 +891,7 @@ public class TestTailFile {
 
     @Test
     public void testMigrateFrom100To110FileNotFound() throws IOException {
+        assumeFalse(isWindowsEnvironment());
 
         runner.setProperty(TailFile.FILENAME, "target/not-existing-log.txt");
 

@@ -61,6 +61,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import static org.junit.Assume.assumeFalse;
 
 public class TestFileSystemRepository {
 
@@ -102,7 +103,6 @@ public class TestFileSystemRepository {
         random.nextBytes(content);
 
         //        final ContentClaimWriteCache cache = new ContentClaimWriteCache(repository);
-
         final long start = System.nanoTime();
         for (int i = 0; i < iterations; i++) {
             final ContentClaim claim = repository.create(false);
@@ -120,7 +120,7 @@ public class TestFileSystemRepository {
         final long seconds = millis / 1000L;
         final double mbps = (double) mb / (double) seconds;
         System.out.println("Took " + millis + " millis to write " + contentSize + " bytes " + iterations + " times (total of "
-            + NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite) + " bytes) for a write rate of " + mbps + " MB/s");
+                + NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite) + " bytes) for a write rate of " + mbps + " MB/s");
     }
 
     @Test
@@ -438,6 +438,7 @@ public class TestFileSystemRepository {
 
     @Test
     public void testReadWithContentArchived() throws IOException {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final ContentClaim claim = repository.create(true);
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
@@ -457,8 +458,13 @@ public class TestFileSystemRepository {
         }
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContentArchived() throws IOException {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final ContentClaim claim = repository.create(true);
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
