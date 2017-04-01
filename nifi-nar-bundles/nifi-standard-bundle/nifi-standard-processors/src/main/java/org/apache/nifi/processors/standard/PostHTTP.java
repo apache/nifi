@@ -866,6 +866,10 @@ public class PostHTTP extends AbstractProcessor {
                 return;
             } catch (final IOException e) {
                 logger.warn("Failed to delete Hold that destination placed on {} due to {}", new Object[]{flowFileDescription, e});
+                for (FlowFile flowFile : toSend) {
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
+                }
             }
 
             if (!isScheduled()) {
