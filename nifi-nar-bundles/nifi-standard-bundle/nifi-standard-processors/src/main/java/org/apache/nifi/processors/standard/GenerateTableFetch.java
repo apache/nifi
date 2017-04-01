@@ -119,10 +119,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .displayName("AUTO_INCREMENT(index) column name")
             .description("The column has AUTO_INCREMENT attribute and index."
                     + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
-                    + "The value must start by 1")
-            .defaultValue("null")
+                    + "The value must start by 1 likes max value column")
+            .defaultValue("id")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(true)
             .build();
 
@@ -321,23 +321,19 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     if (columnNames != null) {
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.columnNames", columnNames);
                     }
-                    if (!"null".equals(indexValue)) {
+
+                    if (StringUtils.isNotBlank(whereClause)&&!StringUtils.isEmpty(indexValue)&&!StringUtils.isEmpty(newMaxValue)) {
                         if (Integer.parseInt(newMaxValue) < limit * i) {
-                            whereClause = indexValue + " >= " + limit * i;
-                        } else {
-                            whereClause = indexValue + " >= " + newMaxValue;
+                            whereClause = whereClause + " AND " + indexValue + " >= " + limit * i;
                         }
-
-                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
-                    } else if (StringUtils.isNotBlank(whereClause)) {
-
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
                     }
+
                     if (StringUtils.isNotBlank(maxColumnNames)) {
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.maxColumnNames", maxColumnNames);
                     }
                     sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.limit", String.valueOf(limit));
-                    if (partitionSize != 0 && "null".equals(indexValue)) {
+                    if (partitionSize != 0 && StringUtils.isEmpty(indexValue)) {
 
                         sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.offset", String.valueOf(offset));
                     }

@@ -134,6 +134,7 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
+        runner.setProperty(GenerateTableFetch.AUTO_INCREMENT_KEY, "ID");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
@@ -198,6 +199,7 @@ public class TestGenerateTableFetch {
         runner.getStateManager().clear(Scope.CLUSTER);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "name");
         runner.setProperty(GenerateTableFetch.COLUMN_NAMES, "id, name, scale, created_on");
+        runner.setProperty(GenerateTableFetch.AUTO_INCREMENT_KEY,"id");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4); // 7 records with partition size 2 means 4 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
@@ -213,7 +215,7 @@ public class TestGenerateTableFetch {
         assertEquals(null, flowFile.getAttribute("generatetablefetch.whereClause"));
         assertEquals("name", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
         assertEquals("2", flowFile.getAttribute("generatetablefetch.limit"));
-        assertEquals("6", flowFile.getAttribute("generatetablefetch.offset"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.offset"));
 
         runner.clearTransferState();
     }
@@ -402,9 +404,11 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
+        runner.setProperty(GenerateTableFetch.AUTO_INCREMENT_KEY, "${autoIncrementKey}");
         runner.enqueue("".getBytes(), new HashMap<String, String>() {{
             put("tableName", "TEST_QUERY_DB_TABLE");
             put("maxValueCol", "id");
+            put("autoIncrementKey","id");
         }});
 
         // Pre-populate the state with a key for column name (not fully-qualified)
@@ -427,7 +431,7 @@ public class TestGenerateTableFetch {
         assertEquals(null, flowFile.getAttribute("generatetablefetch.whereClause"));
         assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
         assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
-        assertEquals("0", flowFile.getAttribute("generatetablefetch.offset"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.offset"));
 
         runner.clearTransferState();
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
@@ -443,7 +447,7 @@ public class TestGenerateTableFetch {
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertEquals(null, flowFile.getAttribute("generatetablefetch.columnNames"));
-        assertEquals("id > 1", flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals(null, flowFile.getAttribute("generatetablefetch.whereClause"));
         assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
         assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
         assertEquals("0", flowFile.getAttribute("generatetablefetch.offset"));
