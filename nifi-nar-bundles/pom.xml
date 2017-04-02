@@ -75,6 +75,7 @@
         <module>nifi-ignite-bundle</module>
         <module>nifi-rethinkdb-bundle</module>
         <module>nifi-email-bundle</module>
+        <module>nifi-groovyx-bundle</module>
     	<module>nifi-ranger-bundle</module>
         <module>nifi-websocket-bundle</module>
         <module>nifi-tcp-bundle</module>
