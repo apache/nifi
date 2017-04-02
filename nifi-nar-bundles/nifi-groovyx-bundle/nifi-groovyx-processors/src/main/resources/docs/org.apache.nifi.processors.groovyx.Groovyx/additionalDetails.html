@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>Groovy</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>This is a grooviest groovy script :)</p>
+<h2>Script Bindings:</h2>
+<table>
+<tr><th>variable</th><th>type</th><th>description</th></tr>
+<tr>
+	<td>session</td>
+	<td>org.apache.nifi.processor.ProcessSession</td>
+	<td>the session that is used to get, change, and transfer input files</td>
+</tr>
+<tr>
+	<td>context</td>
+	<td>org.apache.nifi.processor.ProcessContext</td>
+	<td>the context (almost unusefull)</td>
+</tr>
+<tr>
+	<td>log</td>
+	<td>org.apache.nifi.logging.ComponentLog</td>
+	<td>the logger for this processor instance</td>
+</tr>
+<tr>
+	<td>REL_SUCCESS</td>
+	<td>org.apache.nifi.processor.Relationship</td>
+	<td>the success relationship</td>
+</tr>
+<tr>
+	<td>REL_FAILURE</td>
+	<td>org.apache.nifi.processor.Relationship</td>
+	<td>the failure relationship</td>
+</tr>
+<tr>
+	<td>flowFile</td>
+	<td>org.apache.nifi.flowfile.FlowFile</td>
+	<td>Binded only if the property `Require flow file`=true for the processor</td>
+</tr>
+<tr>
+	<td>CTL</td>
+	<td>java.util.HashMap</td>
+	<td>Map populated with controller services binded through `CTL.*` processor properties</td>
+</tr>
+<tr>
+	<td>Dynamic processor properties</td>
+	<td>org.apache.nifi.components.PropertyDescriptor</td>
+	<td>All processor properties not started with `CTL.` are binded to script variables</td>
+</tr>
+</table>
+
+<h2>CTL map</h2>
+<p>
+CTL.* objects accessible if corresponding processor property defined.<br/>
+<b>Example:</b> if you defined property <code>`CTL.cache`</code> to DistributedMapCacheClientService, then you can access it from code <code>CTL.cache</code><br/>
+If CTL property references to Database connection pool, then corresponding CTL entry will contain groovy.sql.Sql object connected to database with autocommit=false.</br>
+CTL - Database transactions automatically rolled back on script exception and committed on success. Script must not disconnect connection.<br/>
+<img src="CTL.gif"/><br/>
+<img src="CTL2.gif"/>
+</p>
+
+<h2>SessionFile - flow file extension</h2>
+<p>
+  The (com.luxoft.ob10.nifi.processors.commons.util.flow.SessionFile) is an actual object returned by session in Groovy processor.<br/>
+  This flow file is a container that references session and the real flow file.<br/>
+  This allows to use simplified syntax to work with file attributes and content:
+</p>
+<p><i>set new attribute value</i></p>
+<pre>
+  flowFile.ATTRIBUTE_NAME = ATTRIBUTE_VALUE 
+  flowFile.putAttribute("ATTRIBUTE_NAME", ATTRIBUTE_VALUE)
+  //the same as
+  flowFile = session.putAttribute(flowFile, "ATTRIBUTE_NAME", ATTRIBUTE_VALUE)
+</pre>
+  
+<p><i>remove attribute</i></p>
+<pre>
+  flowFile.ATTRIBUTE_NAME = null
+</pre>
+
+<p><i>get attribute value</i></p>
+<pre>
+  String a = flowFile.ATTRIBUTE_NAME
+</pre>
+  
+<p><i>write content</i></p>
+<pre>
+  flowFile.write("UTF-8", "THE CharSequence to write into flow file replacing current content")
+  flowFile.write("UTF-8"){writer-> 
+    do something with java.io.Writer...
+  }
+  flowFile.write{outStream-> 
+    do something with out stream... 
+  }
+  flowFile.write{inStream, outStream-> 
+    do something with in and out streams... 
+  }
+</pre>
+  
+<p><i>get content</i></p>
+<pre>
+  InputStream i = flowFile.read()
+  def json = new groovy.json.JsonSlurper().parse( flowFile.read() )
+  String text = flowFile.read().getText("UTF-8")
+</pre>
+  
+<p><i>transfer flow file to success relation</i></p>
+<pre>
+  REL_SUCCESS << flowFile 
+  flowFile.transfer(REL_SUCCESS)
+  //the same as:
+  session.transfer(flowFile, REL_SUCCESS)
+</pre>
+<br/>
+<br/>
+<br/>
+<br/>
+
+
+</body>
+</html>
