@@ -17,68 +17,114 @@
 
 package org.apache.nifi.processors.jmx;
 
-
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
+import com.google.gson.Gson;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
 public class Record {
-    private JsonBuilderFactory factory = null;
     private String domain = null;
     private Set<Map.Entry<String, String>> properties = null;
     private Map<String, String> attributes = null;
-
-    public Record(JsonBuilderFactory f) {
-        this.factory = f;
-    }
 
     public void setDomain(String d) {
         this.domain = d;
     }
 
-
     public void setProperties(Set<Map.Entry<String, String>> p) {
         this.properties = p;
     }
-
 
     public void setAttributes(Map<String, String> a) {
         this.attributes = a;
     }
 
 
-    public String toString() {
-        String ret = null;
+    public String toJsonString() {
+        JsonData jsonData = new JsonData();
 
-        try {
-            JsonArrayBuilder propertiesJsonAr = factory.createArrayBuilder();
+        ArrayList<KeyValue> keyValues = new ArrayList<>();
 
-            for (Map.Entry<String, String> entry : properties) {
-                propertiesJsonAr.add(factory.createObjectBuilder()
-                        .add("key", entry.getKey())
-                        .add("value", entry.getValue()));
-            }
-
-            JsonArrayBuilder attributesJsonAr = factory.createArrayBuilder();
-
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                attributesJsonAr.add(factory.createObjectBuilder()
-                        .add("key", entry.getKey())
-                        .add("value", entry.getValue()));
-            }
-
-            JsonObject json = factory.createObjectBuilder()
-                    .add("domain", domain)
-                    .add("properties", propertiesJsonAr.build())
-                    .add("attributes", attributesJsonAr.build()).build();
-
-            ret = json.toString();
-        } catch (Exception e) {
-            ret = e.toString();
+        for (Map.Entry<String, String> entry : properties) {
+            KeyValue kv = new KeyValue(entry.getKey(), entry.getValue());
+            keyValues.add(kv);
         }
 
-        return ret;
+        jsonData.setProperties(keyValues);
+
+        keyValues = new ArrayList<>();
+
+        for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            KeyValue kv = new KeyValue(entry.getKey(), entry.getValue());
+            keyValues.add(kv);
+        }
+
+        jsonData.setAttributes(keyValues);
+
+        jsonData.setDomain(domain);
+
+        Gson jsonObject = new Gson();
+
+        return jsonObject.toJson(jsonData);
+    }
+
+
+    private class JsonData {
+        ArrayList<KeyValue> properties;
+
+        ArrayList<KeyValue> attributes;
+
+        String domain;
+
+        ArrayList<KeyValue> getProperties() {
+            return properties;
+        }
+
+        void setProperties(ArrayList<KeyValue> properties) {
+            this.properties = properties;
+        }
+
+        ArrayList<KeyValue> getAttributes() {
+            return attributes;
+        }
+
+        void setAttributes(ArrayList<KeyValue> attributes) {
+            this.attributes = attributes;
+        }
+
+        String getDomain() {
+            return domain;
+        }
+
+        void setDomain(String domain) {
+            this.domain = domain;
+        }
+    }
+
+
+    private class KeyValue {
+        String key = null;
+        String value = null;
+
+        KeyValue(String k, String v) {
+            this.key = k;
+            this.value = v;
+        }
+
+        String getKey() {
+            return key;
+        }
+
+        void setKey(String key) {
+            this.key = key;
+        }
+
+        String getValue() {
+            return value;
+        }
+
+        void setValue(String value) {
+            this.value = value;
+        }
     }
 }

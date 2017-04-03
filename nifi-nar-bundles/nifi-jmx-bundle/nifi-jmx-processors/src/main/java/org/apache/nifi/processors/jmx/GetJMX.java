@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -36,8 +37,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
@@ -143,11 +142,6 @@ public class GetJMX extends AbstractProcessor {
             .description("All FlowFiles that are created are routed to this relationship")
             .build();
 
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("FlowFiles that encounter errors are routed to this relationship")
-            .build();
-
     public static final String HOSTNAME_ATTRIBUTE = "hostname";
     public static final String PORT_ATTRIBUTE = "port";
     public static final String TIMESTAMP_ATTRIBUTE = "timestamp";
@@ -164,10 +158,10 @@ public class GetJMX extends AbstractProcessor {
     private final Lock listingLock = new ReentrantLock();
     private final AtomicLong queueLastUpdated = new AtomicLong(0L);
 
-    private final JsonBuilderFactory jsonBuilderFactory = Json.createBuilderFactory(null);
-
     private ListFilter whiteListFilter;
     private ListFilter blackListFilter;
+
+    private final ComponentLog logger = getLogger();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -182,7 +176,6 @@ public class GetJMX extends AbstractProcessor {
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
         whiteListFilter = new ListFilter( "" );
         blackListFilter = new ListFilter( "" );
@@ -231,7 +224,7 @@ public class GetJMX extends AbstractProcessor {
             for (ObjectName mbean : mbeans) {
                 String domain = mbean.getDomain();
 
-                Record record = new Record(jsonBuilderFactory);
+                Record record = new Record();
                 Hashtable<String, String> mbeanProperties = mbean.getKeyPropertyList();
 
                 String type = (mbeanProperties.containsKey("type")) ? mbeanProperties.get("type") : "";
@@ -255,7 +248,7 @@ public class GetJMX extends AbstractProcessor {
                         } catch (Exception e) {
                             // IF ERROR DO NOT ADD to metricsSet
                             validRecord = false;
-                            getLogger().warn("Exception fetching MBean attribute: " + e.getMessage() +
+                            logger.warn("Exception fetching MBean attribute: " + e.getMessage() +
                                     ": details: [" + mbean.getCanonicalName() + "]");
                         }
                     }
@@ -265,21 +258,21 @@ public class GetJMX extends AbstractProcessor {
                         metricsSet.add(record);
                     }
                 } else {
-                    getLogger().info("FILTERED: domain [" + domain + "] type [" + type + "]");
+                    logger.info("FILTERED: domain [" + domain + "] type [" + type + "]");
                 }
             }
         } catch( ProcessException pe ) {
             throw pe;
         } catch( IOException ioe) {
-            getLogger().error( "Exception connecting to JMX RMI Listener: " + ioe.getMessage() + ": hostname [" +
+            logger.error( "Exception connecting to JMX RMI Listener: " + ioe.getMessage() + ": hostname [" +
                     hostname + "] port [" + port + "]");
         } catch( SecurityException se ) {
-          getLogger().error( "Exception connecting to JMX RMI Listener due to security issues: " +
+          logger.error( "Exception connecting to JMX RMI Listener due to security issues: " +
                     se.getMessage() + ": hostname [" + hostname + "] port [" + port + "]" );
         } catch( InstanceNotFoundException|IntrospectionException|ReflectionException e ) {
-            getLogger().error( "Exception with MBean Server: " + e.getMessage() );
+            logger.error( "Exception with MBean Server: " + e.getMessage() );
         } catch( Exception e ) {
-            getLogger().error( "Exception performing MBean Query: " + e.getMessage() );
+            logger.error( "Exception performing MBean Query: " + e.getMessage() );
         } 
 
         return metricsSet;
@@ -352,17 +345,17 @@ public class GetJMX extends AbstractProcessor {
 
                 flowFile = session.create();
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                getLogger().info("ATTRIBUTES: " + context.getProperty(HOSTNAME).getValue() + " " +
+                logger.info("ATTRIBUTES: " + context.getProperty(HOSTNAME).getValue() + " " +
                         context.getProperty(PORT).getValue() + " " + timestamp.toString());
 
                 flowFile = session.write(flowFile,new OutputStreamCallback() {
                     @Override
                     public void process(final OutputStream out) throws IOException {
                         try {
-                            out.write(record.toString().getBytes());
+                            out.write(record.toJsonString().getBytes());
                         } catch (Exception e) {
-                            getLogger().error("Exception writing metric record to flowfile: " + e.getMessage() +
-                                    ": record content: [" + record.toString() + "]" );
+                            logger.error("Exception writing metric record to flowfile: " + e.getMessage() +
+                                    ": record content: [" + record.toJsonString() + "]" );
                         }
                     }
                 });
@@ -370,7 +363,7 @@ public class GetJMX extends AbstractProcessor {
                 session.getProvenanceReporter().create(flowFile);
 
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Added {} to flow", new Object[]{flowFile});
+                logger.info("Added {} to flow", new Object[]{flowFile});
 
                 if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
                     queueLock.lock();
@@ -387,12 +380,10 @@ public class GetJMX extends AbstractProcessor {
             }
             session.commit();
         } catch (final Exception e) {
-            getLogger().error( "Exception fetching records: " + e.getMessage() );
+            logger.error( "Exception fetching records: " + e.getMessage() );
 
-            // anything that we've not already processed needs to be put back on the queue
             if (flowFile != null) {
-                session.transfer(flowFile, REL_FAILURE);
-                session.commit();
+                session.remove(flowFile);
             }
         } finally {
             queueLock.lock();

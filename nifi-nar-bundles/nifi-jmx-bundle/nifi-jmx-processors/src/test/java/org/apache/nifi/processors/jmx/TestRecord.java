@@ -19,8 +19,6 @@ package org.apache.nifi.processors.jmx;
 
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
@@ -34,15 +32,14 @@ public class TestRecord {
         properties.put("prop1", "propval1");
         attributes.put("attr1", "attrval1");
 
-        JsonBuilderFactory factory = Json.createBuilderFactory(null);
-        Record record = new Record(factory);
+        Record record = new Record();
 
         record.setDomain("domain1");
         record.setProperties(properties.entrySet());
         record.setAttributes(attributes);
 
-        assertTrue(record.toString().contains("domain"));
-        assertTrue(record.toString().contains("properties"));
-        assertTrue(record.toString().contains("attributes"));
+        assertTrue(record.toJsonString().contains("domain"));
+        assertTrue(record.toJsonString().contains("properties"));
+        assertTrue(record.toJsonString().contains("attributes"));
     }
 }
