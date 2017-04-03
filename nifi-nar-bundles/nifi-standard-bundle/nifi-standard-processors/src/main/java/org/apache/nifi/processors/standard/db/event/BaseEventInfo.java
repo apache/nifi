@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard.db.event;
 
 
 /**
- * An abstract base class for all MySQL binlog events
+ * A base class for all MySQL binlog events
  */
 public class BaseEventInfo implements EventInfo {
 

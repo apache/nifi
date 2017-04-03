@@ -23,8 +23,6 @@ import com.github.shyiko.mysql.binlog.event.EventType;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
-import org.apache.nifi.annotation.behavior.DynamicProperties;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -32,7 +30,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -56,6 +54,7 @@ import org.apache.nifi.processors.standard.db.event.RowEventException;
 import org.apache.nifi.processors.standard.db.event.TableInfo;
 import org.apache.nifi.processors.standard.db.event.TableInfoCacheKey;
 import org.apache.nifi.processors.standard.db.event.io.EventWriter;
+import org.apache.nifi.processors.standard.db.impl.mysql.BinlogLifecycleListener;
 import org.apache.nifi.processors.standard.db.impl.mysql.event.BeginTransactionEventInfo;
 import org.apache.nifi.processors.standard.db.impl.mysql.RawBinlogEvent;
 import org.apache.nifi.processors.standard.db.impl.mysql.BinlogEventListener;
@@ -113,20 +112,8 @@ import java.util.regex.Pattern;
 @Tags({"sql", "jdbc", "cdc", "mysql"})
 @CapabilityDescription("Retrieves Change Data Capture (CDC) events from a MySQL database. CDC Events include INSERT, UPDATE, DELETE operations. Events "
         + "are output as individual flow files ordered by the time at which the operation occurred.")
-@Stateful(scopes = Scope.LOCAL, description = "Information such as a 'pointer' to the current CDC event in the database is stored by this processor, such "
+@Stateful(scopes = Scope.CLUSTER, description = "Information such as a 'pointer' to the current CDC event in the database is stored by this processor, such "
         + "that it can continue from the same location if restarted.")
-@DynamicProperties({
-        @DynamicProperty(
-                name = "init.binlog.filename",
-                value = "The binlog filename to start from",
-                description = "Specifies the name of the binlog file from which to begin retrieving CDC records."
-        ),
-        @DynamicProperty(
-                name = "init.binlog.position",
-                value = "The offset into the initial binlog file to start from",
-                description = "Specifies the offset into the initial binlog file from which to begin retrieving CDC records."
-        )
-})
 @WritesAttributes({
         @WritesAttribute(attribute = "cdc.sequence.id", description = "A sequence identifier (i.e. strictly increasing integer value) specifying the order "
                 + "of the CDC event flow file relative to the other event flow file(s)."),
@@ -136,6 +123,9 @@ import java.util.regex.Pattern;
                 + "application/json")
 })
 public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
+
+    // Random invalid constant used as an indicator to not set the binlog position on the client (thereby using the latest available)
+    private static final int DO_NOT_SET = -1000;
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -240,13 +230,29 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor RETRIEVE_ALL_RECORDS = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-retrieve-all-records")
             .displayName("Retrieve All Records")
-            .description("Specifies whether to get all available CDC events, regardless of the current binlog filename and/or position. If this property is set to true, "
-                    + "any init.binlog.filename and init.binlog.position dynamic properties are ignored. NOTE: If binlog filename and position values are present in the processor's "
-                    + "State Map, this property's value is ignored. To reset the behavior, clear the processor state (refer to the State Management section of the processor's documentation.")
+            .description("Specifies whether to get all available CDC events, regardless of the current binlog filename and/or position. If binlog filename and position values are present "
+                    + "in the processor's State, this property's value is ignored. This allows for 4 different configurations: 1) If binlog data is available in processor State, that is used "
+                    + "to determine the start location and the value of Retrieve All Records is ignored. 2) If no binlog data is in processor State, then Retrieve All Records set to true "
+                    + "means start at the beginning of the binlog history. 3) If no binlog data is in processor State and Initial Binlog Filename/Position are not set, then "
+                    + "Retrieve All Records set to false means start at the end of the binlog history. 4) If no binlog data is in processor State and Initial Binlog Filename/Position "
+                    + "are set, then Retrieve All Records set to false means start at the specified initial binlog file/position. "
+                    + "To reset the behavior, clear the processor state (refer to the State Management section of the processor's documentation).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor STATE_UPDATE_INTERVAL = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-state-update-interval")
+            .displayName("State Update Interval")
+            .description("Indicates how often to update the processor's state with binlog file/position values. A value of zero means that state will only be updated when the processor is "
+                    + "stopped or shutdown. If at some point the processor state does not contain the desired binlog values, the last flow file emitted will contain the last observed values, "
+                    + "and the processor can be returned to that state by using the Initial Binlog File, Initial Binlog Position, and Initial Sequence ID properties.")
+            .defaultValue("0 seconds")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor INIT_SEQUENCE_ID = new PropertyDescriptor.Builder()
@@ -291,6 +297,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private volatile ProcessSession currentSession;
     private BinaryLogClient binlogClient;
     private BinlogEventListener eventListener;
+    private BinlogLifecycleListener lifecycleListener;
 
     private volatile LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
     private volatile String currentBinlogFile = null;
@@ -311,6 +318,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     private int currentHost = 0;
 
+    private volatile long lastStateUpdate = 0L;
+    private volatile long stateUpdateInterval = -1L;
     private AtomicLong currentSequenceId = new AtomicLong(0);
 
     private volatile DistributedMapCacheClient cacheClient = null;
@@ -344,6 +353,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(CONNECT_TIMEOUT);
         pds.add(DIST_CACHE_CLIENT);
         pds.add(RETRIEVE_ALL_RECORDS);
+        pds.add(STATE_UPDATE_INTERVAL);
         pds.add(INIT_SEQUENCE_ID);
         pds.add(INIT_BINLOG_FILENAME);
         pds.add(INIT_BINLOG_POSITION);
@@ -361,18 +371,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         return propDescriptors;
     }
 
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        if (INIT_BINLOG_FILENAME.getName().equals(propertyDescriptorName)) {
-            return INIT_BINLOG_FILENAME;
-        }
-        if (INIT_BINLOG_POSITION.getName().equals(propertyDescriptorName)) {
-            return INIT_BINLOG_POSITION;
-        }
-        return null;
-    }
-
-    @OnScheduled
     public void setup(ProcessContext context) {
 
         final ComponentLog logger = getLogger();
@@ -381,7 +379,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         final StateMap stateMap;
 
         try {
-            stateMap = stateManager.getState(Scope.LOCAL);
+            stateMap = stateManager.getState(Scope.CLUSTER);
         } catch (final IOException ioe) {
             logger.error("Failed to retrieve observed maximum values from the State Manager. Will not attempt "
                     + "connection until this is accomplished.", ioe);
@@ -391,30 +389,45 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         Map<String, String> statePropertiesMap = new HashMap<>(stateMap.toMap());
 
+        PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
+        databaseNamePattern = dbNameValue.isSet() ? Pattern.compile(dbNameValue.getValue()) : null;
+
+        PropertyValue tableNameValue = context.getProperty(TABLE_NAME_PATTERN);
+        tableNamePattern = tableNameValue.isSet() ? Pattern.compile(tableNameValue.getValue()) : null;
+
+        stateUpdateInterval = context.getProperty(STATE_UPDATE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+
         // Pre-store initial sequence ID if none has been set in the state map
         final PropertyValue initSequenceId = context.getProperty(INIT_SEQUENCE_ID);
         statePropertiesMap.computeIfAbsent(EventWriter.SEQUENCE_ID_KEY, k -> initSequenceId.isSet() ? initSequenceId.evaluateAttributeExpressions().getValue() : "0");
 
-
         boolean getAllRecords = context.getProperty(RETRIEVE_ALL_RECORDS).asBoolean();
 
-        // Set current binlog filename to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename, if no State variable is present
+        // Set current binlog filename to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
         currentBinlogFile = stateMap.get(BinlogEventInfo.BINLOG_FILENAME_KEY);
-        if (StringUtils.isEmpty(currentBinlogFile)) {
-            if (!getAllRecords && context.getProperty(INIT_BINLOG_FILENAME).isSet()) {
-                currentBinlogFile = context.getProperty(INIT_BINLOG_FILENAME).evaluateAttributeExpressions().getValue();
+        if (currentBinlogFile == null) {
+            if (!getAllRecords) {
+                if (context.getProperty(INIT_BINLOG_FILENAME).isSet()) {
+                    currentBinlogFile = context.getProperty(INIT_BINLOG_FILENAME).evaluateAttributeExpressions().getValue();
+                }
             } else {
                 // If we're starting from the beginning of all binlogs, the binlog filename must be the empty string (not null)
                 currentBinlogFile = "";
             }
         }
 
-        // Set current binlog position to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename, if no State variable is present
+        // Set current binlog position to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
         String binlogPosition = stateMap.get(BinlogEventInfo.BINLOG_POSITION_KEY);
-        if (!StringUtils.isEmpty(binlogPosition)) {
+        if (binlogPosition != null) {
             currentBinlogPosition = Long.valueOf(binlogPosition);
-        } else if (!getAllRecords && context.getProperty(INIT_BINLOG_POSITION).isSet()) {
-            currentBinlogPosition = context.getProperty(INIT_BINLOG_POSITION).evaluateAttributeExpressions().asLong();
+        } else if (!getAllRecords) {
+            if (context.getProperty(INIT_BINLOG_POSITION).isSet()) {
+                currentBinlogPosition = context.getProperty(INIT_BINLOG_POSITION).evaluateAttributeExpressions().asLong();
+            } else {
+                currentBinlogPosition = DO_NOT_SET;
+            }
+        } else {
+            currentBinlogPosition = -1;
         }
 
         // Get current sequence ID from state
@@ -458,30 +471,56 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             String driverName = context.getProperty(DRIVER_NAME).evaluateAttributeExpressions().getValue();
 
             connect(hosts, username, password, createEnrichmentConnection, driverLocation, driverName, connectTimeout);
-        } catch (IOException ioe) {
+        } catch (IOException | IllegalStateException e) {
             context.yield();
-            throw new ProcessException(ioe);
+            throw new ProcessException(e.getMessage(), e);
         }
-
-        PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
-        databaseNamePattern = dbNameValue.isSet() ? Pattern.compile(dbNameValue.getValue()) : null;
-
-        PropertyValue tableNameValue = context.getProperty(TABLE_NAME_PATTERN);
-        tableNamePattern = tableNameValue.isSet() ? Pattern.compile(tableNameValue.getValue()) : null;
     }
 
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-        if (currentSession == null) {
-            currentSession = sessionFactory.createSession();
-        }
 
         ComponentLog log = getLogger();
         StateManager stateManager = context.getStateManager();
 
+        // Create a client if we don't have one
+        if (binlogClient == null) {
+            setup(context);
+        }
+
+        // If the client has been disconnected, try to reconnect
+        if (!binlogClient.isConnected()) {
+            Exception e = lifecycleListener.getException();
+            // If there's no exception, the listener callback might not have been executed yet, so try again later. Otherwise clean up and start over next time
+            if (e != null) {
+                // Communications failure, disconnect and try next time
+                log.error("Binlog connector communications failure: " + e.getMessage(), e);
+                try {
+                    stop(stateManager);
+                } catch (CDCException ioe) {
+                    throw new ProcessException(ioe);
+                }
+            }
+
+            // Try again later
+            context.yield();
+            return;
+        }
+
+        if (currentSession == null) {
+            currentSession = sessionFactory.createSession();
+        }
+
         try {
             outputEvents(currentSession, stateManager, log);
+            long now = System.currentTimeMillis();
+            long timeSinceLastUpdate = now - lastStateUpdate;
+
+            if (stateUpdateInterval != 0 && timeSinceLastUpdate >= stateUpdateInterval) {
+                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
+                lastStateUpdate = now;
+            }
         } catch (IOException ioe) {
             try {
                 // Perform some processor-level "rollback", then rollback the session
@@ -494,6 +533,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 currentSession.rollback();
             } catch (Exception e) {
                 // Not much we can recover from here
+                log.warn("Error occurred during rollback", e);
             }
             throw new ProcessException(ioe);
         }
@@ -502,6 +542,16 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     @OnStopped
     public void onStopped(ProcessContext context) {
         try {
+            stop(context.getStateManager());
+        } catch (CDCException ioe) {
+            throw new ProcessException(ioe);
+        }
+    }
+
+    @OnShutdown
+    public void onShutdown(ProcessContext context) {
+        try {
+            // In case we get shutdown while still running, save off the current state, disconnect, and shut down gracefully
             stop(context.getStateManager());
         } catch (CDCException ioe) {
             throw new ProcessException(ioe);
@@ -547,13 +597,22 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 binlogClient = createBinlogClient(connectedHost.getHostString(), connectedHost.getPort(), username, password);
             }
 
+            // Add an event listener and lifecycle listener for binlog and client events, respectively
             if (eventListener == null) {
                 eventListener = createBinlogEventListener(binlogClient, queue);
             }
             eventListener.start();
             binlogClient.registerEventListener(eventListener);
+
+            if (lifecycleListener == null) {
+                lifecycleListener = createBinlogLifecycleListener();
+            }
+            binlogClient.registerLifecycleListener(lifecycleListener);
+
             binlogClient.setBinlogFilename(currentBinlogFile);
-            binlogClient.setBinlogPosition(currentBinlogPosition);
+            if (currentBinlogPosition != DO_NOT_SET) {
+                binlogClient.setBinlogPosition(currentBinlogPosition);
+            }
 
             try {
                 if (connectTimeout == 0) {
@@ -569,14 +628,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
         }
         if (!binlogClient.isConnected()) {
-            throw new IOException("Could not connect to any of the specified hosts");
+            binlogClient = null;
+            throw new IOException("Could not connect binlog client to any of the specified hosts");
         }
 
         if (createEnrichmentConnection) {
             try {
                 jdbcConnection = getJdbcConnection(driverLocation, driverName, connectedHost, username, password, null);
             } catch (InitializationException | SQLException e) {
-                throw new ProcessException(e);
+                throw new IOException("Error creating binlog enrichment JDBC connection to any of the specified hosts", e);
             }
         }
 
@@ -634,6 +694,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 }
                             }
                         }
+                    } else {
+                        // Clear the current table, to force a reload next time we get a TABLE_MAP event we care about
+                        currentTable = null;
                     }
                     break;
                 case QUERY:
@@ -671,7 +734,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
                         if (normalizedQuery.startsWith("alter table")
                                 || normalizedQuery.startsWith("alter ignore table")
-                                || normalizedQuery.startsWith("drop table")) {
+                                || normalizedQuery.startsWith("create table")
+                                || normalizedQuery.startsWith("drop table")
+                                || normalizedQuery.startsWith("drop database")) {
                             SchemaChangeEventInfo schemaChangeEvent = new SchemaChangeEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
                             currentSequenceId.set(schemaChangeEventWriter.writeEvent(currentSession, schemaChangeEvent, currentSequenceId.get()));
                             // Remove all the keys from the cache that this processor added
@@ -755,45 +820,43 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             if (eventType != EventType.ROTATE && eventType != EventType.FORMAT_DESCRIPTION) {
                 currentBinlogPosition = header.getNextPosition();
             }
-
-            // Update state with latest values
-            Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
-
-            // Save current binlog filename and position to the state map
-            if (currentBinlogFile != null) {
-                newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, currentBinlogFile);
-            }
-            newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(currentBinlogPosition));
-            newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(currentSequenceId.get()));
-            stateManager.setState(newStateMap, Scope.LOCAL);
         }
     }
 
     protected void stop(StateManager stateManager) throws CDCException {
         try {
-            binlogClient.disconnect();
+            if (binlogClient != null) {
+                binlogClient.disconnect();
+            }
             if (eventListener != null) {
                 eventListener.stop();
-                binlogClient.unregisterEventListener(eventListener);
+                if (binlogClient != null) {
+                    binlogClient.unregisterEventListener(eventListener);
+                }
             }
             doStop.set(true);
 
-            // Update state with latest values
-            Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
-
-            // Save current binlog filename and position to the state map
-            if (currentBinlogFile != null) {
-                newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, currentBinlogFile);
-            }
-            newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(currentBinlogPosition));
-            newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(currentSequenceId.get()));
-            stateManager.setState(newStateMap, Scope.LOCAL);
+            updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
             currentBinlogPosition = -1;
 
         } catch (IOException e) {
             throw new CDCException("Error closing CDC connection", e);
+        } finally {
+            binlogClient = null;
         }
-        binlogClient = null;
+    }
+
+    private void updateState(StateManager stateManager, String binlogFile, long binlogPosition, long sequenceId) throws IOException {
+        // Update state with latest values
+        Map<String, String> newStateMap = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
+
+        // Save current binlog filename and position to the state map
+        if (binlogFile != null) {
+            newStateMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, binlogFile);
+        }
+        newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
+        newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
+        stateManager.setState(newStateMap, Scope.CLUSTER);
     }
 
 
@@ -808,6 +871,16 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     BinlogEventListener createBinlogEventListener(BinaryLogClient client, LinkedBlockingQueue<RawBinlogEvent> q) {
         return new BinlogEventListener(client, q);
     }
+
+    /**
+     * Creates and returns a BinlogLifecycleListener instance, associated with the specified binlog client and event queue.
+     *
+     * @return A BinlogLifecycleListener instance, which will be notified of events associated with the specified client
+     */
+    BinlogLifecycleListener createBinlogLifecycleListener() {
+        return new BinlogLifecycleListener();
+    }
+
 
     BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
         return new BinaryLogClient(hostname, port, username, password);
@@ -824,7 +897,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (jdbcConnection != null) {
             try (Statement s = jdbcConnection.createStatement()) {
                 s.execute("USE " + key.getDatabaseName());
-                ResultSet rs = s.executeQuery("SELECT * FROM " + key.getTableName());
+                ResultSet rs = s.executeQuery("SELECT * FROM " + key.getTableName() + " LIMIT 0");
                 ResultSetMetaData rsmd = rs.getMetaData();
                 int numCols = rsmd.getColumnCount();
                 List<ColumnDefinition> columnDefinitions = new ArrayList<>();
