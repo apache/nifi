@@ -156,7 +156,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         return listing;
     }
 
-    protected static CloudStorageAccount createStorageConnection(ProcessContext context) {
+    protected CloudStorageAccount createStorageConnection(ProcessContext context) {
         final String accountName = context.getProperty(AzureConstants.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageConnectionString = String.format("DefaultEndpointsProtocol=http;AccountName=%s;AccountKey=%s", accountName, accountKey);
@@ -175,7 +175,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
      * @return The newly created CloudStorageAccount object
      *
      */
-    private static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
+    private CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
 
         CloudStorageAccount storageAccount;
         try {
