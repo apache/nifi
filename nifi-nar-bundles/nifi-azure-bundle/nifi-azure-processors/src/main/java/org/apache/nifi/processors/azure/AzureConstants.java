@@ -32,6 +32,9 @@ public final class AzureConstants {
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder().name("Container name").description("Name of the azure storage container")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).build();
 
+    // use HTTPS by default as per MSFT recommendation
+    public static final String FORMAT_DEFAULT_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+
     private AzureConstants() {
         // do not instantiate
     }
