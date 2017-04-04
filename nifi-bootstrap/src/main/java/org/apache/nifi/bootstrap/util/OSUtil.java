@@ -28,7 +28,15 @@ import com.sun.jna.platform.win32.WinNT;
  * OS specific utilities with generic method interfaces
  */
 public final class OSUtil {
-
+    /**
+     * @param process
+     * @param logger
+     * @return
+     * This method takes {@link Process} and {@link Logger} and returns 
+     * the platform specific ProcessId for Unix like systems, a.k.a <b>pid</b>
+     * In-case it fails to determine the pid, it will return Null.
+     * Purpose for the Logger is to log any interaction for debugging.
+     */
     private static Long getUnicesPid(final Process process, final Logger logger) {
         try {
             final Class<?> procClass = process.getClass();
@@ -48,6 +56,15 @@ public final class OSUtil {
         }
     }
 
+    /**
+     * @param process
+     * @param logger
+     * @return
+     * This method takes {@link Process} and {@link Logger} and returns 
+     * the platform specific Handle for Win32 Systems, a.k.a <b>pid</b>
+     * In-case it fails to determine the pid, it will return Null.
+     * Purpose for the Logger is to log any interaction for debugging.
+     */
     private static Long getWindowsProcessId(final Process process, final Logger logger) {
         /* determine the pid on windows plattforms */
         try {
@@ -67,6 +84,15 @@ public final class OSUtil {
         return null;
     }
 
+    /**
+     * @param process
+     * @param logger
+     * @return
+     * This method takes {@link Process} and {@link Logger} and returns 
+     * the platform specific ProcessId for Unix like systems or Handle for Win32 Systems, a.k.a <b>pid</b>
+     * In-case it fails to determine the pid, it will return Null.
+     * Purpose for the Logger is to log any interaction for debugging.
+     */
     public static Long getProcessId(final Process process, final Logger logger) {
         if (process.getClass().getName().equals("java.lang.UNIXProcess")) {
             return getUnicesPid(process, logger);
