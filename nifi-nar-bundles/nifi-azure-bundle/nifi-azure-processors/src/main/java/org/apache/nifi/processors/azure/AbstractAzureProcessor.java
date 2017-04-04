@@ -49,7 +49,7 @@ public abstract class AbstractAzureProcessor extends AbstractProcessor {
     }
 
     private CloudStorageAccount createStorageConnectionFromNameAndKey(String accountName, String accountKey) {
-        final String storageConnectionString = String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s", accountName, accountKey);
+        final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);
         try {
             return createStorageAccountFromConnectionString(storageConnectionString);
         } catch (InvalidKeyException | IllegalArgumentException | URISyntaxException e) {
