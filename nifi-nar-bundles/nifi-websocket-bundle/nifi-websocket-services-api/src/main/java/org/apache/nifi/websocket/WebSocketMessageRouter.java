@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.websocket;
 
-import org.apache.nifi.processor.Processor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.Processor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebSocketMessageRouter {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketMessageRouter.class);
@@ -101,8 +102,20 @@ public class WebSocketMessageRouter {
     }
 
     public void sendMessage(final String sessionId, final SendMessage sendMessage) throws IOException {
-        final WebSocketSession session = getSessionOrFail(sessionId);
-        sendMessage.send(session);
+        if (!StringUtils.isEmpty(sessionId)) {
+            final WebSocketSession session = getSessionOrFail(sessionId);
+            sendMessage.send(session);
+        } else {
+            //The sessionID is not specified so broadcast the message to all connected client sessions.
+            sessions.keySet().forEach(itrSessionId -> {
+                try {
+                    final WebSocketSession session = getSessionOrFail(itrSessionId);
+                    sendMessage.send(session);
+                } catch (IOException e) {
+                    logger.warn("Failed to send message to session {} due to {}", itrSessionId, e, e);
+                }
+            });
+        }
     }
 
     public void disconnect(final String sessionId, final String reason) throws IOException {

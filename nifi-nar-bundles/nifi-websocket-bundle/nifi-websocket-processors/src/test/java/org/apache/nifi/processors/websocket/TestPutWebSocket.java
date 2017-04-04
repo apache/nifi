@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.websocket;
 
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.websocket.AbstractWebSocketSession;
-import org.apache.nifi.websocket.SendMessage;
-import org.apache.nifi.websocket.WebSocketMessage;
-import org.apache.nifi.websocket.WebSocketService;
-import org.apache.nifi.websocket.WebSocketSession;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_FAILURE_DETAIL;
@@ -49,6 +31,24 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.websocket.AbstractWebSocketSession;
+import org.apache.nifi.websocket.SendMessage;
+import org.apache.nifi.websocket.WebSocketMessage;
+import org.apache.nifi.websocket.WebSocketService;
+import org.apache.nifi.websocket.WebSocketSession;
+import org.junit.Test;
 
 
 public class TestPutWebSocket {
@@ -92,12 +92,12 @@ public class TestPutWebSocket {
         runner.run();
 
         final List<MockFlowFile> succeededFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_SUCCESS);
-        assertEquals(0, succeededFlowFiles.size());
+        //assertEquals(0, succeededFlowFiles.size());   //No longer valid test after NIFI-3318 since not specifying sessionid will send to all clients
+        assertEquals(1, succeededFlowFiles.size());
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
-        assertEquals(1, failedFlowFiles.size());
-        final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
+        //assertEquals(1, failedFlowFiles.size());      //No longer valid test after NIFI-3318
+        assertEquals(0, failedFlowFiles.size());
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(0, provenanceEvents.size());
