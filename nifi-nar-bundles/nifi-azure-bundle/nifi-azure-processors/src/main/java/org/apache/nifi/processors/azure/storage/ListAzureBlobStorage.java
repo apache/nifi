@@ -106,8 +106,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        // TODO - implement
-        return false;
+        // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
+        return PREFIX.equals(property)
+                   || AzureConstants.ACCOUNT_NAME.equals(property)
+                   || AzureConstants.CONTAINER.equals(property);
     }
 
     @Override
