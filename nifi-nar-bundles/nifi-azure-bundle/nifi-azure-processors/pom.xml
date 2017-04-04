@@ -85,6 +85,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-processors</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

@@ -46,12 +46,10 @@ import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 import org.apache.nifi.processors.standard.AbstractListProcessor;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.StorageUri;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -60,14 +58,18 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 
 @TriggerSerially
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ FetchAzureBlobStorage.class })
+@SeeAlso({ FetchAzureBlobStorage.class, PutAzureBlobStorage.class })
 @CapabilityDescription("Lists blobs in an Azure Storage container. Listing details are attached to an empty FlowFile for use with FetchAzureBlobStorage")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the azure container"),
-        @WritesAttribute(attribute = "azure.blobname", description = "The name of the azure blob"), @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
-        @WritesAttribute(attribute = "azure.secondaryUri", description = "Secondary location for blob content"), @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
-        @WritesAttribute(attribute = "azure.length", description = "Length of the blob"), @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
-        @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"), @WritesAttribute(attribute = "lang", description = "Language code for the content"),
+@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
+        @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
+        @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
+        @WritesAttribute(attribute = "azure.secondaryUri", description = "Secondary location for blob content"),
+        @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
+        @WritesAttribute(attribute = "azure.length", description = "Length of the blob"),
+        @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
+        @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
+        @WritesAttribute(attribute = "lang", description = "Language code for the content"),
         @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
 @Stateful(scopes = { Scope.LOCAL, Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. "
         + "This allows the Processor to list only blobs that have been added or modified after " + "this date the next time that the Processor is run.")
@@ -76,7 +78,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     private static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder().name("Prefix").description("Search prefix for listing").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true).required(false).build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, PREFIX));
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, PREFIX));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -106,8 +108,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        // TODO - implement
-        return false;
+        // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
+        return PREFIX.equals(property)
+                   || AzureConstants.ACCOUNT_NAME.equals(property)
+                   || AzureConstants.CONTAINER.equals(property);
     }
 
     @Override
@@ -128,10 +132,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
-            BlobRequestOptions blobRequestOptions = null;
-            OperationContext operationContext = null;
-
-            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), blobRequestOptions, operationContext)) {
+            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
                 if (blob instanceof CloudBlob) {
                     CloudBlob cloudBlob = (CloudBlob) blob;
                     BlobProperties properties = cloudBlob.getProperties();
@@ -154,40 +155,26 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         return listing;
     }
 
-    protected static CloudStorageAccount createStorageConnection(ProcessContext context) {
+    protected CloudStorageAccount createStorageConnection(ProcessContext context) {
         final String accountName = context.getProperty(AzureConstants.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        final String storageConnectionString = String.format("DefaultEndpointsProtocol=http;AccountName=%s;AccountKey=%s", accountName, accountKey);
+        final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);
         try {
-            return createStorageAccountFromConnectionString(storageConnectionString);
+
+            CloudStorageAccount storageAccount;
+            try {
+                storageAccount = CloudStorageAccount.parse(storageConnectionString);
+            } catch (IllegalArgumentException | URISyntaxException e) {
+                getLogger().error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
+                throw e;
+            } catch (InvalidKeyException e) {
+                getLogger().error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
+                throw e;
+            }
+            return storageAccount;
         } catch (InvalidKeyException | URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    /**
-     * Validates the connection string and returns the storage account. The connection string must be in the Azure connection string format.
-     *
-     * @param storageConnectionString
-     *            Connection string for the storage service or the emulator
-     * @return The newly created CloudStorageAccount object
-     *
-     */
-    private static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
-
-        CloudStorageAccount storageAccount;
-        try {
-            storageAccount = CloudStorageAccount.parse(storageConnectionString);
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            System.out.println("\nConnection string specifies an invalid URI.");
-            System.out.println("Please confirm the connection string is in the Azure connection string format.");
-            throw e;
-        } catch (InvalidKeyException e) {
-            System.out.println("\nConnection string specifies an invalid key.");
-            System.out.println("Please confirm the AccountName and AccountKey in the connection string are valid.");
-            throw e;
-        }
-        return storageAccount;
     }
 
 }

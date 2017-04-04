@@ -16,7 +16,17 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import static org.junit.Assert.fail;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
+import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -25,19 +35,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
-import com.microsoft.azure.storage.blob.ListBlobItem;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.CloudTableClient;
+import static org.junit.Assert.fail;
 
 public abstract class AbstractAzureIT {
     protected static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
@@ -90,17 +88,10 @@ public abstract class AbstractAzureIT {
     }
 
     protected static CloudBlobContainer getContainer() throws InvalidKeyException, URISyntaxException, StorageException {
-        String storageConnectionString = String.format("DefaultEndpointsProtocol=http;AccountName=%s;AccountKey=%s", getAccountName(), getAccountKey());
+        String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, getAccountName(), getAccountKey());
         CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
         CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
         return blobClient.getContainerReference(TEST_CONTAINER_NAME);
-    }
-
-    protected static CloudTable getTable() throws InvalidKeyException, URISyntaxException, StorageException {
-        String storageConnectionString = String.format("DefaultEndpointsProtocol=http;AccountName=%s;AccountKey=%s", getAccountName(), getAccountKey());
-        CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
-        CloudTableClient tableClient = storageAccount.createCloudTableClient();
-        return tableClient.getTableReference(TEST_TABLE_NAME);
     }
 
 }

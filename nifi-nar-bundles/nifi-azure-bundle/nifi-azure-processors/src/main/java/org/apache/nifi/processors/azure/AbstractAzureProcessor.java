@@ -32,8 +32,8 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 
 public abstract class AbstractAzureProcessor extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All FlowFiles that are received are routed to success").build();
-    protected static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Any failed fetches will be transferred to the failure relation.").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All successfully processed FlowFiles are routed to this relationship").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Unsuccessful operations will be transferred to the failure relationship.").build();
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     protected CloudStorageAccount createStorageConnection(ProcessContext context) {
@@ -49,7 +49,7 @@ public abstract class AbstractAzureProcessor extends AbstractProcessor {
     }
 
     private CloudStorageAccount createStorageConnectionFromNameAndKey(String accountName, String accountKey) {
-        final String storageConnectionString = String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s", accountName, accountKey);
+        final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);
         try {
             return createStorageAccountFromConnectionString(storageConnectionString);
         } catch (InvalidKeyException | IllegalArgumentException | URISyntaxException e) {
@@ -65,13 +65,11 @@ public abstract class AbstractAzureProcessor extends AbstractProcessor {
      * @return The newly created CloudStorageAccount object
      *
      */
-    protected static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
+    private static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
         CloudStorageAccount storageAccount;
         try {
             storageAccount = CloudStorageAccount.parse(storageConnectionString);
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            throw e;
-        } catch (InvalidKeyException e) {
+        } catch (IllegalArgumentException | URISyntaxException | InvalidKeyException e) {
             throw e;
         }
         return storageAccount;

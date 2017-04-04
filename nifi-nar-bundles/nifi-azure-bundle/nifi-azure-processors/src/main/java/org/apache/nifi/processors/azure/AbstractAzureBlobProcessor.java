@@ -27,13 +27,13 @@ public abstract class AbstractAzureBlobProcessor extends AbstractAzureProcessor 
 
     public static final PropertyDescriptor BLOB = new PropertyDescriptor.Builder().name("Blob").description("The filename of the blob").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true).required(true).defaultValue("${azure.blobname}").build();
-    
-    public static final List<PropertyDescriptor> properties = Collections
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, BLOB));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
 }

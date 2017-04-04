@@ -38,7 +38,7 @@
         
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <artifactId>nifi-standard-nar</artifactId>
             <type>nar</type>
         </dependency>  
     </dependencies>
