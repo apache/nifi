@@ -161,35 +161,21 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageConnectionString = String.format("DefaultEndpointsProtocol=http;AccountName=%s;AccountKey=%s", accountName, accountKey);
         try {
-            return createStorageAccountFromConnectionString(storageConnectionString);
+
+            CloudStorageAccount storageAccount;
+            try {
+                storageAccount = CloudStorageAccount.parse(storageConnectionString);
+            } catch (IllegalArgumentException | URISyntaxException e) {
+                getLogger().error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
+                throw e;
+            } catch (InvalidKeyException e) {
+                getLogger().error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
+                throw e;
+            }
+            return storageAccount;
         } catch (InvalidKeyException | URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    /**
-     * Validates the connection string and returns the storage account. The connection string must be in the Azure connection string format.
-     *
-     * @param storageConnectionString
-     *            Connection string for the storage service or the emulator
-     * @return The newly created CloudStorageAccount object
-     *
-     */
-    private CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
-
-        CloudStorageAccount storageAccount;
-        try {
-            storageAccount = CloudStorageAccount.parse(storageConnectionString);
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            System.out.println("\nConnection string specifies an invalid URI.");
-            System.out.println("Please confirm the connection string is in the Azure connection string format.");
-            throw e;
-        } catch (InvalidKeyException e) {
-            System.out.println("\nConnection string specifies an invalid key.");
-            System.out.println("Please confirm the AccountName and AccountKey in the connection string are valid.");
-            throw e;
-        }
-        return storageAccount;
     }
 
 }
