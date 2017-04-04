@@ -17,6 +17,26 @@
 
 package org.apache.nifi.processors.websocket;
 
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_FAILURE_DETAIL;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_LOCAL_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
+import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -38,25 +58,6 @@ import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketService;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_FAILURE_DETAIL;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_LOCAL_ADDRESS;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
-import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
-import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
-
 @Tags({"WebSocket", "publish", "send"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @TriggerSerially
@@ -76,7 +77,8 @@ public class PutWebSocket extends AbstractProcessor {
     public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
             .name("websocket-session-id")
             .displayName("WebSocket Session Id")
-            .description("A NiFi Expression to retrieve the session id.")
+            .description("A NiFi Expression to retrieve the session id. If not specified, a message will be " +
+                    "sent to all connected WebSocket peers for the WebSocket controller service endpoint.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -166,8 +168,11 @@ public class PutWebSocket extends AbstractProcessor {
                 .evaluateAttributeExpressions(flowfile).getValue();
         final WebSocketMessage.Type messageType = WebSocketMessage.Type.valueOf(messageTypeStr);
 
-        if (StringUtils.isEmpty(sessionId)
-                || StringUtils.isEmpty(webSocketServiceId)
+        if (StringUtils.isEmpty(sessionId)) {
+            getLogger().debug("Specific SessionID not specified. Message will be broadcast to all connected clients.");
+        }
+
+        if (StringUtils.isEmpty(webSocketServiceId)
                 || StringUtils.isEmpty(webSocketServiceEndpoint)) {
             transferToFailure(processSession, flowfile, "Required WebSocket attribute was not found.");
             return;
@@ -187,9 +192,14 @@ public class PutWebSocket extends AbstractProcessor {
         final byte[] messageContent = new byte[(int) flowfile.getSize()];
         final long startSending = System.currentTimeMillis();
 
+        final AtomicReference<String> transitUri = new AtomicReference<>();
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(ATTR_WS_CS_ID, webSocketService.getIdentifier());
-        attrs.put(ATTR_WS_SESSION_ID, sessionId);
+
+        if (!StringUtils.isEmpty(sessionId)) {
+            attrs.put(ATTR_WS_SESSION_ID, sessionId);
+        }
+
         attrs.put(ATTR_WS_ENDPOINT_ID, webSocketServiceEndpoint);
         attrs.put(ATTR_WS_MESSAGE_TYPE, messageTypeStr);
 
@@ -211,13 +221,14 @@ public class PutWebSocket extends AbstractProcessor {
 
                 attrs.put(ATTR_WS_LOCAL_ADDRESS, sender.getLocalAddress().toString());
                 attrs.put(ATTR_WS_REMOTE_ADDRESS, sender.getRemoteAddress().toString());
-
-                final FlowFile updatedFlowFile = processSession.putAllAttributes(flowfile, attrs);
-                final long transmissionMillis = System.currentTimeMillis() - startSending;
-                processSession.getProvenanceReporter().send(updatedFlowFile, sender.getTransitUri(), transmissionMillis);
-
-                processSession.transfer(updatedFlowFile, REL_SUCCESS);
+                transitUri.set(sender.getTransitUri());
             });
+
+            final FlowFile updatedFlowFile = processSession.putAllAttributes(flowfile, attrs);
+            final long transmissionMillis = System.currentTimeMillis() - startSending;
+            processSession.getProvenanceReporter().send(updatedFlowFile, transitUri.get(), transmissionMillis);
+
+            processSession.transfer(updatedFlowFile, REL_SUCCESS);
 
         } catch (WebSocketConfigurationException|IllegalStateException|IOException e) {
             // WebSocketConfigurationException: If the corresponding WebSocketGatewayProcessor has been stopped.
@@ -234,6 +245,5 @@ public class PutWebSocket extends AbstractProcessor {
         processSession.transfer(flowfile, REL_FAILURE);
         return flowfile;
     }
-
 
 }
