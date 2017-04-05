@@ -27,7 +27,7 @@ import com.sun.jna.platform.win32.WinNT;
 /**
  * OS specific utilities with generic method interfaces
  */
-public final class OSUtil {
+public final class OSUtils {
     /**
      * @param process NiFi Process Reference
      * @param logger  Logger Reference for Debug

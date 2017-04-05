@@ -54,7 +54,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.OSUtil;
+import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1066,7 +1066,7 @@ public class RunNiFi {
 
         Process process = builder.start();
         handleLogging(process);
-        Long pid = OSUtil.getProcessId(process, cmdLogger);
+        Long pid = OSUtils.getProcessId(process, cmdLogger);
         if (pid == null) {
             cmdLogger.warn("Launched Apache NiFi but could not determined the Process ID");
         } else {
@@ -1131,7 +1131,7 @@ public class RunNiFi {
                     process = builder.start();
                     handleLogging(process);
 
-                    pid = OSUtil.getProcessId(process, defaultLogger);
+                    pid = OSUtils.getProcessId(process, defaultLogger);
                     if (pid == null) {
                         cmdLogger.warn("Launched Apache NiFi but could not obtain the Process ID");
                     } else {
