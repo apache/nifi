@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,7 +36,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.AzureConstants;
 
@@ -54,7 +52,8 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
     @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
 })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
-    public static final List<PropertyDescriptor> PROPERTIES = Collections
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, BLOB));
 
     @Override
@@ -84,14 +83,11 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
             // TODO - we may be able do fancier things with ranges and
             // distribution of download over threads, investigate
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream os) throws IOException {
-                    try {
-                        blob.download(os);
-                    } catch (StorageException e) {
-                        throw new IOException(e);
-                    }
+            flowFile = session.write(flowFile, os -> {
+                try {
+                    blob.download(os);
+                } catch (StorageException e) {
+                    throw new IOException(e);
                 }
             });
 

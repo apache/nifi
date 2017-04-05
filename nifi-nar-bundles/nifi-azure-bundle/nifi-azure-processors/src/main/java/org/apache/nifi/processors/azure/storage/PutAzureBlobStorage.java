@@ -35,7 +35,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.AzureConstants;
 
@@ -80,21 +79,23 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
             final Map<String, String> attributes = new HashMap<>();
             long length = flowFile.getSize();
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream rawIn) throws IOException {
-                    final InputStream in = new BufferedInputStream(rawIn);
-                    try {
-                        blob.upload(in, length);
-                        BlobProperties properties = blob.getProperties();
-                        attributes.put("azure.container", containerName);
-                        attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
-                        attributes.put("azure.etag", properties.getEtag());
-                        attributes.put("azure.length", String.valueOf(length));
-                        attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
-                    } catch (StorageException | URISyntaxException e) {
-                        throw new IOException(e);
-                    }
+            session.read(flowFile, rawIn -> {
+                InputStream in = rawIn;
+                if (!(in instanceof BufferedInputStream)) {
+                    // do not double-wrap
+                    in = new BufferedInputStream(rawIn);
+                }
+
+                try {
+                    blob.upload(in, length);
+                    BlobProperties properties = blob.getProperties();
+                    attributes.put("azure.container", containerName);
+                    attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
+                    attributes.put("azure.etag", properties.getEtag());
+                    attributes.put("azure.length", String.valueOf(length));
+                    attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
+                } catch (StorageException | URISyntaxException e) {
+                    throw new IOException(e);
                 }
             });
 

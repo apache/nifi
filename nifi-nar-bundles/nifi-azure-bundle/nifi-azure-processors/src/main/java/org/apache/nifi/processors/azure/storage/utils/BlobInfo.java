@@ -159,7 +159,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         return etag.compareTo(o.etag);
     }
 
-    protected BlobInfo(final Builder builder) {
+    private BlobInfo(final Builder builder) {
         this.primaryUri = builder.primaryUri;
         this.secondaryUri = builder.secondaryUri;
         this.contentType = builder.contentType;
