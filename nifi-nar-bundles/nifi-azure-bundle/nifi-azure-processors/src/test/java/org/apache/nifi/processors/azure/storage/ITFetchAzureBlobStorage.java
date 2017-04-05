@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.processors.azure.AbstractAzureProcessor;
 import org.apache.nifi.processors.azure.AzureConstants;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -51,7 +52,7 @@ public class ITFetchAzureBlobStorage extends AbstractAzureIT {
         runner.enqueue(new byte[0], attributes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(FetchAzureBlobStorage.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(AbstractAzureProcessor.REL_SUCCESS, 1);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesForRelationship) {
             flowFile.assertContentEquals("0123456789".getBytes());

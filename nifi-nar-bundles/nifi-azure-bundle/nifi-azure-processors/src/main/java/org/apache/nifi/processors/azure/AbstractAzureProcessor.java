@@ -65,13 +65,11 @@ public abstract class AbstractAzureProcessor extends AbstractProcessor {
      * @return The newly created CloudStorageAccount object
      *
      */
-    protected static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
+    private static CloudStorageAccount createStorageAccountFromConnectionString(String storageConnectionString) throws IllegalArgumentException, URISyntaxException, InvalidKeyException {
         CloudStorageAccount storageAccount;
         try {
             storageAccount = CloudStorageAccount.parse(storageConnectionString);
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            throw e;
-        } catch (InvalidKeyException e) {
+        } catch (IllegalArgumentException | URISyntaxException | InvalidKeyException e) {
             throw e;
         }
         return storageAccount;
