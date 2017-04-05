@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.processors;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.IspResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -39,32 +35,29 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.StopWatch;
 
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.record.Subdivision;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"geo", "enrich", "ip", "maxmind"})
+@Tags({"ISP", "enrich", "ip", "maxmind"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Looks up geolocation information for an IP address and adds the geo information to FlowFile attributes. The "
-        + "geo data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
-        + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
-        + "will take the form X.geo.<fieldName>")
+@CapabilityDescription("Looks up ISP information for an IP address and adds the information to FlowFile attributes. The "
+        + "ISP data is provided as a MaxMind ISP database (Note that this is NOT the same as the GeoLite database utilized" +
+        "by some geo enrichment tools). The attribute that contains the IP address to lookup is provided by the " +
+        "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by" +
+        " enrichment will take the form X.isp.<fieldName>")
 @WritesAttributes({
-    @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
-    @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
-    @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database (in Kilometers)"),
-    @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.subdivision.N",
-            description = "Each subdivision that is identified for this IP address is added with a one-up number appended to the attribute name, starting with 0"),
-    @WritesAttribute(attribute = "X.geo.subdivision.isocode.N", description = "The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
-    @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
-    @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
-public class GeoEnrichIP extends AbstractEnrichIP {
+    @WritesAttribute(attribute = "X.isp.lookup.micros", description = "The number of microseconds that the geo lookup took"),
+    @WritesAttribute(attribute = "X.isp.asn", description = "The Autonomous System Number (ASN) identified for the IP address"),
+    @WritesAttribute(attribute = "X.isp.asn.organization", description = "The Organization Associated with the ASN identified"),
+    @WritesAttribute(attribute = "X.isp.name", description = "The name of the ISP associated with the IP address provided"),
+    @WritesAttribute(attribute = "X.isp.organization", description = "The Organization associated with the IP address provided"),})
+public class ISPEnrichIP extends AbstractEnrichIP {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -85,7 +78,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         }
 
         InetAddress inetAddress = null;
-        CityResponse response = null;
+        IspResponse response = null;
 
         try {
             inetAddress = InetAddress.getByName(ipAttributeValue);
@@ -94,13 +87,12 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
                             "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
                             "providing the processor with an invalid IP address ",
-                            new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
+                    new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
             return;
         }
-
         final StopWatch stopWatch = new StopWatch(true);
         try {
-            response = dbReader.city(inetAddress);
+            response = dbReader.isp(inetAddress);
             stopWatch.stop();
         } catch (final IOException | GeoIp2Exception ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
@@ -117,33 +109,31 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         }
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.city").toString(), response.getCity().getName());
+        attrs.put(new StringBuilder(ipAttributeName).append(".isp.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
 
-        final Double latitude = response.getLocation().getLatitude();
-        if (latitude != null) {
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), latitude.toString());
+
+
+        // During test I observed behavior where null values in ASN data could trigger NPEs. Instead of relying on the
+        // underlying database to be free from Nulls wrapping ensure equality to null without assigning a variable
+        // seem like good option to "final int asn ..." as with the other returned data.
+        if (!(response.getAutonomousSystemNumber() == null)) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".isp.asn").toString(), String.valueOf(response.getAutonomousSystemNumber()));
+        }
+        final String asnOrg = response.getAutonomousSystemOrganization();
+        if (asnOrg != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".isp.asn.organization").toString(), asnOrg);
         }
 
-        final Double longitude = response.getLocation().getLongitude();
-        if (longitude != null) {
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
+        final String ispName = response.getIsp();
+        if (ispName != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".isp.name").toString(), ispName);
         }
 
-        final Integer accuracy = response.getLocation().getAccuracyRadius();
-        if (accuracy != null) {
-            attrs.put(new StringBuilder(ipAttributeName).append(".accuracy").toString(), String.valueOf(accuracy));
+        final String organisation = response.getOrganization();
+        if (organisation  != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".isp.organization").toString(), organisation);
         }
 
-        int i = 0;
-        for (final Subdivision subd : response.getSubdivisions()) {
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.").append(i).toString(), subd.getName());
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.isocode.").append(i).toString(), subd.getIsoCode());
-            i++;
-        }
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country").toString(), response.getCountry().getName());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country.isocode").toString(), response.getCountry().getIsoCode());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.postalcode").toString(), response.getPostal().getCode());
         flowFile = session.putAllAttributes(flowFile, attrs);
 
         session.transfer(flowFile, REL_FOUND);
