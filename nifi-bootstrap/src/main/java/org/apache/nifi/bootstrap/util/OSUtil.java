@@ -29,10 +29,10 @@ import com.sun.jna.platform.win32.WinNT;
  */
 public final class OSUtil {
     /**
-     * @param process
-     * @param logger
-     * @return
-     * This method takes {@link Process} and {@link Logger} and returns 
+     * @param process NiFi Process Reference
+     * @param logger  Logger Reference for Debug
+     * @return        Returns pid or null in-case pid could not be determined
+     * This method takes {@link Process} and {@link Logger} and returns
      * the platform specific ProcessId for Unix like systems, a.k.a <b>pid</b>
      * In-case it fails to determine the pid, it will return Null.
      * Purpose for the Logger is to log any interaction for debugging.
@@ -57,10 +57,10 @@ public final class OSUtil {
     }
 
     /**
-     * @param process
-     * @param logger
-     * @return
-     * This method takes {@link Process} and {@link Logger} and returns 
+     * @param process NiFi Process Reference
+     * @param logger  Logger Reference for Debug
+     * @return        Returns pid or null in-case pid could not be determined
+     * This method takes {@link Process} and {@link Logger} and returns
      * the platform specific Handle for Win32 Systems, a.k.a <b>pid</b>
      * In-case it fails to determine the pid, it will return Null.
      * Purpose for the Logger is to log any interaction for debugging.
@@ -85,10 +85,10 @@ public final class OSUtil {
     }
 
     /**
-     * @param process
-     * @param logger
-     * @return
-     * This method takes {@link Process} and {@link Logger} and returns 
+     * @param process NiFi Process Reference
+     * @param logger  Logger Reference for Debug
+     * @return        Returns pid or null in-case pid could not be determined
+     * This method takes {@link Process} and {@link Logger} and returns
      * the platform specific ProcessId for Unix like systems or Handle for Win32 Systems, a.k.a <b>pid</b>
      * In-case it fails to determine the pid, it will return Null.
      * Purpose for the Logger is to log any interaction for debugging.
