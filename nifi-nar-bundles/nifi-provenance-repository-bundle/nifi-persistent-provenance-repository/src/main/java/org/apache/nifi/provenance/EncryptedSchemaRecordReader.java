@@ -138,7 +138,6 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
     private byte[] decrypt(byte[] ivAndCipherBytes) throws IOException, EncryptionException {
         String keyId = getKeyId();
         try {
-            // TODO: Clean up
             final byte[] SENTINEL = new byte[]{ 0x01};
             // Detect if the first byte is the sentinel and remove it before attempting to decrypt
             if (Arrays.equals(Arrays.copyOfRange(ivAndCipherBytes, 0, 1), SENTINEL)) {

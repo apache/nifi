@@ -52,16 +52,16 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
 
     @Override
     public void registerEvent(final ProvenanceEventRecord event) {
-        try {
+        // try {
             final String keyId = getCurrentKeyId();
-            if (keyProvider.keyExists(keyId)) {
-                EncryptedProvenanceEventRecord encryptedEvent = provenanceEventEncryptor.encrypt(event, keyId);
-
-            }
-        } catch (EncryptionException e) {
-            logger.error("Encountered an exception encrypting the event " + event.getFlowFileUuid() + " before registering in the provenance repository", e);
-            // TODO: Throw exception/recover?
-        }
+            // if (keyProvider.keyExists(keyId)) {
+            //     EncryptedProvenanceEventRecord encryptedEvent = provenanceEventEncryptor.encrypt(event, keyId);
+            //
+            // }
+        // } catch (EncryptionException e) {
+        //     logger.error("Encountered an exception encrypting the event " + event.getFlowFileUuid() + " before registering in the provenance repository", e);
+        //     // TODO: Throw exception/recover?
+        // }
     }
 
     @Override

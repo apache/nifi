@@ -29,21 +29,23 @@ public interface ProvenanceEventEncryptor {
     void initialize(KeyProvider keyProvider) throws KeyManagementException;
 
     /**
-     * Encrypts the provided {@see ProvenanceEventRecord}.
+     * Encrypts the provided {@link ProvenanceEventRecord}, serialized to a byte[] by the RecordWriter.
      *
-     * @param plainRecord the plain record
+     * @param plainRecord the plain record, serialized to a byte[]
+     * @param recordId    an identifier for this record (eventId, generated, etc.)
      * @param keyId       the ID of the key to use
      * @return the encrypted record
      * @throws EncryptionException if there is an issue encrypting this record
      */
-    EncryptedProvenanceEventRecord encrypt(ProvenanceEventRecord plainRecord, String keyId) throws EncryptionException;
+    byte[] encrypt(byte[] plainRecord, String recordId, String keyId) throws EncryptionException;
 
     /**
-     * Decrypts the provided {@see ProvenanceEventRecord}.
+     * Decrypts the provided byte[] (an encrypted record with accompanying metadata).
      *
-     * @param encryptedRecord the encrypted record
+     * @param encryptedRecord the encrypted record in byte[] form
+     * @param recordId        an identifier for this record (eventId, generated, etc.)
      * @return the decrypted record
      * @throws EncryptionException if there is an issue decrypting this record
      */
-    ProvenanceEventRecord decrypt(EncryptedProvenanceEventRecord encryptedRecord) throws EncryptionException;
+    byte[] decrypt(byte[] encryptedRecord, String recordId) throws EncryptionException;
 }
