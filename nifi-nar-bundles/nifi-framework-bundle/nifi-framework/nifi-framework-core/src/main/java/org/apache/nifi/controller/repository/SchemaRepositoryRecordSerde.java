@@ -113,6 +113,10 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     public RepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         final SchemaRecordReader reader = SchemaRecordReader.fromSchema(recoverySchema);
         final Record updateRecord = reader.readRecord(in);
+        if (updateRecord == null) {
+            // null may be returned by reader.readRecord() if it encounters end-of-stream
+            return null;
+        }
 
         // Top level is always going to be a "Repository Record Update" record because we need a 'Union' type record at the
         // top level that indicates which type of record we have.
