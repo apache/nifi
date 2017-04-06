@@ -973,24 +973,28 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 logger.debug("{} recovering from {}", this, nextRecoveryPath);
                 recoveryIn = createDataInputStream(nextRecoveryPath);
                 if (hasMoreData(recoveryIn)) {
-                    final String waliImplementationClass = recoveryIn.readUTF();
-                    if (!MinimalLockingWriteAheadLog.class.getName().equals(waliImplementationClass)) {
-                        continue;
-                    }
+                    try {
+                        final String waliImplementationClass = recoveryIn.readUTF();
+                        if (!MinimalLockingWriteAheadLog.class.getName().equals(waliImplementationClass)) {
+                            continue;
+                        }
 
-                    final long waliVersion = recoveryIn.readInt();
-                    if (waliVersion > writeAheadLogVersion) {
-                        throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using "
+                        final long waliVersion = recoveryIn.readInt();
+                        if (waliVersion > writeAheadLogVersion) {
+                            throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using "
                                 + "WALI version " + waliVersion + ", but the version used to restore it is only " + writeAheadLogVersion);
+                        }
+
+                        final String serdeEncoding = recoveryIn.readUTF();
+                        this.recoveryVersion = recoveryIn.readInt();
+                        serde = serdeFactory.createSerDe(serdeEncoding);
+
+                        serde.readHeader(recoveryIn);
+                        break;
+                    } catch (final Exception e) {
+                        logger.warn("Failed to recover data from Write-Ahead Log for {} because the header information could not be read properly. "
+                            + "This often is the result of the file not being fully written out before the application is restarted. This file will be ignored.", nextRecoveryPath);
                     }
-
-                    final String serdeEncoding = recoveryIn.readUTF();
-                    this.recoveryVersion = recoveryIn.readInt();
-                    serde = serdeFactory.createSerDe(serdeEncoding);
-
-                    serde.readHeader(recoveryIn);
-
-                    break;
                 }
             }
 
