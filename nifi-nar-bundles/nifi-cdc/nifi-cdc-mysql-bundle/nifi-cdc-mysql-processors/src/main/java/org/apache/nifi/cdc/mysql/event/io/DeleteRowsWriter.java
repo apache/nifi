@@ -42,7 +42,7 @@ public class DeleteRowsWriter extends AbstractBinlogTableEventWriter<DeleteRowsE
      * @return The next available CDC sequence ID for use by the CDC processor
      */
     @Override
-    public long writeEvent(final ProcessSession session, final DeleteRowsEventInfo eventInfo, final long currentSequenceId, Relationship relationship) {
+    public long writeEvent(final ProcessSession session, String transitUri, final DeleteRowsEventInfo eventInfo, final long currentSequenceId, Relationship relationship) {
         final AtomicLong seqId = new AtomicLong(currentSequenceId);
         for (Serializable[] row : eventInfo.getRows()) {
 
@@ -60,6 +60,7 @@ public class DeleteRowsWriter extends AbstractBinlogTableEventWriter<DeleteRowsE
 
             flowFile = session.putAllAttributes(flowFile, getCommonAttributes(seqId.get(), eventInfo));
             session.transfer(flowFile, relationship);
+            session.getProvenanceReporter().receive(flowFile, transitUri);
             seqId.getAndIncrement();
         }
         return seqId.get();

@@ -227,6 +227,17 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(true)
             .build();
 
+    public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-server-id")
+            .displayName("Server ID")
+            .description("The client connecting to the MySQL replication group is actually a simplified slave (server), and the Server ID value must be unique across the whole replication "
+                    + "group (i.e. different from any other Server ID being used by any master or slave). Thus, each instance of CaptureChangeMySQL must have a Server ID unique across "
+                    + "the replication group. If the Server ID is not specified, it defaults to 65535.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
     public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-dist-map-cache-client")
             .displayName("Distributed Map Cache Client")
@@ -324,8 +335,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private volatile boolean inTransaction = false;
     private volatile boolean skipTable = false;
     private AtomicBoolean doStop = new AtomicBoolean(false);
+    private AtomicBoolean hasRun = new AtomicBoolean(false);
 
     private int currentHost = 0;
+    private String transitUri = "<unknown>";
 
     private volatile long lastStateUpdate = 0L;
     private volatile long stateUpdateInterval = -1L;
@@ -338,12 +351,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     private Connection jdbcConnection = null;
 
-    private static final BeginTransactionEventWriter beginEventWriter = new BeginTransactionEventWriter();
-    private static final CommitTransactionEventWriter commitEventWriter = new CommitTransactionEventWriter();
-    private static final SchemaChangeEventWriter schemaChangeEventWriter = new SchemaChangeEventWriter();
-    private static final InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
-    private static final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
-    private static final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
+    private final BeginTransactionEventWriter beginEventWriter = new BeginTransactionEventWriter();
+    private final CommitTransactionEventWriter commitEventWriter = new CommitTransactionEventWriter();
+    private final SchemaChangeEventWriter schemaChangeEventWriter = new SchemaChangeEventWriter();
+    private final InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
+    private final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
+    private final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
 
     static {
 
@@ -357,6 +370,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(DRIVER_LOCATION);
         pds.add(USERNAME);
         pds.add(PASSWORD);
+        pds.add(SERVER_ID);
         pds.add(DATABASE_NAME_PATTERN);
         pds.add(TABLE_NAME_PATTERN);
         pds.add(CONNECT_TIMEOUT);
@@ -473,7 +487,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             String driverLocation = context.getProperty(DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
             String driverName = context.getProperty(DRIVER_NAME).evaluateAttributeExpressions().getValue();
 
-            connect(hosts, username, password, createEnrichmentConnection, driverLocation, driverName, connectTimeout);
+            Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
+
+            connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout);
         } catch (IOException | IllegalStateException e) {
             context.yield();
             binlogClient = null;
@@ -485,6 +501,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
+        // Indicate that this processor has executed at least once, so we know whether or not the state values are valid and should be updated
+        hasRun.set(true);
         ComponentLog log = getLogger();
         StateManager stateManager = context.getStateManager();
 
@@ -587,7 +605,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         return hostsList;
     }
 
-    protected void connect(List<InetSocketAddress> hosts, String username, String password, boolean createEnrichmentConnection,
+    protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId, boolean createEnrichmentConnection,
                            String driverLocation, String driverName, long connectTimeout) throws IOException {
 
         int connectionAttempts = 0;
@@ -618,15 +636,21 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 binlogClient.setBinlogPosition(currentBinlogPosition);
             }
 
+            if (serverId != null) {
+                binlogClient.setServerId(serverId);
+            }
+
             try {
                 if (connectTimeout == 0) {
                     connectTimeout = Long.MAX_VALUE;
                 }
                 binlogClient.connect(connectTimeout);
+                transitUri = "mysql://" + connectedHost.getHostString() + ":" + connectedHost.getPort();
 
             } catch (IOException | TimeoutException te) {
                 // Try the next host
                 connectedHost = null;
+                transitUri = "<unknown>";
                 currentHost = (currentHost + 1) % numHosts;
                 connectionAttempts++;
             }
@@ -718,7 +742,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         xactSequenceId = currentSequenceId.get();
 
                         BeginTransactionEventInfo beginEvent = new BeginTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
-                        currentSequenceId.set(beginEventWriter.writeEvent(currentSession, beginEvent, currentSequenceId.get(), REL_SUCCESS));
+                        currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS));
                         inTransaction = true;
                     } else if ("COMMIT".equals(sql)) {
                         if (!inTransaction) {
@@ -727,7 +751,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         }
                         // InnoDB generates XID events for "commit", but MyISAM generates Query events with "COMMIT", so handle that here
                         CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
-                        currentSequenceId.set(commitEventWriter.writeEvent(currentSession, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
+                        currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                         // Commit the NiFi session
                         session.commit();
                         inTransaction = false;
@@ -742,7 +766,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 || normalizedQuery.startsWith("drop table")
                                 || normalizedQuery.startsWith("drop database")) {
                             SchemaChangeEventInfo schemaChangeEvent = new SchemaChangeEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
-                            currentSequenceId.set(schemaChangeEventWriter.writeEvent(currentSession, schemaChangeEvent, currentSequenceId.get(), REL_SUCCESS));
+                            currentSequenceId.set(schemaChangeEventWriter.writeEvent(currentSession, transitUri, schemaChangeEvent, currentSequenceId.get(), REL_SUCCESS));
                             // Remove all the keys from the cache that this processor added
                             if (cacheClient != null) {
                                 cacheClient.removeByPattern(this.getIdentifier() + ".*");
@@ -757,7 +781,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 + "This could indicate that your binlog position is invalid.");
                     }
                     CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
-                    currentSequenceId.set(commitEventWriter.writeEvent(currentSession, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
+                    currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                     // Commit the NiFi session
                     session.commit();
                     inTransaction = false;
@@ -792,19 +816,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             || eventType == PRE_GA_WRITE_ROWS) {
 
                         InsertRowsEventInfo eventInfo = new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else if (eventType == DELETE_ROWS
                             || eventType == EXT_DELETE_ROWS
                             || eventType == PRE_GA_DELETE_ROWS) {
 
                         DeleteRowsEventInfo eventInfo = new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
 
                     } else {
                         // Update event
                         UpdateRowsEventInfo eventInfo = new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
                     }
                     break;
 
@@ -840,7 +864,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
             doStop.set(true);
 
-            updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
+            if (hasRun.getAndSet(false)) {
+                updateState(stateManager, currentBinlogFile, currentBinlogPosition, currentSequenceId.get());
+            }
             currentBinlogPosition = -1;
 
         } catch (IOException e) {

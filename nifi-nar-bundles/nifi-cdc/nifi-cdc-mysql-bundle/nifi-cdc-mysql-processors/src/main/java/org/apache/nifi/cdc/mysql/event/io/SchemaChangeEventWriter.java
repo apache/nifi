@@ -27,7 +27,7 @@ import org.apache.nifi.cdc.mysql.event.SchemaChangeEventInfo;
 public class SchemaChangeEventWriter extends AbstractBinlogTableEventWriter<SchemaChangeEventInfo> {
 
     @Override
-    public long writeEvent(ProcessSession session, SchemaChangeEventInfo eventInfo, long currentSequenceId, Relationship relationship) {
+    public long writeEvent(ProcessSession session, String transitUri, SchemaChangeEventInfo eventInfo, long currentSequenceId, Relationship relationship) {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, (outputStream) -> {
             super.startJson(outputStream, eventInfo);
@@ -37,6 +37,7 @@ public class SchemaChangeEventWriter extends AbstractBinlogTableEventWriter<Sche
         });
         flowFile = session.putAllAttributes(flowFile, getCommonAttributes(currentSequenceId, eventInfo));
         session.transfer(flowFile, relationship);
+        session.getProvenanceReporter().receive(flowFile, transitUri);
         return currentSequenceId + 1;
     }
 }

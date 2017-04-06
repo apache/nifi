@@ -28,15 +28,25 @@ import java.io.OutputStream;
  */
 public abstract class AbstractEventWriter<T extends EventInfo> implements EventWriter<T> {
 
-    private static final JsonFactory JSON_FACTORY = new JsonFactory();
+    private final JsonFactory JSON_FACTORY = new JsonFactory();
     protected JsonGenerator jsonGenerator;
 
     // Common method to create a JSON generator and start the root object. Should be called by sub-classes unless they need their own generator and such.
     protected void startJson(OutputStream outputStream, T event) throws IOException {
         jsonGenerator = createJsonGenerator(outputStream);
         jsonGenerator.writeStartObject();
-        jsonGenerator.writeStringField("type", event.getEventType());
-        jsonGenerator.writeNumberField("timestamp", event.getTimestamp());
+        String eventType = event.getEventType();
+        if (eventType == null) {
+            jsonGenerator.writeNullField("type");
+        } else {
+            jsonGenerator.writeStringField("type", eventType);
+        }
+        Long timestamp = event.getTimestamp();
+        if (timestamp == null) {
+            jsonGenerator.writeNullField("timestamp");
+        } else {
+            jsonGenerator.writeNumberField("timestamp", event.getTimestamp());
+        }
     }
 
     protected void endJson() throws IOException {

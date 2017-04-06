@@ -44,6 +44,7 @@ import org.apache.nifi.cdc.event.ColumnDefinition
 import org.apache.nifi.cdc.event.TableInfo
 import org.apache.nifi.cdc.event.TableInfoCacheKey
 import org.apache.nifi.cdc.event.io.EventWriter
+import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockComponentLog
@@ -221,6 +222,7 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
+        testRunner.setProperty(CaptureChangeMySQL.SERVER_ID, '1')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_FILENAME, 'master.000001')
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, '4')
@@ -356,6 +358,8 @@ class CaptureChangeMySQLTest {
             assertEquals(e.getAttribute('cdc.event.type'), expectedEventTypes[i])
         }
         assertEquals(13, resultFiles.size())
+        assertEquals(13, testRunner.provenanceEvents.size())
+        testRunner.provenanceEvents.each { assertEquals(ProvenanceEventType.RECEIVE, it.eventType)}
     }
 
     @Test(expected = AssertionError.class)

@@ -49,7 +49,7 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
 
     // Default implementation for table-related binlog events
     @Override
-    public long writeEvent(ProcessSession session, T eventInfo, long currentSequenceId, Relationship relationship) {
+    public long writeEvent(ProcessSession session, String transitUri, T eventInfo, long currentSequenceId, Relationship relationship) {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, (outputStream) -> {
             super.startJson(outputStream, eventInfo);
@@ -59,6 +59,7 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
         });
         flowFile = session.putAllAttributes(flowFile, getCommonAttributes(currentSequenceId, eventInfo));
         session.transfer(flowFile, relationship);
+        session.getProvenanceReporter().receive(flowFile, transitUri);
         return currentSequenceId + 1;
     }
 }

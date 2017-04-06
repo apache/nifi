@@ -33,10 +33,11 @@ public interface EventWriter<T extends EventInfo> {
      * Writes the given event to the process session, possibly via transferring it to the specified relationship (usually used for success)
      *
      * @param session           The session to write the event to
+     * @param transitUri        The URI indicating the source MySQL system from which the specified event is associated
      * @param eventInfo         The event data
      * @param currentSequenceId the current sequence ID
      * @param relationship      A relationship to transfer any flowfile(s) to
      * @return a sequence ID, usually incremented from the specified current sequence id by the number of flow files transferred and/or committed
      */
-    long writeEvent(final ProcessSession session, final T eventInfo, final long currentSequenceId, Relationship relationship);
+    long writeEvent(final ProcessSession session, String transitUri, final T eventInfo, final long currentSequenceId, Relationship relationship);
 }
