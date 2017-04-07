@@ -34,7 +34,6 @@ import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestMockProcessSession {
