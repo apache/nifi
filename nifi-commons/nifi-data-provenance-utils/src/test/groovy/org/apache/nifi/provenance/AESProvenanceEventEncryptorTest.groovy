@@ -36,6 +36,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.nio.charset.StandardCharsets
 import java.security.KeyManagementException
+import java.security.SecureRandom
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -208,5 +209,81 @@ class AESProvenanceEventEncryptorTest {
 
         assert recoveredBytes1 == SERIALIZED_BYTES
         assert recoveredBytes2 == SERIALIZED_BYTES
+    }
+
+    @Test
+    void testShouldFailOnBadMetadata() {
+        // Arrange
+        final byte[] SERIALIZED_BYTES = "This is a plaintext message.".getBytes(StandardCharsets.UTF_8)
+        logger.info("Serialized bytes (${SERIALIZED_BYTES.size()}): ${Hex.toHexString(SERIALIZED_BYTES)}")
+
+        def strictMockKeyProvider = [
+                getKey   : { String keyId ->
+                    if (keyId != "K1") {
+                        throw new KeyManagementException("No such key")
+                    }
+                    new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
+                },
+                keyExists: { String keyId ->
+                    keyId == "K1"
+                }] as KeyProvider
+
+        encryptor = new AESProvenanceEventEncryptor()
+        encryptor.initialize(strictMockKeyProvider)
+        encryptor.setCipherProvider(mockCipherProvider)
+        logger.info("Created ${encryptor}")
+
+        String keyId = "K1"
+        String recordId = "R1"
+        logger.info("Using record ID ${recordId} and key ID ${keyId}")
+
+        final String ALGORITHM = "AES/GCM/NoPadding"
+        final byte[] ivBytes = new byte[16]
+        new SecureRandom().nextBytes(ivBytes)
+        final String VERSION = "v1"
+
+        // Perform the encryption independently of the encryptor
+        SecretKey key = mockKeyProvider.getKey(keyId)
+        Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, true)
+        byte[] cipherBytes = cipher.doFinal(SERIALIZED_BYTES)
+
+        int cipherBytesLength = cipherBytes.size()
+
+        // Construct accurate metadata
+        EncryptionMetadata goodMetadata = new EncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION, cipherBytesLength)
+        logger.info("Created good encryption metadata: ${goodMetadata}")
+
+        // Construct bad metadata instances
+        EncryptionMetadata badKeyId = new EncryptionMetadata(keyId.reverse(), ALGORITHM, ivBytes, VERSION, cipherBytesLength)
+        EncryptionMetadata badAlgorithm = new EncryptionMetadata(keyId, "ASE/GDM/SomePadding", ivBytes, VERSION, cipherBytesLength)
+        EncryptionMetadata badIV = new EncryptionMetadata(keyId, ALGORITHM, new byte[16], VERSION, cipherBytesLength)
+        EncryptionMetadata badVersion = new EncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION.reverse(), cipherBytesLength)
+        EncryptionMetadata badCBLength = new EncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION, cipherBytesLength - 5)
+
+        List badMetadata = [badAlgorithm, badIV, badVersion, badCBLength]
+
+        // Form the proper cipherBytes
+        byte[] completeGoodBytes = CryptoUtils.concatByteArrays([0x01] as byte[], encryptor.serializeEncryptionMetadata(goodMetadata), cipherBytes)
+
+        byte[] recoveredGoodBytes = encryptor.decrypt(completeGoodBytes, recordId)
+        logger.info("Recovered good bytes: ${Hex.toHexString(recoveredGoodBytes)}")
+
+        final List EXPECTED_MESSAGES = ["The requested key ID is not available",
+                                        "Encountered an exception decrypting provenance record",
+                                        "The event was encrypted with version 1v which is not in the list of supported versions v1"]
+
+        // Act
+        badMetadata.eachWithIndex { EncryptionMetadata metadata, int i ->
+            byte[] completeBytes = CryptoUtils.concatByteArrays([0x01] as byte[], encryptor.serializeEncryptionMetadata(metadata), cipherBytes)
+
+            def msg = shouldFail(EncryptionException) {
+                byte[] recoveredBytes = encryptor.decrypt(completeBytes, "R${i + 2}")
+                logger.info("Recovered bad bytes: ${Hex.toHexString(recoveredBytes)}")
+            }
+            logger.expected(msg)
+
+            // Assert
+            assert EXPECTED_MESSAGES.any { msg.getMessage() =~ it }
+        }
     }
 }

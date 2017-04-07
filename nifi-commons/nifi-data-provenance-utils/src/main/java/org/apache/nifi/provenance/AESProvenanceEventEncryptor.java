@@ -24,10 +24,12 @@ import java.io.ObjectOutputStream;
 import java.security.KeyManagementException;
 import java.security.Security;
 import java.util.Arrays;
+import java.util.List;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -40,6 +42,7 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
     private static final int IV_LENGTH = 16;
     private static final byte[] EMPTY_IV = new byte[IV_LENGTH];
     private static final String VERSION = "v1";
+    private static final List<String> SUPPORTED_VERSIONS = Arrays.asList(VERSION);
     private static final int MIN_METADATA_LENGTH = IV_LENGTH + 3 + 3; // 3 delimiters and 3 non-zero elements
     private static final int METADATA_DEFAULT_LENGTH = (20 + ALGORITHM.length() + IV_LENGTH + VERSION.length()) * 2; // Default to twice the expected length
     private static final byte[] SENTINEL = new byte[]{0x01};
@@ -93,7 +96,7 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             byte[] ivBytes = new byte[IV_LENGTH];
             try {
                 logger.debug("Encrypting provenance record " + recordId + " with key ID " + keyId);
-                Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, keyProvider.getKey(keyId), ivBytes);
+                Cipher cipher = initCipher(EncryptionMethod.AES_GCM, Cipher.ENCRYPT_MODE, keyProvider.getKey(keyId), ivBytes);
                 ivBytes = cipher.getIV();
 
                 // Perform the actual encryption
@@ -122,11 +125,12 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
         return baos.toByteArray();
     }
 
-    private Cipher initCipher(int mode, SecretKey key, byte[] ivBytes) throws EncryptionException {
-        Cipher cipher;
+    private Cipher initCipher(EncryptionMethod method, int mode, SecretKey key, byte[] ivBytes) throws EncryptionException {
         try {
-            cipher = aesKeyedCipherProvider.getCipher(EncryptionMethod.AES_GCM, key, ivBytes, mode == Cipher.ENCRYPT_MODE);
-            return cipher;
+            if (method == null || key == null || ivBytes == null) {
+                throw new IllegalArgumentException("Missing critical information");
+            }
+            return aesKeyedCipherProvider.getCipher(method, key, ivBytes, mode == Cipher.ENCRYPT_MODE);
         } catch (Exception e) {
             logger.error("Encountered an exception initializing the cipher", e);
             throw new EncryptionException(e);
@@ -156,12 +160,19 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             throw new EncryptionException(msg, e);
         }
 
+        if (!SUPPORTED_VERSIONS.contains(metadata.version)) {
+            throw new EncryptionException("The event was encrypted with version " + metadata.version + " which is not in the list of supported versions " + StringUtils.join(SUPPORTED_VERSIONS, ","));
+        }
+
+        // TODO: Actually use the version to determine schema, etc.
+
         if (keyProvider == null || !keyProvider.keyExists(metadata.keyId) || CryptoUtils.isEmpty(metadata.keyId)) {
             throw new EncryptionException("The requested key ID " + metadata.keyId + " is not available");
         } else {
             try {
                 logger.debug("Decrypting provenance record " + recordId + " with key ID " + metadata.keyId);
-                Cipher cipher = initCipher(Cipher.DECRYPT_MODE, keyProvider.getKey(metadata.keyId), metadata.ivBytes);
+                EncryptionMethod method = EncryptionMethod.forAlgorithm(metadata.algorithm);
+                Cipher cipher = initCipher(method, Cipher.DECRYPT_MODE, keyProvider.getKey(metadata.keyId), metadata.ivBytes);
 
                 // Strip the metadata away to get just the cipher bytes
                 byte[] cipherBytes = extractCipherBytes(encryptedRecord, metadata);
