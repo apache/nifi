@@ -44,11 +44,10 @@ public interface SchemaRegistry extends ControllerService, AutoCloseable {
      * be found.
      */
     String retrieveSchemaText(String schemaName, Map<String, String> attributes);
-    
-    
+
+
     RecordSchema retrieveSchema(String schemaName);
-    
-    
+
+
     RecordSchema retrieveSchema(String schemaName, Map<String, String> attributes);
-    
 }

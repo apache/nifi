@@ -40,9 +40,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-@Tags({ "schema", "registry", "avro", "json", "csv" })
+@Tags({"schema", "registry", "avro", "json", "csv"})
 @CapabilityDescription("Provides a service for registering and accessing schemas. You can register a schema "
-        + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
+    + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
     + "representation of the actual schema following the syntax and semantics of Avro's Schema format.")
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
@@ -62,8 +62,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     @OnEnabled
     public void enable(ConfigurationContext configuratiponContext) throws InitializationException {
         this.schemaNameToSchemaMap.putAll(configuratiponContext.getProperties().entrySet().stream()
-                .filter(propEntry -> propEntry.getKey().isDynamic())
-                .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
+            .filter(propEntry -> propEntry.getKey().isDynamic())
+            .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     @Override
     public String retrieveSchemaText(String schemaName, Map<String, String> attributes) {
         throw new UnsupportedOperationException("This version of schema registry does not "
-                + "support this operation, since schemas are only identofied by name.");
+            + "support this operation, since schemas are only identofied by name.");
     }
 
     @Override
@@ -99,12 +99,12 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
 
-	@Override
-	public RecordSchema retrieveSchema(String schemaName) {
+    @Override
+    public RecordSchema retrieveSchema(String schemaName) {
         final String schemaText = this.retrieveSchemaText(schemaName);
         final Schema schema = new Schema.Parser().parse(schemaText);
         return createRecordSchema(schema);
-	}
+    }
 
     /**
      * Converts an Avro Schema to a RecordSchema
@@ -206,12 +206,12 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         return null;
     }
 
-	/*
-	 * For this implementation 'attributes' argument is ignored since the underlying storage mechanisms
-	 * is based strictly on key/value pairs. In other implementation additional attributes may play a role (e.g., version id,)
-	 */
-	@Override
-	public RecordSchema retrieveSchema(String schemaName, Map<String, String> attributes) {
-		return this.retrieveSchema(schemaName);
-	}
+    /*
+     * For this implementation 'attributes' argument is ignored since the underlying storage mechanisms
+     * is based strictly on key/value pairs. In other implementation additional attributes may play a role (e.g., version id,)
+     */
+    @Override
+    public RecordSchema retrieveSchema(String schemaName, Map<String, String> attributes) {
+        return this.retrieveSchema(schemaName);
+    }
 }

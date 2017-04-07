@@ -40,23 +40,23 @@ public class TestAvroSchemaRegistry {
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Map<PropertyDescriptor, String> properties = new HashMap<>();
         PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()
-                .name(schemaName)
-                .dynamic(true)
-                .build();
+            .name(schemaName)
+            .dynamic(true)
+            .build();
         String fooSchemaText = "{\"namespace\": \"example.avro\", " + "\"type\": \"record\", " + "\"name\": \"User\", "
-                + "\"fields\": [ " + "{\"name\": \"name\", \"type\": [\"string\", \"null\"]}, "
-                + "{\"name\": \"favorite_number\",  \"type\": [\"int\", \"null\"]}, "
-                + "{\"name\": \"foo\",  \"type\": [\"int\", \"null\"]}, "
-                + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
+            + "\"fields\": [ " + "{\"name\": \"name\", \"type\": [\"string\", \"null\"]}, "
+            + "{\"name\": \"favorite_number\",  \"type\": [\"int\", \"null\"]}, "
+            + "{\"name\": \"foo\",  \"type\": [\"int\", \"null\"]}, "
+            + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
         PropertyDescriptor barSchema = new PropertyDescriptor.Builder()
-                .name("barSchema")
-                .dynamic(false)
-                .build();
+            .name("barSchema")
+            .dynamic(false)
+            .build();
         properties.put(fooSchema, fooSchemaText);
         properties.put(barSchema, "");
         when(configContext.getProperties()).thenReturn(properties);
         SchemaRegistry delegate = new AvroSchemaRegistry();
-        ((AvroSchemaRegistry)delegate).enable(configContext);
+        ((AvroSchemaRegistry) delegate).enable(configContext);
 
         String locatedSchemaText = delegate.retrieveSchemaText(schemaName);
         assertEquals(fooSchemaText, locatedSchemaText);
@@ -68,31 +68,31 @@ public class TestAvroSchemaRegistry {
         }
         delegate.close();
     }
-    
-    
+
+
     @Test
     public void validateRecordSchemaRetrieval() throws Exception {
-    	String schemaName = "fooSchema";
+        String schemaName = "fooSchema";
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Map<PropertyDescriptor, String> properties = new HashMap<>();
         PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()
-                .name(schemaName)
-                .dynamic(true)
-                .build();
+            .name(schemaName)
+            .dynamic(true)
+            .build();
         String fooSchemaText = "{\"namespace\": \"example.avro\", " + "\"type\": \"record\", " + "\"name\": \"User\", "
-                + "\"fields\": [ " + "{\"name\": \"name\", \"type\": [\"string\", \"null\"]}, "
-                + "{\"name\": \"favorite_number\",  \"type\": \"int\"}, "
-                + "{\"name\": \"foo\",  \"type\": \"boolean\"}, "
-                + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
+            + "\"fields\": [ " + "{\"name\": \"name\", \"type\": [\"string\", \"null\"]}, "
+            + "{\"name\": \"favorite_number\",  \"type\": \"int\"}, "
+            + "{\"name\": \"foo\",  \"type\": \"boolean\"}, "
+            + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
         PropertyDescriptor barSchema = new PropertyDescriptor.Builder()
-                .name("barSchema")
-                .dynamic(false)
-                .build();
+            .name("barSchema")
+            .dynamic(false)
+            .build();
         properties.put(fooSchema, fooSchemaText);
         properties.put(barSchema, "");
         when(configContext.getProperties()).thenReturn(properties);
         SchemaRegistry delegate = new AvroSchemaRegistry();
-        ((AvroSchemaRegistry)delegate).enable(configContext);
+        ((AvroSchemaRegistry) delegate).enable(configContext);
 
         RecordSchema locatedSchema = delegate.retrieveSchema(schemaName);
         List<RecordField> recordFields = locatedSchema.getFields();

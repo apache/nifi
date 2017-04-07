@@ -237,7 +237,7 @@ public enum RecordFieldType {
     /**
      * Returns a Data Type that represents a "RECORD" or "ARRAY" type with the given schema.
      *
-     * @param childSchema the Schema for the Record or Array
+     * @param elementType the type of the arrays in the element
      * @return a DataType that represents a Record or Array with the given schema, or <code>null</code> if this RecordFieldType
      *         is not the RECORD or ARRAY type.
      */

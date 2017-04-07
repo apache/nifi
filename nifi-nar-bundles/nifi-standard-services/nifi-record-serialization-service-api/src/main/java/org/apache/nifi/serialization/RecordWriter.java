@@ -26,7 +26,7 @@ public interface RecordWriter {
     /**
      * Writes the given result set to the given output stream
      *
-     * @param recordSet the record set to serialize
+     * @param record the record set to serialize
      * @param out the OutputStream to write to
      * @return the results of writing the data
      * @throws IOException if unable to write to the given OutputStream
