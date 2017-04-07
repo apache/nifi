@@ -327,6 +327,26 @@
     };
 
     /**
+     * Determines whether the specified global policy type supports read/write options.
+     *
+     * @param policyType global policy type
+     * @returns {boolean} whether the policy supports read/write options
+     */
+    var globalPolicySupportsReadWrite = function (policyType) {
+        return policyType === 'controller' || policyType === 'counters' || policyType === 'policies' || policyType === 'tenants';
+    };
+
+    /**
+     * Determines whether the specified global policy type only supports write.
+     *
+     * @param policyType global policy type
+     * @returns {boolean} whether the policy only supports write
+     */
+    var globalPolicySupportsWrite = function (policyType) {
+        return policyType === 'proxy' || policyType === 'restricted-components';
+    };
+
+    /**
      * Initializes the policy table.
      */
     var initPolicyTable = function () {
@@ -397,7 +417,7 @@
                     $('#selected-policy-type').text(option.value);
 
                     // if the option is for a specific component
-                    if (option.value === 'controller' || option.value === 'counters' || option.value === 'policies' || option.value === 'tenants') {
+                    if (globalPolicySupportsReadWrite(option.value)) {
                         // update the policy target and let it relaod the policy
                         $('#controller-policy-target').combo('setSelectedOption', {
                             'value': 'read'
@@ -406,7 +426,7 @@
                         $('#controller-policy-target').hide();
 
                         // record the action
-                        if (option.value === 'proxy' || option.value === 'restricted-components') {
+                        if (globalPolicySupportsWrite(option.value)) {
                             $('#selected-policy-action').text('write');
                         } else {
                             $('#selected-policy-action').text('read');
@@ -1458,9 +1478,9 @@
             var policyType = $('#policy-type-list').combo('getSelectedOption').value;
             $('#selected-policy-type').text(policyType);
 
-            if (policyType === 'controller') {
+            if (globalPolicySupportsReadWrite(policyType)) {
                 $('#selected-policy-action').text($('#controller-policy-target').combo('getSelectedOption').value);
-            } else if (policyType === 'proxy' || policyType === 'restricted-components') {
+            } else if (globalPolicySupportsWrite(policyType)) {
                 $('#selected-policy-action').text('write');
             } else {
                 $('#selected-policy-action').text('read');
