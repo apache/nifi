@@ -24,8 +24,6 @@ import java.io.ObjectOutputStream;
 import java.security.KeyManagementException;
 import java.security.Security;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -48,8 +46,6 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
 
     private KeyProvider keyProvider;
 
-    private Map<String, Cipher> encryptors = new HashMap<>();
-    private Map<String, Cipher> decryptors = new HashMap<>();
     private AESKeyedCipherProvider aesKeyedCipherProvider = new AESKeyedCipherProvider();
 
     /**
@@ -95,14 +91,9 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             throw new EncryptionException("The requested key ID is not available");
         } else {
             byte[] ivBytes = new byte[IV_LENGTH];
-            // Check if the cipher is in the cache
             try {
                 logger.debug("Encrypting provenance record " + recordId + " with key ID " + keyId);
-                // Check if the cipher is in the cache
-                if (!encryptors.containsKey(keyId)) {
-                    buildAndStoreCiphers(keyId, ivBytes);
-                }
-                Cipher cipher = encryptors.get(keyId);
+                Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, keyProvider.getKey(keyId), ivBytes);
                 ivBytes = cipher.getIV();
 
                 // Perform the actual encryption
@@ -113,9 +104,9 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
                 byte[] serializedEncryptionMetadata = serializeEncryptionMetadata(metadata);
 
                 // Add the sentinel byte of 0x01
-                logger.info("Encrypted provenance event record " + recordId + " with key ID " + keyId);
+                logger.debug("Encrypted provenance event record " + recordId + " with key ID " + keyId);
                 return CryptoUtils.concatByteArrays(SENTINEL, serializedEncryptionMetadata, cipherBytes);
-            } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException | IOException e) {
+            } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException | IOException | KeyManagementException e) {
                 final String msg = "Encountered an exception encrypting provenance record " + recordId;
                 logger.error(msg, e);
                 throw new EncryptionException(msg, e);
@@ -140,10 +131,6 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             logger.error("Encountered an exception initializing the cipher", e);
             throw new EncryptionException(e);
         }
-    }
-
-    private static boolean isValidIV(byte[] ivBytes) {
-        return ivBytes != null && ivBytes.length == IV_LENGTH && !Arrays.equals(ivBytes, EMPTY_IV);
     }
 
     /**
@@ -174,11 +161,7 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
         } else {
             try {
                 logger.debug("Decrypting provenance record " + recordId + " with key ID " + metadata.keyId);
-                // Check if the cipher is in the cache
-                if (!decryptors.containsKey(metadata.keyId)) {
-                    buildAndStoreCiphers(metadata.keyId, metadata.ivBytes);
-                }
-                Cipher cipher = decryptors.get(metadata.keyId);
+                Cipher cipher = initCipher(Cipher.DECRYPT_MODE, keyProvider.getKey(metadata.keyId), metadata.ivBytes);
 
                 // Strip the metadata away to get just the cipher bytes
                 byte[] cipherBytes = extractCipherBytes(encryptedRecord, metadata);
@@ -186,9 +169,9 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
                 // Perform the actual decryption
                 byte[] plainBytes = cipher.doFinal(cipherBytes);
 
-                logger.info("Decrypted provenance event record " + recordId + " with key ID " + metadata.keyId);
+                logger.debug("Decrypted provenance event record " + recordId + " with key ID " + metadata.keyId);
                 return plainBytes;
-            } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException e) {
+            } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException | KeyManagementException e) {
                 final String msg = "Encountered an exception decrypting provenance record " + recordId;
                 logger.error(msg, e);
                 throw new EncryptionException(msg, e);
@@ -201,9 +184,7 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             throw new EncryptionException("The encrypted record is too short to contain the metadata");
         }
 
-        // TODO: Trim the encryptedRecord to a reasonable length before parsing, as this is wasteful and the cipherBytes are irrelevant
         // Skip the first byte (SENTINEL) and don't need to copy all the serialized record
-        // byte[] metadataBytes = Arrays.copyOfRange(encryptedRecord, 1, METADATA_DEFAULT_LENGTH);
         byte[] metadataBytes = Arrays.copyOfRange(encryptedRecord, 1, encryptedRecord.length);
         ByteArrayInputStream bais = new ByteArrayInputStream(metadataBytes);
         try (ObjectInputStream ois = new ObjectInputStream(bais)) {
@@ -211,50 +192,8 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
         }
     }
 
-    private boolean isValidTag(byte tag) {
-        // TODO: Validate tag
-        return 0 < tag;
-    }
-
-    /**
-     * Initializes two cipher objects for the provided keyId -- one for encryption and one for decryption
-     * and stores them in the respective caches. Also validates the provided IV and will replace an invalid
-     * parameter with a valid IV.
-     *
-     * @param keyId   the key identifier
-     * @param ivBytes the IV (16 bytes)
-     * @throws EncryptionException if there is an error building the cipher objects
-     */
-    private void buildAndStoreCiphers(String keyId, byte[] ivBytes) throws EncryptionException {
-        // Initialize a cipher with the key and a new IV, and store it in the cache(s)
-        try {
-            final SecretKey key = keyProvider.getKey(keyId);
-            // The method will detect the current IV is empty and generate a new one
-            Cipher encryptCipher = initCipher(Cipher.ENCRYPT_MODE, key, ivBytes);
-            ivBytes = encryptCipher.getIV();
-            encryptors.put(keyId, encryptCipher);
-
-            // Create the decryptor
-            Cipher decryptCipher = initCipher(Cipher.DECRYPT_MODE, key, ivBytes);
-            decryptors.put(keyId, decryptCipher);
-        } catch (KeyManagementException | EncryptionException e) {
-            final String message = "Error building and caching the ciphers";
-            logger.error(message + ": " + e.getLocalizedMessage());
-            throw new EncryptionException(message, e);
-        }
-    }
-
-    // TODO: Remove individual extractors once object extractor is finished
-    private String extractKeyId(byte[] encryptedRecord) {
-        return null;
-    }
-
     private byte[] extractCipherBytes(byte[] encryptedRecord, EncryptionMetadata metadata) {
         return Arrays.copyOfRange(encryptedRecord, encryptedRecord.length - metadata.cipherByteLength, encryptedRecord.length);
-    }
-
-    private byte[] extractIv(byte[] encryptedRecord) {
-        return new byte[0];
     }
 
     @Override

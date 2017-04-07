@@ -48,7 +48,7 @@ public class EncryptionMetadata implements Serializable {
                 Hex.encodeHexString(ivBytes) +
                 " Version: " +
                 version +
-                "Cipher text length: " +
+                " Cipher text length: " +
                 cipherByteLength;
         return sb;
     }

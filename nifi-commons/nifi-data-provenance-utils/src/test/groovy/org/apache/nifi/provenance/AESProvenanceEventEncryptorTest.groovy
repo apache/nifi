@@ -35,7 +35,10 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.nio.charset.StandardCharsets
+import java.security.KeyManagementException
 import java.security.Security
+
+import static groovy.test.GroovyAssert.shouldFail
 
 @RunWith(JUnit4.class)
 class AESProvenanceEventEncryptorTest {
@@ -133,5 +136,77 @@ class AESProvenanceEventEncryptorTest {
         // Assert
         assert recoveredBytes == SERIALIZED_BYTES
         logger.info("Decoded (usually would be serialized schema record): ${new String(recoveredBytes, StandardCharsets.UTF_8)}")
+    }
+
+    @Test
+    void testShouldFailOnMissingKeyId() {
+        // Arrange
+        final byte[] SERIALIZED_BYTES = "This is a plaintext message.".getBytes(StandardCharsets.UTF_8)
+        logger.info("Serialized bytes (${SERIALIZED_BYTES.size()}): ${Hex.toHexString(SERIALIZED_BYTES)}")
+
+        KeyProvider emptyKeyProvider = [
+                getKey   : { String kid ->
+                    throw new KeyManagementException("No key found for ${kid}")
+                },
+                keyExists: { String kid -> false }
+        ] as KeyProvider
+
+        encryptor = new AESProvenanceEventEncryptor()
+        encryptor.initialize(emptyKeyProvider)
+        encryptor.setCipherProvider(mockCipherProvider)
+        logger.info("Created ${encryptor}")
+
+        String keyId = "K1"
+        String recordId = "R1"
+        logger.info("Using record ID ${recordId} and key ID ${keyId}")
+
+        // Act
+        def msg = shouldFail(EncryptionException) {
+            byte[] metadataAndCipherBytes = encryptor.encrypt(SERIALIZED_BYTES, recordId, keyId)
+            logger.info("Encrypted data to: \n\t${Hex.toHexString(metadataAndCipherBytes)}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg.getMessage() == "The requested key ID is not available"
+    }
+
+    @Test
+    void testShouldUseDifferentIVsForSequentialEncryptions() {
+        // Arrange
+        final byte[] SERIALIZED_BYTES = "This is a plaintext message.".getBytes(StandardCharsets.UTF_8)
+        logger.info("Serialized bytes (${SERIALIZED_BYTES.size()}): ${Hex.toHexString(SERIALIZED_BYTES)}")
+
+        encryptor = new AESProvenanceEventEncryptor()
+        encryptor.initialize(mockKeyProvider)
+        logger.info("Created ${encryptor}")
+
+        String keyId = "K1"
+        String recordId1 = "R1"
+        logger.info("Using record ID ${recordId1} and key ID ${keyId}")
+
+        // Act
+        byte[] metadataAndCipherBytes1 = encryptor.encrypt(SERIALIZED_BYTES, recordId1, keyId)
+        logger.info("Encrypted data to: \n\t${Hex.toHexString(metadataAndCipherBytes1)}")
+        EncryptionMetadata metadata1 = encryptor.extractEncryptionMetadata(metadataAndCipherBytes1)
+        logger.info("Record ${recordId1} IV: ${Hex.toHexString(metadata1.ivBytes)}")
+
+        byte[] recoveredBytes1 = encryptor.decrypt(metadataAndCipherBytes1, recordId1)
+        logger.info("Decrypted data to: \n\t${Hex.toHexString(recoveredBytes1)}")
+
+        String recordId2 = "R2"
+        byte[] metadataAndCipherBytes2 = encryptor.encrypt(SERIALIZED_BYTES, recordId2, keyId)
+        logger.info("Encrypted data to: \n\t${Hex.toHexString(metadataAndCipherBytes2)}")
+        EncryptionMetadata metadata2 = encryptor.extractEncryptionMetadata(metadataAndCipherBytes2)
+        logger.info("Record ${recordId2} IV: ${Hex.toHexString(metadata2.ivBytes)}")
+
+        byte[] recoveredBytes2 = encryptor.decrypt(metadataAndCipherBytes2, recordId2)
+        logger.info("Decrypted data to: \n\t${Hex.toHexString(recoveredBytes2)}")
+
+        // Assert
+        assert metadata1.ivBytes != metadata2.ivBytes
+
+        assert recoveredBytes1 == SERIALIZED_BYTES
+        assert recoveredBytes2 == SERIALIZED_BYTES
     }
 }
