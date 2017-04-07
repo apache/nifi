@@ -260,7 +260,7 @@ class AESProvenanceEventEncryptorTest {
         EncryptionMetadata badVersion = new EncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION.reverse(), cipherBytesLength)
         EncryptionMetadata badCBLength = new EncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION, cipherBytesLength - 5)
 
-        List badMetadata = [badAlgorithm, badIV, badVersion, badCBLength]
+        List badMetadata = [badKeyId, badAlgorithm, badIV, badVersion, badCBLength]
 
         // Form the proper cipherBytes
         byte[] completeGoodBytes = CryptoUtils.concatByteArrays([0x01] as byte[], encryptor.serializeEncryptionMetadata(goodMetadata), cipherBytes)
@@ -268,9 +268,9 @@ class AESProvenanceEventEncryptorTest {
         byte[] recoveredGoodBytes = encryptor.decrypt(completeGoodBytes, recordId)
         logger.info("Recovered good bytes: ${Hex.toHexString(recoveredGoodBytes)}")
 
-        final List EXPECTED_MESSAGES = ["The requested key ID is not available",
+        final List EXPECTED_MESSAGES = ["The requested key ID (\\w+)? is not available",
                                         "Encountered an exception decrypting provenance record",
-                                        "The event was encrypted with version 1v which is not in the list of supported versions v1"]
+                                        "The event was encrypted with version ${VERSION.reverse()} which is not in the list of supported versions v1"]
 
         // Act
         badMetadata.eachWithIndex { EncryptionMetadata metadata, int i ->
