@@ -198,12 +198,12 @@ public class FlowSnippetDTO {
         components.addAll(dtos);
         return components;
     }
-    
-	private long generateMsb(String id) {
-		UUID temp = UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8));
-		long msb = temp.getMostSignificantBits();
-		return msb;
-	}
+
+    private long generateMsb(String id) {
+        UUID temp = UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8));
+        long msb = temp.getMostSignificantBits();
+        return msb;
+    }
 
     private void removeInstanceIdentifierIfNecessary(Set<? extends ComponentDTO> componentDtos) {
         if (this.newTemplate) {
@@ -242,7 +242,7 @@ public class FlowSnippetDTO {
 
                     ConnectableDTO cdto = connectionDTO.getSource();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
-                    	id = new UUID(this.generateMsb(cdto.getId()), 0);
+                        id = new UUID(this.generateMsb(cdto.getId()), 0);
                         cdto.setId(id.toString());
                     }
 
@@ -251,7 +251,7 @@ public class FlowSnippetDTO {
 
                     cdto = connectionDTO.getDestination();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
-                    	id = new UUID(this.generateMsb(cdto.getId()), 0);
+                        id = new UUID(this.generateMsb(cdto.getId()), 0);
                         cdto.setId(id.toString());
                     }
 
