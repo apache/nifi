@@ -61,6 +61,10 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
     public void initialize(KeyProvider keyProvider) throws KeyManagementException {
         this.keyProvider = keyProvider;
 
+        if (this.aesKeyedCipherProvider == null) {
+            this.aesKeyedCipherProvider = new AESKeyedCipherProvider();
+        }
+
         if (Security.getProvider("BC") == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
@@ -188,6 +192,23 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
                 throw new EncryptionException(msg, e);
             }
         }
+    }
+
+    /**
+     * Returns a valid key identifier for this encryptor (valid for encryption and decryption) or throws an exception if none are available.
+     *
+     * @return the key ID
+     * @throws KeyManagementException if no available key IDs are valid for both operations
+     */
+    @Override
+    public String getNextKeyId() throws KeyManagementException {
+        if (keyProvider != null) {
+            List<String> availableKeyIds = keyProvider.getAvailableKeyIds();
+            if (!availableKeyIds.isEmpty()) {
+                return availableKeyIds.get(0);
+            }
+        }
+        throw new KeyManagementException("No available key IDs");
     }
 
     private EncryptionMetadata extractEncryptionMetadata(byte[] encryptedRecord) throws EncryptionException, IOException, ClassNotFoundException {

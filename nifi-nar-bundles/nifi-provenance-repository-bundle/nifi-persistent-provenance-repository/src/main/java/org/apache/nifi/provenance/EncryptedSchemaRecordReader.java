@@ -20,11 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
@@ -32,8 +29,6 @@ import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
@@ -51,7 +46,6 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
     private static final RecordSchema headerSchema = EventIdFirstHeaderSchema.SCHEMA;
     private static final int DEFAULT_DEBUG_FREQUENCY = 1_000_000;
 
-    private KeyProvider keyProvider;
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
     private static final TimedBuffer<TimestampedLong> decryptTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
@@ -63,15 +57,14 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
-    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider,
+    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
                                        ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
-        this(inputStream, filename, tocReader, maxAttributeChars, keyProvider, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
+        this(inputStream, filename, tocReader, maxAttributeChars, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
     }
 
-    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars, KeyProvider keyProvider,
+    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
                                        ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
         super(inputStream, filename, tocReader, maxAttributeChars);
-        this.keyProvider = keyProvider;
         this.provenanceEventEncryptor = provenanceEventEncryptor;
         this.debugFrequency = debugFrequency;
     }
@@ -95,7 +88,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
             DataInputStream encryptedInputStream = new DataInputStream(limitedIn);
             encryptedInputStream.readFully(encryptedSerializedBytes);
 
-            byte[] plainSerializedBytes = decrypt(encryptedSerializedBytes);
+            byte[] plainSerializedBytes = decrypt(encryptedSerializedBytes, Long.toString(eventId));
             InputStream plainStream = new ByteArrayInputStream(plainSerializedBytes);
 
             final Record eventRecord = getRecordReader().readRecord(plainStream);
@@ -135,23 +128,24 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         return Optional.empty();
     }
 
-    private byte[] decrypt(byte[] ivAndCipherBytes) throws IOException, EncryptionException {
-        String keyId = getKeyId();
+    private byte[] decrypt(byte[] encryptedBytes, String eventId) throws IOException, EncryptionException {
+        // String keyId = getKeyId();
         try {
-            final byte[] SENTINEL = new byte[]{ 0x01};
-            // Detect if the first byte is the sentinel and remove it before attempting to decrypt
-            if (Arrays.equals(Arrays.copyOfRange(ivAndCipherBytes, 0, 1), SENTINEL)) {
-                ivAndCipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 1, ivAndCipherBytes.length);
-            }
-            byte[] ivBytes = Arrays.copyOfRange(ivAndCipherBytes, 0, 16);
-
-            // TODO: Need to deserialize and parse encryption details fields (algo, IV, keyId, version) outside of decryption
-            byte[] cipherBytes = Arrays.copyOfRange(ivAndCipherBytes, 16, ivAndCipherBytes.length);
-
-            SecretKey key = keyProvider.getKey(keyId);
-            Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, false);
-
-            byte[] plainBytes = cipher.doFinal(cipherBytes);
+            // final byte[] SENTINEL = new byte[]{ 0x01};
+            // // Detect if the first byte is the sentinel and remove it before attempting to decrypt
+            // if (Arrays.equals(Arrays.copyOfRange(encryptedBytes, 0, 1), SENTINEL)) {
+            //     encryptedBytes = Arrays.copyOfRange(encryptedBytes, 1, encryptedBytes.length);
+            // }
+            // byte[] ivBytes = Arrays.copyOfRange(encryptedBytes, 0, 16);
+            //
+            // // TODO: Need to deserialize and parse encryption details fields (algo, IV, keyId, version) outside of decryption
+            // byte[] cipherBytes = Arrays.copyOfRange(encryptedBytes, 16, encryptedBytes.length);
+            //
+            // SecretKey key = keyProvider.getKey(keyId);
+            // Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, false);
+            //
+            // byte[] plainBytes = cipher.doFinal(cipherBytes);
+            byte[] plainBytes = provenanceEventEncryptor.decrypt(encryptedBytes, eventId);
             return plainBytes;
         } catch (Exception e) {
             logger.error("Encountered an error: ", e);

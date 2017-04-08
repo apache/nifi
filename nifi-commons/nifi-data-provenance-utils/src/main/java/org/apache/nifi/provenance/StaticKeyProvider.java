@@ -17,6 +17,8 @@
 package org.apache.nifi.provenance;
 
 import java.security.KeyManagementException;
+import java.util.Collections;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.OperationNotSupportedException;
@@ -62,6 +64,16 @@ public class StaticKeyProvider implements KeyProvider {
     @Override
     public boolean keyExists(String keyId) {
        return KEY_ID.equals(keyId);
+    }
+
+    /**
+     * Returns a singleton list of the available key identifier.
+     *
+     * @return a List containing the {@code KEY_ID}
+     */
+    @Override
+    public List<String> getAvailableKeyIds() {
+        return Collections.singletonList(KEY_ID);
     }
 
     /**

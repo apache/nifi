@@ -17,6 +17,8 @@
 package org.apache.nifi.provenance;
 
 import java.security.KeyManagementException;
+import java.util.Collections;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.naming.OperationNotSupportedException;
 
@@ -45,6 +47,11 @@ public class FileBasedKeyProvider implements KeyProvider {
     public boolean keyExists(String keyId) {
         // TODO: Implement
         return false;
+    }
+
+    @Override
+    public List<String> getAvailableKeyIds() {
+        return Collections.emptyList();
     }
 
     /**

@@ -17,6 +17,7 @@
 package org.apache.nifi.provenance;
 
 import java.security.KeyManagementException;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.naming.OperationNotSupportedException;
 
@@ -38,6 +39,13 @@ public interface KeyProvider {
      * @return true if the key can be used
      */
      boolean keyExists(String keyId);
+
+    /**
+     * Returns a list of available key identifiers (useful for encryption, as retired keys may not be listed here even if they are available for decryption for legacy/BC reasons).
+     *
+     * @return a List of keyIds (empty list if none are available)
+     */
+     List<String> getAvailableKeyIds();
 
     /**
      * Adds the key to the provider and associates it with the given ID. Some implementations may not allow this operation.

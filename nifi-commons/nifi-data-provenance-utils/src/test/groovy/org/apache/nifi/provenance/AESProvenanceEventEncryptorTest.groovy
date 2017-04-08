@@ -140,6 +140,21 @@ class AESProvenanceEventEncryptorTest {
     }
 
     @Test
+    void testShouldInitializeNullCipherProvider() {
+        // Arrange
+        encryptor = new AESProvenanceEventEncryptor()
+        encryptor.setCipherProvider(null)
+        assert !encryptor.aesKeyedCipherProvider
+        
+        // Act
+        encryptor.initialize(mockKeyProvider)
+        logger.info("Created ${encryptor}")
+
+        // Assert
+        assert encryptor.aesKeyedCipherProvider instanceof AESKeyedCipherProvider
+    }
+
+    @Test
     void testShouldFailOnMissingKeyId() {
         // Arrange
         final byte[] SERIALIZED_BYTES = "This is a plaintext message.".getBytes(StandardCharsets.UTF_8)

@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+import java.security.KeyManagementException
 import java.security.Security
 import java.util.concurrent.atomic.AtomicLong
 
@@ -55,6 +56,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final int IV_LENGTH = 16
+    private static final String KEY_ID = "K1"
 
     private static final String TRANSIT_URI = "nifi://unit-test"
     private static final String PROCESSOR_TYPE = "Mock Processor"
@@ -68,7 +70,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     private File tocFile
 
     private static KeyProvider mockKeyProvider
-    private static ProvenanceEventEncryptor mockEncryptor
+    private static ProvenanceEventEncryptor provenanceEventEncryptor = new AESProvenanceEventEncryptor()
 
     @ClassRule
     public static TemporaryFolder tempFolder = new TemporaryFolder()
@@ -86,15 +88,28 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        mockKeyProvider = [getKey: { String keyId ->
-            logger.mock("Requesting key ID: ${keyId}")
-            new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
-        }] as KeyProvider
-
-        mockEncryptor = [encrypt: { ProvenanceEventRecord record ->
-            logger.mock("Encrypting ${(record as StandardProvenanceEventRecord).getBestEventIdentifier()}")
-            new EncryptedProvenanceEventRecord(new StandardProvenanceEventRecord.Builder())
-        }] as ProvenanceEventEncryptor
+        mockKeyProvider = [
+                getKey            : { String keyId ->
+                    logger.mock("Requesting key ID: ${keyId}")
+                    if (keyId == KEY_ID) {
+                        new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
+                    } else {
+                        throw new KeyManagementException("${keyId} is not available")
+                    }
+                },
+                getAvailableKeyIds: { ->
+                    logger.mock("Available key IDs: [${KEY_ID}]")
+                    [KEY_ID]
+                },
+                keyExists         : { String keyId ->
+                    logger.mock("Checking availability of key ID: ${keyId}")
+                    keyId == KEY_ID
+                }] as KeyProvider
+        provenanceEventEncryptor.initialize(mockKeyProvider)
+//
+//        mockEncryptor = [encrypt: { byte[] record, String recordId ->
+//            logger.mock("Encrypting ${recordId}: ${Hex.toHexString(record)}")
+//        }] as ProvenanceEventEncryptor
     }
 
     @Before
@@ -153,20 +168,22 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     protected RecordWriter createWriter(
             final File file,
             final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
-        createWriter(file, tocWriter, compressed, uncompressedBlockSize, mockKeyProvider, mockEncryptor)
+        createWriter(file, tocWriter, compressed, uncompressedBlockSize, provenanceEventEncryptor)
     }
 
-    protected RecordWriter createWriter(
+    protected static RecordWriter createWriter(
             final File file,
-            final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize, KeyProvider keyProvider, ProvenanceEventEncryptor encryptor) throws IOException {
-        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, keyProvider, encryptor, 1)
+            final TocWriter tocWriter,
+            final boolean compressed,
+            final int uncompressedBlockSize, ProvenanceEventEncryptor encryptor) throws IOException {
+        return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY, encryptor, 1)
     }
 
     @Override
     protected RecordReader createReader(
             final InputStream inputStream,
             final String journalFilename, final TocReader tocReader, final int maxAttributeSize) throws IOException {
-        return new EncryptedSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize, mockKeyProvider, mockEncryptor)
+        return new EncryptedSchemaRecordReader(inputStream, journalFilename, tocReader, maxAttributeSize, provenanceEventEncryptor)
     }
 
     /**

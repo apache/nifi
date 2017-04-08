@@ -20,18 +20,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.security.KeyManagementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.repository.schema.RecordSchema;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
@@ -47,7 +44,6 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
     private static final RecordSchema headerSchema = EventIdFirstHeaderSchema.SCHEMA;
     private static final int DEFAULT_DEBUG_FREQUENCY = 1_000_000;
 
-    private KeyProvider keyProvider;
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
     private static final TimedBuffer<TimestampedLong> encryptTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
@@ -60,24 +56,29 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
     public EncryptedSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
-                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider,
-                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
-      this(file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup, keyProvider, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
+                                       final int uncompressedBlockSize, final IdentifierLookup idLookup,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException, EncryptionException {
+        this(file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
     }
 
     public EncryptedSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
-                                       final int uncompressedBlockSize, final IdentifierLookup idLookup, KeyProvider keyProvider,
-                                       ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
+                                       final int uncompressedBlockSize, final IdentifierLookup idLookup,
+                                       ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException, EncryptionException {
         super(file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup);
-        this.keyProvider = keyProvider;
         this.provenanceEventEncryptor = provenanceEventEncryptor;
         this.debugFrequency = debugFrequency;
+
+        try {
+            this.keyId = getNextAvailableKeyId();
+        } catch (KeyManagementException e) {
+            logger.error("Encountered an error initializing the encrypted schema record writer because the provided encryptor has no valid keys available: ", e);
+            throw new EncryptionException("No valid keys in the provenance event encryptor", e);
+        }
     }
 
     @Override
     public StorageSummary writeRecord(final ProvenanceEventRecord record) throws IOException {
         final long encryptStart = System.nanoTime();
-        // TODO: May be temporary encryption & serialization; if I can get the normal SchemaRecordWriter to work, I'll use that
         byte[] cipherBytes;
         try {
             byte[] serialized;
@@ -86,7 +87,8 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
                 writeRecord(record, 0L, dos);
                 serialized = baos.toByteArray();
             }
-            cipherBytes = encrypt(serialized);
+            String eventId = ((StandardProvenanceEventRecord) record).getBestEventIdentifier();
+            cipherBytes = encrypt(serialized, eventId);
         } catch (EncryptionException e) {
             logger.error("Encountered an error: ", e);
             throw new IOException("Error encrypting the provenance record", e);
@@ -168,25 +170,18 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
         return encryptTimes;
     }
 
-    private byte[] encrypt(byte[] serialized) throws IOException, EncryptionException {
-       String keyId = getKeyId();
+    private byte[] encrypt(byte[] serialized, String eventId) throws IOException, EncryptionException {
+        String keyId = getKeyId();
         try {
-            SecretKey key = keyProvider.getKey(keyId);
-
-            byte[] ivBytes = new byte[16];
-            Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, true);
-            ivBytes = cipher.getIV();
-
-            byte[] cipherBytes = cipher.doFinal(serialized);
-
-            // TODO: Need to serialize and concat encryption details fields (algo, IV, keyId, version) outside of encryption
-            // Add the sentinel byte of 0x01
-            final byte[] SENTINEL = new byte[]{ 0x01};
-            return CryptoUtils.concatByteArrays(SENTINEL, ivBytes, cipherBytes);
+            return provenanceEventEncryptor.encrypt(serialized, eventId, keyId);
         } catch (Exception e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);
         }
+    }
+
+    private String getNextAvailableKeyId() throws KeyManagementException {
+        return provenanceEventEncryptor.getNextKeyId();
     }
 
     @Override
@@ -201,5 +196,12 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
 
     public String getKeyId() {
         return keyId;
+    }
+
+    @Override
+    public String toString() {
+        return "EncryptedSchemaRecordWriter" +
+                " using " + provenanceEventEncryptor +
+                " and current keyId " + keyId;
     }
 }

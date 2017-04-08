@@ -48,4 +48,12 @@ public interface ProvenanceEventEncryptor {
      * @throws EncryptionException if there is an issue decrypting this record
      */
     byte[] decrypt(byte[] encryptedRecord, String recordId) throws EncryptionException;
+
+    /**
+     * Returns a valid key identifier for this encryptor (valid for encryption and decryption) or throws an exception if none are available.
+     *
+     * @return the key ID
+     * @throws KeyManagementException if no available key IDs are valid for both operations
+     */
+    String getNextKeyId() throws KeyManagementException;
 }
