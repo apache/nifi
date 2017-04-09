@@ -37,7 +37,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bootstrap.notification.AbstractNotificationService;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationService;
@@ -264,7 +263,7 @@ public class NotificationServiceManager {
                 final Map<PropertyDescriptor, String> props = new HashMap<>();
                 final Map<String, String> configuredProps = config.getProperties();
 
-                final AbstractNotificationService service = config.getService();
+                final NotificationService service = config.getService();
                 final List<PropertyDescriptor> configuredPropertyDescriptors = new ArrayList<>(service.getPropertyDescriptors());
 
                 // This is needed to capture all dynamic properties
@@ -364,7 +363,7 @@ public class NotificationServiceManager {
             propertyValues.put(propName, propValue);
         }
 
-        final AbstractNotificationService service = (AbstractNotificationService) serviceObject;
+        final NotificationService service = (NotificationService) serviceObject;
 
         try {
             service.initialize(new NotificationInitializationContext() {
@@ -424,15 +423,15 @@ public class NotificationServiceManager {
     }
 
     private static class ConfiguredNotificationService {
-        private final AbstractNotificationService service;
+        private final NotificationService service;
         private final Map<String, String> properties;
 
-        public ConfiguredNotificationService(final AbstractNotificationService service, final Map<String, String> properties) {
+        public ConfiguredNotificationService(final NotificationService service, final Map<String, String> properties) {
             this.service = service;
             this.properties = properties;
         }
 
-        public AbstractNotificationService getService() {
+        public NotificationService getService() {
             return service;
         }
 
