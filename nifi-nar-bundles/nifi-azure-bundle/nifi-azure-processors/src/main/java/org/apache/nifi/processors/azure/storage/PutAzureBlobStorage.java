@@ -49,13 +49,12 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class })
 @CapabilityDescription("Puts content into an Azure Storage Blob")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the azure container"),
-        @WritesAttribute(attribute = "azure.blobname", description = "The name of the azure blob"),
+@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
+        @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
         @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
         @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
         @WritesAttribute(attribute = "azure.length", description = "Length of the blob"),
-        @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
-        @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
+        @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob")})
 public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

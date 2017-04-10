@@ -58,14 +58,18 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 
 @TriggerSerially
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ FetchAzureBlobStorage.class })
+@SeeAlso({ FetchAzureBlobStorage.class, PutAzureBlobStorage.class })
 @CapabilityDescription("Lists blobs in an Azure Storage container. Listing details are attached to an empty FlowFile for use with FetchAzureBlobStorage")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the azure container"),
-        @WritesAttribute(attribute = "azure.blobname", description = "The name of the azure blob"), @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
-        @WritesAttribute(attribute = "azure.secondaryUri", description = "Secondary location for blob content"), @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
-        @WritesAttribute(attribute = "azure.length", description = "Length of the blob"), @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
-        @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"), @WritesAttribute(attribute = "lang", description = "Language code for the content"),
+@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
+        @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
+        @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
+        @WritesAttribute(attribute = "azure.secondaryUri", description = "Secondary location for blob content"),
+        @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
+        @WritesAttribute(attribute = "azure.length", description = "Length of the blob"),
+        @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
+        @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
+        @WritesAttribute(attribute = "lang", description = "Language code for the content"),
         @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
 @Stateful(scopes = { Scope.LOCAL, Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. "
         + "This allows the Processor to list only blobs that have been added or modified after " + "this date the next time that the Processor is run.")
