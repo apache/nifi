@@ -44,6 +44,7 @@ public class TlsClientConfig extends TlsConfig {
         setDnPrefix(tlsConfig.getDnPrefix());
         setDnSuffix(tlsConfig.getDnSuffix());
         setReorderDn(tlsConfig.getReorderDn());
+        setDomainAlternativeNames(tlsConfig.getDomainAlternativeNames());
     }
 
 

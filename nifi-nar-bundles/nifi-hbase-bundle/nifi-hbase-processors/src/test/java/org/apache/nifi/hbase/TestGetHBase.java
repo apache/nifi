@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.state.Scope;
@@ -492,6 +494,23 @@ public class TestGetHBase {
             verifyNotFail();
             values.remove(key);
             return true;
+        }
+
+        @Override
+        public long removeByPattern(String regex) throws IOException {
+            verifyNotFail();
+            final List<Object> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (Object key : values.keySet()) {
+                // Key must be backed by something that array() returns a byte[] that can be converted into a String via the default charset
+                Matcher m = p.matcher(key.toString());
+                if (m.matches()) {
+                    removedRecords.add(values.get(key));
+                }
+            }
+            final long numRemoved = removedRecords.size();
+            removedRecords.forEach(values::remove);
+            return numRemoved;
         }
     }
 

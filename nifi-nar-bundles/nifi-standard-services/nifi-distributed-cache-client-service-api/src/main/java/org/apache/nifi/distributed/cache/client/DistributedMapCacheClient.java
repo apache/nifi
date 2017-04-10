@@ -137,4 +137,12 @@ public interface DistributedMapCacheClient extends ControllerService {
      */
     <K> boolean remove(K key, Serializer<K> serializer) throws IOException;
 
+    /**
+     * Removes entries whose keys match the specified pattern
+     *
+     * @param regex The regular expression / pattern on which to match the keys to be removed
+     * @return The number of entries that were removed
+     * @throws IOException if any error occurred while removing an entry
+     */
+    long removeByPattern(String regex) throws IOException;
 }

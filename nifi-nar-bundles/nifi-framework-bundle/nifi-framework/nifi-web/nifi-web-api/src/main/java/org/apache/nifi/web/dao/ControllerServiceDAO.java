@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ConfiguredComponent;
@@ -26,6 +24,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
+import java.util.Set;
+
 public interface ControllerServiceDAO {
 
     /**
@@ -33,6 +33,13 @@ public interface ControllerServiceDAO {
      * @return Determines if the specified controller service exists
      */
     boolean hasControllerService(String controllerServiceId);
+
+    /**
+     * Determines whether this controller service can be created.
+     *
+     * @param controllerServiceDTO service
+     */
+    void verifyCreate(ControllerServiceDTO controllerServiceDTO);
 
     /**
      * Creates a controller service.

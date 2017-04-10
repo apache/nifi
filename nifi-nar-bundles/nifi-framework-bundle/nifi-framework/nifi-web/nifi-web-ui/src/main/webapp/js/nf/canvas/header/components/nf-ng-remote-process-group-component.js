@@ -78,6 +78,7 @@
                     'communicationsTimeout': $('#new-remote-process-group-timeout').val(),
                     'yieldDuration': $('#new-remote-process-group-yield-duration').val(),
                     'transportProtocol': $('#new-remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
+                    'localNetworkInterface': $('#new-remote-process-group-local-network-interface').val(),
                     'proxyHost': $('#new-remote-process-group-proxy-host').val(),
                     'proxyPort': $('#new-remote-process-group-proxy-port').val(),
                     'proxyUser': $('#new-remote-process-group-proxy-user').val(),
@@ -155,6 +156,7 @@
                 init: function () {
                     var defaultTimeout = "30 sec";
                     var defaultYieldDuration = "10 sec";
+
                     // configure the new remote process group dialog
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
@@ -167,6 +169,7 @@
                                 $('#new-remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
                                     value: 'RAW'
                                 });
+                                $('#new-remote-process-group-local-network-interface').val('');
                                 $('#new-remote-process-group-proxy-host').val('');
                                 $('#new-remote-process-group-proxy-port').val('');
                                 $('#new-remote-process-group-proxy-user').val('');
@@ -174,9 +177,11 @@
                             }
                         }
                     });
+
                     // set default values
                     $('#new-remote-process-group-timeout').val(defaultTimeout);
                     $('#new-remote-process-group-yield-duration').val(defaultYieldDuration);
+
                     // initialize the transport protocol combo
                     $('#new-remote-process-group-transport-protocol-combo').combo({
                         options: [{

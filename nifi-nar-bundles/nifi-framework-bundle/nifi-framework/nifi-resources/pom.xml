@@ -29,7 +29,6 @@
         <nifi.jvm.permgen.mb>128</nifi.jvm.permgen.mb>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
-        <nifi.version>${project.version}</nifi.version>
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
         <nifi.flowcontroller.graceful.shutdown.period>10 sec</nifi.flowcontroller.graceful.shutdown.period>
         <nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
@@ -174,13 +173,6 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
-
-        <!-- nifi.properties: build info -->
-        <nifi.build.tag>${project.scm.tag}</nifi.build.tag>
-        <nifi.build.timestamp>${maven.build.timestamp}</nifi.build.timestamp>
-        <!-- buildRevision and buildBranch provided by buildnumber-maven-plugin or build-info-read-properties profile -->
-        <nifi.build.branch>${buildBranch}</nifi.build.branch>
-        <nifi.build.revision>${buildRevision}</nifi.build.revision>
     </properties>
     <build>
         <plugins>

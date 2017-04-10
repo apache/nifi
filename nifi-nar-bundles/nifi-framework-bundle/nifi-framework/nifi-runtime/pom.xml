@@ -24,6 +24,11 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
             <scope>compile</scope>
         </dependency>
@@ -37,11 +42,6 @@
             <artifactId>nifi-properties-loader</artifactId>
             <!-- The dependency is required to be made available by the binary build in the bootstrap folder -->
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-documentation</artifactId>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

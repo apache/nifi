@@ -35,7 +35,7 @@ div.settings-header-text {
 div.settings-container {
     position: absolute;
     top: 58px;
-    bottom: 0px;
+    bottom: 52px;
     left: 0px;
     right: 0px;
 }
@@ -49,6 +49,7 @@ div.settings-container {
     bottom: 20px;
     right: 0px;
     left: 0px;
+    height: 32px;
 }
 
 /* settings tabs */
@@ -92,6 +93,14 @@ div.settings-refresh-button {
 
 #settings-last-refreshed {
     font-weight: 500;
+}
+
+#controller-cs-availability {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
 }
 
 /* general */

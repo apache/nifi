@@ -25,7 +25,7 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -34,6 +34,7 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -111,10 +112,12 @@ public class ReportingTaskResource extends ApplicationResource {
      * Populates the uri for the specified reporting task.
      */
     public ReportingTaskDTO populateRemainingReportingTaskContent(final ReportingTaskDTO reportingTask) {
+        final BundleDTO bundle = reportingTask.getBundle();
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-        if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
-            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType());
+        if (uiExtensionMapping.hasUiExtension(reportingTask.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ReportingTaskConfiguration.equals(uiExtension.getExtensionType())) {
                     reportingTask.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
@@ -425,7 +428,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     // authorize reporting task
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTask(id);
+                    final ComponentAuthorizable authorizable = lookup.getReportingTask(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // authorize any referenced services
@@ -510,7 +513,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestReportingTaskEntity,
                 requestRevision,
                 lookup -> {
-                    final ConfigurableComponentAuthorizable reportingTask = lookup.getReportingTask(id);
+                    final ComponentAuthorizable reportingTask = lookup.getReportingTask(id);
 
                     // ensure write permission to the reporting task
                     reportingTask.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());

@@ -92,7 +92,7 @@ language governing permissions and limitations under the License. -->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.12</org.slf4j.version>
-        <jetty.version>9.3.9.v20160517</jetty.version>
+        <jetty.version>9.4.2.v20170220</jetty.version>
         <lucene.version>4.10.4</lucene.version>
         <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
@@ -1002,6 +1002,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-poi-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kite-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
@@ -1057,6 +1063,12 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hl7-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ccda-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1254,6 +1266,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hive-services-api-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hive-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
@@ -1303,6 +1321,18 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-gcp-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-stateful-analysis-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-cdc-mysql-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1365,6 +1395,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-api</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hive-services-api</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -1675,7 +1710,7 @@ language governing permissions and limitations under the License. -->
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>

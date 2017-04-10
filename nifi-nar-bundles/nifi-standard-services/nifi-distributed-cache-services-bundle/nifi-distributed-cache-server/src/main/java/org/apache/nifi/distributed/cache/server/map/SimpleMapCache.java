@@ -19,13 +19,17 @@ package org.apache.nifi.distributed.cache.server.map;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 
@@ -176,6 +180,32 @@ public class SimpleMapCache implements MapCache {
             }
             inverseCacheMap.remove(record);
             return record.getValue();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Map<ByteBuffer, ByteBuffer> removeByPattern(String regex) throws IOException {
+        writeLock.lock();
+        try {
+            final Map<ByteBuffer, ByteBuffer> removedMap = new HashMap<>();
+            final List<MapCacheRecord> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (ByteBuffer key : cache.keySet()) {
+                // Key must be backed by something that array() returns a byte[] that can be converted into a String via the default charset
+                Matcher m = p.matcher(new String(key.array()));
+                if (m.matches()) {
+                    removedRecords.add(cache.get(key));
+                }
+            }
+            removedRecords.forEach((record) -> {
+                cache.remove(record.getKey());
+                inverseCacheMap.remove(record);
+                removedMap.put(record.getKey(), record.getValue());
+            });
+
+            return removedMap;
         } finally {
             writeLock.unlock();
         }

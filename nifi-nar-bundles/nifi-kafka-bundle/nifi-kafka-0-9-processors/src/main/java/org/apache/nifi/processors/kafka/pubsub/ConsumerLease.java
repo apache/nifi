@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -64,6 +66,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private long leaseStartNanos = -1;
     private boolean lastPollEmpty = false;
     private int totalFlowFiles = 0;
+    private ReentrantLock pollingLock = new ReentrantLock();
 
     ConsumerLease(
             final long maxWaitMillis,
@@ -139,7 +142,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
          * appears Kafka KIP-62 aims to offer more control over the meaning of
          * various timeouts. If we do run into this case it could result in
          * duplicates.
+         * This can be avoided by calling retainConnection() periodically.
          */
+        pollingLock.lock();
         try {
             final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(10);
             lastPollEmpty = records.count() == 0;
@@ -147,6 +152,36 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         } catch (final Throwable t) {
             this.poison();
             throw t;
+        } finally {
+            pollingLock.unlock();
+        }
+    }
+
+    /**
+     * Execute poll using pause API just for sending heartbeat, not polling messages.
+     */
+    void retainConnection() {
+        pollingLock.lock();
+        TopicPartition[] assignments = null;
+        try {
+            final Set<TopicPartition> assignmentSet = kafkaConsumer.assignment();
+            if (assignmentSet.isEmpty()) {
+                return;
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Pausing " + assignmentSet);
+            }
+            assignments = assignmentSet.toArray(new TopicPartition[assignmentSet.size()]);
+            kafkaConsumer.pause(assignments);
+            kafkaConsumer.poll(0);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Resuming " + assignments);
+            }
+        } finally {
+            if (assignments != null) {
+                kafkaConsumer.resume(assignments);
+            }
+            pollingLock.unlock();
         }
     }
 

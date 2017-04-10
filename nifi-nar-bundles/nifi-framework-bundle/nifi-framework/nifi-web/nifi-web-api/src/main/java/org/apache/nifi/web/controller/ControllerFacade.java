@@ -29,7 +29,10 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -43,11 +46,9 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Template;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -88,11 +89,13 @@ import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
@@ -130,7 +133,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -196,35 +198,21 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Create a temporary Processor used for extracting PropertyDescriptor's for ControllerService reference authorization.
+     * Gets the cached temporary instance of the component for the given type and bundle.
      *
-     * @param type type of processor
-     * @return processor
-     * @throws ProcessorInstantiationException when unable to instantiate the processor
+     * @param type type of the component
+     * @param bundle the bundle of the component
+     * @return the temporary component
+     * @throws IllegalStateException if no temporary component exists for the given type and bundle
      */
-    public ProcessorNode createTemporaryProcessor(String type) throws ProcessorInstantiationException {
-        return flowController.createProcessor(type, UUID.randomUUID().toString(), false);
-    }
+    public ConfigurableComponent getTemporaryComponent(final String type, final BundleDTO bundle) {
+        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(type, BundleUtils.getBundle(type, bundle));
 
-    /**
-     * Create a temporary ReportingTask used for extracting PropertyDescriptor's for ControllerService reference authorization.
-     *
-     * @param type type of reporting task
-     * @return reporting task
-     * @throws ReportingTaskInstantiationException when unable to instantiate the reporting task
-     */
-    public ReportingTaskNode createTemporaryReportingTask(String type) throws ReportingTaskInstantiationException {
-        return flowController.createReportingTask(type, UUID.randomUUID().toString(), false, false);
-    }
+        if (configurableComponent == null) {
+            throw new IllegalStateException("Unable to obtain temporary component for " + type);
+        }
 
-    /**
-     * Create a temporary ControllerService used for extracting PropertyDescriptor's for ControllerService reference authorization.
-     *
-     * @param type type of controller service
-     * @return controller service
-     */
-    public ControllerServiceNode createTemporaryControllerService(String type) {
-        return flowController.createControllerService(type, UUID.randomUUID().toString(), false);
+        return configurableComponent;
     }
 
     /**
@@ -450,10 +438,13 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return types
      */
-    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class));
+    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
@@ -462,7 +453,7 @@ public class ControllerFacade implements Authorizable {
      * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class), null, null, null);
     }
 
     /**
@@ -472,10 +463,10 @@ public class ControllerFacade implements Authorizable {
      * @param type type
      * @return whether the specified type implements the specified serviceType
      */
-    private boolean implementsServiceType(final String serviceType, final Class type) {
+    private boolean implementsServiceType(final Class serviceType, final Class type) {
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
         for (final Class i : interfaces) {
-            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+            if (ControllerService.class.isAssignableFrom(i) && serviceType.isAssignableFrom(i)) {
                 return true;
             }
         }
@@ -487,36 +478,62 @@ public class ControllerFacade implements Authorizable {
      * Gets the ControllerService types that this controller supports.
      *
      * @param serviceType type
+     * @param serviceBundleGroup if serviceType specified, the bundle group of the serviceType
+     * @param serviceBundleArtifact if serviceType specified, the bundle artifact of the serviceType
+     * @param serviceBundleVersion if serviceType specified, the bundle version of the serviceType
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ControllerService types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
+                                                            final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
-        final Set<Class> matchingServiceImplementions;
         if (serviceType != null) {
-            matchingServiceImplementions = new HashSet<>();
+            final BundleCoordinate bundleCoordinate = new BundleCoordinate(serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion);
+            final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+            if (csBundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+            }
+
+            Class serviceClass = null;
+            final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(csBundle.getClassLoader());
+                serviceClass = Class.forName(serviceType, false, csBundle.getClassLoader());
+            } catch (final Exception e) {
+                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
+                throw new IllegalArgumentException(String.format("Unable to load %s from bundle %s: %s", serviceType, bundleCoordinate, e), e);
+            }
+
+            final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class type : serviceImplementations) {
-                if (implementsServiceType(serviceType, type)) {
-                    matchingServiceImplementions.add(type);
+            for (final Class csClass : serviceImplementations) {
+                if (implementsServiceType(serviceClass, csClass)) {
+                    matchingServiceImplementations.put(csClass, ExtensionManager.getBundle(csClass.getClassLoader()));
                 }
             }
-        } else {
-            matchingServiceImplementions = serviceImplementations;
-        }
 
-        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
+            return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        } else {
+            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        }
     }
 
     /**
      * Gets the ReportingTask types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ReportingTask types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
+    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**

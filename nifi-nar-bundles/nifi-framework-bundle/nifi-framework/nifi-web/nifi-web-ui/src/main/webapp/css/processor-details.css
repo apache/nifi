@@ -36,6 +36,12 @@
     height: 100%;
 }
 
+#read-only-processor-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 #read-only-auto-terminate-relationship-names {
     border: 0 solid #CCCCCC;
     height: 290px;

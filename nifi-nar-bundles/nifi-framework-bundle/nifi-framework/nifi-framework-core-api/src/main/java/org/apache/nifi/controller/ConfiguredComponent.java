@@ -24,11 +24,16 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.logging.ComponentLog;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 public interface ConfiguredComponent extends ComponentAuthorizable {
 
@@ -49,6 +54,20 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
     public String getProperty(final PropertyDescriptor property);
 
     boolean isValid();
+
+    void reload(Set<URL> additionalUrls) throws Exception;
+
+    BundleCoordinate getBundleCoordinate();
+
+    ConfigurableComponent getComponent();
+
+    ComponentLog getLogger();
+
+    boolean isExtensionMissing();
+
+    void setExtensionMissing(boolean extensionMissing);
+
+    void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
 
     /**
      * @return the any validation errors for this connectable

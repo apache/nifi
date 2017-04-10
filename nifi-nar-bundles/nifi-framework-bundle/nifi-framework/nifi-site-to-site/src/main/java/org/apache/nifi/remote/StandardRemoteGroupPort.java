@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -93,7 +94,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     public StandardRemoteGroupPort(final String id, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
             final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
-            final NiFiProperties nifiProperties) {
+        final NiFiProperties nifiProperties) {
         // remote group port id needs to be unique but cannot just be the id of the port
         // in the remote group instance. this supports referencing the same remote
         // instance more than once.
@@ -167,6 +168,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(remoteGroup.getTransportProtocol())
                 .httpProxy(new HttpProxy(remoteGroup.getProxyHost(), remoteGroup.getProxyPort(), remoteGroup.getProxyUser(), remoteGroup.getProxyPassword()))
+                .localAddress(remoteGroup.getLocalAddress())
                 .build();
         clientRef.set(client);
     }
@@ -407,8 +409,19 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     @Override
     public boolean isValid() {
-        return targetExists.get()
-                && (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true);
+        if (!targetExists.get()) {
+            return false;
+        }
+
+        if (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT && getConnections(Relationship.ANONYMOUS).isEmpty()) {
+            // if it's an output port, ensure that there is an outbound connection
+            return false;
+        }
+
+        final boolean groupValid = remoteGroup.validate().stream()
+            .allMatch(result -> result.isValid());
+
+        return groupValid;
     }
 
     @Override
@@ -443,6 +456,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         if (getConnectableType() == ConnectableType.REMOTE_INPUT_PORT && getIncomingConnections().isEmpty()) {
             throw new IllegalStateException("Port " + getName() + " has no incoming connections");
+        }
+
+        final Optional<ValidationResult> resultOption = remoteGroup.validate().stream()
+            .filter(result -> !result.isValid())
+            .findFirst();
+
+        if (resultOption.isPresent()) {
+            throw new IllegalStateException("Remote Process Group is not valid: " + resultOption.get().toString());
         }
     }
 

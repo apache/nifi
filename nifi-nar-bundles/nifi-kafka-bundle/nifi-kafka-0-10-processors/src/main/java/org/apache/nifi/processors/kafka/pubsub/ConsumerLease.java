@@ -130,15 +130,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     void poll() {
         /**
-         * Implementation note: If we take too long (30 secs?) between kafka
-         * poll calls and our own record processing to any subsequent poll calls
-         * or the commit we can run into a situation where the commit will
-         * succeed to the session but fail on committing offsets. This is
-         * apparently different than the Kafka scenario of electing to rebalance
-         * for other reasons but in this case is due a session timeout. It
-         * appears Kafka KIP-62 aims to offer more control over the meaning of
-         * various timeouts. If we do run into this case it could result in
-         * duplicates.
+         * Implementation note:
+         * Even if ConsumeKafka is not scheduled to poll due to downstream connection back-pressure is engaged,
+         * for longer than session.timeout.ms (defaults to 10 sec), Kafka consumer sends heartbeat from background thread.
+         * If this situation lasts longer than max.poll.interval.ms (defaults to 5 min), Kafka consumer sends
+         * Leave Group request to Group Coordinator. When ConsumeKafka processor is scheduled again, Kafka client checks
+         * if this client instance is still a part of consumer group. If not, it rejoins before polling messages.
+         * This behavior has been fixed via Kafka KIP-62 and available from Kafka client 0.10.1.0.
          */
         try {
             final ConsumerRecords<byte[], byte[]> records = kafkaConsumer.poll(10);

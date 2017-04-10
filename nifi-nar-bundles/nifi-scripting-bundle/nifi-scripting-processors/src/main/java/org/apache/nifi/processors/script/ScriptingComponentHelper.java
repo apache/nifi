@@ -285,7 +285,7 @@ public class ScriptingComponentHelper {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(modulePath)) {
             modules = modulePath.split(",");
         } else {

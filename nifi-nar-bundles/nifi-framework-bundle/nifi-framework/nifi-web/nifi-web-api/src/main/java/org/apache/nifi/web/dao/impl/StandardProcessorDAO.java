@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -30,11 +31,13 @@ import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -45,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +81,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
+    public void verifyCreate(final ProcessorDTO processorDTO) {
+        verifyCreate(processorDTO.getType(), processorDTO.getBundle());
+    }
+
+    @Override
     public ProcessorNode createProcessor(final String groupId, ProcessorDTO processorDTO) {
         if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
@@ -92,7 +101,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         try {
             // attempt to create the processor
-            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId());
+            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle()));
 
             // ensure we can perform the update before we add the processor to the flow
             verifyUpdate(processor, processorDTO);
@@ -342,8 +351,16 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
 
         boolean modificationRequest = false;
-        if (isAnyNotNull(processorDTO.getName())) {
+        if (isAnyNotNull(processorDTO.getName(), processorDTO.getBundle())) {
             modificationRequest = true;
+        }
+
+        final BundleDTO bundleDTO = processorDTO.getBundle();
+        if (bundleDTO != null) {
+            // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            // ensure we are only changing to a bundle with the same group and id, but different version
+            processor.verifyCanUpdateBundle(bundleCoordinate);
         }
 
         final ProcessorConfigDTO configDTO = processorDTO.getConfig();
@@ -388,6 +405,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         // configure the processor
         configureProcessor(processor, processorDTO);
 
+        // attempt to change the underlying processor if an updated bundle is specified
+        updateBundle(processor, processorDTO);
+
         // see if an update is necessary
         if (isNotNull(processorDTO.getState())) {
             final ScheduledState purposedScheduledState = ScheduledState.valueOf(processorDTO.getState());
@@ -427,6 +447,19 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
 
         return processor;
+    }
+
+    private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
+        BundleDTO bundleDTO = processorDTO.getBundle();
+        if (bundleDTO != null) {
+            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            try {
+                flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
+            } catch (ProcessorInstantiationException e) {
+                throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
+                        processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            }
+        }
     }
 
     @Override

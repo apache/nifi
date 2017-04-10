@@ -64,7 +64,7 @@ import java.util.regex.Pattern;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files from HDFS. For each file that is listed in HDFS, creates a FlowFile that represents "
-        + "the HDFS file so that it can be fetched in conjunction with ListHDFS. This Processor is designed to run on Primary Node only "
+        + "the HDFS file so that it can be fetched in conjunction with FetchHDFS. This Processor is designed to run on Primary Node only "
         + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
         + "all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.")
 @WritesAttributes({

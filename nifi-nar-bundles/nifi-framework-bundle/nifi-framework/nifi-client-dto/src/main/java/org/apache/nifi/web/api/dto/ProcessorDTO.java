@@ -31,6 +31,7 @@ public class ProcessorDTO extends ComponentDTO {
 
     private String name;
     private String type;
+    private BundleDTO bundle;
     private String state;
     private Map<String, String> style;
     private List<RelationshipDTO> relationships;
@@ -40,6 +41,8 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsBatching;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean isExtensionMissing;
+    private Boolean multipleVersionsAvailable;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
@@ -80,6 +83,22 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    /**
+     * The details of the artifact that bundled this processor type.
+     *
+     * @return The bundle details
+     */
+    @ApiModelProperty(
+            value = "The details of the artifact that bundled this processor type."
+    )
+    public BundleDTO getBundle() {
+        return bundle;
+    }
+
+    public void setBundle(BundleDTO bundle) {
+        this.bundle = bundle;
     }
 
     /**
@@ -137,6 +156,34 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setPersistsState(Boolean persistsState) {
         this.persistsState = persistsState;
+    }
+
+    /**
+     * @return whether this processor has multiple versions available
+     */
+    @ApiModelProperty(
+            value = "Whether the processor has multiple versions available."
+    )
+    public Boolean getMultipleVersionsAvailable() {
+        return multipleVersionsAvailable;
+    }
+
+    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+        this.multipleVersionsAvailable = multipleVersionsAvailable;
+    }
+
+    /**
+     * @return whether the underlying extension is missing
+     */
+    @ApiModelProperty(
+            value = "Whether the underlying extension is missing."
+    )
+    public Boolean getExtensionMissing() {
+        return isExtensionMissing;
+    }
+
+    public void setExtensionMissing(Boolean extensionMissing) {
+        isExtensionMissing = extensionMissing;
     }
 
     /**

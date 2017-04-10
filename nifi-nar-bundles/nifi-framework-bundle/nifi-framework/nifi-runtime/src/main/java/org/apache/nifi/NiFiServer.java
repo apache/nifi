@@ -16,7 +16,10 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionMapping;
+
+import java.util.Set;
 
 /**
  *
@@ -26,6 +29,8 @@ public interface NiFiServer {
     void start();
 
     void setExtensionMapping(ExtensionMapping extensionMapping);
+
+    void setBundles(Bundle systemBundle, Set<Bundle> bundles);
 
     void stop();
 }

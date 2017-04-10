@@ -19,11 +19,13 @@ package org.apache.nifi.integration.accesscontrol;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.integration.util.SourceTestProcessor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
@@ -70,8 +72,9 @@ public class ITAccessTokenEndpoint {
         FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());
 
         // load extensions
+        final Bundle systemBundle = SystemBundle.create(props);
         NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
         // start the server
         SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);

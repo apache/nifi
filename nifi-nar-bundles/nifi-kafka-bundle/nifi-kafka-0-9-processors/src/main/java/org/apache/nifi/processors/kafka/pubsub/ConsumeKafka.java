@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.KafkaException;
@@ -36,10 +38,12 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
@@ -162,6 +166,10 @@ public class ConsumeKafka extends AbstractProcessor {
     private volatile ConsumerPool consumerPool = null;
     private final Set<ConsumerLease> activeLeases = Collections.synchronizedSet(new HashSet<>());
 
+    private int heartbeatCheckIntervalMillis;
+    private volatile long lastTriggeredTimestamp = -1L;
+    private volatile ScheduledExecutorService connectionRetainer;
+
     static {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
@@ -275,8 +283,72 @@ public class ConsumeKafka extends AbstractProcessor {
         activeLeases.clear();
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+
+        final PropertyValue heartbeatIntervalMsConfig = context.getProperty(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG);
+        if (heartbeatIntervalMsConfig != null && heartbeatIntervalMsConfig.isSet()) {
+            heartbeatCheckIntervalMillis = heartbeatIntervalMsConfig.asInteger();
+        } else {
+            // Derived from org.apache.kafka.clients.consumer.ConsumerConfig.
+            heartbeatCheckIntervalMillis = 3_000;
+        }
+
+        // Without this, it remains -1 if downstream connections are full when this processor is scheduled at the 1st run after restart.
+        lastTriggeredTimestamp = System.currentTimeMillis();
+
+        // Stop previous connectionRetainer, if any, just in case, this shouldn't happen though
+        final ComponentLog logger = getLogger();
+        if (connectionRetainer != null) {
+            logger.warn("Connection retainer {} is still running, indicating something had happened.",
+                    new Object[]{connectionRetainer});
+            stopConnectionRetainer();
+        }
+        connectionRetainer = Executors.newSingleThreadScheduledExecutor();
+        connectionRetainer.scheduleAtFixedRate(() -> {
+            final long now = System.currentTimeMillis();
+            if (lastTriggeredTimestamp < 0
+                    || lastTriggeredTimestamp > now - heartbeatCheckIntervalMillis) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("No need to retain connection. Triggered at {}, {} millis ago.",
+                            new Object[]{lastTriggeredTimestamp, now - lastTriggeredTimestamp});
+                }
+                return;
+            }
+            try {
+                final ConsumerPool pool = getConsumerPool(context);
+                if (logger.isDebugEnabled()) {
+                    final ConsumerPool.PoolStats stats = pool.getPoolStats();
+                    logger.debug("Trying to retain connection. Obtained pool={}," +
+                                    " leaseObtainedCount={}, consumerCreatedCount={}, consumerClosedCount={}",
+                            new Object[]{pool, stats.leasesObtainedCount, stats.consumerCreatedCount, stats.consumerClosedCount});
+                }
+                pool.retainConsumers();
+            } catch (final Exception e) {
+                logger.warn("Failed to retain connection due to {}", new Object[]{e}, e);
+            }
+        }, heartbeatCheckIntervalMillis, heartbeatCheckIntervalMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @OnUnscheduled
+    public void stopConnectionRetainer() {
+        if (connectionRetainer != null) {
+            final ComponentLog logger = getLogger();
+            logger.debug("Canceling connectionRetainer... {}", new Object[]{connectionRetainer});
+            try {
+                connectionRetainer.shutdownNow();
+            } catch (final Exception e) {
+                logger.warn("Failed to shutdown connection retainer {} due to {}", new Object[]{connectionRetainer, e}, e);
+            }
+            connectionRetainer = null;
+        }
+    }
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+        lastTriggeredTimestamp = System.currentTimeMillis();
+
         final ConsumerPool pool = getConsumerPool(context);
         if (pool == null) {
             context.yield();

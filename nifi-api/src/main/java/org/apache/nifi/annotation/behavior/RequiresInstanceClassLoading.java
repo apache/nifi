@@ -28,10 +28,19 @@ import java.lang.annotation.Target;
  *  for each instance of the component, copying all resources from the component's NARClassLoader to a
  *  new ClassLoader which will only be used by a given instance of the component.
  *
- *  This annotation is typically used when a component has one or more PropertyDescriptors which set
- *  dynamicallyModifiesClasspath(boolean) to true.
+ *  If cloneAncestorResources is set to true, the instance ClassLoader will include ancestor resources up to the
+ *  first ClassLoader containing a controller service API referenced by the component, or up to the Jetty NAR.
  *
- *  When this annotation is used it is important to note that each added instance of the component will increase
+ *  Example #1 - PutHDFS has this flag set to true and does not reference any controller services, so it will include
+ *  resources from nifi-hadoop-nar, nifi-hadoop-libraries-nar, and nifi-standard-services-api-nar, stopping at nifi-jetty-nar.
+ *
+ *  Example #2 - If PutHDFS referenced an SSLContext and has this flag set to true, then it would include
+ *  resources from nifi-hadoop-nar, nifi-hadoop-libraries-nar, and stop before nifi-standard-services-api-nar.
+ *
+ *  Example #3 - HBaseClientService_1_1_2 does not have this flag set so it defaults to false, and therefore includes
+ *  only resources from the nifi-hbase-client-service-1_1_2-nar.
+ *
+ *  NOTE: When this annotation is used it is important to note that each added instance of the component will increase
  *  the overall memory footprint more than that of a component without this annotation.
  */
 @Documented
@@ -39,4 +48,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface RequiresInstanceClassLoading {
+
+    boolean cloneAncestorResources() default false;
+
 }

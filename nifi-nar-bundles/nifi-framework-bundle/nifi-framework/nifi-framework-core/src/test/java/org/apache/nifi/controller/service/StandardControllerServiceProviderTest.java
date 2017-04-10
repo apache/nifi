@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.FileBasedVariableRegistry;
@@ -30,19 +32,26 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+
 public class StandardControllerServiceProviderTest {
 
     private ControllerService proxied;
     private ControllerService implementation;
     private static VariableRegistry variableRegistry;
     private static NiFiProperties nifiProperties;
+    private static Bundle systemBundle;
 
     @BeforeClass
     public static void setupSuite() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
         nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+
         NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
+
+        // load the system bundle
+        systemBundle = SystemBundle.create(nifiProperties);
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
     }
 
@@ -72,7 +81,7 @@ public class StandardControllerServiceProviderTest {
             public void onComponentRemoved(String componentId) {
             }
         }, variableRegistry, nifiProperties);
-        ControllerServiceNode node = provider.createControllerService(clazz, id, true);
+        ControllerServiceNode node = provider.createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), null, true);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();
     }

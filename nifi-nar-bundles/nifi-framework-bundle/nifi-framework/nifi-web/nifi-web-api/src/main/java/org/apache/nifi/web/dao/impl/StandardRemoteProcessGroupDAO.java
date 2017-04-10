@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import static org.apache.nifi.util.StringUtils.isEmpty;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -31,13 +39,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-
-import static org.apache.nifi.util.StringUtils.isEmpty;
 
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
@@ -144,6 +145,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // if any remote group properties are changing, verify update
         if (isAnyNotNull(remoteProcessGroupDto.getYieldDuration(),
+                remoteProcessGroupDto.getLocalNetworkInterface(),
                 remoteProcessGroupDto.getCommunicationsTimeout(),
                 remoteProcessGroupDto.getProxyHost(),
                 remoteProcessGroupDto.getProxyPort(),
@@ -359,6 +361,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
 
         final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
+        final String localNetworkInterface = remoteProcessGroupDTO.getLocalNetworkInterface();
 
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
@@ -389,6 +392,13 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             // specify empty String to clear password.
             if (isNotNull(proxyPassword) && !DtoFactory.SENSITIVE_VALUE_MASK.equals(proxyPassword)) {
                 remoteProcessGroup.setProxyPassword(proxyPassword);
+            }
+        }
+        if (localNetworkInterface != null) {
+            if (StringUtils.isBlank(localNetworkInterface)) {
+                remoteProcessGroup.setNetworkInterface(null);
+            } else {
+                remoteProcessGroup.setNetworkInterface(localNetworkInterface);
             }
         }
 

@@ -96,6 +96,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 public class TestHttpClient {
 
@@ -1128,7 +1129,7 @@ public class TestHttpClient {
 
     @Test
     public void testSendTimeout() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());//skip on windows
         try (
             SiteToSiteClient client = getDefaultBuilder()
                 .timeout(1, TimeUnit.SECONDS)
@@ -1160,9 +1161,13 @@ public class TestHttpClient {
 
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testSendTimeoutAfterDataExchange() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());//skip on windows
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "INFO");
 
         try (

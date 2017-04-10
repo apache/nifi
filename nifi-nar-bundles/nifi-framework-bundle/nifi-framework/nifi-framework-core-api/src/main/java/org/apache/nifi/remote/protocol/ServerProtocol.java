@@ -145,8 +145,8 @@ public interface ServerProtocol extends VersionedRemoteResource {
             Peer peer,
             Optional<ClusterNodeInformation> clusterNodeInfo,
             String remoteInputHost,
-            int remoteInputPort,
-            int remoteInputHttpPort,
+            Integer remoteInputPort,
+            Integer remoteInputHttpPort,
             boolean isSiteToSiteSecure) throws IOException;
 
     void shutdown(Peer peer);

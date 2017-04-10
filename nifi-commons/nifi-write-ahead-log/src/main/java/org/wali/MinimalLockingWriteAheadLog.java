@@ -569,7 +569,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             // perform checkpoint, writing to .partial file
             fileOut = new FileOutputStream(partialPath.toFile());
-            dataOut = new DataOutputStream(fileOut);
+            dataOut = new DataOutputStream(new BufferedOutputStream(fileOut));
             dataOut.writeUTF(MinimalLockingWriteAheadLog.class.getName());
             dataOut.writeInt(getVersion());
             dataOut.writeUTF(serde.getClass().getName());
@@ -590,9 +590,12 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         } finally {
             if (dataOut != null) {
                 try {
-                    dataOut.flush();
-                    fileOut.getFD().sync();
-                    dataOut.close();
+                    try {
+                        dataOut.flush();
+                        fileOut.getFD().sync();
+                    } finally {
+                        dataOut.close();
+                    }
                 } catch (final IOException e) {
                     logger.warn("Failed to close Data Stream due to {}", e.toString(), e);
                 }
@@ -970,24 +973,28 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 logger.debug("{} recovering from {}", this, nextRecoveryPath);
                 recoveryIn = createDataInputStream(nextRecoveryPath);
                 if (hasMoreData(recoveryIn)) {
-                    final String waliImplementationClass = recoveryIn.readUTF();
-                    if (!MinimalLockingWriteAheadLog.class.getName().equals(waliImplementationClass)) {
-                        continue;
-                    }
+                    try {
+                        final String waliImplementationClass = recoveryIn.readUTF();
+                        if (!MinimalLockingWriteAheadLog.class.getName().equals(waliImplementationClass)) {
+                            continue;
+                        }
 
-                    final long waliVersion = recoveryIn.readInt();
-                    if (waliVersion > writeAheadLogVersion) {
-                        throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using "
+                        final long waliVersion = recoveryIn.readInt();
+                        if (waliVersion > writeAheadLogVersion) {
+                            throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using "
                                 + "WALI version " + waliVersion + ", but the version used to restore it is only " + writeAheadLogVersion);
+                        }
+
+                        final String serdeEncoding = recoveryIn.readUTF();
+                        this.recoveryVersion = recoveryIn.readInt();
+                        serde = serdeFactory.createSerDe(serdeEncoding);
+
+                        serde.readHeader(recoveryIn);
+                        break;
+                    } catch (final Exception e) {
+                        logger.warn("Failed to recover data from Write-Ahead Log for {} because the header information could not be read properly. "
+                            + "This often is the result of the file not being fully written out before the application is restarted. This file will be ignored.", nextRecoveryPath);
                     }
-
-                    final String serdeEncoding = recoveryIn.readUTF();
-                    this.recoveryVersion = recoveryIn.readInt();
-                    serde = serdeFactory.createSerDe(serdeEncoding);
-
-                    serde.readHeader(recoveryIn);
-
-                    break;
                 }
             }
 

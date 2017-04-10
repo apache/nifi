@@ -23,6 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
@@ -45,6 +46,7 @@ import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.authentication.generated.LoginIdentityProviders;
 import org.apache.nifi.authentication.generated.Property;
 import org.apache.nifi.authentication.generated.Provider;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
@@ -151,10 +153,18 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
 
     private LoginIdentityProvider createLoginIdentityProvider(final String identifier, final String loginIdentityProviderClassName) throws Exception {
         // get the classloader for the specified login identity provider
-        final ClassLoader loginIdentityProviderClassLoader = ExtensionManager.getClassLoader(loginIdentityProviderClassName);
-        if (loginIdentityProviderClassLoader == null) {
+        final List<Bundle> loginIdentityProviderBundles = ExtensionManager.getBundles(loginIdentityProviderClassName);
+
+        if (loginIdentityProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified login identity provider class '%s' is not known to this nifi.", loginIdentityProviderClassName));
         }
+
+        if (loginIdentityProviderBundles.size() > 1) {
+            throw new Exception(String.format("Multiple bundles found for the specified login identity provider class '%s', only one is allowed.", loginIdentityProviderClassName));
+        }
+
+        final Bundle loginIdentityProviderBundle = loginIdentityProviderBundles.get(0);
+        final ClassLoader loginIdentityProviderClassLoader = loginIdentityProviderBundle.getClassLoader();
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();

@@ -30,7 +30,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -295,16 +295,24 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
-                    if (authorizable.isRestricted()) {
-                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                    }
+                    ComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getConfigurableComponent(requestReportingTask.getType(), requestReportingTask.getBundle());
 
-                    if (requestReportingTask.getProperties() != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
+                        if (authorizable.isRestricted()) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        }
+
+                        if (requestReportingTask.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateReportingTask(requestReportingTask),
                 (reportingTaskEntity) -> {
                     final ReportingTaskDTO reportingTask = reportingTaskEntity.getComponent();
 
@@ -393,16 +401,24 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
-                    if (authorizable.isRestricted()) {
-                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                    }
+                    ComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
 
-                    if (requestControllerService.getProperties() != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                        if (authorizable.isRestricted()) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        }
+
+                        if (requestControllerService.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateControllerService(requestControllerService),
                 (controllerServiceEntity) -> {
                     final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
 
@@ -561,7 +577,7 @@ public class ControllerResource extends ApplicationResource {
             )
             @PathParam("id") String id,
             @ApiParam(
-                    value = "The node configuration. The only configuration that will be honored at this endpoint is the status or primary flag.",
+                    value = "The node configuration. The only configuration that will be honored at this endpoint is the status.",
                     required = true
             ) NodeEntity nodeEntity) {
 

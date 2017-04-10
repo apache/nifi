@@ -19,6 +19,8 @@ package org.apache.nifi.web.api.dto;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -28,6 +30,8 @@ import java.util.Set;
 public class DocumentedTypeDTO {
 
     private String type;
+    private BundleDTO bundle;
+    private List<ControllerServiceApiDTO> controllerServiceApis;
     private String description;
     private String usageRestriction;
     private Set<String> tags;
@@ -75,6 +79,38 @@ public class DocumentedTypeDTO {
     }
 
     /**
+     * The details of the artifact that bundled this type.
+     *
+     * @return The bundle details
+     */
+    @ApiModelProperty(
+            value = "The details of the artifact that bundled this type."
+    )
+    public BundleDTO getBundle() {
+        return bundle;
+    }
+
+    public void setBundle(BundleDTO bundle) {
+        this.bundle = bundle;
+    }
+
+    /**
+     * If this type represents a ControllerService, this lists the APIs it implements.
+     *
+     * @return The listing of implemented APIs
+     */
+    @ApiModelProperty(
+            value = "If this type represents a ControllerService, this lists the APIs it implements."
+    )
+    public List<ControllerServiceApiDTO> getControllerServiceApis() {
+        return controllerServiceApis;
+    }
+
+    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+        this.controllerServiceApis = controllerServiceApis;
+    }
+
+    /**
      * @return The tags associated with this type
      */
     @ApiModelProperty(
@@ -88,4 +124,22 @@ public class DocumentedTypeDTO {
         this.tags = tags;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        final DocumentedTypeDTO that = (DocumentedTypeDTO) o;
+        return Objects.equals(type, that.type) && Objects.equals(bundle, that.bundle);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, bundle);
+    }
 }

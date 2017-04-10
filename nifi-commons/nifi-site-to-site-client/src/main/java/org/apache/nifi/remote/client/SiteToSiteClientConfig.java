@@ -18,6 +18,7 @@ package org.apache.nifi.remote.client;
 
 import java.io.File;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +37,7 @@ public interface SiteToSiteClientConfig extends Serializable {
      * for backward compatibility for implementations that does not expect multiple URLs.
      * {@link #getUrls()} should be used instead then should support multiple URLs when making requests.
      */
+    @Deprecated
     String getUrl();
 
     /**
@@ -171,4 +173,9 @@ public interface SiteToSiteClientConfig extends Serializable {
      */
     HttpProxy getHttpProxy();
 
+    /**
+     * @return the InetAddress to bind to for the local address when creating a socket, or
+     *         {@code null} to bind to the {@code anyLocal} address.
+     */
+    InetAddress getLocalAddress();
 }

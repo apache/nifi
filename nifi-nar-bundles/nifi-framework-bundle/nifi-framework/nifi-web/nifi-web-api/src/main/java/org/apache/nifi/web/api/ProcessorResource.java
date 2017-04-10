@@ -25,7 +25,7 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -35,6 +35,7 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -121,10 +122,12 @@ public class ProcessorResource extends ApplicationResource {
             if (StringUtils.isNotBlank(customUiUrl)) {
                 config.setCustomUiUrl(customUiUrl);
             } else {
+                final BundleDTO bundle = processor.getBundle();
+
                 // see if this processor has any ui extensions
                 final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-                if (uiExtensionMapping.hasUiExtension(processor.getType())) {
-                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType());
+                if (uiExtensionMapping.hasUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
                     for (final UiExtension uiExtension : uiExtensions) {
                         if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
                             config.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
@@ -456,7 +459,7 @@ public class ProcessorResource extends ApplicationResource {
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessor(id);
+                    final ComponentAuthorizable authorizable = lookup.getProcessor(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
 
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
@@ -540,7 +543,7 @@ public class ProcessorResource extends ApplicationResource {
                 requestProcessorEntity,
                 requestRevision,
                 lookup -> {
-                    final ConfigurableComponentAuthorizable processor = lookup.getProcessor(id);
+                    final ComponentAuthorizable processor = lookup.getProcessor(id);
 
                     // ensure write permission to the processor
                     processor.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());

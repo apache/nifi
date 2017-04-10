@@ -84,7 +84,8 @@
                                     proxyHost: $('#remote-process-group-proxy-host').val(),
                                     proxyPort: $('#remote-process-group-proxy-port').val(),
                                     proxyUser: $('#remote-process-group-proxy-user').val(),
-                                    proxyPassword: $('#remote-process-group-proxy-password').val()
+                                    proxyPassword: $('#remote-process-group-proxy-password').val(),
+                                    localNetworkInterface: $('#remote-process-group-local-network-interface').val()
                                 }
                             };
 
@@ -150,6 +151,7 @@
                         $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
                             value: 'RAW'
                         });
+                        $('#remote-process-group-local-network-interface').val('');
                         $('#remote-process-group-proxy-host').val('');
                         $('#remote-process-group-proxy-port').val('');
                         $('#remote-process-group-proxy-user').val('');
@@ -191,6 +193,7 @@
                 $('#remote-process-group-proxy-port').val(selectionData.component.proxyPort);
                 $('#remote-process-group-proxy-user').val(selectionData.component.proxyUser);
                 $('#remote-process-group-proxy-password').val(selectionData.component.proxyPassword);
+                $('#remote-process-group-local-network-interface').val(selectionData.component.localNetworkInterface);
 
                 // select the appropriate transport-protocol
                 $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
