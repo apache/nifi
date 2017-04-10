@@ -17,7 +17,8 @@
 <head>
     <meta charset="utf-8" />
     <title>Groovy</title>
-    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    <!--link rel="stylesheet" href="../../css/component-usage.css" type="text/css" /-->
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
 </head>
 
 <body>
@@ -80,13 +81,14 @@ CTL - Database transactions automatically rolled back on script exception and co
 
 <h2>SessionFile - flow file extension</h2>
 <p>
-  The (com.luxoft.ob10.nifi.processors.commons.util.flow.SessionFile) is an actual object returned by session in Groovy processor.<br/>
+  The (org.apache.nifi.processors.groovyx.flow.SessionFile) is an actual object returned by session in Extended Groovy processor.<br/>
   This flow file is a container that references session and the real flow file.<br/>
   This allows to use simplified syntax to work with file attributes and content:
 </p>
 <p><i>set new attribute value</i></p>
 <pre>
   flowFile.ATTRIBUTE_NAME = ATTRIBUTE_VALUE 
+  flowFile.'mime.type' = 'text/xml' 
   flowFile.putAttribute("ATTRIBUTE_NAME", ATTRIBUTE_VALUE)
   //the same as
   flowFile = session.putAttribute(flowFile, "ATTRIBUTE_NAME", ATTRIBUTE_VALUE)
@@ -95,6 +97,8 @@ CTL - Database transactions automatically rolled back on script exception and co
 <p><i>remove attribute</i></p>
 <pre>
   flowFile.ATTRIBUTE_NAME = null
+  //equals to
+  flowFile = session.removeAttribute(flowFile, "ATTRIBUTE_NAME")
 </pre>
 
 <p><i>get attribute value</i></p>
@@ -115,7 +119,7 @@ CTL - Database transactions automatically rolled back on script exception and co
     do something with in and out streams... 
   }
 </pre>
-  
+
 <p><i>get content</i></p>
 <pre>
   InputStream i = flowFile.read()
@@ -130,6 +134,64 @@ CTL - Database transactions automatically rolled back on script exception and co
   //the same as:
   session.transfer(flowFile, REL_SUCCESS)
 </pre>
+
+<p><i>work with dbcp</i></p>
+<pre>
+  import groovy.sql.Sql
+
+  //define property named `CTL.db` connected to a DBCPConnectionPool controller service
+  //for this case it's an H2 database example
+  
+  //read value from the database with prepared statement 
+  //and assign into flowfile attribute `db.yesterday`
+  def daysAdd = -1
+  def row = CTL.db.firstRow("select dateadd('DAY', ${daysAdd}, sysdate) as DB_DATE from dual")
+  flowFile.'db.yesterday' = row.DB_DATE
+
+  //to work with BLOBs and CLOBs in the database 
+  //use parameter casting using groovy.sql.Sql.BLOB(Stream) and groovy.sql.Sql.CLOB(Reader)
+  
+  //write content of the flow file into database blob
+  flowFile.read{ rawIn->
+    def parms = [
+      p_id   : flowFile.ID as Long, //get flow file attribute named `ID`
+      p_data : Sql.BLOB( rawIn ),   //use input stream as BLOB sql parameter
+    ]
+    CTL.db.executeUpdate(parms, "update mytable set data = :p_data where id = :p_id")
+  }
+</pre>
+
+
+<h2>Handling processor start &amp; stop</h2>
+
+<p>In the extended groovy processor you can catch `start` and `stop` events by providing corresponding static methods:</p>
+<pre>
+  import org.apache.nifi.processor.ProcessContext
+  import java.util.concurrent.atomic.AtomicLong
+
+  class Const{
+    static Date startTime = null;
+    static AtomicLong triggerCount = null;
+  }
+
+  static onStart(ProcessContext context){
+    Const.startTime = new Date()
+    Const.triggerCount = new AtomicLong(0)
+    println "onStart $context ${Const.startTime}"
+  }
+
+  static onStop(ProcessContext context){
+    def alive = (System.currentTimeMillis() - Const.startTime.getTime()) / 1000
+    println "onStop $context executed ${ Const.triggerCount } times during ${ alive } seconds"
+  }
+
+
+  flowFile.'trigger.count' = Const.triggerCount.incrementAndGet()
+  REL_SUCCESS << flowFile
+</pre>
+
+
+
 <br/>
 <br/>
 <br/>
