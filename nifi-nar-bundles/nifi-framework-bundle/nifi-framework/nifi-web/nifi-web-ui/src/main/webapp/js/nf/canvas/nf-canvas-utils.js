@@ -410,27 +410,21 @@
                 params.set('processGroupId', groupId);
                 params.set('componentIds', selectedComponentIds.sort());
 
-                // create object whose keys are the parameter name and the values are the parameter values
-                var paramsObject = {};
-                params.forEach(function (v, k) {
-                    paramsObject[k] = v;
-                });
-
                 var url = new URL(window.location);
                 var newUrl = url.origin + url.pathname;
 
                 if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId()) || selectedComponentIds.length > 0) {
                     if (!nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
                         // we are in the root group so set processGroupId param value to 'root' alias
-                        paramsObject['processGroupId'] = 'root';
+                        params.set('processGroupId', 'root');
                     }
 
-                    if ((url.origin + url.pathname + '?' + $.param(paramsObject)).length <= nfCanvasUtils.MAX_URL_LENGTH) {
-                        newUrl = url.origin + url.pathname + '?' + $.param(paramsObject);
+                    if ((url.origin + url.pathname + '?' + params.toString()).length <= nfCanvasUtils.MAX_URL_LENGTH) {
+                        newUrl = url.origin + url.pathname + '?' + params.toString();
                     } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
                         // silently remove all component ids
-                        paramsObject['componentIds'] = '';
-                        newUrl = url.origin + url.pathname + '?' + $.param(paramsObject);
+                        params.set('componentIds', '');
+                        newUrl = url.origin + url.pathname + '?' + params.toString();
                     }
                 }
 
