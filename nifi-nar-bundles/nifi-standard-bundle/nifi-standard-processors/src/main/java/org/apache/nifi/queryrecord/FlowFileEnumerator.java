@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.queryflowfile;
+package org.apache.nifi.queryrecord;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.calcite.linq4j.Enumerator;
@@ -25,23 +24,23 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 
 public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
     private final ProcessSession session;
     private final FlowFile flowFile;
     private final ComponentLog logger;
-    private final RowRecordReaderFactory recordParserFactory;
+    private final RecordReaderFactory recordParserFactory;
     private final int[] fields;
 
     private InputStream rawIn;
     private Object currentRow;
     private RecordReader recordParser;
+    private int recordsRead = 0;
 
-    public FlowFileEnumerator(final ProcessSession session, final FlowFile flowFile, final ComponentLog logger, final RowRecordReaderFactory parserFactory, final int[] fields) {
+    public FlowFileEnumerator(final ProcessSession session, final FlowFile flowFile, final ComponentLog logger, final RecordReaderFactory parserFactory, final int[] fields) {
         this.session = session;
         this.flowFile = flowFile;
         this.recordParserFactory = parserFactory;
@@ -62,12 +61,8 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
             try {
                 currentRow = filterColumns(recordParser.nextRecord());
                 break;
-            } catch (final IOException e) {
-                logger.error("Failed to read next record in stream for " + flowFile + ". Assuming end of stream.", e);
-                currentRow = null;
-                break;
-            } catch (final MalformedRecordException mre) {
-                logger.error("Failed to parse record in stream for " + flowFile + ". Will skip record and continue reading", mre);
+            } catch (final Exception e) {
+                throw new ProcessException("Failed to read next record in stream for " + flowFile, e);
             }
         }
 
@@ -75,8 +70,24 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
             // If we are out of data, close the InputStream. We do this because
             // Calcite does not necessarily call our close() method.
             close();
+            try {
+                onFinish();
+            } catch (final Exception e) {
+                logger.error("Failed to perform tasks when enumerator was finished", e);
+            }
+
+            return false;
         }
-        return (currentRow != null);
+
+        recordsRead++;
+        return true;
+    }
+
+    protected int getRecordsRead() {
+        return recordsRead;
+    }
+
+    protected void onFinish() {
     }
 
     private Object filterColumns(final Record record) {
@@ -122,7 +133,7 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
 
         try {
             recordParser = recordParserFactory.createRecordReader(flowFile, rawIn, logger);
-        } catch (final MalformedRecordException | IOException e) {
+        } catch (final Exception e) {
             throw new ProcessException("Failed to reset stream", e);
         }
     }

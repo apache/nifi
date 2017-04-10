@@ -166,6 +166,11 @@ public class ConnectableProcessContext implements ProcessContext {
                     throws ProcessException {
                 return null;
             }
+
+            @Override
+            public boolean isExpressionLanguagePresent() {
+                return false;
+            }
         };
     }
 

@@ -195,4 +195,9 @@ public class StandardPropertyValue implements PropertyValue {
     public boolean isSet() {
         return rawValue != null;
     }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        return preparedQuery.isExpressionLanguagePresent();
+    }
 }

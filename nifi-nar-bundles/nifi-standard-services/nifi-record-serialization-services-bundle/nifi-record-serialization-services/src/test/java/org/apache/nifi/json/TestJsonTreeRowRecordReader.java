@@ -309,4 +309,27 @@ public class TestJsonTreeRowRecordReader {
         }
     }
 
+    @Test
+    public void testIncorrectSchema() throws IOException, MalformedRecordException {
+        final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("account", accountType));
+        fields.remove(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account-wrong-field-type.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            reader.nextRecord().getValues();
+            Assert.fail("Was able to read record with invalid schema.");
+
+        } catch (final MalformedRecordException mre) {
+            final String msg = mre.getCause().getMessage();
+            assertTrue(msg.contains("account.balance"));
+            assertTrue(msg.contains("true"));
+            assertTrue(msg.contains("Double"));
+            assertTrue(msg.contains("Boolean"));
+        }
+    }
 }

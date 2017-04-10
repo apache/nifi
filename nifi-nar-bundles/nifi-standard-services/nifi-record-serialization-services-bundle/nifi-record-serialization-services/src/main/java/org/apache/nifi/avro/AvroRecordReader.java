@@ -18,7 +18,6 @@
 package org.apache.nifi.avro;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,11 +29,8 @@ import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
-import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Array;
-import org.apache.avro.generic.GenericData.StringType;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
@@ -48,36 +44,17 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-public class AvroRecordReader implements RecordReader {
-    private final InputStream in;
-    private final Schema avroSchema;
-    private final DataFileStream<GenericRecord> dataFileStream;
-    private RecordSchema recordSchema;
+public abstract class AvroRecordReader implements RecordReader {
 
 
-    public AvroRecordReader(final InputStream in) throws IOException, MalformedRecordException {
-        this.in = in;
+    protected abstract GenericRecord nextAvroRecord() throws IOException;
 
-        dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
-        this.avroSchema = dataFileStream.getSchema();
-        GenericData.setStringType(this.avroSchema, StringType.String);
-    }
-
-    @Override
-    public void close() throws IOException {
-        dataFileStream.close();
-        in.close();
-    }
 
     @Override
     public Record nextRecord() throws IOException, MalformedRecordException {
-        if (!dataFileStream.hasNext()) {
+        GenericRecord record = nextAvroRecord();
+        if (record == null) {
             return null;
-        }
-
-        GenericRecord record = null;
-        while (record == null && dataFileStream.hasNext()) {
-            record = dataFileStream.next();
         }
 
         final RecordSchema schema = getSchema();
@@ -102,7 +79,7 @@ public class AvroRecordReader implements RecordReader {
             final Object rawValue = normalizeValue(value, fieldSchema);
 
             final DataType desiredType = recordSchema.getDataType(fieldName).get();
-            final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType);
+            final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName);
 
             values.put(fieldName, coercedValue);
         }
@@ -215,13 +192,5 @@ public class AvroRecordReader implements RecordReader {
     }
 
 
-    @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
-        if (recordSchema != null) {
-            return recordSchema;
-        }
 
-        recordSchema = AvroTypeUtil.createSchema(avroSchema);
-        return recordSchema;
-    }
 }

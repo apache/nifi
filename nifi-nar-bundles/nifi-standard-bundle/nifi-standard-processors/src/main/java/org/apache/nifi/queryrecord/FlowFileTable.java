@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.queryflowfile;
+package org.apache.nifi.queryrecord;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -44,9 +44,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -54,7 +53,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable, TranslatableTable {
 
-    private final RowRecordReaderFactory recordParserFactory;
+    private final RecordReaderFactory recordParserFactory;
     private final ComponentLog logger;
 
     private RecordSchema recordSchema;
@@ -62,11 +61,12 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
 
     private volatile ProcessSession session;
     private volatile FlowFile flowFile;
+    private volatile int maxRecordsRead;
 
     /**
      * Creates a FlowFile table.
      */
-    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RowRecordReaderFactory recordParserFactory, final ComponentLog logger) {
+    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RecordReaderFactory recordParserFactory, final ComponentLog logger) {
         this.session = session;
         this.flowFile = flowFile;
         this.recordParserFactory = recordParserFactory;
@@ -76,6 +76,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
     public void setFlowFile(final ProcessSession session, final FlowFile flowFile) {
         this.session = session;
         this.flowFile = flowFile;
+        this.maxRecordsRead = 0;
     }
 
 
@@ -95,9 +96,21 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                return new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields);
+                return new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields) {
+                    @Override
+                    protected void onFinish() {
+                        final int recordCount = getRecordsRead();
+                        if (recordCount > maxRecordsRead) {
+                            maxRecordsRead = recordCount;
+                        }
+                    }
+                };
             }
         };
+    }
+
+    public int getRecordsRead() {
+        return maxRecordsRead;
     }
 
     @Override
@@ -138,7 +151,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
         try (final InputStream in = session.read(flowFile)) {
             final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, logger);
             schema = recordParser.getSchema();
-        } catch (final MalformedRecordException | IOException e) {
+        } catch (final Exception e) {
             throw new ProcessException("Failed to determine schema of data records for " + flowFile, e);
         }
 
@@ -191,6 +204,8 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
                 return typeFactory.createJavaType(Object[].class);
             case RECORD:
                 return typeFactory.createJavaType(Object.class);
+            case MAP:
+                return typeFactory.createJavaType(HashMap.class);
         }
 
         throw new IllegalArgumentException("Unknown Record Field Type: " + fieldType);

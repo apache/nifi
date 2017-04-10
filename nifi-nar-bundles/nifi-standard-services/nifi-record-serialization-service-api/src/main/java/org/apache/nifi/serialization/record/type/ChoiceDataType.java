@@ -53,7 +53,7 @@ public class ChoiceDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordDataType)) {
+        if (!(obj instanceof ChoiceDataType)) {
             return false;
         }
 

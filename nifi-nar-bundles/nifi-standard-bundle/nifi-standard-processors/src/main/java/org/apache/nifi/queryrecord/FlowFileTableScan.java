@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.queryflowfile;
+package org.apache.nifi.queryrecord;
 
 import java.util.List;
 

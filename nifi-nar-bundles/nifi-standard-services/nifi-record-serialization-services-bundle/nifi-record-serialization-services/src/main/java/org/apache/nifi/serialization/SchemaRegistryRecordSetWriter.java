@@ -1,0 +1,113 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.serialization;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
+import org.apache.nifi.schema.access.SchemaAccessWriter;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.schema.access.SchemaTextAsAttribute;
+
+public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryService {
+
+    static final AllowableValue SCHEMA_NAME_ATTRIBUTE = new AllowableValue("schema-name", "Use 'schema.name' Attribute",
+        "The FlowFile will be given an attribute named 'schema.name' and this attribute will indicate the name of the schema in the Schema Registry. Note that if"
+            + "the schema for a record is not obtained from a Schema Registry, then no attribute will be added.");
+    static final AllowableValue AVRO_SCHEMA_ATTRIBUTE = new AllowableValue("full-schema-attribute", "Use 'avro.schema' Attribute",
+        "The FlowFile will be given an attribute named 'avro.schema' and this attribute will contain the Avro Schema that describes the records in the FlowFile. "
+            + "The contents of the FlowFile need not be Avro, but the text of the schema will be used.");
+    static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
+        "The content of the FlowFile will contain a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
+            + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers. "
+            + "This will be prepended to each FlowFile. Note that "
+            + "if the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
+
+    protected static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Schema Write Strategy")
+        .description("Specifies how the schema for a Record should be added to the data.")
+        .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_CONTENT_ENCODED_SCHEMA)
+        .defaultValue(AVRO_SCHEMA_ATTRIBUTE.getValue())
+        .required(true)
+        .build();
+
+
+    private volatile ConfigurationContext configurationContext;
+    private volatile SchemaAccessWriter schemaAccessWriter;
+
+    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_CONTENT_ENCODED_SCHEMA));
+
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+
+        final AllowableValue[] strategies = getSchemaWriteStrategyValues().toArray(new AllowableValue[0]);
+        properties.add(new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SCHEMA_WRITE_STRATEGY)
+            .defaultValue(getDefaultSchemaWriteStrategy().getValue())
+            .allowableValues(strategies)
+            .build());
+
+        return properties;
+    }
+
+    protected AllowableValue getDefaultSchemaWriteStrategy() {
+        return AVRO_SCHEMA_ATTRIBUTE;
+    }
+
+    @OnEnabled
+    public void storeSchemaWriteStrategy(final ConfigurationContext context) {
+        this.configurationContext = context;
+
+        final String writerValue = context.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        this.schemaAccessWriter = getSchemaWriteStrategy(writerValue);
+    }
+
+    @Override
+    protected ConfigurationContext getConfigurationContext() {
+        return configurationContext;
+    }
+
+    protected SchemaAccessWriter getSchemaAccessWriter() {
+        return schemaAccessWriter;
+    }
+
+    protected List<AllowableValue> getSchemaWriteStrategyValues() {
+        return strategyList;
+    }
+
+    protected SchemaAccessWriter getSchemaWriteStrategy(final String allowableValue) {
+        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
+            return new SchemaNameAsAttribute();
+        } else if (allowableValue.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
+            return new SchemaTextAsAttribute();
+        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+            return new HortonworksEncodedSchemaReferenceWriter();
+        }
+
+        return null;
+    }
+}

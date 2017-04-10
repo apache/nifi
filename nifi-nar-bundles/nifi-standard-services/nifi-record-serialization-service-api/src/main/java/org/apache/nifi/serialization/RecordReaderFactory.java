@@ -23,16 +23,15 @@ import java.io.InputStream;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 
 /**
  * <p>
  * A Controller Service that is responsible for creating a {@link RecordReader}.
  * </p>
  */
-public interface RowRecordReaderFactory extends ControllerService {
+public interface RecordReaderFactory extends ControllerService {
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException;
+    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException;
 
-    RecordSchema getSchema(FlowFile flowFile) throws MalformedRecordException, IOException;
 }
