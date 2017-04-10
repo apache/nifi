@@ -130,13 +130,13 @@ public class EnforceOrder extends AbstractProcessor {
         .required(true)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(true)
-        .defaultValue("1")
+        .defaultValue("0")
         .build();
 
     public static final PropertyDescriptor MAX_ORDER = new PropertyDescriptor.Builder()
         .name("maximum-order")
         .displayName("Maximum Order")
-        .description("If specified, any FlowFiles that has larger order will be routed to failure." +
+        .description("If specified, any FlowFiles that have larger order will be routed to failure." +
                 " This property is computed only once for a given group." +
                 " After a maximum order is computed, it will be persisted in the state management store and used for other FlowFiles belonging to the same group." +
                 " If Expression Language is used but evaluated result was not an integer, then the FlowFile will be routed to failure," +
@@ -260,8 +260,14 @@ public class EnforceOrder extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
+
         final ComponentLog logger = getLogger();
         final Integer batchCount = context.getProperty(BATCH_COUNT).asInteger();
+
+        List<FlowFile> flowFiles = session.get(batchCount);
+        if (flowFiles == null || flowFiles.isEmpty()) {
+            return;
+        }
 
         final StateMap stateMap;
         try {
@@ -276,9 +282,8 @@ public class EnforceOrder extends AbstractProcessor {
 
         oc.groupStates.putAll(stateMap.toMap());
 
-        for (int i = 0; i < batchCount; i++) {
-
-            oc.setFlowFile(session.get());
+        for (FlowFile flowFile : flowFiles) {
+            oc.setFlowFile(flowFile);
             if (oc.flowFile == null) {
                 break;
             }
@@ -291,7 +296,7 @@ public class EnforceOrder extends AbstractProcessor {
             }
 
             // At this point, the flow file is confirmed to be valid.
-            oc.markFlowFileValied();
+            oc.markFlowFileValid();
         }
 
         oc.transferFlowFiles();
@@ -410,7 +415,8 @@ public class EnforceOrder extends AbstractProcessor {
                 final AtomicReference<String> computedInitOrder = new AtomicReference<>();
                 groupStates.computeIfAbsent(stateKeyOrder, k -> {
                     final String initOrderStr = initOrderProperty.evaluateAttributeExpressions(flowFile).getValue();
-                    final int initOrder = Integer.parseInt(initOrderStr);
+                    // Parse it to check if it is a valid integer.
+                    Integer.parseInt(initOrderStr);
                     computedInitOrder.set(initOrderStr);
                     return initOrderStr;
                 });
@@ -429,7 +435,7 @@ public class EnforceOrder extends AbstractProcessor {
             return true;
         }
 
-        private void markFlowFileValied() {
+        private void markFlowFileValid() {
             final List<FlowFile> groupedFlowFiles = flowFileGroups.computeIfAbsent(groupId, k -> new ArrayList<>());
 
             final FlowFile validFlowFile;
@@ -492,7 +498,7 @@ public class EnforceOrder extends AbstractProcessor {
             });
         }
 
-        private FlowFile transferResult(final FlowFile flowFile, final Relationship result, final String detail, final Integer expectedOrder) {
+        private void transferResult(final FlowFile flowFile, final Relationship result, final String detail, final Integer expectedOrder) {
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(ATTR_RESULT, result.getName());
             if (expectedOrder != null) {
@@ -503,7 +509,6 @@ public class EnforceOrder extends AbstractProcessor {
             }
             final FlowFile resultFlowFile = processSession.putAllAttributes(flowFile, attributes);
             processSession.transfer(resultFlowFile, result);
-            return resultFlowFile;
         }
 
         private void transferToFailure(final FlowFile flowFile, final String message) {

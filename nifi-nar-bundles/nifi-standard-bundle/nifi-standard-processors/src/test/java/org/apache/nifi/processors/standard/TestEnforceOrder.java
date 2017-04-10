@@ -102,9 +102,9 @@ public class TestEnforceOrder {
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.assertValid();
-        Ordered.enqueue(runner, "b", 1);
-        Ordered.enqueue(runner, "a", 2);
+        Ordered.enqueue(runner, "b", 0);
         Ordered.enqueue(runner, "a", 1);
+        Ordered.enqueue(runner, "a", 0);
 
         runner.run();
 
@@ -112,9 +112,9 @@ public class TestEnforceOrder {
 
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         succeeded.sort(new FirstInFirstOutPrioritizer());
-        succeeded.get(0).assertContentEquals("a.1");
-        succeeded.get(1).assertContentEquals("a.2");
-        succeeded.get(2).assertContentEquals("b.1");
+        succeeded.get(0).assertContentEquals("a.0");
+        succeeded.get(1).assertContentEquals("a.1");
+        succeeded.get(2).assertContentEquals("b.0");
     }
 
     @Test
@@ -123,6 +123,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.assertValid();
         Ordered.enqueue(runner, "b", 1);
         Ordered.enqueue(runner, "a", 2);
@@ -153,6 +154,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.assertValid();
         Ordered.enqueue(runner, "b", 1);
         Ordered.enqueue(runner, "a", 2);
@@ -179,6 +181,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.assertValid();
         Ordered.enqueue(runner, "b", 1);
         Ordered.enqueue(runner, "a", 2);
@@ -251,6 +254,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${fragment.identifier}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.setProperty(EnforceOrder.MAX_ORDER, "${fragment.count}");
         runner.assertValid();
         runner.enqueue("b.1", Ordered.i(1).put("fragment.identifier", "b").put("fragment.count", "3").map());
@@ -286,6 +290,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.setProperty(EnforceOrder.MAX_ORDER, "10");
         runner.assertValid();
         Ordered.enqueue(runner, "b", 1);
@@ -386,6 +391,7 @@ public class TestEnforceOrder {
 
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
         runner.assertValid();
         Ordered.enqueue(runner, "b", 1);
         Ordered.enqueue(runner, "a", 2);
