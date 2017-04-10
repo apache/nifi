@@ -209,46 +209,33 @@ public class GrokRecordReader implements RecordReader {
         if (fieldType == null) {
             return string;
         }
+
+        if (string == null) {
+            return null;
+        }
+
+        // If string is empty then return an empty string if field type is STRING. If field type is
+        // anything else, we can't really convert it so return null
+        if (string.isEmpty() && fieldType.getFieldType() != RecordFieldType.STRING) {
+            return null;
+        }
+
         switch (fieldType.getFieldType()) {
             case BOOLEAN:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Boolean.parseBoolean(string);
             case BYTE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Byte.parseByte(string);
             case SHORT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Short.parseShort(string);
             case INT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Integer.parseInt(string);
             case LONG:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Long.parseLong(string);
             case FLOAT:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Float.parseFloat(string);
             case DOUBLE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 return Double.parseDouble(string);
             case DATE:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_DATE.parse(string);
                     return new java.sql.Date(date.getTime());
@@ -256,9 +243,6 @@ public class GrokRecordReader implements RecordReader {
                     return null;
                 }
             case TIME:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_TIME.parse(string);
                     return new java.sql.Time(date.getTime());
@@ -266,9 +250,6 @@ public class GrokRecordReader implements RecordReader {
                     return null;
                 }
             case TIMESTAMP:
-                if (string.length() == 0) {
-                    return null;
-                }
                 try {
                     Date date = TIME_FORMAT_TIMESTAMP.parse(string);
                     return new java.sql.Timestamp(date.getTime());

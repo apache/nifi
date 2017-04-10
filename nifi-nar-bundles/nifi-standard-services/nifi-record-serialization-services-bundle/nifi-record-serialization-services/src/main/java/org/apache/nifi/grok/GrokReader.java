@@ -91,7 +91,7 @@ public class GrokReader extends SchemaRegistryRecordReader implements RowRecordR
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
-            grok.addPatternFromFile(context.getProperty(PATTERN_FILE).getValue());
+            grok.addPatternFromFile(context.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue());
         }
 
         grok.compile(context.getProperty(GROK_EXPRESSION).getValue());

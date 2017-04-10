@@ -47,6 +47,7 @@ import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
 
+    private final ComponentLog logger;
     private final LinkedHashMap<String, JsonPath> jsonPaths;
     private final InputStream in;
     private RecordSchema schema;
@@ -66,6 +67,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         this.schema = schema;
         this.jsonPaths = jsonPaths;
         this.in = in;
+        this.logger = logger;
     }
 
     @Override
@@ -100,6 +102,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             try {
                 value = ctx.read(jsonPath);
             } catch (final PathNotFoundException pnfe) {
+                logger.debug("Evaluated JSONPath Expression {} but the path was not found; will use a null value", new Object[] {entry.getValue()});
                 value = null;
             }
 
