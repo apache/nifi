@@ -507,7 +507,15 @@ public class EnforceOrder extends AbstractProcessor {
             if (!isBlank(detail)) {
                 attributes.put(ATTR_DETAIL, detail);
             }
-            final FlowFile resultFlowFile = processSession.putAllAttributes(flowFile, attributes);
+
+            FlowFile resultFlowFile = processSession.putAllAttributes(flowFile, attributes);
+            // Remove
+            if (expectedOrder == null) {
+                resultFlowFile = processSession.removeAttribute(resultFlowFile, ATTR_EXPECTED_ORDER);
+            }
+            if (detail == null) {
+                resultFlowFile = processSession.removeAttribute(resultFlowFile, ATTR_DETAIL);
+            }
             processSession.transfer(resultFlowFile, result);
         }
 

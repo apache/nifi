@@ -439,4 +439,55 @@ public class TestEnforceOrder {
 
     }
 
+    @Test
+    public void testClearOldProperties() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
+
+        runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
+        runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
+        runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
+        runner.assertValid();
+        Ordered.enqueue(runner, "a", 2);
+        Ordered.enqueue(runner, "b", 1);
+
+        runner.run();
+
+        runner.assertTransferCount(EnforceOrder.REL_WAIT, 1);
+        MockFlowFile a2 = runner.getFlowFilesForRelationship(EnforceOrder.REL_WAIT).get(0);
+        a2.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "wait");
+        a2.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
+        a2.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
+        a2.assertAttributeEquals(EnforceOrder.ATTR_EXPECTED_ORDER, "1");
+        a2.assertContentEquals("a.2");
+
+        runner.assertTransferCount(EnforceOrder.REL_SUCCESS, 1);
+        MockFlowFile b1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).get(0);
+        b1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
+        b1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
+        b1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
+        b1.assertAttributeNotExists(EnforceOrder.ATTR_EXPECTED_ORDER);
+        b1.assertContentEquals("b.1");
+
+        runner.clearTransferState();
+
+        Ordered.enqueue(runner, "a", 1);
+        runner.enqueue(a2);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(EnforceOrder.REL_SUCCESS, 2);
+        MockFlowFile a1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).get(0);
+        a1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
+        a1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
+        a1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
+        a1.assertAttributeNotExists(EnforceOrder.ATTR_EXPECTED_ORDER);
+        a1.assertContentEquals("a.1");
+
+        a2 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).get(1);
+        a2.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
+        a2.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
+        a2.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
+        a2.assertAttributeNotExists(EnforceOrder.ATTR_EXPECTED_ORDER); // Should be cleared.
+        a2.assertContentEquals("a.2");
+    }
 }
