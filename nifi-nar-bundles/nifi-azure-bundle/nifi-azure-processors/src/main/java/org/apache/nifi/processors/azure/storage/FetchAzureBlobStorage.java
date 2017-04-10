@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -47,6 +48,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
+@SeeAlso({ ListAzureBlobStorage.class, PutAzureBlobStorage.class })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
     @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
