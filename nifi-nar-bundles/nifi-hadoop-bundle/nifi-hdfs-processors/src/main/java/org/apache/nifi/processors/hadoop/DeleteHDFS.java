@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hadoop;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,33 +38,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem", "restricted" })
-@CapabilityDescription("Deletes a file from HDFS. The file can be provided as an attribute from an incoming FlowFile, "
-        + "or a statically set file that is periodically removed. If this processor has an incoming connection, it"
+@Tags({"hadoop", "HDFS", "delete", "remove", "filesystem", "restricted"})
+@CapabilityDescription("Deletes one or more files or directories from HDFS. The path can be provided as an attribute from an incoming FlowFile, "
+        + "or a statically set path that is periodically removed. If this processor has an incoming connection, it"
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "
-        + "Optionally, you may specify use a wildcard character to match multiple files or directories.")
+        + "Note that you may use a wildcard character to match multiple files or directories. If there are"
+        + " no incoming connections no flowfiles will be transfered to any output relationships.  If there is an incoming"
+        + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
+        + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 @Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+@SeeAlso({ListHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("FlowFiles will be routed here if the delete command was successful")
+            .description("When an incoming flowfile is used then if there are no errors invoking delete the flowfile will route here.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("FlowFiles will be routed here if the delete command was unsuccessful")
+            .description("When an incoming flowfile is used and there is a failure while deleting then the flowfile will route here.")
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
             .name("file_or_directory")
-            .displayName("File or Directory")
+            .displayName("Path")
             .description("The HDFS file or directory to delete. A wildcard expression may be used to only delete certain files")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -109,20 +113,20 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        String fileOrDirectoryName = null;
-        FlowFile flowFile = session.get();
+        final FlowFile originalFlowFile = session.get();
 
         // If this processor has an incoming connection, then do not run unless a
         // FlowFile is actually sent through
-        if (flowFile == null && context.hasIncomingConnection()) {
+        if (originalFlowFile == null && context.hasIncomingConnection()) {
             context.yield();
             return;
         }
 
-        if (flowFile != null) {
-            fileOrDirectoryName = context.getProperty(FILE_OR_DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        } else {
+        final String fileOrDirectoryName;
+        if (originalFlowFile == null) {
             fileOrDirectoryName = context.getProperty(FILE_OR_DIRECTORY).evaluateAttributeExpressions().getValue();
+        } else {
+            fileOrDirectoryName = context.getProperty(FILE_OR_DIRECTORY).evaluateAttributeExpressions(originalFlowFile).getValue();
         }
 
         final FileSystem fileSystem = getFileSystem();
@@ -140,30 +144,21 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                 pathList.add(new Path(fileOrDirectoryName));
             }
 
-            Map<String, String> attributes = Maps.newHashMapWithExpectedSize(2);
             for (Path path : pathList) {
-                attributes.put("filename", path.getName());
-                attributes.put("path", path.getParent().toString());
                 if (fileSystem.exists(path)) {
                     fileSystem.delete(path, context.getProperty(RECURSIVE).asBoolean());
-                    if (!context.hasIncomingConnection()) {
-                        flowFile = session.create();
-                    }
-                    session.transfer(session.putAllAttributes(flowFile, attributes), REL_SUCCESS);
-                } else {
-                    getLogger().warn("File (" + path + ") does not exist");
-                    if (!context.hasIncomingConnection()) {
-                        flowFile = session.create();
-                    }
-                    session.transfer(session.putAllAttributes(flowFile, attributes), REL_FAILURE);
+                    getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
                 }
             }
+            if (originalFlowFile != null) {
+                session.transfer(originalFlowFile, DeleteHDFS.REL_SUCCESS);
+            }
         } catch (IOException e) {
-            getLogger().warn("Error processing delete for file or directory", e);
-            if (flowFile != null) {
-                session.rollback(true);
+            if (originalFlowFile != null) {
+                getLogger().error("Error processing delete for flowfile {} due to {}", new Object[]{originalFlowFile, e.getMessage()}, e);
+                session.transfer(originalFlowFile, DeleteHDFS.REL_FAILURE);
             }
         }
-    }
 
+    }
 }

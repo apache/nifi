@@ -31,9 +31,8 @@ import java.nio.file.Paths;
 public class TestExtractGrok {
 
     private TestRunner testRunner;
-    final static Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
-    final static Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
-
+    private final static Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
+    private final static Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
 
     @Before
     public void init() {
@@ -42,8 +41,6 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokWithMatchedContent() throws IOException {
-
-
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);
@@ -59,13 +56,10 @@ public class TestExtractGrok {
         matched.assertAttributeEquals("grok.timestamp","07/Mar/2004:16:05:49 -0800");
         matched.assertAttributeEquals("grok.request","/twiki/bin/edit/Main/Double_bounce_sender?topicparent=Main.ConfigurationVariables");
         matched.assertAttributeEquals("grok.httpversion","1.1");
-
     }
 
     @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
-
-
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{ADDRESS}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_TEXT_INPUT);
@@ -73,29 +67,23 @@ public class TestExtractGrok {
         testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_NO_MATCH);
         final MockFlowFile notMatched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_NO_MATCH).get(0);
         notMatched.assertContentEquals(GROK_TEXT_INPUT);
-
     }
 
     @Test
     public void testExtractGrokWithNotFoundPatternFile() throws IOException {
-
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/toto_file");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.assertNotValid();
-
     }
 
 
     @Test
     public void testExtractGrokWithBadGrokExpression() throws IOException {
-
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{TOTO");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.assertNotValid();
-
-
     }
 
 }

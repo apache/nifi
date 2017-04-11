@@ -18,24 +18,16 @@
 package org.apache.nifi.provenance.index.lucene;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.provenance.util.DirectoryUtils;
 
 public class IndexLocation {
-    private static final long SIZE_CHECK_MILLIS = TimeUnit.SECONDS.toMillis(30L);
-
     private final File indexDirectory;
     private final long indexStartTimestamp;
     private final String partitionName;
-    private final long desiredIndexSize;
-    private volatile long lastSizeCheckTime = System.currentTimeMillis();
 
-    public IndexLocation(final File indexDirectory, final long indexStartTimestamp, final String partitionName, final long desiredIndexSize) {
+    public IndexLocation(final File indexDirectory, final long indexStartTimestamp, final String partitionName) {
         this.indexDirectory = indexDirectory;
         this.indexStartTimestamp = indexStartTimestamp;
         this.partitionName = partitionName;
-        this.desiredIndexSize = desiredIndexSize;
     }
 
     public File getIndexDirectory() {
@@ -48,17 +40,6 @@ public class IndexLocation {
 
     public String getPartitionName() {
         return partitionName;
-    }
-
-    public boolean isIndexFull() {
-        final long now = System.currentTimeMillis();
-        final long millisSinceLastSizeCheck = now - lastSizeCheckTime;
-        if (millisSinceLastSizeCheck < SIZE_CHECK_MILLIS) {
-            return false;
-        }
-
-        lastSizeCheckTime = now;
-        return DirectoryUtils.getSize(indexDirectory) >= desiredIndexSize;
     }
 
     @Override
