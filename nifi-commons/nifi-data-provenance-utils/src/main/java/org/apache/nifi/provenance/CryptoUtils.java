@@ -17,6 +17,7 @@
 package org.apache.nifi.provenance;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -25,11 +26,15 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.crypto.Cipher;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
     private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
+    private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.StaticKeyProvider";
+    private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.FileBasedKeyProvider";
+    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
 
     public static boolean isUnlimitedStrengthCryptoAvailable() {
         try {
@@ -159,5 +164,47 @@ public class CryptoUtils {
             boas.write(arr);
         }
         return boas.toByteArray();
+    }
+
+    public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, String encryptionKeyHex) {
+        if (STATIC_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
+            // Ensure the keyId and key are valid
+            return keyIsValid(encryptionKeyHex) && StringUtils.isNotEmpty(keyId);
+        } else if (FILE_BASED_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
+            // Ensure the file can be read and the keyId is populated (does not read file to validate)
+            final File kpf = new File(keyProviderLocation);
+            return kpf.exists() && kpf.canRead() && StringUtils.isNotEmpty(keyId);
+        } else {
+            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
+                    + keyProviderImplementation + " , keyProviderLocation = "
+                    + keyProviderLocation + " , keyId = "
+                    + keyId + " , encryptedKeyHex = "
+                    + (StringUtils.isNotEmpty(encryptionKeyHex) ? "********" : ""));
+
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the provided key is valid hex and is the correct length for the current system's JCE policies.
+     *
+     * @param encryptionKeyHex the key in hexadecimal
+     * @return true if this key is valid
+     */
+    public static boolean keyIsValid(String encryptionKeyHex) {
+        return isHexString(encryptionKeyHex)
+                && (isUnlimitedStrengthCryptoAvailable()
+                ? Arrays.asList(32, 48, 64).contains(encryptionKeyHex.length())
+                : encryptionKeyHex.length() == 32);
+    }
+
+    /**
+     * Returns true if the input is valid hexadecimal (does not enforce length and is case-insensitive).
+     *
+     * @param hexString the string to evaluate
+     * @return true if the string is valid hex
+     */
+    public static boolean isHexString(String hexString) {
+        return StringUtils.isNotEmpty(hexString) && HEX_PATTERN.matcher(hexString).matches();
     }
 }

@@ -16,7 +16,37 @@
  */
 package org.apache.nifi.controller;
 
+import static java.util.Objects.requireNonNull;
+
 import com.sun.jersey.api.client.ClientHandlerException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -85,7 +115,6 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.QueueProvider;
-import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
@@ -215,37 +244,6 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider,
     QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider, IdentifierLookup, ReloadComponent {
@@ -862,8 +860,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new RuntimeException("Cannot create Provenance Repository because the NiFi Properties is missing the following property: "
                     + NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         }
-
-        // TODO: If selected PR is encrypted, use the decorator
 
         try {
             return NarThreadContextClassLoader.createInstance(implementationClassName, ProvenanceRepository.class, properties);
@@ -3835,7 +3831,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProvenanceEventRecord sendEvent = new StandardProvenanceEventRecord.Builder()
                 .setEventType(ProvenanceEventType.DOWNLOAD)
                 .setFlowFileUUID(provEvent.getFlowFileUuid())
-                .setAttributes(provEvent.getAttributes(), Collections.<String, String>emptyMap())
+                .setAttributes(provEvent.getAttributes(), Collections.emptyMap())
                 .setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), offset, size)
                 .setTransitUri(requestUri)
                 .setEventTime(System.currentTimeMillis())
@@ -3877,7 +3873,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final StandardProvenanceEventRecord.Builder sendEventBuilder = new StandardProvenanceEventRecord.Builder()
                 .setEventType(ProvenanceEventType.DOWNLOAD)
                 .setFlowFileUUID(flowFile.getAttribute(CoreAttributes.UUID.key()))
-                .setAttributes(flowFile.getAttributes(), Collections.<String, String>emptyMap())
+                .setAttributes(flowFile.getAttributes(), Collections.emptyMap())
                 .setTransitUri(requestUri)
                 .setEventTime(System.currentTimeMillis())
                 .setFlowFileEntryDate(flowFile.getEntryDate())
@@ -4056,7 +4052,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 .addChildUuid(newFlowFileUUID)
                 .addParentUuid(parentUUID)
                 .setFlowFileUUID(parentUUID)
-                .setAttributes(Collections.<String, String>emptyMap(), flowFileRecord.getAttributes())
+                .setAttributes(Collections.emptyMap(), flowFileRecord.getAttributes())
                 .setCurrentContentClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
                 .setDetails("Replay requested by " + user.getIdentity())
                 .setEventTime(System.currentTimeMillis())
@@ -4071,7 +4067,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
         record.setWorking(flowFileRecord);
         record.setDestination(queue);
-        flowFileRepository.updateRepository(Collections.<RepositoryRecord>singleton(record));
+        flowFileRepository.updateRepository(Collections.singleton(record));
 
         // Enqueue the data
         queue.put(flowFileRecord);

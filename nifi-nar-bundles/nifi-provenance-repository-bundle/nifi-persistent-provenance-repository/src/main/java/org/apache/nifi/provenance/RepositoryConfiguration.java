@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.util.FormatUtils;
@@ -52,6 +51,10 @@ public class RepositoryConfiguration {
     private int maxAttributeChars = 65536;
 
     // TODO: Add encrypted boolean and keyId/provider/algorithm?
+    private String encryptionKeyHex;
+    private String keyId;
+    private String keyProviderImplementation;
+    private String keyProviderLocation;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
@@ -360,6 +363,44 @@ public class RepositoryConfiguration {
 
     public Optional<Integer> getWarmCacheFrequencyMinutes() {
         return Optional.ofNullable(warmCacheFrequencyMinutes);
+    }
+
+    public boolean supportsEncryption() {
+        boolean keyProviderIsConfigured = CryptoUtils.isValidKeyProvider(keyProviderImplementation, keyProviderLocation, keyId, encryptionKeyHex);
+
+        return keyProviderIsConfigured;
+    }
+
+    public String getEncryptionKeyHex() {
+        return encryptionKeyHex;
+    }
+
+    public void setEncryptionKeyHex(String encryptionKeyHex) {
+        this.encryptionKeyHex = encryptionKeyHex;
+    }
+
+    public String getKeyId() {
+        return keyId;
+    }
+
+    public void setKeyId(String keyId) {
+        this.keyId = keyId;
+    }
+
+    public String getKeyProviderImplementation() {
+        return keyProviderImplementation;
+    }
+
+    public void setKeyProviderImplementation(String keyProviderImplementation) {
+        this.keyProviderImplementation = keyProviderImplementation;
+    }
+
+    public String getKeyProviderLocation() {
+        return keyProviderLocation;
+    }
+
+    public void setKeyProviderLocation(String keyProviderLocation) {
+        this.keyProviderLocation = keyProviderLocation;
     }
 
     public static RepositoryConfiguration create(final NiFiProperties nifiProperties) {

@@ -116,6 +116,7 @@ public abstract class NiFiProperties {
     public static final String PROVENANCE_INDEXED_ATTRIBUTES = "nifi.provenance.repository.indexed.attributes";
     public static final String PROVENANCE_INDEX_SHARD_SIZE = "nifi.provenance.repository.index.shard.size";
     public static final String PROVENANCE_JOURNAL_COUNT = "nifi.provenance.repository.journal.count";
+    public static final String PROVENANCE_REPO_ENCRYPTION_KEY = "nifi.provenance.repository.encryption.key";
 
     // component status repository properties
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
@@ -769,7 +770,7 @@ public abstract class NiFiProperties {
     /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
-     *
+     * <p>
      * - login identity provider is not populated
      * - Kerberos service support is not enabled
      *
@@ -1042,11 +1043,11 @@ public abstract class NiFiProperties {
      * file specified cannot be found/read a runtime exception will be thrown.
      * If one is not specified no properties will be loaded by default.
      *
-     * @param propertiesFilePath if provided properties will be loaded from
-     * given file; else will be loaded from System property. Can be null.
+     * @param propertiesFilePath   if provided properties will be loaded from
+     *                             given file; else will be loaded from System property. Can be null.
      * @param additionalProperties allows overriding of properties with the
-     * supplied values. these will be applied after loading from any properties
-     * file. Can be null or empty.
+     *                             supplied values. these will be applied after loading from any properties
+     *                             file. Can be null or empty.
      * @return NiFiProperties
      */
     public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Map<String, String> additionalProperties) {
@@ -1108,7 +1109,7 @@ public abstract class NiFiProperties {
     public void validate() {
         // REMOTE_INPUT_HOST should be a valid hostname
         String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
-        if(!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
+        if (!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
             throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
         }
         // Other properties to validate...
