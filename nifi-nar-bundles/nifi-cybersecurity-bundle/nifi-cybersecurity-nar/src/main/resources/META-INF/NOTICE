@@ -1,0 +1,34 @@
+nifi-cybersecurity-nar
+Copyright 2015-2017 The Apache Software Foundation
+
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) tlsh
+     The following NOTICE information applies:
+       Java port of Trend Locality Sensitive Hash (TLSH)
+       Copyright 2000-2016 Idealista, S.A
+
+       This product includes software developed at
+       Idealista, S.A (http://www.idealista.com/)
+
+       Based on the algorithms described in Trend Micro's TLSH official
+       repository, available in:
+
+         https://github.com/trendmicro/tlsh
+
+       Refer to the following publication for more information:
+
+         Jonathan Oliver, Chun Cheng and Yanggui Chen, “TLSH - A Locality
+         Sensitive Hash” - 4th Cybercrime and Trustworthy Computing Workshop,
+         Sydney, November 2013
+
+         https://drive.google.com/file/d/0B6FS3SVQ1i0GTXk5eDl3Y29QWlk/edit?usp=sharing
+
+       This software is inspired in the previous Java port developed by TripleCheck:
+
+         https://github.com/triplecheck/TLSH
