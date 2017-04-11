@@ -757,6 +757,34 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Copyright 2008 Google Inc.
 
+  (ASLv2) Google OAuth Client Library
+    The following NOTICE information applies:
+      Copyright 2012 Google Inc.
+
+  (ASLv2) Google HTTP Client Library for Java
+    The following NOTICE information applies:
+      Copyright 2011 Google Inc.
+
+  (ASLv2) Google Guice
+    The following NOTICE information applies:
+      Google Guice - Core Library
+      Copyright 2006-2011 Google, Inc.
+
+  (ASLv2) Google Cloud Client Library for Java
+    The following NOTICE information applies:
+      Google Cloud Client Library for Java
+      Copyright 2016 Google Inc. All Rights Reserved.
+
+  (ASLv2) Guava
+    The following NOTICE information applies:
+      Guava
+      Copyright 2015 The Guava Authors
+
+  (ASLv2) Apache Commons FileUpload
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2014 The Apache Software Foundation
+
   (ASLv2) JSON-SMART
     The following NOTICE information applies:
       Copyright 2011 JSON-SMART authors
@@ -1183,11 +1211,6 @@ The derived work is adapted from
   release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
 and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
-  (ASLv2) Google Cloud Java Client
-    The following NOTICE information applies:
-      Google Cloud Java Client
-      Copyright Google Inc. All Rights Reserved.
-
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -1239,6 +1262,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
     (CDDL 1.0) JHighlight (org.codelibs:jhighlight:1.0.2 - https://github.com/codelibs/jhighlight)
+    (CDDL 1.0) Javax Transaction API (javax.transaction:transaction-api:jar:1.1 - no url available)
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0
