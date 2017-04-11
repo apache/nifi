@@ -1,0 +1,47 @@
+{
+  "namespace": "nifi",
+  "name": "data_types",
+  "type": "record",
+  "fields": [
+    {
+      "name": "string",
+      "type": "string"
+    }, {
+      "name": "int",
+      "type": "int"
+    }, {
+      "name": "long",
+      "type": "long"
+    }, {
+      "name": "double",
+      "type": "double"
+    }, {
+      "name": "float",
+      "type": "float"
+    }, {
+      "name": "boolean",
+      "type": "boolean"
+    }, {
+      "name": "bytes",
+      "type": "bytes"
+    }, {
+      "name": "nullOrLong",
+      "type": [ "null", "long" ]
+    }, {
+      "name": "array",
+      "type" : {
+      	"type": "array",
+      	"items": "int"
+      }
+    }, {
+      "name": "record",
+      "type": {
+	      "type": "record",
+	      "name": "subRecord",
+	      "fields": [
+	      	 { "name": "field1", "type": "string" }
+	      ]
+      }
+    }
+ ]
+}
