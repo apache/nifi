@@ -51,7 +51,8 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     private final AllowableValue headerDerivedAllowableValue = new AllowableValue("csv-header-derived", "Use String Fields From Header",
         "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the "
             + "column names in the header and assuming that all columns are of type String.");
-    private final SchemaAccessStrategy headerDerivedSchemaStrategy = new CSVHeaderSchemaStrategy();
+
+    private volatile SchemaAccessStrategy headerDerivedSchemaStrategy;
 
     private volatile CSVFormat csvFormat;
     private volatile String dateFormat;
@@ -96,12 +97,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
         if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
-            return headerDerivedSchemaStrategy;
+            return new CSVHeaderSchemaStrategy(context);
         }
 
-        return super.getSchemaAccessStrategy(allowableValue, schemaRegistry);
+        return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
     }
 
     @Override
