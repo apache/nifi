@@ -168,7 +168,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                         attributes.put("path", path.getParent().toString());
                         attributes.put("error.message", ioe.getMessage());      //Helpful in understanding at a flowfile level which ACL is denying the operation.
 
-                        session.transfer(session.putAllAttributes(originalFlowFile, attributes), REL_PERMISSION_DENIED);
+                        session.transfer(session.putAllAttributes(session.clone(originalFlowFile), attributes), REL_PERMISSION_DENIED);
                     }
                 }
             }
