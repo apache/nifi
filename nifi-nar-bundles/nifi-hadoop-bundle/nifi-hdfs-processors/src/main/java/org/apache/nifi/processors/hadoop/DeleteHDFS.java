@@ -32,6 +32,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -57,8 +59,17 @@ import com.google.common.collect.Maps;
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 @Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+@WritesAttributes({
+        @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted"),
+        @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request"),
+        @WritesAttribute(attribute="hdfs.error.code", description="HDFS error code useful for understanding failure scenarios"),
+        @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
+})
 @SeeAlso({ListHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
+
+    //All valid or expected error codes for "hdfs.error.code" placed here
+    private static final String PERMISSION_ERROR_CODE = "PERMISSIONS";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -68,11 +79,6 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("When an incoming flowfile is used and there is a failure while deleting then the flowfile will route here.")
-            .build();
-
-    public static final Relationship REL_PERMISSION_DENIED = new Relationship.Builder()
-            .name("permission.denied")
-            .description("FlowFiles will be routed here if deleting the file specified from HDFS fails specifically because of permission issues")
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
@@ -103,7 +109,6 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         final Set<Relationship> relationshipSet = new HashSet<>();
         relationshipSet.add(REL_SUCCESS);
         relationshipSet.add(REL_FAILURE);
-        relationshipSet.add(REL_PERMISSION_DENIED);
         relationships = Collections.unmodifiableSet(relationshipSet);
     }
 
@@ -163,12 +168,13 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                         // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
                         getLogger().warn("Failed to delete file or directory", ioe);
 
-                        Map<String, String> attributes = Maps.newHashMapWithExpectedSize(3);
-                        attributes.put("filename", path.getName());
-                        attributes.put("path", path.getParent().toString());
-                        attributes.put("error.message", ioe.getMessage());      //Helpful in understanding at a flowfile level which ACL is denying the operation.
+                        Map<String, String> attributes = Maps.newHashMapWithExpectedSize(4);
+                        attributes.put("hdfs.filename", path.getName());
+                        attributes.put("hdfs.path", path.getParent().toString());
+                        attributes.put("hdfs.error.code", PERMISSION_ERROR_CODE);
+                        attributes.put("hdfs.error.message", ioe.getMessage());      //Helpful in understanding at a flowfile level which ACL is denying the operation.
 
-                        session.transfer(session.putAllAttributes(session.clone(originalFlowFile), attributes), REL_PERMISSION_DENIED);
+                        session.transfer(session.putAllAttributes(session.clone(originalFlowFile), attributes), REL_FAILURE);
                     }
                 }
             }
