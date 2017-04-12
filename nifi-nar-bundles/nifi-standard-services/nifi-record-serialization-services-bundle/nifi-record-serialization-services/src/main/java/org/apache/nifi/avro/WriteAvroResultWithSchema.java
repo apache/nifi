@@ -51,7 +51,7 @@ public class WriteAvroResultWithSchema extends WriteAvroResult {
             dataFileWriter.create(schema, outStream);
 
             do {
-                final GenericRecord rec = createAvroRecord(record, schema);
+                final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
                 dataFileWriter.append(rec);
                 nrOfRows++;
             } while ((record = rs.next()) != null);

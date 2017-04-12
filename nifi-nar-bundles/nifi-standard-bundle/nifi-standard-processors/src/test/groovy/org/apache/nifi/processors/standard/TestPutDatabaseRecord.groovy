@@ -18,8 +18,8 @@ package org.apache.nifi.processors.standard
 
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
-import org.apache.nifi.processors.standard.util.record.MockRecordParser
 import org.apache.nifi.reporting.InitializationException
+import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema

@@ -176,7 +176,8 @@ public class CSVUtils {
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
 
-        if (context.getProperty(SKIP_HEADER_LINE).asBoolean()) {
+        final PropertyValue skipHeaderPropertyValue = context.getProperty(SKIP_HEADER_LINE);
+        if (skipHeaderPropertyValue.getValue() != null && skipHeaderPropertyValue.asBoolean()) {
             format = format.withFirstRecordAsHeader();
         }
 

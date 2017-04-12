@@ -178,13 +178,13 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
         if (allowableValue.equalsIgnoreCase(STRING_FIELDS_FROM_GROK_EXPRESSION.getValue())) {
             return new SchemaAccessStrategy() {
                 private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
                 @Override
-                public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final ConfigurationContext context) throws SchemaNotFoundException {
+                public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
                     return recordSchema;
                 }
 
@@ -194,7 +194,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                 }
             };
         } else {
-            return super.getSchemaAccessStrategy(allowableValue, schemaRegistry);
+            return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
         }
     }
 

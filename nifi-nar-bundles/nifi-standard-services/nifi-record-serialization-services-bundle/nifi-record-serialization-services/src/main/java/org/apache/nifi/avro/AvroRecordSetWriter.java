@@ -33,6 +33,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -60,7 +61,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(SCHEMA_ACCESS_STRATEGY);
+        properties.add(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY);
         properties.add(SCHEMA_REGISTRY);
         return properties;
     }

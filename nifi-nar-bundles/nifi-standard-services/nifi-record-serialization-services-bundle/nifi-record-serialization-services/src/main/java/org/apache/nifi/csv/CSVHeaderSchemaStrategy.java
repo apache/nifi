@@ -41,8 +41,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
+    private final ConfigurationContext context;
+
+    public CSVHeaderSchemaStrategy(final ConfigurationContext context) {
+        this.context = context;
+    }
+
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final ConfigurationContext context) throws SchemaNotFoundException {
+    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
         try {
             final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader();
             try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));
