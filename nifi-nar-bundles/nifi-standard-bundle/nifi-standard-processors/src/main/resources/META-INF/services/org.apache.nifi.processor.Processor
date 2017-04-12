@@ -88,6 +88,7 @@ org.apache.nifi.processors.standard.ScanContent
 org.apache.nifi.processors.standard.SegmentContent
 org.apache.nifi.processors.standard.SplitContent
 org.apache.nifi.processors.standard.SplitJson
+org.apache.nifi.processors.standard.SplitRecord
 org.apache.nifi.processors.standard.SplitText
 org.apache.nifi.processors.standard.SplitXml
 org.apache.nifi.processors.standard.TailFile

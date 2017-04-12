@@ -96,7 +96,28 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
 
             @Override
             public WriteResult write(Record record, OutputStream out) throws IOException {
-                return null;
+                out.write(header.getBytes());
+                out.write("\n".getBytes());
+
+                final int numCols = record.getSchema().getFieldCount();
+                int i = 0;
+                for (final String fieldName : record.getSchema().getFieldNames()) {
+                    final String val = record.getAsString(fieldName);
+                    if (quoteValues) {
+                        out.write("\"".getBytes());
+                        out.write(val.getBytes());
+                        out.write("\"".getBytes());
+                    } else {
+                        out.write(val.getBytes());
+                    }
+
+                    if (i++ < numCols - 1) {
+                        out.write(",".getBytes());
+                    }
+                }
+                out.write("\n".getBytes());
+
+                return WriteResult.of(1, Collections.emptyMap());
             }
         };
     }
