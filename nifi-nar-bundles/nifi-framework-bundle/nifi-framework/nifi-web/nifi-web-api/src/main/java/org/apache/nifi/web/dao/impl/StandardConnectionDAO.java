@@ -287,14 +287,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (ConnectableType.REMOTE_OUTPUT_PORT.name().equals(sourceConnectableDTO.getType())) {
             final ProcessGroup sourceParentGroup = locateProcessGroup(flowController, groupId);
             final RemoteProcessGroup remoteProcessGroup = sourceParentGroup.getRemoteProcessGroup(sourceConnectableDTO.getGroupId());
-            final RemoteGroupPort remoteOutputPort = remoteProcessGroup.getOutputPort(sourceConnectableDTO.getId());
-
-            // ensure the remote port actually exists
-            if (!remoteOutputPort.getTargetExists()) {
-                throw new IllegalArgumentException("The specified remote output port does not exist.");
-            } else {
-                source = remoteOutputPort;
-            }
+            source = remoteProcessGroup.getOutputPort(sourceConnectableDTO.getId());
         } else {
             final ProcessGroup sourceGroup = locateProcessGroup(flowController, sourceConnectableDTO.getGroupId());
             source = sourceGroup.getConnectable(sourceConnectableDTO.getId());
@@ -305,19 +298,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationConnectableDTO.getType())) {
             final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, groupId);
             final RemoteProcessGroup remoteProcessGroup = destinationParentGroup.getRemoteProcessGroup(destinationConnectableDTO.getGroupId());
-
-            if (remoteProcessGroup == null) {
-                throw new IllegalArgumentException("Unable to find the specified remote process group.");
-            }
-
-            final RemoteGroupPort remoteInputPort = remoteProcessGroup.getInputPort(destinationConnectableDTO.getId());
-
-            // ensure the remote port actually exists
-            if (!remoteInputPort.getTargetExists()) {
-                throw new IllegalArgumentException("The specified remote input port does not exist.");
-            } else {
-                destination = remoteInputPort;
-            }
+            destination = remoteProcessGroup.getInputPort(destinationConnectableDTO.getId());
         } else {
             final ProcessGroup destinationGroup = locateProcessGroup(flowController, destinationConnectableDTO.getGroupId());
             destination = destinationGroup.getConnectable(destinationConnectableDTO.getId());
@@ -391,27 +372,45 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             throw new IllegalArgumentException("Cannot create connection without specifying destination");
         }
 
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-
         if (ConnectableType.REMOTE_OUTPUT_PORT.name().equals(sourceDto.getType())) {
-            final Connectable sourceConnectable = rootGroup.findRemoteGroupPort(sourceDto.getId());
+            final ProcessGroup sourceParentGroup = locateProcessGroup(flowController, groupId);
+
+            final RemoteProcessGroup remoteProcessGroup = sourceParentGroup.getRemoteProcessGroup(sourceDto.getGroupId());
+            if (remoteProcessGroup == null) {
+                throw new IllegalArgumentException("Unable to find the specified remote process group.");
+            }
+
+            final RemoteGroupPort sourceConnectable = remoteProcessGroup.getOutputPort(sourceDto.getId());
             if (sourceConnectable == null) {
                 throw new IllegalArgumentException("The specified source for the connection does not exist");
+            } else if (!sourceConnectable.getTargetExists()) {
+                throw new IllegalArgumentException("The specified remote output port does not exist.");
             }
         } else {
-            final Connectable sourceConnectable = rootGroup.findLocalConnectable(sourceDto.getId());
+            final ProcessGroup sourceGroup = locateProcessGroup(flowController, sourceDto.getGroupId());
+            final Connectable sourceConnectable = sourceGroup.getConnectable(sourceDto.getId());
             if (sourceConnectable == null) {
                 throw new IllegalArgumentException("The specified source for the connection does not exist");
             }
         }
 
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationDto.getType())) {
-            final Connectable destinationConnectable = rootGroup.findRemoteGroupPort(destinationDto.getId());
+            final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, groupId);
+
+            final RemoteProcessGroup remoteProcessGroup = destinationParentGroup.getRemoteProcessGroup(destinationDto.getGroupId());
+            if (remoteProcessGroup == null) {
+                throw new IllegalArgumentException("Unable to find the specified remote process group.");
+            }
+
+            final RemoteGroupPort destinationConnectable = remoteProcessGroup.getInputPort(destinationDto.getId());
             if (destinationConnectable == null) {
                 throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            } else if (!destinationConnectable.getTargetExists()) {
+                throw new IllegalArgumentException("The specified remote input port does not exist.");
             }
         } else {
-            final Connectable destinationConnectable = rootGroup.findLocalConnectable(destinationDto.getId());
+            final ProcessGroup destinationGroup = locateProcessGroup(flowController, destinationDto.getGroupId());
+            final Connectable destinationConnectable = destinationGroup.getConnectable(destinationDto.getId());
             if (destinationConnectable == null) {
                 throw new IllegalArgumentException("The specified destination for the connection does not exist");
             }
