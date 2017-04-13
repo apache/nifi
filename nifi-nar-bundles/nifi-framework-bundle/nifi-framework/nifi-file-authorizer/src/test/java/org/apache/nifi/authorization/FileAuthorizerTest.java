@@ -355,8 +355,8 @@ public class FileAuthorizerTest {
         assertEquals(3, user6Policies.size());
 
         assertTrue(user6Policies.containsKey(ResourceType.SiteToSite.getValue()));
-        assertEquals(2, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
-        assertTrue(user6Policies.get(ResourceType.SiteToSite.getValue()).contains(RequestAction.WRITE));
+        assertEquals(1, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
+        assertTrue(user6Policies.get(ResourceType.SiteToSite.getValue()).contains(RequestAction.READ));
 
         final Resource inputPortResource = ResourceFactory.getDataTransferResource(
                 ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
