@@ -71,8 +71,8 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
     public static final String AWS_KINESIS_FIREHOSE_RECORD_ID = "aws.kinesis.firehose.record.id";
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                  PROXY_HOST,PROXY_HOST_PORT));
+            Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    ALLOW_ANONYMOUS_CREDENTIALS, TIMEOUT, PROXY_HOST,PROXY_HOST_PORT));
 
     /**
      * Max buffer size 1 MB

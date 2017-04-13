@@ -110,7 +110,7 @@ public class ListS3 extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
-                    AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
+                    AWS_CREDENTIALS_PROVIDER_SERVICE, ALLOW_ANONYMOUS_CREDENTIALS, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
                     SIGNER_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX, USE_VERSIONS));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
