@@ -217,7 +217,7 @@ public class JoltTransformJSON extends AbstractProcessor {
                             .build());
                 } else {
                     //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
-                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{}","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
 
                     if (CUSTOMR.getValue().equals(transform)) {
                         if (StringUtils.isEmpty(customTransform)) {
