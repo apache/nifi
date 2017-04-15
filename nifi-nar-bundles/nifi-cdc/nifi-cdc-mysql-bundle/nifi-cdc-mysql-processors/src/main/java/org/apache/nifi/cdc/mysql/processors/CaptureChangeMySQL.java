@@ -128,7 +128,7 @@ import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
         @WritesAttribute(attribute = "cdc.sequence.id", description = "A sequence identifier (i.e. strictly increasing integer value) specifying the order "
                 + "of the CDC event flow file relative to the other event flow file(s)."),
         @WritesAttribute(attribute = "cdc.event.type", description = "A string indicating the type of CDC event that occurred, including (but not limited to) "
-                + "'begin', 'write', 'update', 'delete', 'schema_change' and 'commit'."),
+                + "'begin', 'insert', 'update', 'delete', 'schema_change' and 'commit'."),
         @WritesAttribute(attribute = "mime.type", description = "The processor outputs flow file content in JSON format, and sets the mime.type attribute to "
                 + "application/json")
 })
