@@ -18,14 +18,14 @@ package org.apache.nifi.cdc.event;
 
 
 /**
- * An interface representing a data structure containing event information, and serialization/deserlization methods.
+ * An interface representing a data structure containing event information, and serialization/deserialization methods.
  */
 public interface EventInfo {
 
     // Event type constants
     String BEGIN_EVENT = "begin";
     String COMMIT_EVENT = "commit";
-    String WRITE_EVENT = "write";
+    String INSERT_EVENT = "insert";
     String DELETE_EVENT = "delete";
     String UPDATE_EVENT = "update";
     String SCHEMA_CHANGE = "schema_change";
