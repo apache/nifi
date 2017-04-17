@@ -663,8 +663,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
      * @param <S> type of record held in the partitions
      */
     private static class Partition<S> {
-
         public static final String JOURNAL_EXTENSION = ".journal";
+        private static final int NUL_BYTE = 0;
         private static final Pattern JOURNAL_FILENAME_PATTERN = Pattern.compile("\\d+\\.journal");
 
         private final SerDeFactory<S> serdeFactory;
@@ -1013,11 +1013,43 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     transactionId = recoveryIn.readLong();
                 } catch (final EOFException e) {
                     continue;
+                } catch (final Exception e) {
+                    // If the stream consists solely of NUL bytes, then we want to treat it
+                    // the same as an EOF because we see this happen when we suddenly lose power
+                    // while writing to a file.
+                    if (remainingBytesAllNul(recoveryIn)) {
+                        logger.warn("Failed to recover data from Write-Ahead Log Partition because encountered trailing NUL bytes. "
+                            + "This will sometimes happen after a sudden power loss. The rest of this journal file will be skipped for recovery purposes.");
+                        continue;
+                    } else {
+                        throw e;
+                    }
                 }
 
                 this.maxTransactionId.set(transactionId);
                 return transactionId;
             }
+        }
+
+        /**
+         * In the case of a sudden power loss, it is common - at least in a Linux journaling File System -
+         * that the partition file that is being written to will have many trailing "NUL bytes" (0's).
+         * If this happens, then on restart we want to treat this as an incomplete transaction, so we detect
+         * this case explicitly.
+         *
+         * @param in the input stream to scan
+         * @return <code>true</code> if the InputStream contains no data or contains only NUL bytes
+         * @throws IOException if unable to read from the given InputStream
+         */
+        private boolean remainingBytesAllNul(final InputStream in) throws IOException {
+            int nextByte;
+            while ((nextByte = in.read()) != -1) {
+                if (nextByte != NUL_BYTE) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private boolean hasMoreData(final InputStream in) throws IOException {
@@ -1059,7 +1091,40 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             int transactionFlag;
             do {
-                final S record = serde.deserializeEdit(recoveryIn, currentRecordMap, recoveryVersion);
+                final S record;
+                try {
+                    record = serde.deserializeEdit(recoveryIn, currentRecordMap, recoveryVersion);
+                } catch (final EOFException eof) {
+                    throw eof;
+                } catch (final Exception e) {
+                    // If the stream consists solely of NUL bytes, then we want to treat it
+                    // the same as an EOF because we see this happen when we suddenly lose power
+                    // while writing to a file. We also have logic already in the caller of this
+                    // method to properly handle EOFException's, so we will simply throw an EOFException
+                    // ourselves. However, if that is not the case, then something else has gone wrong.
+                    // In such a case, there is not much that we can do. If we simply skip over the transaction,
+                    // then the transaction may be indicating that a new attribute was added or changed. Or the
+                    // content of the FlowFile changed. A subsequent transaction for the same FlowFile may then
+                    // update the connection that is holding the FlowFile. In this case, if we simply skip over
+                    // the transaction, we end up with a FlowFile in a queue that has the wrong attributes or
+                    // content, and that can result in some very bad behavior - even security vulnerabilities if
+                    // a Route processor, for instance, routes incorrectly due to a missing attribute or content
+                    // is pointing to a previous claim where sensitive values have not been removed, etc. So
+                    // instead of attempting to skip the transaction and move on, we instead just throw the Exception
+                    // indicating that the write-ahead log is corrupt and allow the user to handle it as he/she sees
+                    // fit (likely this will result in deleting the repo, but it's possible that it could be repaired
+                    // manually or through some sort of script).
+                    if (remainingBytesAllNul(recoveryIn)) {
+                        final EOFException eof = new EOFException("Failed to recover data from Write-Ahead Log Partition because encountered trailing NUL bytes. "
+                            + "This will sometimes happen after a sudden power loss. The rest of this journal file will be skipped for recovery purposes.");
+                        eof.addSuppressed(e);
+                        throw eof;
+                    } else {
+                        throw e;
+                    }
+                }
+
+
                 if (logger.isDebugEnabled()) {
                     logger.debug("{} Recovering Transaction {}: {}", new Object[] { this, maxTransactionId.get(), record });
                 }
