@@ -74,6 +74,16 @@
         </plugins>
     </build>
     <dependencies>
+        <dependency> <!-- handling this explicitly  Must be in root lib -->
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency> <!-- handling this explicitly  Must be in root lib -->
+            <groupId>org.eclipse.jetty.toolchain</groupId>
+            <artifactId>jetty-schemas</artifactId>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -632,6 +642,8 @@
                                                     <exclude>org.apache.commons:commons-lang3</exclude>
                                                     <!-- must be in lib <exclude>org.slf4j:jul-to-slf4j</exclude> -->
                                                     <!-- must be in lib <exclude>ch.qos.logback:logback-classic</exclude> -->
+                                                    <!-- must be in lib <exclude>javax.servlet:javax.servlet-api</exclude> -->
+                                                    <!-- must be in lin <exclude>org.eclipse.jetty.toolchain:jetty-schemas<exclude> -->
                                                     <exclude>javax.mail:mail</exclude>
                                                     <!-- must be in lib <exclude>org.apache.nifi:nifi-api</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-bootstrap</exclude>

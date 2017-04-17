@@ -700,18 +700,6 @@ public abstract class TestInvokeHttpCommon {
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
-
-        final String response = bundle.getAttribute(InvokeHTTP.RESPONSE_BODY);
-        assertEquals("<html>\n" +
-                "<head>\n" +
-                "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\"/>\n" +
-                "<title>Error 401 Unauthorized</title>\n" +
-                "</head>\n" +
-                "<body><h2>HTTP ERROR 401</h2>\n" +
-                "<p>Problem accessing /status/200. Reason:\n" +
-                "<pre>    Unauthorized</pre></p><hr><a href=\"http://eclipse.org/jetty\">Powered by Jetty:// 9.4.2.v20170220</a><hr/>\n\n" +
-                "</body>\n" +
-                "</html>\n", response);
     }
 
     @Test
