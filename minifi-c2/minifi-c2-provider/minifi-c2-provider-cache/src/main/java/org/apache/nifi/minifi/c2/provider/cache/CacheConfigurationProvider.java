@@ -26,21 +26,21 @@ import java.util.List;
 import java.util.Map;
 
 public class CacheConfigurationProvider implements ConfigurationProvider {
-    private final String contentType;
+    private final List<String> contentTypes;
     private final ConfigurationCache configurationCache;
 
-    public CacheConfigurationProvider(String contentType, ConfigurationCache configurationCache) {
-        this.contentType = contentType;
+    public CacheConfigurationProvider(List<String> contentTypes, ConfigurationCache configurationCache) {
+        this.contentTypes = contentTypes;
         this.configurationCache = configurationCache;
     }
 
     @Override
-    public String getContentType() {
-        return contentType;
+    public List<String> getContentTypes() {
+        return contentTypes;
     }
 
     @Override
-    public Configuration getConfiguration(Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException {
-        return configurationCache.getCacheFileInfo(parameters).getConfiguration(version);
+    public Configuration getConfiguration(String contentType, Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException {
+        return configurationCache.getCacheFileInfo(contentType, parameters).getConfiguration(version);
     }
 }

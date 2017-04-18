@@ -23,9 +23,9 @@ import org.apache.nifi.minifi.c2.api.ConfigurationProvider;
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.InvalidParameterException;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
-import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
 import org.apache.nifi.minifi.c2.api.cache.WriteableConfiguration;
 import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaSaver;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
@@ -38,12 +38,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -52,32 +57,58 @@ public class NiFiRestConfigurationProvider implements ConfigurationProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiRestConfigurationProvider.class);
     private final JsonFactory jsonFactory = new JsonFactory();
     private final ConfigurationCache configurationCache;
-    private final NiFiRestConnector niFiRestConnector;
+    private final HttpConnector httpConnector;
+    private final String templateNamePattern;
 
-    public NiFiRestConfigurationProvider(ConfigurationCache configurationCache, String nifiUrl) throws InvalidParameterException, GeneralSecurityException, IOException {
-        this(configurationCache, new NiFiRestConnector(nifiUrl));
+    public NiFiRestConfigurationProvider(ConfigurationCache configurationCache, String nifiUrl, String templateNamePattern) throws InvalidParameterException, GeneralSecurityException, IOException {
+        this(configurationCache, new HttpConnector(nifiUrl), templateNamePattern);
     }
 
-    public NiFiRestConfigurationProvider(ConfigurationCache configurationCache, NiFiRestConnector niFiRestConnector) {
+    public NiFiRestConfigurationProvider(ConfigurationCache configurationCache, HttpConnector httpConnector, String templateNamePattern) {
         this.configurationCache = configurationCache;
-        this.niFiRestConnector = niFiRestConnector;
+        this.httpConnector = httpConnector;
+        this.templateNamePattern = templateNamePattern;
     }
 
     @Override
-    public String getContentType() {
-        return CONTENT_TYPE;
+    public List<String> getContentTypes() {
+        return Collections.singletonList(CONTENT_TYPE);
     }
 
     @Override
-    public Configuration getConfiguration(Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException {
-        ConfigurationCacheFileInfo configurationCacheFileInfo = configurationCache.getCacheFileInfo(parameters);
+    public Configuration getConfiguration(String contentType, Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException {
+        if (!CONTENT_TYPE.equals(contentType)) {
+            throw new ConfigurationProviderException("Unsupported content type: " + contentType + " supported value is " + CONTENT_TYPE);
+        }
+        String filename = templateNamePattern;
+        for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
+            if (entry.getValue().size() != 1) {
+                throw new InvalidParameterException("Multiple values for same parameter not supported in this provider.");
+            }
+            filename = filename.replaceAll(Pattern.quote("${" + entry.getKey() + "}"), entry.getValue().get(0));
+        }
+        int index = filename.indexOf("${");
+        while (index != -1) {
+            int endIndex = filename.indexOf("}", index);
+            if (endIndex == -1) {
+                break;
+            }
+            String variable = filename.substring(index + 2, endIndex);
+            if (!"version".equals(variable)) {
+                throw new InvalidParameterException("Found unsubstituted parameter " + variable);
+            }
+            index = endIndex + 1;
+        }
+
         String id = null;
         if (version == null) {
-            Pair<String, Integer> maxIdAndVersion = getMaxIdAndVersion(configurationCacheFileInfo);
+            String filenamePattern = Arrays.stream(filename.split(Pattern.quote("${version}"), -1)).map(Pattern::quote).collect(Collectors.joining("([0-9+])"));
+            Pair<String, Integer> maxIdAndVersion = getMaxIdAndVersion(filenamePattern);
             id = maxIdAndVersion.getFirst();
             version = maxIdAndVersion.getSecond();
         }
-        WriteableConfiguration configuration = configurationCacheFileInfo.getConfiguration(version);
+        filename = filename.replaceAll(Pattern.quote("${version}"), Integer.toString(version));
+        WriteableConfiguration configuration = configurationCache.getCacheFileInfo(contentType, parameters).getConfiguration(version);
         if (configuration.exists()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Configuration " + configuration + " exists and can be served from configurationCache.");
@@ -88,11 +119,18 @@ public class NiFiRestConfigurationProvider implements ConfigurationProvider {
             }
             if (id == null) {
                 try {
-                    String filename = configuration.getName();
+                    String tmpFilename = templateNamePattern;
+                    for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
+                        if (entry.getValue().size() != 1) {
+                            throw new InvalidParameterException("Multiple values for same parameter not supported in this provider.");
+                        }
+                        tmpFilename = tmpFilename.replaceAll(Pattern.quote("${" + entry.getKey() + "}"), entry.getValue().get(0));
+                    }
                     Pair<Stream<Pair<String, String>>, Closeable> streamCloseablePair = getIdAndFilenameStream();
                     try {
-                        id = streamCloseablePair.getFirst().filter(p -> filename.equals(p.getSecond())).map(Pair::getFirst).findFirst()
-                                .orElseThrow(() -> new InvalidParameterException("Unable to find template named " + filename));
+                        String finalFilename = filename;
+                        id = streamCloseablePair.getFirst().filter(p -> finalFilename.equals(p.getSecond())).map(Pair::getFirst).findFirst()
+                                .orElseThrow(() -> new InvalidParameterException("Unable to find template named " + finalFilename));
                     } finally {
                         streamCloseablePair.getSecond().close();
                     }
@@ -101,7 +139,7 @@ public class NiFiRestConfigurationProvider implements ConfigurationProvider {
                 }
             }
 
-            HttpURLConnection urlConnection = niFiRestConnector.get("/templates/" + id + "/download");
+            HttpURLConnection urlConnection = httpConnector.get("/templates/" + id + "/download");
 
             try (InputStream inputStream = urlConnection.getInputStream()){
                 ConfigSchema configSchema = ConfigMain.transformTemplateToSchema(inputStream);
@@ -118,27 +156,28 @@ public class NiFiRestConfigurationProvider implements ConfigurationProvider {
     }
 
     private Pair<Stream<Pair<String, String>>, Closeable> getIdAndFilenameStream() throws ConfigurationProviderException, IOException {
-        TemplatesIterator templatesIterator = new TemplatesIterator(niFiRestConnector, jsonFactory);
+        TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory);
         return new Pair<>(StreamSupport.stream(Spliterators.spliteratorUnknownSize(templatesIterator, Spliterator.ORDERED), false), templatesIterator);
     }
 
-    private Pair<Stream<Pair<String, Integer>>, Closeable> getIdAndVersionStream(ConfigurationCacheFileInfo configurationCacheFileInfo) throws ConfigurationProviderException, IOException {
+    private Pair<Stream<Pair<String, Integer>>, Closeable> getIdAndVersionStream(String filenamePattern) throws ConfigurationProviderException, IOException {
+        Pattern filename = Pattern.compile(filenamePattern);
         Pair<Stream<Pair<String, String>>, Closeable> streamCloseablePair = getIdAndFilenameStream();
         return new Pair<>(streamCloseablePair.getFirst().map(p -> {
-            Integer version = configurationCacheFileInfo.getVersionIfMatch(p.getSecond());
-            if (version == null) {
+            Matcher matcher = filename.matcher(p.getSecond());
+            if (!matcher.matches()) {
                 return null;
             }
-            return new Pair<>(p.getFirst(), version);
+            return new Pair<>(p.getFirst(), Integer.parseInt(matcher.group(1)));
         }).filter(Objects::nonNull), streamCloseablePair.getSecond());
     }
 
-    private Pair<String, Integer> getMaxIdAndVersion(ConfigurationCacheFileInfo configurationCacheFileInfo) throws ConfigurationProviderException {
+    private Pair<String, Integer> getMaxIdAndVersion(String filenamePattern) throws ConfigurationProviderException {
         try {
-            Pair<Stream<Pair<String, Integer>>, Closeable> streamCloseablePair = getIdAndVersionStream(configurationCacheFileInfo);
+            Pair<Stream<Pair<String, Integer>>, Closeable> streamCloseablePair = getIdAndVersionStream(filenamePattern);
             try {
                 return streamCloseablePair.getFirst().sorted(Comparator.comparing(p -> ((Pair<String, Integer>) p).getSecond()).reversed()).findFirst()
-                        .orElseThrow(() -> new ConfigurationProviderException("Didn't find any templates that matched " + configurationCacheFileInfo + ".v[0-9]+"));
+                        .orElseThrow(() -> new ConfigurationProviderException("Didn't find any templates that matched " + filenamePattern));
             } finally {
                 streamCloseablePair.getSecond().close();
             }

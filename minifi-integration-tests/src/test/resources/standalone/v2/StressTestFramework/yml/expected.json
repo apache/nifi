@@ -1,4 +1,6 @@
-{
-  "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for RouteOnAttribute\\[id=397a4910-cc01-4c6b-0000-000000000000\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'unmatched'",
-  "occurrences": 20
-}
+[
+  {
+    "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for RouteOnAttribute\\[id=397a4910-cc01-4c6b-0000-000000000000\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'unmatched'",
+    "occurrences": 20
+  }
+]

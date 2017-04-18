@@ -25,4 +25,18 @@ public class ConfigurationProviderException extends Exception {
     public ConfigurationProviderException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    public ConfigurationProviderException.Wrapper wrap() {
+        return new Wrapper(this);
+    }
+
+    public static class Wrapper extends RuntimeException {
+        public Wrapper(ConfigurationProviderException cause) {
+            super(cause);
+        }
+
+        public ConfigurationProviderException unwrap() {
+            return (ConfigurationProviderException) getCause();
+        }
+    }
 }

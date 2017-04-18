@@ -25,11 +25,11 @@ import java.util.Map;
  */
 public interface ConfigurationProvider {
     /**
-     * Gets the content type that this provider returns
+     * Gets the content types that this provider returns
      *
-     * @return the content type that this provider returns
+     * @return the content types that this provider returns
      */
-    String getContentType();
+    List<String> getContentTypes() throws ConfigurationProviderException;
 
     /**
      * Gets the configuration that corresponds to the passed in parameters
@@ -39,5 +39,5 @@ public interface ConfigurationProvider {
      * @return an input stream of the configuration
      * @throws ConfigurationProviderException if there is an error in the configuration
      */
-    Configuration getConfiguration(Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException;
+    Configuration getConfiguration(String contentType, Integer version, Map<String, List<String>> parameters) throws ConfigurationProviderException;
 }

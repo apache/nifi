@@ -1,4 +1,6 @@
-{
-  "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for LogAttribute\\[id=e25e0e6e-0157-1000-0000-000000000000\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'success'",
-  "occurrences": 20
-}
+[
+  {
+    "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for LogAttribute\\[id=e25e0e6e-0157-1000-0000-000000000000\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'success'",
+    "occurrences": 20
+  }
+]

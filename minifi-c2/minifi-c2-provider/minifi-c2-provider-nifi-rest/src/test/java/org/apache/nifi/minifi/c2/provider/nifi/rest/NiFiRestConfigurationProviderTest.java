@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.c2.provider.nifi.rest;
 
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
+import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Comparator;
 
 import static org.junit.Assert.assertEquals;
@@ -32,15 +34,15 @@ import static org.mockito.Mockito.mock;
 
 public class NiFiRestConfigurationProviderTest {
     private ConfigurationCache configConfigurationCache;
-    private NiFiRestConnector niFiRestConnector;
+    private HttpConnector httpConnector;
     private NiFiRestConfigurationProvider niFiRestConfigurationProvider;
     private Path cachePath;
 
     @Before
     public void setup() throws IOException {
         configConfigurationCache = mock(ConfigurationCache.class);
-        niFiRestConnector = mock(NiFiRestConnector.class);
-        niFiRestConfigurationProvider = new NiFiRestConfigurationProvider(configConfigurationCache, niFiRestConnector);
+        httpConnector = mock(HttpConnector.class);
+        niFiRestConfigurationProvider = new NiFiRestConfigurationProvider(configConfigurationCache, httpConnector, "${class}.v${version}");
         cachePath = Files.createTempDirectory(NiFiRestConfigurationProviderTest.class.getCanonicalName());
     }
 
@@ -59,8 +61,6 @@ public class NiFiRestConfigurationProviderTest {
 
     @Test
     public void testContentType() {
-        assertEquals(NiFiRestConfigurationProvider.CONTENT_TYPE, niFiRestConfigurationProvider.getContentType());
+        assertEquals(Collections.singletonList(NiFiRestConfigurationProvider.CONTENT_TYPE), niFiRestConfigurationProvider.getContentTypes());
     }
-
-
 }

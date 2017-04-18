@@ -59,6 +59,8 @@
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="INFO" />
+    <logger name="org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor" level="DEBUG" />
+    <logger name="org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache" level="DEBUG" />
 
     <!-- Logger for managing logging statements for jetty -->
     <logger name="org.eclipse.jetty" level="INFO"/>

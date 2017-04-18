@@ -33,5 +33,5 @@ public interface ConfigurationCache {
      * @return information on the entry
      * @throws InvalidParameterException if there are illegal/invalid parameters
      */
-    ConfigurationCacheFileInfo getCacheFileInfo(Map<String, List<String>> parameters) throws InvalidParameterException;
+    ConfigurationCacheFileInfo getCacheFileInfo(String contentType, Map<String, List<String>> parameters) throws InvalidParameterException;
 }

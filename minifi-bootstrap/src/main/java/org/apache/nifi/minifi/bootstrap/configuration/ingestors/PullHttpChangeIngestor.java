@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import okhttp3.Call;
+import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -37,6 +38,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -73,6 +77,10 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     public static final String HOST_KEY = PULL_HTTP_BASE_KEY + ".hostname";
     public static final String PATH_KEY = PULL_HTTP_BASE_KEY + ".path";
     public static final String QUERY_KEY = PULL_HTTP_BASE_KEY + ".query";
+    public static final String PROXY_HOST_KEY = PULL_HTTP_BASE_KEY + ".proxy.hostname";
+    public static final String PROXY_PORT_KEY = PULL_HTTP_BASE_KEY + ".proxy.port";
+    public static final String PROXY_USERNAME = PULL_HTTP_BASE_KEY + ".proxy.username";
+    public static final String PROXY_PASSWORD = PULL_HTTP_BASE_KEY + ".proxy.password";
     public static final String TRUSTSTORE_LOCATION_KEY = PULL_HTTP_BASE_KEY + ".truststore.location";
     public static final String TRUSTSTORE_PASSWORD_KEY = PULL_HTTP_BASE_KEY + ".truststore.password";
     public static final String TRUSTSTORE_TYPE_KEY = PULL_HTTP_BASE_KEY + ".truststore.type";
@@ -147,6 +155,23 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(true);
 
+        String proxyHost = properties.getProperty(PROXY_HOST_KEY, "");
+        if (!proxyHost.isEmpty()) {
+            String proxyPort = properties.getProperty(PROXY_PORT_KEY);
+            if (proxyPort == null || proxyPort.isEmpty()) {
+                throw new IllegalArgumentException("Proxy port required if proxy specified.");
+            }
+            okHttpClientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort))));
+            String proxyUsername = properties.getProperty(PROXY_USERNAME);
+            if (proxyUsername != null) {
+                String proxyPassword = properties.getProperty(PROXY_PASSWORD);
+                if (proxyPassword == null) {
+                    throw new IllegalArgumentException("Must specify proxy password with proxy username.");
+                }
+                okHttpClientBuilder.proxyAuthenticator((route, response) -> response.request().newBuilder().addHeader("Proxy-Authorization", Credentials.basic(proxyUsername, proxyPassword)).build());
+            }
+        }
+
         // check if the ssl path is set and add the factory if so
         if (properties.containsKey(KEYSTORE_LOCATION_KEY)) {
             try {
@@ -210,8 +235,14 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
 
             logger.debug("Response received: {}", response.toString());
 
-            if (response.code() == NOT_MODIFIED_STATUS_CODE) {
+            int code = response.code();
+
+            if (code == NOT_MODIFIED_STATUS_CODE) {
                 return;
+            }
+
+            if (code >= 400) {
+                throw new IOException("Got response code " + code + " while trying to pull configuration: " + response.body().string());
             }
 
             ResponseBody body = response.body();

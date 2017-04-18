@@ -18,10 +18,9 @@
 package org.apache.nifi.minifi.integration.standalone.test;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthChecks;
+import org.apache.nifi.minifi.integration.util.LogUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,15 +34,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class StandaloneYamlTest {
@@ -98,34 +90,7 @@ public class StandaloneYamlTest {
     }
 
     @Test(timeout = 60_000)
-    public void verifyLogEntries() throws IOException, InterruptedException, ExecutionException {
-        Pattern expectedLine;
-        int expectedOccurences;
-        try (InputStream inputStream = StandaloneYamlTest.class.getClassLoader().getResourceAsStream(getExpectedJson())) {
-            Map<String, Object> map = new ObjectMapper().readValue(inputStream, Map.class);
-            expectedLine = Pattern.compile((String) map.get("pattern"));
-            expectedOccurences = (int) map.getOrDefault("occurrences", 1);
-        }
-        DockerPort dockerPort = dockerComposeRule.containers().container("minifi").port(8000);
-        URL url = new URL("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort());
-        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-        try (InputStream inputStream = urlConnection.getInputStream();
-             InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
-            String line;
-            int occurrences = 0;
-            while ((line = bufferedReader.readLine()) != null) {
-                if (expectedLine.matcher(line).find()) {
-                    logger.info("Found expected: " + line);
-                    if (++occurrences >= expectedOccurences) {
-                        logger.info("Found target " + occurrences + " times");
-                        return;
-                    }
-                }
-            }
-            fail("End of log reached without " + expectedOccurences + " match(es)");
-        } finally {
-            urlConnection.disconnect();
-        }
+    public void verifyLogEntries() throws Exception {
+        LogUtil.verifyLogEntries(getExpectedJson(), dockerComposeRule.containers().container("minifi"));
     }
 }

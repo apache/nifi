@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,8 +39,8 @@ public class TemplatesIterator implements Iterator<Pair<String, String>>, Closea
     private final JsonParser parser;
     private Pair<String, String> next;
 
-    public TemplatesIterator(NiFiRestConnector niFiRestConnector, JsonFactory jsonFactory) throws ConfigurationProviderException, IOException {
-        urlConnection = niFiRestConnector.get(FLOW_TEMPLATES);
+    public TemplatesIterator(HttpConnector httpConnector, JsonFactory jsonFactory) throws ConfigurationProviderException, IOException {
+        urlConnection = httpConnector.get(FLOW_TEMPLATES);
         inputStream = urlConnection.getInputStream();
         parser = jsonFactory.createParser(inputStream);
         while (parser.nextToken() != JsonToken.END_OBJECT) {

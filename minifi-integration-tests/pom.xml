@@ -28,6 +28,7 @@ limitations under the License.
 
     <properties>
         <minifi.version>${project.version}</minifi.version>
+        <minifi.c2.version>${project.version}</minifi.c2.version>
     </properties>
 
     <dependencies>
@@ -42,6 +43,24 @@ limitations under the License.
             <artifactId>docker-compose-rule-junit4</artifactId>
             <version>0.31.1</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-c2-integration-tests</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-tls</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
@@ -71,6 +90,16 @@ limitations under the License.
             <testResource>
                 <directory>src/test/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>docker-compose-*.yml</include>
+                </includes>
+            </testResource>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>docker-compose-*.yml</exclude>
+                </excludes>
             </testResource>
         </testResources>
 

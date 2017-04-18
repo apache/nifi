@@ -44,6 +44,9 @@
                     <constructor-arg>
                         <value>http://mocknifi:8080/nifi-api</value>
                     </constructor-arg>
+                    <constructor-arg>
+                        <value>${class}.v${version}</value>
+                    </constructor-arg>
                 </bean>
             </list>
         </constructor-arg>

@@ -21,6 +21,8 @@ import org.apache.nifi.minifi.c2.api.InvalidParameterException;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
 import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,8 +31,11 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class FileSystemConfigurationCache implements ConfigurationCache {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemConfigurationCache.class);
+
     private final Path pathRoot;
     private final String pathPattern;
 
@@ -50,7 +55,7 @@ public class FileSystemConfigurationCache implements ConfigurationCache {
     }
 
     @Override
-    public ConfigurationCacheFileInfo getCacheFileInfo(Map<String, List<String>> parameters) throws InvalidParameterException {
+    public ConfigurationCacheFileInfo getCacheFileInfo(String contentType, Map<String, List<String>> parameters) throws InvalidParameterException {
         String pathString = pathPattern;
         for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             if (entry.getValue().size() != 1) {
@@ -58,6 +63,7 @@ public class FileSystemConfigurationCache implements ConfigurationCache {
             }
             pathString = pathString.replaceAll(Pattern.quote("${" + entry.getKey() + "}"), entry.getValue().get(0));
         }
+        pathString = pathString + "." + contentType.replace('/', '.');
         String[] split = pathString.split("/");
         for (String s1 : split) {
             int openBrace = s1.indexOf("${");
@@ -75,6 +81,13 @@ public class FileSystemConfigurationCache implements ConfigurationCache {
             path = resolveChildAndVerifyParent(path, s);
         }
         Pair<Path, String> dirPathAndFilename = new Pair<>(path, splitPath[splitPath.length - 1]);
+        if (logger.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder("Parameters {");
+            message.append(parameters.entrySet().stream().map(e -> e.getKey() + ": [" + String.join(", ", e.getValue()) + "]").collect(Collectors.joining(", ")));
+            message.append("} -> ");
+            message.append(dirPathAndFilename.getFirst().resolve(dirPathAndFilename.getSecond()).toAbsolutePath());
+            logger.debug(message.toString());
+        }
         return new FileSystemCacheFileInfoImpl(this, dirPathAndFilename.getFirst(), dirPathAndFilename.getSecond() + ".v");
     }
 }

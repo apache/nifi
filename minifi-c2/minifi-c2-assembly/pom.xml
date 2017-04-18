@@ -89,6 +89,11 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-c2-provider-delegating</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-c2-provider-nifi-rest</artifactId>
             <version>${project.version}</version>
         </dependency>

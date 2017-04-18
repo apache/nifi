@@ -21,6 +21,8 @@ import java.io.InputStream;
 
 /**
  * Represents a MiNiFi configuration of a given version, format matches the format of the ConfigurationProvider
+ *
+ * This object may be cached so it should attempt to minimize the amount of memory used to represent state (input stream should come from persistent storage if possible.)
  */
 public interface Configuration {
     /**

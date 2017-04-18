@@ -1,4 +1,6 @@
-{
-  "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for UpdateAttribute\\[id=bfa4fb38-096b-455d-a10f-2a1ed044bd49\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'success'",
-  "occurrences": 2
-}
+[
+  {
+    "pattern": "o.a.n.c.r.StandardProcessSession StandardProcessSession\\[id=.*\\] for UpdateAttribute\\[id=bfa4fb38-096b-455d-a10f-2a1ed044bd49\\], committed the following events: Transferred FlowFiles \\[.*\\] to 'success'",
+    "occurrences": 2
+  }
+]

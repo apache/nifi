@@ -104,6 +104,10 @@ Option | Description
 ------ | -----------
 nifi.minifi.notifier.ingestors.pull.http.hostname | Hostname on which to pull configurations from
 nifi.minifi.notifier.ingestors.pull.http.port | Port on which to pull configurations from
+nifi.minifi.notifier.ingestors.pull.http.proxy.hostname | Proxy server hostname
+nifi.minifi.notifier.ingestors.pull.http.proxy.port | Proxy server port
+nifi.minifi.notifier.ingestors.pull.http.proxy.username | Proxy username
+nifi.minifi.notifier.ingestors.pull.http.proxy.password | Proxy password
 nifi.minifi.notifier.ingestors.pull.http.path | Path on which to pull configurations from
 nifi.minifi.notifier.ingestors.pull.http.period.ms | Period on which to pull configurations from, defaults to 5 minutes if not set.
 nifi.minifi.notifier.ingestors.pull.http.use.etag | If the destination server is set up with cache control ability and utilizes an "ETag" header, then this should be set to true to utilize it. Very simply, the Ingestor remembers the "ETag" of the last successful pull (returned 200) then uses that "ETag" in a "If-None-Match" header on the next request.

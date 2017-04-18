@@ -31,7 +31,9 @@ class TailHTTPRequestHandler(BaseHTTPRequestHandler):
     self.send_response(200)
     self.send_header('Content-type','text/plain')
     self.end_headers()
-    p = Popen(['tail', '-f', '-n', '+1', TAIL_FILE], stdout=PIPE)
+    args = ['tail', '-f', '-n', '+1']
+    args.extend(TAIL_FILES)
+    p = Popen(args, stdout=PIPE)
     try:
       for line in iter(p.stdout.readline, b''):
         self.wfile.write(line)
@@ -43,7 +45,7 @@ class TailHTTPRequestHandler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   parser = ArgumentParser(description='Tail file over http')
-  parser.add_argument('--file')
+  parser.add_argument('--file', action='append')
   parser.add_argument('--port', type=int, default=8000)
 
   logging.debug('About to parse arguments')
@@ -52,10 +54,10 @@ if __name__ == '__main__':
   if not args.file:
     raise Exception('Must specify --file')
 
-  global TAIL_FILE
-  TAIL_FILE = args.file
+  global TAIL_FILES
+  TAIL_FILES = args.file
 
-  logging.debug('Serving tail of ' + TAIL_FILE + ' via HTTP at port ' + str(args.port))
+  logging.debug('Serving tail of ' + str(TAIL_FILES) + ' via HTTP at port ' + str(args.port))
 
   server = ThreadedHTTPServer(('', args.port), TailHTTPRequestHandler)
   server.serve_forever()

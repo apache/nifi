@@ -28,3 +28,12 @@ Paths:
     # Default authorization lets anonymous pull any config.  Remove below to change that.
     - Authorization: ROLE_ANONYMOUS
       Action: allow
+
+  /c2/config/contentTypes:
+    Default Action: deny
+    Actions:
+    - Authorization: CLASS_RASPI_3
+      Action: allow
+    # Default authorization lets anonymous pull any config.  Remove below to change that.
+    - Authorization: ROLE_ANONYMOUS
+      Action: allow

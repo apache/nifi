@@ -57,10 +57,8 @@ public class JettyServer {
 
         Server server;
         int port = Integer.parseInt(properties.getProperty("minifi.c2.server.port", "10080"));
-        SslContextFactory sslContextFactory = properties.getSslContextFactory();
-        if (sslContextFactory == null) {
-            server = new Server(port);
-        } else {
+        if (properties.isSecure()) {
+            SslContextFactory sslContextFactory = properties.getSslContextFactory();
             HttpConfiguration config = new HttpConfiguration();
             config.setSecureScheme("https");
             config.setSecurePort(port);
@@ -72,6 +70,8 @@ public class JettyServer {
             serverConnector.setPort(port);
 
             server.addConnector(serverConnector);
+        } else {
+            server = new Server(port);
         }
 
         server.setHandler(handlers);

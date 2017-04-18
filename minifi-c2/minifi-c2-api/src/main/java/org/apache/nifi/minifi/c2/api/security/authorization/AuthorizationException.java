@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.c2.api.security.authorization;
 
-public class AuthorizationException extends Exception {
+import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
+
+public class AuthorizationException extends ConfigurationProviderException {
     public AuthorizationException(String message) {
         super(message);
     }

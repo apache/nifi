@@ -58,11 +58,11 @@ public class C2Properties extends Properties {
         return properties;
     }
 
-    public SslContextFactory getSslContextFactory() throws GeneralSecurityException, IOException {
-        if (!Boolean.valueOf(getProperty(MINIFI_C2_SERVER_SECURE, "false"))) {
-            return null;
-        }
+    public boolean isSecure() {
+        return Boolean.valueOf(getProperty(MINIFI_C2_SERVER_SECURE, "false"));
+    }
 
+    public SslContextFactory getSslContextFactory() throws GeneralSecurityException, IOException {
         SslContextFactory sslContextFactory = new SslContextFactory();
         KeyStore keyStore = KeyStore.getInstance(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE));
         Path keyStorePath = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toAbsolutePath();

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.google.common.collect.Lists;
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,21 +39,21 @@ import static org.mockito.Mockito.when;
 public class TemplatesIteratorTest {
     private JsonFactory jsonFactory;
     private HttpURLConnection httpURLConnection;
-    private NiFiRestConnector niFiRestConnector;
+    private HttpConnector httpConnector;
 
     @Before
     public void setup() throws ConfigurationProviderException {
         jsonFactory = new JsonFactory();
         httpURLConnection = mock(HttpURLConnection.class);
-        niFiRestConnector = mock(NiFiRestConnector.class);
-        when(niFiRestConnector.get(TemplatesIterator.FLOW_TEMPLATES)).thenReturn(httpURLConnection);
+        httpConnector = mock(HttpConnector.class);
+        when(httpConnector.get(TemplatesIterator.FLOW_TEMPLATES)).thenReturn(httpURLConnection);
     }
 
     @Test(expected = NoSuchElementException.class)
     public void testIteratorNoSuchElementException() throws ConfigurationProviderException, IOException {
         when(httpURLConnection.getInputStream()).thenReturn(TemplatesIteratorTest.class.getClassLoader().getResourceAsStream("noTemplates.json"));
 
-        try (TemplatesIterator templatesIterator = new TemplatesIterator(niFiRestConnector, jsonFactory)) {
+        try (TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory)) {
             assertFalse(templatesIterator.hasNext());
             templatesIterator.next();
         } finally {
@@ -64,7 +65,7 @@ public class TemplatesIteratorTest {
     public void testIteratorNoTemplates() throws ConfigurationProviderException, IOException {
         when(httpURLConnection.getInputStream()).thenReturn(TemplatesIteratorTest.class.getClassLoader().getResourceAsStream("noTemplates.json"));
         List<Pair<String, String>> idToNameList;
-        try (TemplatesIterator templatesIterator = new TemplatesIterator(niFiRestConnector, jsonFactory)) {
+        try (TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory)) {
             idToNameList = Lists.newArrayList(templatesIterator);
         }
         assertEquals(0, idToNameList.size());
@@ -76,7 +77,7 @@ public class TemplatesIteratorTest {
     public void testIteratorSingleTemplate() throws ConfigurationProviderException, IOException {
         when(httpURLConnection.getInputStream()).thenReturn(TemplatesIteratorTest.class.getClassLoader().getResourceAsStream("oneTemplate.json"));
         List<Pair<String, String>> idToNameList;
-        try (TemplatesIterator templatesIterator = new TemplatesIterator(niFiRestConnector, jsonFactory)) {
+        try (TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory)) {
             idToNameList = Lists.newArrayList(templatesIterator);
         }
         assertEquals(1, idToNameList.size());
@@ -91,7 +92,7 @@ public class TemplatesIteratorTest {
     public void testIteratorTwoTemplates() throws ConfigurationProviderException, IOException {
         when(httpURLConnection.getInputStream()).thenReturn(TemplatesIteratorTest.class.getClassLoader().getResourceAsStream("twoTemplates.json"));
         List<Pair<String, String>> idToNameList;
-        try (TemplatesIterator templatesIterator = new TemplatesIterator(niFiRestConnector, jsonFactory)) {
+        try (TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory)) {
             idToNameList = Lists.newArrayList(templatesIterator);
         }
         assertEquals(2, idToNameList.size());
