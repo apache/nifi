@@ -29,6 +29,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.FormatUtils;
@@ -203,7 +204,11 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
 
         // verify update when appropriate
-        if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(), remoteProcessGroupPortDto.getUseCompression())) {
+        if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(),
+                remoteProcessGroupPortDto.getUseCompression(),
+                remoteProcessGroupPortDto.getBatchCount(),
+                remoteProcessGroupPortDto.getBatchSize(),
+                remoteProcessGroupPortDto.getBatchDuration())) {
             port.verifyCanUpdate();
         }
     }
@@ -217,6 +222,27 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // ensure the proposed port configuration is valid
         if (isNotNull(remoteProcessGroupPortDTO.getConcurrentlySchedulableTaskCount()) && remoteProcessGroupPortDTO.getConcurrentlySchedulableTaskCount() <= 0) {
             validationErrors.add(String.format("Concurrent tasks for port '%s' must be a positive integer.", remoteGroupPort.getName()));
+        }
+
+        final Integer batchCount = remoteProcessGroupPortDTO.getBatchCount();
+        if (isNotNull(batchCount) && batchCount < 0) {
+            validationErrors.add(String.format("Batch count for port '%s' must be a positive integer.", remoteGroupPort.getName()));
+        }
+
+        final String batchSize = remoteProcessGroupPortDTO.getBatchSize();
+        if (isNotNull(batchSize) && batchSize.length() > 0
+                && !DataUnit.DATA_SIZE_PATTERN.matcher(batchSize.trim().toUpperCase()).matches()) {
+            validationErrors.add(String.format("Batch size for port '%s' must be of format <Data Size> <Data Unit>" +
+                    " where <Data Size> is a non-negative integer and <Data Unit> is a supported Data"
+                    + " Unit, such as: B, KB, MB, GB, TB", remoteGroupPort.getName()));
+        }
+
+        final String batchDuration = remoteProcessGroupPortDTO.getBatchDuration();
+        if (isNotNull(batchDuration) && batchDuration.length() > 0
+                && !FormatUtils.TIME_DURATION_PATTERN.matcher(batchDuration.trim().toLowerCase()).matches()) {
+            validationErrors.add(String.format("Batch duration for port '%s' must be of format <duration> <TimeUnit>" +
+                    " where <duration> is a non-negative integer and TimeUnit is a supported Time Unit, such "
+                    + "as: nanos, millis, secs, mins, hrs, days", remoteGroupPort.getName()));
         }
 
         return validationErrors;
@@ -284,22 +310,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdatePort(port, remoteProcessGroupPortDto);
 
         // perform the update
-        if (isNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount())) {
-            port.setMaxConcurrentTasks(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount());
-        }
-        if (isNotNull(remoteProcessGroupPortDto.getUseCompression())) {
-            port.setUseCompression(remoteProcessGroupPortDto.getUseCompression());
-        }
-
-        final Boolean isTransmitting = remoteProcessGroupPortDto.isTransmitting();
-        if (isNotNull(isTransmitting)) {
-            // start or stop as necessary
-            if (!port.isRunning() && isTransmitting) {
-                remoteProcessGroup.startTransmitting(port);
-            } else if (port.isRunning() && !isTransmitting) {
-                remoteProcessGroup.stopTransmitting(port);
-            }
-        }
+        updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
 
         return port;
     }
@@ -318,11 +329,33 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdatePort(port, remoteProcessGroupPortDto);
 
         // perform the update
+        updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
+
+        return port;
+    }
+
+    /**
+     *
+     * @param port Port instance to be updated.
+     * @param remoteProcessGroupPortDto DTO containing updated remote process group port settings.
+     * @param remoteProcessGroup If remoteProcessGroupPortDto has updated isTransmitting input,
+     *                           this method will start or stop the port in this remoteProcessGroup as necessary.
+     */
+    private void updatePort(RemoteGroupPort port, RemoteProcessGroupPortDTO remoteProcessGroupPortDto, RemoteProcessGroup remoteProcessGroup) {
         if (isNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount())) {
             port.setMaxConcurrentTasks(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount());
         }
         if (isNotNull(remoteProcessGroupPortDto.getUseCompression())) {
             port.setUseCompression(remoteProcessGroupPortDto.getUseCompression());
+        }
+
+        final Integer batchCount = remoteProcessGroupPortDto.getBatchCount();
+        final String batchSize = remoteProcessGroupPortDto.getBatchSize();
+        final String batchDuration = remoteProcessGroupPortDto.getBatchDuration();
+        if (isAnyNotNull(batchCount, batchSize, batchDuration)) {
+            port.setBatchCount(batchCount);
+            port.setBatchSize(batchSize);
+            port.setBatchDuration(batchDuration);
         }
 
         final Boolean isTransmitting = remoteProcessGroupPortDto.isTransmitting();
@@ -334,8 +367,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
                 remoteProcessGroup.stopTransmitting(port);
             }
         }
-
-        return port;
     }
 
     @Override

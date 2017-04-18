@@ -125,6 +125,7 @@ div.remote-port-description {
 
 div.concurrent-task-container {
     float: left;
+    width: 200px;
 }
 
 img.concurrent-tasks-info {
@@ -133,7 +134,11 @@ img.concurrent-tasks-info {
 }
 
 div.compression-container {
-    float: right;
+    float: left;
+}
+
+div.batch-settings-container {
+    margin-top: 8px;
 }
 
 div.remote-port-transmission-container {
@@ -165,7 +170,7 @@ div.disabled-transmission-switch {
 #remote-port-concurrent-tasks {
     font-size: 11px !important;
     float: left;
-    width: 75%;
+    width: 266px;
 }
 
 #remote-port-use-compression-container {
@@ -179,4 +184,10 @@ div.disabled-transmission-switch {
 
 #remote-port-concurrent-task-header {
     margin-top: 5px;
+}
+
+div.batch-setting {
+    margin-right: 8px;
+    width: 30%;
+    float: left;
 }

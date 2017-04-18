@@ -2011,6 +2011,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 descriptor.setConcurrentlySchedulableTaskCount(port.getConcurrentlySchedulableTaskCount());
                 descriptor.setTransmitting(port.isTransmitting());
                 descriptor.setUseCompression(port.getUseCompression());
+                descriptor.setBatchCount(port.getBatchCount());
+                descriptor.setBatchSize(port.getBatchSize());
+                descriptor.setBatchDuration(port.getBatchDuration());
                 remotePorts.add(descriptor);
             }
         }

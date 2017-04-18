@@ -1492,6 +1492,9 @@ public final class DtoFactory {
         dto.setConcurrentlySchedulableTaskCount(port.getMaxConcurrentTasks());
         dto.setUseCompression(port.isUseCompression());
         dto.setExists(port.getTargetExists());
+        dto.setBatchCount(port.getBatchCount());
+        dto.setBatchSize(port.getBatchSize());
+        dto.setBatchDuration(port.getBatchDuration());
 
         // determine if this port is currently connected to another component locally
         if (ConnectableType.REMOTE_OUTPUT_PORT.equals(port.getConnectableType())) {
@@ -2962,6 +2965,9 @@ public final class DtoFactory {
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setUseCompression(original.getUseCompression());
         copy.setExists(original.getExists());
+        copy.setBatchCount(original.getBatchCount());
+        copy.setBatchSize(original.getBatchSize());
+        copy.setBatchDuration(original.getBatchDuration());
         return copy;
     }
 

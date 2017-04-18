@@ -73,9 +73,19 @@
                 handler: {
                     click: function () {
                         var remotePortConcurrentTasks = $('#remote-port-concurrent-tasks').val();
+                        var remotePortBatchCount = $('#remote-port-batch-count').val();
+                        var portValidationErrors = new Array();
 
                         // ensure the property name and value is specified
-                        if ($.isNumeric(remotePortConcurrentTasks)) {
+                        if (!$.isNumeric(remotePortConcurrentTasks)) {
+                            portValidationErrors.push("Concurrent tasks must be an integer value.");
+                        }
+
+                        if (remotePortBatchCount && !$.isNumeric(remotePortBatchCount)) {
+                            portValidationErrors.push("Batch Settings: count must be an integer value.");
+                        }
+
+                        if (portValidationErrors.length == 0) {
                             var remoteProcessGroupId = $('#remote-process-group-ports-id').text();
                             var remoteProcessGroupData = d3.select('#id-' + remoteProcessGroupId).datum();
                             var remotePortId = $('#remote-port-id').text();
@@ -87,7 +97,10 @@
                                     id: remotePortId,
                                     groupId: remoteProcessGroupId,
                                     useCompression: $('#remote-port-use-compression').hasClass('checkbox-checked'),
-                                    concurrentlySchedulableTaskCount: remotePortConcurrentTasks
+                                    concurrentlySchedulableTaskCount: remotePortConcurrentTasks,
+                                    batchCount: remotePortBatchCount,
+                                    batchSize: $('#remote-port-batch-size').val(),
+                                    batchDuration: $('#remote-port-batch-duration').val()
                                 }
                             };
 
@@ -121,6 +134,9 @@
                                 // set the new values
                                 $('#' + remotePortId + '-concurrent-tasks').text(remotePort.concurrentlySchedulableTaskCount);
                                 $('#' + remotePortId + '-compression').text(compressionLabel);
+                                $('#' + remotePortId + '-batch-count').text(typeof(remotePort.batchCount) === 'number' ? remotePort.batchCount : '');
+                                $('#' + remotePortId + '-batch-size').text(remotePort.batchSize);
+                                $('#' + remotePortId + '-batch-duration').text(remotePort.batchDuration);
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400) {
                                     var errors = xhr.responseText.split('\n');
@@ -146,7 +162,9 @@
                         } else {
                             nfDialog.showOkDialog({
                                 headerText: 'Remote Process Group Ports',
-                                dialogContent: 'Concurrent tasks must be an integer value.'
+                                dialogContent: portValidationErrors.reduce(function (prev, curr) {
+                                    return typeof(prev) === 'string' ? prev + ' ' + curr : curr;
+                                })
                             });
 
                             // close the dialog
@@ -175,6 +193,9 @@
                     $('#remote-port-name').text('');
                     $('#remote-port-concurrent-tasks').val('');
                     $('#remote-port-use-compression').removeClass('checkbox-checked checkbox-unchecked');
+                    $('#remote-port-batch-count').val('');
+                    $('#remote-port-batch-size').val('');
+                    $('#remote-port-batch-duration').val('');
                 }
             }
         });
@@ -287,9 +308,12 @@
                     var portName = $('#' + portId + '-name').text();
                     var portConcurrentTasks = $('#' + portId + '-concurrent-tasks').text();
                     var portCompression = $('#' + portId + '-compression').text() === 'Yes';
+                    var batchCount = $('#' + portId + '-batch-count').text();
+                    var batchSize = $('#' + portId + '-batch-size').text();
+                    var batchDuration = $('#' + portId + '-batch-duration').text();
 
                     // show the configuration dialog
-                    configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, portType);
+                    configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType);
                 }).appendTo(portContainerEditContainer);
 
                 // show/hide the edit button as appropriate
@@ -472,6 +496,54 @@
             '</div>' +
             '</div>').appendTo(compressionContainer);
 
+        // clear: Concurrent Tasks, Compressed
+        $('<div class="clear"></div>').appendTo(portContainerDetailsContainer);
+
+        // Batch related settings
+        var batchSettingsContainer = $('<div class="batch-settings-container"></div>')
+            .append($('<div class="setting-name">Batch Settings'
+            + '<div class="processor-setting batch-settings-info fa fa-question-circle"></div></div>'))
+            .appendTo(portContainerDetailsContainer);
+
+        batchSettingsContainer.find('div.batch-settings-info').qtip($.extend({},
+            nf.Common.config.tooltipConfig,
+            {
+                content: 'The preferred batch settings in a transaction for this port.' +
+                 ' NiFi will transfer as many flow files as they are remaining in a queue,' +
+                 ' until it reaches to one of these limits.' +
+                 ' If none of them is specified, NiFi batches flow files up to ' +
+                 (portType === 'input' ? '500ms for sending to an input port' : '5s for receiving from an output port') +
+                 ' by default.'
+            }));
+
+        var batchCount = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-count"></div>').text(typeof(port.batchCount) === 'number' ? port.batchCount : ''));
+        var batchSize = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-size"></div>').text(port.batchSize));
+        var batchDuration = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-duration"></div>').text(port.batchDuration));
+
+        // add this ports batch count
+        $('<div class="batch-setting">' +
+            '<div class="setting-name">' +
+            'Count' +
+            '<div class="processor-setting"></div>' +
+            '</div>' +
+            '</div>').append(batchCount).appendTo(batchSettingsContainer);
+
+        // add this ports batch size
+        $('<div class="batch-setting">' +
+            '<div class="setting-name">' +
+            'Size' +
+            '<div class="processor-setting"></div>' +
+            '</div>' +
+            '</div>').append(batchSize).appendTo(batchSettingsContainer);
+
+        // add this ports batch duration
+        $('<div class="batch-setting">' +
+            '<div class="setting-name">' +
+            'Duration' +
+            '<div class="processor-setting"></div>' +
+            '</div>' +
+            '</div>').append(batchDuration).appendTo(batchSettingsContainer);
+
         // clear
         $('<div class="clear"></div>').appendTo(portContainer);
 
@@ -489,9 +561,12 @@
      * @argument {string} portName          The port name
      * @argument {int} portConcurrentTasks  The number of concurrent tasks for the port
      * @argument {boolean} portCompression  The compression flag for the port
+     * @argument {int} batchCount           The flow file count in a batch transaction
+     * @argument {string} batchSize         The size of flow files in a batch transaction
+     * @argument {string} batchDuration     The duration of a batch transaction
      * @argument {string} portType          The type of port this is
      */
-    var configureRemotePort = function (portId, portName, portConcurrentTasks, portCompression, portType) {
+    var configureRemotePort = function (portId, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType) {
         // set port identifiers
         $('#remote-port-id').text(portId);
         $('#remote-port-type').text(portType);
@@ -503,6 +578,9 @@
         }
         $('#remote-port-use-compression').addClass(checkState);
         $('#remote-port-concurrent-tasks').val(portConcurrentTasks);
+        $('#remote-port-batch-count').val(batchCount);
+        $('#remote-port-batch-size').val(batchSize);
+        $('#remote-port-batch-duration').val(batchDuration);
 
         // set the port name
         $('#remote-port-name').text(portName).ellipsis();
@@ -549,6 +627,12 @@
                         var connectedInputPorts = [];
                         var disconnectedInputPorts = [];
 
+                        var nameComparator = function (a, b) {
+                            var nameA = a.name.toUpperCase();
+                            var nameB = b.name.toUpperCase();
+                            return nameA < nameB ? -1 : (nameA > nameB ? 1 : 0);
+                        };
+
                         // show connected ports first
                         var inputPortContainer = $('#remote-process-group-input-ports-container');
                         $.each(remoteProcessGroupContents.inputPorts, function (_, inputPort) {
@@ -558,6 +642,10 @@
                                 disconnectedInputPorts.push(inputPort);
                             }
                         });
+
+                        // sort by port name within each port list
+                        connectedInputPorts.sort(nameComparator);
+                        disconnectedInputPorts.sort(nameComparator);
 
                         // add all connected input ports
                         $.each(connectedInputPorts, function (_, inputPort) {
@@ -585,6 +673,10 @@
                                 disconnectedOutputPorts.push(outputPort);
                             }
                         });
+
+                        // sort by port name within each port list
+                        connectedOutputPorts.sort(nameComparator);
+                        disconnectedOutputPorts.sort(nameComparator);
 
                         // add all connected output ports
                         $.each(connectedOutputPorts, function (_, outputPort) {

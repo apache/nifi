@@ -19,6 +19,7 @@ package org.apache.nifi.remote;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -28,6 +29,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
@@ -43,17 +45,23 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import org.apache.nifi.util.NiFiProperties;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -70,7 +78,7 @@ public class TestStandardRemoteGroupPort {
     private Transaction transaction;
     private EventReporter eventReporter;
     private ProcessGroup processGroup;
-    public static final String REMOTE_CLUSTER_URL = "http://node0.example.com:8080/nifi";
+    private static final String REMOTE_CLUSTER_URL = "http://node0.example.com:8080/nifi";
     private StandardRemoteGroupPort port;
     private SharedSessionState sessionState;
     private MockProcessSession processSession;
@@ -84,17 +92,18 @@ public class TestStandardRemoteGroupPort {
 
     private void setupMock(final SiteToSiteTransportProtocol protocol,
             final TransferDirection direction) throws Exception {
-        setupMock(protocol, direction, mock(Transaction.class));
+        final SiteToSiteClientConfig siteToSiteClientConfig = new SiteToSiteClient.Builder().buildConfig();
+        setupMock(protocol, direction, siteToSiteClientConfig);
     }
 
     private void setupMock(final SiteToSiteTransportProtocol protocol,
             final TransferDirection direction,
-            final Transaction transaction) throws Exception {
+           final SiteToSiteClientConfig siteToSiteClientConfig) throws Exception {
         processGroup = null;
         remoteGroup = mock(RemoteProcessGroup.class);
         scheduler = null;
         siteToSiteClient = mock(SiteToSiteClient.class);
-        this.transaction = transaction;
+        this.transaction = mock(Transaction.class);
 
         eventReporter = mock(EventReporter.class);
 
@@ -119,6 +128,7 @@ public class TestStandardRemoteGroupPort {
         doReturn(REMOTE_CLUSTER_URL).when(remoteGroup).getTargetUri();
         doReturn(siteToSiteClient).when(port).getSiteToSiteClient();
         doReturn(transaction).when(siteToSiteClient).createTransaction(eq(direction));
+        doReturn(siteToSiteClientConfig).when(siteToSiteClient).getConfig();
         doReturn(eventReporter).when(remoteGroup).getEventReporter();
 
     }
@@ -243,6 +253,144 @@ public class TestStandardRemoteGroupPort {
         assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
         assertEquals(flowFileEndpointUri, provenanceEvent.getTransitUri());
         assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
+    }
+
+    @Test
+    public void testSendBatchByCount() throws Exception {
+
+        final SiteToSiteClientConfig siteToSiteClientConfig = new SiteToSiteClient.Builder()
+                .requestBatchCount(2)
+                .buildConfig();
+        setupMock(SiteToSiteTransportProtocol.HTTP, TransferDirection.SEND, siteToSiteClientConfig);
+
+        // t1 = {0, 1}, t2 = {2, 3}, t3 = {4}
+        final int[] expectedNumberOfPackets = {2, 2, 1};
+        testSendBatch(expectedNumberOfPackets);
+
+    }
+
+    @Test
+    public void testSendBatchBySize() throws Exception {
+
+        final SiteToSiteClientConfig siteToSiteClientConfig = new SiteToSiteClient.Builder()
+                .requestBatchSize(30)
+                .buildConfig();
+        setupMock(SiteToSiteTransportProtocol.HTTP, TransferDirection.SEND, siteToSiteClientConfig);
+
+        // t1 = {10, 11, 12}, t2 = {13, 14}
+        final int[] expectedNumberOfPackets = {3, 2};
+        testSendBatch(expectedNumberOfPackets);
+
+    }
+
+    @Test
+    public void testSendBatchByDuration() throws Exception {
+
+        final SiteToSiteClientConfig siteToSiteClientConfig = new SiteToSiteClient.Builder()
+                .requestBatchDuration(1, TimeUnit.NANOSECONDS)
+                .buildConfig();
+        setupMock(SiteToSiteTransportProtocol.HTTP, TransferDirection.SEND, siteToSiteClientConfig);
+
+        // t1 = {1}, t2 = {2} .. and so on.
+        final int[] expectedNumberOfPackets = {1, 1, 1, 1, 1};
+        testSendBatch(expectedNumberOfPackets);
+
+    }
+
+    /**
+     * Generate flow files to be sent, and execute port's onTrigger method.
+     * Finally, this method verifies whether packets are sent as expected.
+     * @param expectedNumberOfPackets Specify how many packets should be sent by each transaction.
+     *                                E.g. passing {2, 2, 1}, would generate 5 flow files in total.
+     *                                Based on the siteToSiteClientConfig batch parameters,
+     *                                it's expected to be sent via 3 transactions,
+     *                                transaction 0 will send flow file 0 and 1,
+     *                                transaction 1 will send flow file 2 and 3,
+     *                                and transaction 2 will send flow file 4.
+     *                                Each flow file has different content size generated automatically.
+     *                                The content size starts with 10, and increases as more flow files are generated.
+     *                                E.g. flow file 1 will have 10 bytes, flow file 2 has 11 bytes, f3 has 12 and so on.
+     *
+     */
+    private void testSendBatch(final int[] expectedNumberOfPackets) throws Exception {
+
+        setupMockProcessSession();
+
+        final String peerUrl = "http://node1.example.com:8080/nifi";
+        final PeerDescription peerDescription = new PeerDescription("node1.example.com", 8080, false);
+        final HttpCommunicationsSession commsSession = new HttpCommunicationsSession();
+        final Peer peer = new Peer(peerDescription, commsSession, peerUrl, REMOTE_CLUSTER_URL);
+
+        final String flowFileEndpointUri = "http://node1.example.com:8080/nifi-api/output-ports/port-id/transactions/transaction-id/flow-files";
+
+        doReturn(peer).when(transaction).getCommunicant();
+        commsSession.setDataTransferUrl(flowFileEndpointUri);
+
+        // Capture packets being sent to the remote peer
+        final AtomicInteger totalPacketsSent = new AtomicInteger(0);
+        final List<List<DataPacket>> sentPackets = new ArrayList<>(expectedNumberOfPackets.length);
+        final List<DataPacket> sentPacketsPerTransaction = new ArrayList<>();
+        doAnswer(invocation -> {
+            sentPacketsPerTransaction.add((DataPacket)invocation.getArguments()[0]);
+            totalPacketsSent.incrementAndGet();
+            return null;
+        }).when(transaction).send(any(DataPacket.class));
+        doAnswer(invocation -> {
+            sentPackets.add(new ArrayList<>(sentPacketsPerTransaction));
+            sentPacketsPerTransaction.clear();
+            return null;
+        }).when(transaction).confirm();
+
+
+        // Execute onTrigger while offering new flow files.
+        final List<MockFlowFile> flowFiles = new ArrayList<>();
+        for (int i = 0; i < expectedNumberOfPackets.length; i++) {
+            int numOfPackets = expectedNumberOfPackets[i];
+            int startF = flowFiles.size();
+            int endF = startF + numOfPackets;
+            IntStream.range(startF, endF).forEach(f -> {
+                final StringBuilder flowFileContents = new StringBuilder("0123456789");
+                for (int c = 0; c < f; c++) {
+                    flowFileContents.append(c);
+                }
+                final byte[] bytes = flowFileContents.toString().getBytes();
+                final MockFlowFile flowFile = spy(processSession.createFlowFile(bytes));
+                when(flowFile.getSize()).then(invocation -> {
+                    Thread.sleep(1); // For testSendBatchByDuration
+                    return bytes.length;
+                });
+                sessionState.getFlowFileQueue().offer(flowFile);
+                flowFiles.add(flowFile);
+            });
+            port.onTrigger(processContext, processSession);
+        }
+
+        // Verify transactions, sent packets, and provenance events.
+        assertEquals(flowFiles.size(), totalPacketsSent.get());
+        assertEquals("The number of transactions should match as expected.", expectedNumberOfPackets.length, sentPackets.size());
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(flowFiles.size(), provenanceEvents.size());
+
+        int f = 0;
+        for (int i = 0; i < expectedNumberOfPackets.length; i++) {
+            final List<DataPacket> dataPackets = sentPackets.get(i);
+            assertEquals(expectedNumberOfPackets[i], dataPackets.size());
+
+            for (int p = 0; p < dataPackets.size(); p++) {
+                final FlowFile flowFile = flowFiles.get(f);
+
+                // Assert sent packet
+                final DataPacket dataPacket = dataPackets.get(p);
+                assertEquals(flowFile.getSize(), dataPacket.getSize());
+
+                // Assert provenance event
+                final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(f);
+                assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
+                assertEquals(flowFileEndpointUri, provenanceEvent.getTransitUri());
+
+                f++;
+            }
+        }
     }
 
     @Test
