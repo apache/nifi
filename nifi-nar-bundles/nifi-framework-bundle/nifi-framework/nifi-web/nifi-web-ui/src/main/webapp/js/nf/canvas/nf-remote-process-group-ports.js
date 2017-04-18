@@ -262,14 +262,14 @@
                         if (port.exists === true) {
                             transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
                         } else {
-                            (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
+                            transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
                         }
                     }
                 } else {
                     if (port.transmitting === true) {
-                        (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
+                        transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
                     } else {
-                        (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
+                        transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope));
                     }
                 }
 
