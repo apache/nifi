@@ -181,7 +181,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
         dbAdapterLoader.forEach(it -> {
             dbAdapters.put(it.getName(), it);
-            dbAdapterValues.add(new AllowableValue(it.getName(),it.getName(), it.getDescription()));
+            dbAdapterValues.add(new AllowableValue(it.getName(), it.getName(), it.getDescription()));
         });
 
         DB_TYPE = new PropertyDescriptor.Builder()
@@ -351,26 +351,20 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 break;
 
             case TIMESTAMP:
-                // Oracle timestamp queries must use literals in java.sql.Date format
-                if ("Oracle".equals(databaseType)) {
-                    Date rawColOracleTimestampValue = resultSet.getDate(columnIndex);
-                    java.sql.Date oracleTimestampValue = new java.sql.Date(rawColOracleTimestampValue.getTime());
-                    java.sql.Date maxOracleTimestampValue = null;
-                    if (maxValueString != null) {
-                        maxOracleTimestampValue = java.sql.Date.valueOf(maxValueString);
-                    }
-                    if (maxOracleTimestampValue == null || oracleTimestampValue.after(maxOracleTimestampValue)) {
-                        return oracleTimestampValue.toString();
-                    }
-                } else {
-                    Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
-                    java.sql.Timestamp maxTimestampValue = null;
-                    if (maxValueString != null) {
+                Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
+                java.sql.Timestamp maxTimestampValue = null;
+                if (maxValueString != null) {
+                    // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
+                    // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
+                    // "timestamp" coercion in that case
+                    try {
                         maxTimestampValue = java.sql.Timestamp.valueOf(maxValueString);
+                    } catch (IllegalArgumentException iae) {
+                        maxTimestampValue = new java.sql.Timestamp(java.sql.Date.valueOf(maxValueString).getTime());
                     }
-                    if (maxTimestampValue == null || colTimestampValue.after(maxTimestampValue)) {
-                        return colTimestampValue.toString();
-                    }
+                }
+                if (maxTimestampValue == null || colTimestampValue.after(maxTimestampValue)) {
+                    return colTimestampValue.toString();
                 }
                 break;
 
@@ -411,9 +405,15 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case TIME:
                 return "'" + value + "'";
             case TIMESTAMP:
-                // Timestamp literals in Oracle need to be cast with TO_DATE
                 if ("Oracle".equals(databaseType)) {
-                    return "to_date('" + value + "', 'yyyy-mm-dd HH24:MI:SS')";
+                    // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
+                    // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
+                    // "timestamp" coercion in that case
+                    if (value.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                        return "date '" + value + "'";
+                    } else {
+                        return "timestamp '" + value + "'";
+                    }
                 } else {
                     return "'" + value + "'";
                 }
