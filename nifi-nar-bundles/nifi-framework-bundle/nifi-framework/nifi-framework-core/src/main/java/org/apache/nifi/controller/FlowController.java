@@ -195,6 +195,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -2011,6 +2012,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 descriptor.setConcurrentlySchedulableTaskCount(port.getConcurrentlySchedulableTaskCount());
                 descriptor.setTransmitting(port.isTransmitting());
                 descriptor.setUseCompression(port.getUseCompression());
+                final BatchSettingsDTO batchSettings = port.getBatchSettings();
+                if (batchSettings != null) {
+                    descriptor.setBatchCount(batchSettings.getCount());
+                    descriptor.setBatchSize(batchSettings.getSize());
+                    descriptor.setBatchDuration(batchSettings.getDuration());
+                }
                 remotePorts.add(descriptor);
             }
         }

@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -40,6 +41,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
@@ -434,6 +436,13 @@ public class TestRemoteProcessGroupAuditor {
         when(updatedRPGPort.getMaxConcurrentTasks()).thenReturn(inputRPGPortDTO.getConcurrentlySchedulableTaskCount());
         when(updatedRPGPort.isUseCompression()).thenReturn(inputRPGPortDTO.getUseCompression());
 
+        final BatchSettingsDTO batchSettings = inputRPGPortDTO.getBatchSettings();
+        if (batchSettings != null) {
+            when(updatedRPGPort.getBatchCount()).thenReturn(batchSettings.getCount());
+            when(updatedRPGPort.getBatchSize()).thenReturn(batchSettings.getSize());
+            when(updatedRPGPort.getBatchDuration()).thenReturn(batchSettings.getDuration());
+        }
+
         when(joinPoint.proceed()).thenReturn(updatedRPGPort);
 
         // Capture added actions so that those can be asserted later.
@@ -552,5 +561,35 @@ public class TestRemoteProcessGroupAuditor {
         assertEquals(Operation.Configure, action.getOperation());
         assertConfigureDetails(action.getActionDetails(), "input-port-1.Compressed", "false", "true");
 
+    }
+
+    @Test
+    public void testConfigurePortBatchSettings() throws Throwable {
+
+        final RemoteGroupPort existingRPGPort = defaultRemoteGroupPort();
+        when(existingRPGPort.getName()).thenReturn("input-port-1");
+
+        final RemoteProcessGroupPortDTO inputRPGPortDTO = defaultRemoteProcessGroupPortDTO();
+        final BatchSettingsDTO batchSettingsDTO = new BatchSettingsDTO();
+        batchSettingsDTO.setCount(1234);
+        batchSettingsDTO.setSize("64KB");
+        batchSettingsDTO.setDuration("10sec");
+        inputRPGPortDTO.setBatchSettings(batchSettingsDTO);
+
+        final Collection<Action> actions = updateProcessGroupInputPortConfiguration(inputRPGPortDTO, existingRPGPort);
+
+        assertEquals(3, actions.size());
+        final Iterator<Action> iterator = actions.iterator();
+        Action action = iterator.next();
+        assertEquals(Operation.Configure, action.getOperation());
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Count", "0", "1234");
+
+        action = iterator.next();
+        assertEquals(Operation.Configure, action.getOperation());
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Size", "", "64KB");
+
+        action = iterator.next();
+        assertEquals(Operation.Configure, action.getOperation());
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Duration", "", "10sec");
     }
 }

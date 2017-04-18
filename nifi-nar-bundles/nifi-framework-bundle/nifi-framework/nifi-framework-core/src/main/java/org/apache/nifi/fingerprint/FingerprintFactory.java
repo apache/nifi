@@ -511,7 +511,7 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[] {"id", "maxConcurrentTasks", "useCompression"}) {
+        for (final String childName : new String[] {"id", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 

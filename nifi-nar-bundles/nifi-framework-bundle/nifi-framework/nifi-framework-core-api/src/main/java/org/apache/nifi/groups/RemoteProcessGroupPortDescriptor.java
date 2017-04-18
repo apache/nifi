@@ -55,6 +55,21 @@ public interface RemoteProcessGroupPortDescriptor {
     Boolean getUseCompression();
 
     /**
+     * @return Preferred number of flow files to include in a transaction
+     */
+    Integer getBatchCount();
+
+    /**
+     * @return Preferred number of bytes to include in a transaction
+     */
+    String getBatchSize();
+
+    /**
+     * @return Preferred amount of for a transaction to span
+     */
+    String getBatchDuration();
+
+    /**
      * @return Whether or not the target port exists
      */
     Boolean getExists();

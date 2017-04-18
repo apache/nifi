@@ -35,6 +35,7 @@ public class RemoteProcessGroupPortDTO {
     private Boolean exists;
     private Boolean targetRunning;
     private Boolean connected;
+    private BatchSettingsDTO batchSettings;
 
     /**
      * @return comments as configured in the target port
@@ -174,6 +175,20 @@ public class RemoteProcessGroupPortDTO {
 
     public void setConnected(Boolean connected) {
         this.connected = connected;
+    }
+
+    /**
+     * @return batch settings for data transmission
+     */
+    @ApiModelProperty(
+            value = "The batch settings for data transmission."
+    )
+    public BatchSettingsDTO getBatchSettings() {
+        return batchSettings;
+    }
+
+    public void setBatchSettings(BatchSettingsDTO batchSettings) {
+        this.batchSettings = batchSettings;
     }
 
     @Override

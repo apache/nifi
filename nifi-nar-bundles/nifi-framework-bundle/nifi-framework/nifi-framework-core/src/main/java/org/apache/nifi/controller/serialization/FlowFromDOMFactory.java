@@ -357,6 +357,9 @@ public class FlowFromDOMFactory {
         descriptor.setComments(getString(element, "comments"));
         descriptor.setConcurrentlySchedulableTaskCount(getInt(element, "maxConcurrentTasks"));
         descriptor.setUseCompression(getBoolean(element, "useCompression"));
+        descriptor.setBatchCount(getOptionalInt(element, "batchCount"));
+        descriptor.setBatchSize(getString(element, "batchSize"));
+        descriptor.setBatchDuration(getString(element, "batchDuration"));
         descriptor.setTransmitting("RUNNING".equalsIgnoreCase(getString(element, "scheduledState")));
 
         return descriptor;

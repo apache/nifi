@@ -45,6 +45,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -632,6 +633,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             if (descriptor.getUseCompression() != null) {
                 port.setUseCompression(descriptor.getUseCompression());
             }
+            if (descriptor.getBatchCount() != null && descriptor.getBatchCount() > 0) {
+                port.setBatchCount(descriptor.getBatchCount());
+            }
+            if (!StringUtils.isBlank(descriptor.getBatchSize())) {
+                port.setBatchSize(descriptor.getBatchSize());
+            }
+            if (!StringUtils.isBlank(descriptor.getBatchDuration())) {
+                port.setBatchDuration(descriptor.getBatchDuration());
+            }
         } finally {
             writeLock.unlock();
         }
@@ -696,6 +706,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
             if (descriptor.getUseCompression() != null) {
                 port.setUseCompression(descriptor.getUseCompression());
+            }
+            if (descriptor.getBatchCount() != null && descriptor.getBatchCount() > 0) {
+                port.setBatchCount(descriptor.getBatchCount());
+            }
+            if (!StringUtils.isBlank(descriptor.getBatchSize())) {
+                port.setBatchSize(descriptor.getBatchSize());
+            }
+            if (!StringUtils.isBlank(descriptor.getBatchDuration())) {
+                port.setBatchDuration(descriptor.getBatchDuration());
             }
 
             inputPorts.put(descriptor.getId(), port);

@@ -46,11 +46,13 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -80,6 +82,9 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private static final Logger logger = LoggerFactory.getLogger(StandardRemoteGroupPort.class);
     private final RemoteProcessGroup remoteGroup;
     private final AtomicBoolean useCompression = new AtomicBoolean(false);
+    private final AtomicReference<Integer> batchCount = new AtomicReference<>();
+    private final AtomicReference<String> batchSize = new AtomicReference<>();
+    private final AtomicReference<String> batchDuration = new AtomicReference<>();
     private final AtomicBoolean targetExists = new AtomicBoolean(true);
     private final AtomicBoolean targetRunning = new AtomicBoolean(true);
     private final SSLContext sslContext;
@@ -157,7 +162,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
 
-        final SiteToSiteClient client = new SiteToSiteClient.Builder()
+        final SiteToSiteClient.Builder clientBuilder = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(remoteGroup.getTargetUris()))
                 .portIdentifier(getIdentifier())
                 .sslContext(sslContext)
@@ -168,9 +173,24 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(remoteGroup.getTransportProtocol())
                 .httpProxy(new HttpProxy(remoteGroup.getProxyHost(), remoteGroup.getProxyPort(), remoteGroup.getProxyUser(), remoteGroup.getProxyPassword()))
-                .localAddress(remoteGroup.getLocalAddress())
-                .build();
-        clientRef.set(client);
+                .localAddress(remoteGroup.getLocalAddress());
+
+        final Integer batchCount = getBatchCount();
+        if (batchCount != null) {
+            clientBuilder.requestBatchCount(batchCount);
+        }
+
+        final String batchSize = getBatchSize();
+        if (batchSize != null && batchSize.length() > 0) {
+            clientBuilder.requestBatchSize(DataUnit.parseDataSize(batchSize.trim(), DataUnit.B).intValue());
+        }
+
+        final String batchDuration = getBatchDuration();
+        if (batchDuration != null && batchDuration.length() > 0) {
+            clientBuilder.requestBatchDuration(FormatUtils.getTimeDuration(batchDuration.trim(), TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+        }
+
+        clientRef.set(clientBuilder.build());
     }
 
     @Override
@@ -278,6 +298,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final StopWatch stopWatch = new StopWatch(true);
             long bytesSent = 0L;
 
+            final SiteToSiteClientConfig siteToSiteClientConfig = getSiteToSiteClient().getConfig();
+            final long maxBatchBytes = siteToSiteClientConfig.getPreferredBatchSize();
+            final int maxBatchCount = siteToSiteClientConfig.getPreferredBatchCount();
+            final long preferredBatchDuration = siteToSiteClientConfig.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            final long maxBatchDuration = preferredBatchDuration > 0 ? preferredBatchDuration : BATCH_SEND_NANOS;
+
+
             final Set<FlowFile> flowFilesSent = new HashSet<>();
             boolean continueTransaction = true;
             while (continueTransaction) {
@@ -304,10 +331,15 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 session.remove(flowFile);
 
                 final long sendingNanos = System.nanoTime() - startSendingNanos;
-                if (sendingNanos < BATCH_SEND_NANOS) {
-                    flowFile = session.get();
-                } else {
+
+                if (maxBatchCount > 0 && flowFilesSent.size() >= maxBatchCount) {
                     flowFile = null;
+                } else if (maxBatchBytes > 0 && bytesSent >= maxBatchBytes) {
+                    flowFile = null;
+                } else if (sendingNanos >= maxBatchDuration) {
+                    flowFile = null;
+                } else {
+                    flowFile = session.get();
                 }
 
                 continueTransaction = (flowFile != null);
@@ -475,6 +507,36 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     @Override
     public boolean isUseCompression() {
         return useCompression.get();
+    }
+
+    @Override
+    public Integer getBatchCount() {
+        return batchCount.get();
+    }
+
+    @Override
+    public void setBatchCount(Integer batchCount) {
+        this.batchCount.set(batchCount);
+    }
+
+    @Override
+    public String getBatchSize() {
+        return batchSize.get();
+    }
+
+    @Override
+    public void setBatchSize(String batchSize) {
+        this.batchSize.set(batchSize);
+    }
+
+    @Override
+    public String getBatchDuration() {
+        return batchDuration.get();
+    }
+
+    @Override
+    public void setBatchDuration(String batchDuration) {
+        this.batchDuration.set(batchDuration);
     }
 
     @Override

@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -201,6 +202,11 @@ public class PeerSelector {
                 }
             }
         }
+
+        // Shuffle destinations to provide better distribution.
+        // Without this, same host will be used continuously, especially when remote peers have the same number of queued files.
+        // Use Random(0) to provide consistent result for unit testing. Randomness is not important to shuffle destinations.
+        Collections.shuffle(destinations, new Random(0));
 
         final StringBuilder distributionDescription = new StringBuilder();
         distributionDescription.append("New Weighted Distribution of Nodes:");

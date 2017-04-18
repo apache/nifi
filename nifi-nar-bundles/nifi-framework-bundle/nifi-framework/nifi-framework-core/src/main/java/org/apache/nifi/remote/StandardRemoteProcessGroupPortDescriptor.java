@@ -27,6 +27,9 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
     private Integer concurrentlySchedulableTaskCount;
     private Boolean transmitting;
     private Boolean useCompression;
+    private Integer batchCount;
+    private String batchSize;
+    private String batchDuration;
     private Boolean exists;
     private Boolean targetRunning;
     private Boolean connected;
@@ -92,6 +95,33 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
 
     public void setUseCompression(Boolean useCompression) {
         this.useCompression = useCompression;
+    }
+
+    @Override
+    public Integer getBatchCount() {
+        return batchCount;
+    }
+
+    public void setBatchCount(Integer batchCount) {
+        this.batchCount = batchCount;
+    }
+
+    @Override
+    public String getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(String batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    @Override
+    public String getBatchDuration() {
+        return batchDuration;
+    }
+
+    public void setBatchDuration(String batchDuration) {
+        this.batchDuration = batchDuration;
     }
 
     @Override

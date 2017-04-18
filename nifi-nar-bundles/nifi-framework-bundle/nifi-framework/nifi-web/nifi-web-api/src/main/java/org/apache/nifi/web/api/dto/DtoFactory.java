@@ -1493,6 +1493,12 @@ public final class DtoFactory {
         dto.setUseCompression(port.isUseCompression());
         dto.setExists(port.getTargetExists());
 
+        final BatchSettingsDTO batchDTO = new BatchSettingsDTO();
+        batchDTO.setCount(port.getBatchCount());
+        batchDTO.setSize(port.getBatchSize());
+        batchDTO.setDuration(port.getBatchDuration());
+        dto.setBatchSettings(batchDTO);
+
         // determine if this port is currently connected to another component locally
         if (ConnectableType.REMOTE_OUTPUT_PORT.equals(port.getConnectableType())) {
             dto.setConnected(!port.getConnections().isEmpty());
@@ -2962,6 +2968,13 @@ public final class DtoFactory {
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setUseCompression(original.getUseCompression());
         copy.setExists(original.getExists());
+        final BatchSettingsDTO batchOrg = original.getBatchSettings();
+        if (batchOrg != null) {
+            final BatchSettingsDTO batchCopy = new BatchSettingsDTO();
+            batchCopy.setCount(batchOrg.getCount());
+            batchCopy.setSize(batchOrg.getSize());
+            batchCopy.setDuration(batchOrg.getDuration());
+        }
         return copy;
     }
 
