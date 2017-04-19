@@ -77,7 +77,7 @@ public final class BulletinMerger {
         final List<BulletinEntity> entities = Lists.newArrayList();
 
         final Map<String,List<BulletinEntity>> groupingEntities = bulletinEntities.stream().collect(Collectors.groupingBy(b -> b.getBulletin().getMessage()));
-        groupingEntities.keySet().stream().forEach(m -> entities.add(groupingEntities.get(m).get(0)));
+        groupingEntities.values().stream().map(e -> e.get(0)).forEach(entities::add);
 
         Collections.sort(entities, (BulletinEntity o1, BulletinEntity o2) -> {
             final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());

@@ -46,7 +46,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-client-dto</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <version>${client.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -173,14 +173,7 @@ language governing permissions and limitations under the License. -->
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/conf/nifi.properties</exclude>
-                        <exclude>src/test/resources/external/conf/nifi.properties</exclude>
                         <exclude>src/test/resources/filemanager/myid</exclude>
-                        <exclude>src/test/resources/filemanager/nifi.properties</exclude>
-                        <exclude>src/test/resources/upgrade/conf/nifi.properties</exclude>
-                        <exclude>src/test/resources/upgrade/conf/login-identity-providers.xml</exclude>
-                        <exclude>src/test/resources/no_rules/conf/nifi.properties</exclude>
-                        <exclude>src/test/resources/no_rules/conf/login-identity-providers.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

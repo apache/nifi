@@ -16,16 +16,23 @@
  */
 package org.apache.nifi.toolkit.admin.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule
 import com.google.common.collect.Lists
+import com.google.common.collect.Maps
 import com.sun.jersey.api.client.Client
 import com.sun.jersey.api.client.ClientResponse
 import com.sun.jersey.api.client.WebResource
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.web.api.dto.NodeDTO
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter
 import org.apache.nifi.web.api.entity.ClusterEntity
+import org.apache.nifi.web.api.entity.NodeEntity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.text.SimpleDateFormat
 
 public class NiFiClientUtil {
 
@@ -130,27 +137,10 @@ public class NiFiClientUtil {
     }
 
     public static String convertToJson(NodeDTO nodeDTO){
-        StringBuilder sb = new StringBuilder("")
-        sb.append("{")
-        sb.append("\"node\":")
-        sb.append("{")
-        sb.append("\"")
-        sb.append("nodeId")
-        sb.append("\"")
-        sb.append(":")
-        sb.append("\"")
-        sb.append(nodeDTO.nodeId)
-        sb.append("\"")
-        sb.append(",")
-        sb.append("\"")
-        sb.append("status")
-        sb.append("\"")
-        sb.append(":")
-        sb.append("\"")
-        sb.append(nodeDTO.status)
-        sb.append("\"")
-        sb.append("}")
-        sb.append("}")
-        sb.toString()
+        ObjectMapper om = new ObjectMapper()
+        om.setDateFormat(new SimpleDateFormat(DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT));
+        NodeEntity ne = new NodeEntity()
+        ne.setNode(nodeDTO)
+        return om.writeValueAsString(ne)
     }
 }
