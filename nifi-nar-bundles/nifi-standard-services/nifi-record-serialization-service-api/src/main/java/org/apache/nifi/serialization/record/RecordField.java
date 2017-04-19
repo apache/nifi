@@ -17,29 +17,66 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
+
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
 public class RecordField {
     private final String fieldName;
     private final DataType dataType;
+    private final Set<String> aliases;
+    private final Object defaultValue;
 
     public RecordField(final String fieldName, final DataType dataType) {
-        this.fieldName = fieldName;
-        this.dataType = dataType;
+        this(fieldName, dataType, null, Collections.emptySet());
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Object defaultValue) {
+        this(fieldName, dataType, defaultValue, Collections.emptySet());
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Set<String> aliases) {
+        this(fieldName, dataType, null, aliases);
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final Set<String> aliases) {
+        if (defaultValue != null && !DataTypeUtils.isCompatibleDataType(defaultValue, dataType)) {
+            throw new IllegalArgumentException("Cannot set the default value for field [" + fieldName + "] to [" + defaultValue
+                + "] because that is not a valid value for Data Type [" + dataType + "]");
+        }
+
+        this.fieldName = Objects.requireNonNull(fieldName);
+        this.dataType = Objects.requireNonNull(dataType);
+        this.aliases = Collections.unmodifiableSet(Objects.requireNonNull(aliases));
+        this.defaultValue = defaultValue;
     }
 
     public String getFieldName() {
         return fieldName;
     }
 
+    public Set<String> getAliases() {
+        return aliases;
+    }
+
     public DataType getDataType() {
         return dataType;
+    }
+
+    public Object getDefaultValue() {
+        return defaultValue;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((dataType == null) ? 0 : dataType.hashCode());
-        result = prime * result + ((fieldName == null) ? 0 : fieldName.hashCode());
+        result = prime * result + dataType.hashCode();
+        result = prime * result + fieldName.hashCode();
+        result = prime * result + aliases.hashCode();
+        result = prime * result + ((defaultValue == null) ? 0 : defaultValue.hashCode());
         return result;
     }
 
@@ -57,7 +94,7 @@ public class RecordField {
         }
 
         RecordField other = (RecordField) obj;
-        return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName());
+        return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue);
     }
 
 

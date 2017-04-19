@@ -61,6 +61,18 @@ public class CSVUtils {
         .defaultValue("\"")
         .required(true)
         .build();
+    static final PropertyDescriptor SKIP_HEADER_LINE = new PropertyDescriptor.Builder()
+        .name("Skip Header Line")
+        .description("Specifies whether or not the first line of CSV should be considered a Header and skipped. If the Schema Access Strategy "
+            + "indicates that the columns must be defined in the header, then this property will be ignored, since the header must always be "
+            + "present and won't be processed as a Record. Otherwise, this property should be 'true' if the first non-comment line of CSV "
+            + "contains header information that needs to be ignored.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(false)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
     static final PropertyDescriptor COMMENT_MARKER = new PropertyDescriptor.Builder()
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
@@ -124,7 +136,13 @@ public class CSVUtils {
         .defaultValue("\\n")
         .required(true)
         .build();
-
+    static final PropertyDescriptor INCLUDE_HEADER_LINE = new PropertyDescriptor.Builder()
+        .name("Include Header Line")
+        .description("Specifies whether or not the CSV column names should be written out as the first line.")
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     static CSVFormat createCSVFormat(final ConfigurationContext context) {
         final String formatName = context.getProperty(CSV_FORMAT).getValue();
@@ -156,8 +174,11 @@ public class CSVUtils {
         final char valueSeparator = getChar(context, VALUE_SEPARATOR);
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
-            .withIgnoreEmptyLines()
-            .withFirstRecordAsHeader();
+            .withIgnoreEmptyLines();
+
+        if (context.getProperty(SKIP_HEADER_LINE).asBoolean()) {
+            format = format.withFirstRecordAsHeader();
+        }
 
         format = format.withQuote(getChar(context, QUOTE_CHAR));
         format = format.withEscape(getChar(context, ESCAPE_CHAR));

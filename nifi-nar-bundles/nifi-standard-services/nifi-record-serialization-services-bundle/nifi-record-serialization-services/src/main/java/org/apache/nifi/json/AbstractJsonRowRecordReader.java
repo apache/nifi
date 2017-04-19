@@ -19,20 +19,12 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonNode;
@@ -96,55 +88,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             logger.debug("Failed to convert JSON Element {} into a Record object using schema {} due to {}", new Object[] {nextNode, schema, e.toString(), e});
             throw new MalformedRecordException("Successfully parsed a JSON object from input but failed to convert into a Record object with the given schema", e);
         }
-    }
-
-    protected DataType determineFieldType(final JsonNode node) {
-        if (node.isDouble()) {
-            return RecordFieldType.DOUBLE.getDataType();
-        }
-        if (node.isBoolean()) {
-            return RecordFieldType.BOOLEAN.getDataType();
-        }
-        if (node.isFloatingPointNumber()) {
-            return RecordFieldType.FLOAT.getDataType();
-        }
-        if (node.isBigInteger()) {
-            return RecordFieldType.BIGINT.getDataType();
-        }
-        if (node.isBigDecimal()) {
-            return RecordFieldType.DOUBLE.getDataType();
-        }
-        if (node.isLong()) {
-            return RecordFieldType.LONG.getDataType();
-        }
-        if (node.isInt()) {
-            return RecordFieldType.INT.getDataType();
-        }
-        if (node.isTextual()) {
-            return RecordFieldType.STRING.getDataType();
-        }
-        if (node.isArray()) {
-            return RecordFieldType.ARRAY.getDataType();
-        }
-
-        final RecordSchema childSchema = determineSchema(node);
-        return RecordFieldType.RECORD.getRecordDataType(childSchema);
-    }
-
-    protected RecordSchema determineSchema(final JsonNode jsonNode) {
-        final List<RecordField> recordFields = new ArrayList<>();
-
-        final Iterator<Map.Entry<String, JsonNode>> itr = jsonNode.getFields();
-        while (itr.hasNext()) {
-            final Map.Entry<String, JsonNode> entry = itr.next();
-            final String elementName = entry.getKey();
-            final JsonNode node = entry.getValue();
-
-            DataType dataType = determineFieldType(node);
-            recordFields.add(new RecordField(elementName, dataType));
-        }
-
-        return new SimpleRecordSchema(recordFields);
     }
 
     protected Object getRawNodeValue(final JsonNode fieldNode) throws IOException {

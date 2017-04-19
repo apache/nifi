@@ -55,4 +55,25 @@ public interface RecordSchema {
      *         <code>null</code> if the schema does not contain a field with the given name
      */
     Optional<DataType> getDataType(String fieldName);
+
+    /**
+     * @return the textual representation of the schema, if one is available
+     */
+    Optional<String> getSchemaText();
+
+    /**
+     * @return the format of the schema text, if schema text is present
+     */
+    Optional<String> getSchemaFormat();
+
+    /**
+     * @param fieldName the name of the field
+     * @return an Optional RecordField for the field with the given name
+     */
+    Optional<RecordField> getField(String fieldName);
+
+    /**
+     * @return the SchemaIdentifier, which provides various attributes for identifying a schema
+     */
+    SchemaIdentifier getIdentifier();
 }

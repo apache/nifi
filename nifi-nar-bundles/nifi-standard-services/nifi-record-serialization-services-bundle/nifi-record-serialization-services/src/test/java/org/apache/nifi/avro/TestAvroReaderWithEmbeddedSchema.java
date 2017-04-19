@@ -46,6 +46,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -55,11 +56,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
 
-public class TestAvroRecordReader {
+public class TestAvroReaderWithEmbeddedSchema {
 
 
     @Test
-    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException {
+    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -92,7 +93,7 @@ public class TestAvroRecordReader {
         }
 
         try (final InputStream in = new ByteArrayInputStream(serialized)) {
-            final AvroRecordReader reader = new AvroRecordReader(in);
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
             final RecordSchema recordSchema = reader.getSchema();
 
             assertEquals(RecordFieldType.TIME, recordSchema.getDataType("timeMillis").get().getFieldType());
@@ -113,8 +114,7 @@ public class TestAvroRecordReader {
     }
 
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public void testDataTypes() throws IOException, MalformedRecordException {
+    public void testDataTypes() throws IOException, MalformedRecordException, SchemaNotFoundException {
         final List<Field> accountFields = new ArrayList<>();
         accountFields.add(new Field("accountId", Schema.create(Type.LONG), null, (Object) null));
         accountFields.add(new Field("accountName", Schema.create(Type.STRING), null, (Object) null));
@@ -164,12 +164,6 @@ public class TestAvroRecordReader {
         map.put("greeting", "hello");
         map.put("salutation", "good-bye");
 
-        final List<RecordField> mapFields = new ArrayList<>();
-        mapFields.add(new RecordField("greeting", RecordFieldType.STRING.getDataType()));
-        mapFields.add(new RecordField("salutation", RecordFieldType.STRING.getDataType()));
-        final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
-        final Record expectedRecord = new MapRecord(mapSchema, (Map) map);
-
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter);
             final DataFileWriter<GenericRecord> writer = dataFileWriter.create(schema, baos)) {
@@ -207,7 +201,7 @@ public class TestAvroRecordReader {
         source = baos.toByteArray();
 
         try (final InputStream in = new ByteArrayInputStream(source)) {
-            final AvroRecordReader reader = new AvroRecordReader(in);
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
             final RecordSchema recordSchema = reader.getSchema();
             assertEquals(15, recordSchema.getFieldCount());
 
@@ -216,10 +210,10 @@ public class TestAvroRecordReader {
             assertEquals(RecordFieldType.DOUBLE, recordSchema.getDataType("balance").get().getFieldType());
             assertEquals(RecordFieldType.FLOAT, recordSchema.getDataType("rate").get().getFieldType());
             assertEquals(RecordFieldType.BOOLEAN, recordSchema.getDataType("debt").get().getFieldType());
-            assertEquals(RecordFieldType.RECORD, recordSchema.getDataType("nickname").get().getFieldType());
+            assertEquals(RecordFieldType.STRING, recordSchema.getDataType("nickname").get().getFieldType());
             assertEquals(RecordFieldType.ARRAY, recordSchema.getDataType("binary").get().getFieldType());
             assertEquals(RecordFieldType.ARRAY, recordSchema.getDataType("fixed").get().getFieldType());
-            assertEquals(RecordFieldType.RECORD, recordSchema.getDataType("map").get().getFieldType());
+            assertEquals(RecordFieldType.MAP, recordSchema.getDataType("map").get().getFieldType());
             assertEquals(RecordFieldType.ARRAY, recordSchema.getDataType("array").get().getFieldType());
             assertEquals(RecordFieldType.RECORD, recordSchema.getDataType("account").get().getFieldType());
             assertEquals(RecordFieldType.DOUBLE, recordSchema.getDataType("desiredbalance").get().getFieldType());
@@ -237,7 +231,7 @@ public class TestAvroRecordReader {
             assertEquals(null, values[5]);
             assertArrayEquals(toObjectArray("binary".getBytes(StandardCharsets.UTF_8)), (Object[]) values[6]);
             assertArrayEquals(toObjectArray("fixed".getBytes(StandardCharsets.UTF_8)), (Object[]) values[7]);
-            assertEquals(expectedRecord, values[8]);
+            assertEquals(map, values[8]);
             assertArrayEquals(new Object[] {1L, 2L}, (Object[]) values[9]);
 
             final Map<String, Object> accountValues = new HashMap<>();

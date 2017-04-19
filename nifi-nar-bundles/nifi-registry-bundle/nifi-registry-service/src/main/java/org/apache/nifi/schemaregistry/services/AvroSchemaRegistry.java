@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.avro.LogicalType;
@@ -34,18 +37,21 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaField;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 @Tags({"schema", "registry", "avro", "json", "csv"})
 @CapabilityDescription("Provides a service for registering and accessing schemas. You can register a schema "
     + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
     + "representation of the actual schema following the syntax and semantics of Avro's Schema format.")
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
-
+    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
     private final Map<String, String> schemaNameToSchemaMap;
 
     private static final String LOGICAL_TYPE_DATE = "date";
@@ -54,38 +60,50 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
 
-
     public AvroSchemaRegistry() {
         this.schemaNameToSchemaMap = new HashMap<>();
     }
 
+    @Override
+    public String retrieveSchemaText(final String schemaName) throws SchemaNotFoundException {
+        final String schemaText = schemaNameToSchemaMap.get(schemaName);
+        if (schemaText == null) {
+            throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
+        }
+
+        return schemaText;
+    }
+
+    @Override
+    public RecordSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
+        final String schemaText = retrieveSchemaText(schemaName);
+        final Schema schema = new Schema.Parser().parse(schemaText);
+        return createRecordSchema(schema, schemaText, schemaName);
+    }
+
+    @Override
+    public RecordSchema retrieveSchema(long schemaId, int version) throws IOException, SchemaNotFoundException {
+        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
+    }
+
+    @Override
+    public String retrieveSchemaText(long schemaId, int version) throws IOException, SchemaNotFoundException {
+        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
+    }
+
+    @OnDisabled
+    public void close() throws Exception {
+        schemaNameToSchemaMap.clear();
+    }
+
+
     @OnEnabled
-    public void enable(ConfigurationContext configuratiponContext) throws InitializationException {
-        this.schemaNameToSchemaMap.putAll(configuratiponContext.getProperties().entrySet().stream()
+    public void enable(final ConfigurationContext configurationContext) throws InitializationException {
+        this.schemaNameToSchemaMap.putAll(configurationContext.getProperties().entrySet().stream()
             .filter(propEntry -> propEntry.getKey().isDynamic())
             .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
     }
 
-    @Override
-    public String retrieveSchemaText(String schemaName) {
-        if (!this.schemaNameToSchemaMap.containsKey(schemaName)) {
-            throw new IllegalArgumentException("Failed to find schema; Name: '" + schemaName + ".");
-        } else {
-            return this.schemaNameToSchemaMap.get(schemaName);
-        }
-    }
-
-    @Override
-    public String retrieveSchemaText(String schemaName, Map<String, String> attributes) {
-        throw new UnsupportedOperationException("This version of schema registry does not "
-            + "support this operation, since schemas are only identofied by name.");
-    }
-
-    @Override
-    @OnDisabled
-    public void close() throws Exception {
-        this.schemaNameToSchemaMap.clear();
-    }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -99,28 +117,24 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
 
-    @Override
-    public RecordSchema retrieveSchema(String schemaName) {
-        final String schemaText = this.retrieveSchemaText(schemaName);
-        final Schema schema = new Schema.Parser().parse(schemaText);
-        return createRecordSchema(schema);
-    }
-
     /**
      * Converts an Avro Schema to a RecordSchema
      *
      * @param avroSchema the Avro Schema to convert
+     * @param text the textual representation of the schema
+     * @param schemaName the name of the schema
      * @return the Corresponding Record Schema
      */
-    private RecordSchema createRecordSchema(final Schema avroSchema) {
+    private RecordSchema createRecordSchema(final Schema avroSchema, final String text, final String schemaName) {
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final DataType dataType = determineDataType(field.schema());
-            recordFields.add(new RecordField(fieldName, dataType));
+
+            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
         }
 
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, text, "avro", SchemaIdentifier.ofName(schemaName));
         return recordSchema;
     }
 
@@ -175,15 +189,19 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
                     final String fieldName = field.name();
                     final Schema fieldSchema = field.schema();
                     final DataType fieldType = determineDataType(fieldSchema);
-                    recordFields.add(new RecordField(fieldName, fieldType));
+
+                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
                 }
 
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), "avro", SchemaIdentifier.EMPTY);
                 return RecordFieldType.RECORD.getRecordDataType(recordSchema);
             }
             case NULL:
+                return RecordFieldType.STRING.getDataType();
             case MAP:
-                return RecordFieldType.RECORD.getDataType();
+                final Schema valueSchema = avroSchema.getValueType();
+                final DataType valueType = determineDataType(valueSchema);
+                return RecordFieldType.MAP.getMapDataType(valueType);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = avroSchema.getTypes().stream()
                     .filter(s -> s.getType() != Type.NULL)
@@ -206,12 +224,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         return null;
     }
 
-    /*
-     * For this implementation 'attributes' argument is ignored since the underlying storage mechanisms
-     * is based strictly on key/value pairs. In other implementation additional attributes may play a role (e.g., version id,)
-     */
     @Override
-    public RecordSchema retrieveSchema(String schemaName, Map<String, String> attributes) {
-        return this.retrieveSchema(schemaName);
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return schemaFields;
     }
 }

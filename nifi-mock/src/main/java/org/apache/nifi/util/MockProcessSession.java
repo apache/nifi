@@ -72,6 +72,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<String, Long> counterMap = new HashMap<>();
     private final Set<FlowFile> recursionSet = new HashSet<>();
     private final MockProvenanceReporter provenanceReporter;
+    private final boolean enforceReadStreamsClosed;
 
     // A List of InputStreams that have been created by calls to {@link #read(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, InputStream> openInputStreams = new HashMap<>();
@@ -83,7 +84,12 @@ public class MockProcessSession implements ProcessSession {
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
+        this(sharedState, processor, true);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceReadStreamsClosed) {
         this.processor = processor;
+        this.enforceReadStreamsClosed = enforceReadStreamsClosed;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
@@ -218,8 +224,10 @@ public class MockProcessSession implements ProcessSession {
                 }
             }
 
-            throw new FlowFileHandlingException("Cannot commit session because the following Input Streams were created via "
-                + "calls to ProcessSession.read(FlowFile) and never closed: " + openStreamCopy);
+            if (enforceReadStreamsClosed) {
+                throw new FlowFileHandlingException("Cannot commit session because the following Input Streams were created via "
+                    + "calls to ProcessSession.read(FlowFile) and never closed: " + openStreamCopy);
+            }
         }
 
         committed = true;

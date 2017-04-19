@@ -29,15 +29,17 @@ public class MockSessionFactory implements ProcessSessionFactory {
     private final Processor processor;
     private final SharedSessionState sharedState;
     private final Set<MockProcessSession> createdSessions = new CopyOnWriteArraySet<>();
+    private final boolean enforceReadStreamsClosed;
 
-    MockSessionFactory(final SharedSessionState sharedState, final Processor processor) {
+    MockSessionFactory(final SharedSessionState sharedState, final Processor processor, final boolean enforceReadStreamsClosed) {
         this.sharedState = sharedState;
         this.processor = processor;
+        this.enforceReadStreamsClosed = enforceReadStreamsClosed;
     }
 
     @Override
     public ProcessSession createSession() {
-        final MockProcessSession session = new MockProcessSession(sharedState, processor);
+        final MockProcessSession session = new MockProcessSession(sharedState, processor, enforceReadStreamsClosed);
         createdSessions.add(session);
         return session;
     }

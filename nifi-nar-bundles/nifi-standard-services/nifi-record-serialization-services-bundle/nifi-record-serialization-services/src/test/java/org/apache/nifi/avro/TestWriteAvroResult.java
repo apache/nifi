@@ -41,13 +41,10 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericData.Array;
-import org.apache.avro.generic.GenericData.StringType;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -56,12 +53,19 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.junit.Test;
 
-public class TestWriteAvroResult {
+public abstract class TestWriteAvroResult {
+
+    protected abstract WriteAvroResult createWriter(Schema schema);
+
+    protected abstract GenericRecord readRecord(InputStream in, Schema schema) throws IOException;
+
+    protected void verify(final WriteResult writeResult) {
+    }
 
     @Test
     public void testLogicalTypes() throws IOException, ParseException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
-        final WriteAvroResult writer = new WriteAvroResult(schema);
+        final WriteAvroResult writer = createWriter(schema);
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("timeMillis", RecordFieldType.TIME.getDataType()));
@@ -91,11 +95,7 @@ public class TestWriteAvroResult {
         }
 
         try (final InputStream in = new ByteArrayInputStream(data)) {
-            final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
-            final Schema avroSchema = dataFileStream.getSchema();
-            GenericData.setStringType(avroSchema, StringType.String);
-
-            final GenericRecord avroRecord = dataFileStream.next();
+            final GenericRecord avroRecord = readRecord(in, schema);
             final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
             final long millisSinceMidnight = secondsSinceMidnight * 1000L;
 
@@ -110,9 +110,8 @@ public class TestWriteAvroResult {
 
     @Test
     public void testDataTypes() throws IOException {
-        // TODO: Test Enums
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/datatypes.avsc"));
-        final WriteAvroResult writer = new WriteAvroResult(schema);
+        final WriteAvroResult writer = createWriter(schema);
 
         final List<RecordField> subRecordFields = Collections.singletonList(new RecordField("field1", RecordFieldType.STRING.getDataType()));
         final RecordSchema subRecordSchema = new SimpleRecordSchema(subRecordFields);
@@ -124,7 +123,7 @@ public class TestWriteAvroResult {
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
         fields.add(new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()));
-        fields.add(new RecordField("bytes", RecordFieldType.ARRAY.getChoiceDataType(Collections.singletonList(RecordFieldType.BYTE.getDataType()))));
+        fields.add(new RecordField("bytes", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
         fields.add(new RecordField("nullOrLong", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
         fields.add(new RecordField("record", RecordFieldType.RECORD.getRecordDataType(subRecordSchema)));
@@ -148,21 +147,18 @@ public class TestWriteAvroResult {
 
         final byte[] data;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            writer.write(RecordSet.of(record.getSchema(), record), baos);
+            final WriteResult writeResult = writer.write(RecordSet.of(record.getSchema(), record), baos);
+            verify(writeResult);
             data = baos.toByteArray();
         }
 
         try (final InputStream in = new ByteArrayInputStream(data)) {
-            final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
-            final Schema avroSchema = dataFileStream.getSchema();
-            GenericData.setStringType(avroSchema, StringType.String);
-
-            final GenericRecord avroRecord = dataFileStream.next();
+            final GenericRecord avroRecord = readRecord(in, schema);
             assertMatch(record, avroRecord);
         }
     }
 
-    private void assertMatch(final Record record, final GenericRecord avroRecord) {
+    protected void assertMatch(final Record record, final GenericRecord avroRecord) {
         for (final String fieldName : record.getSchema().getFieldNames()) {
             Object avroValue = avroRecord.get(fieldName);
             final Object recordValue = record.getValue(fieldName);

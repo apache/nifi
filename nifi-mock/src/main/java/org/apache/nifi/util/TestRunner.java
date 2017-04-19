@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -949,4 +950,19 @@ public interface TestRunner {
      * @param predicate conditions
      */
     void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate);
+
+    /**
+     * By default, if {@link ProcessSession#read(FlowFile)} is called, the InputStream that is returned MUST be closed by
+     * the processor under test or calls to {@link ProcessSession#commit()} will throw an Exception. This method allows
+     * the developer to indicate explicitly that they do or do not want this functionality. The ProcessSession that is used
+     * in the framework when running NiFi does not enforce this, as the framework itself tracks the InputStreams that it returns
+     * and ensures that they are properly closed on session commit or rollback. However, it is considered a best practice for
+     * Processors to close the streams themselves whenever they are no longer needed. There may be cases, however, where this
+     * is not feasible or easy and this method provides developers the ability to indicate that by disabling enforcement so that
+     * the framework will handle this.
+     *
+     * @param enforce <code>true</code> if calls to session.commit() should fail if the read streams are not properly closed.
+     */
+    void enforceReadStreamsClosed(boolean enforce);
+
 }

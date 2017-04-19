@@ -52,7 +52,7 @@ public class ArrayDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordDataType)) {
+        if (!(obj instanceof ArrayDataType)) {
             return false;
         }
 

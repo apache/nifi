@@ -42,44 +42,46 @@ public class DataTypeUtils {
 
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
-    public static Object convertType(final Object value, final DataType dataType) {
-        return convertType(value, dataType, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+    public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
+        return convertType(value, dataType, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), fieldName);
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public static Object convertType(final Object value, final DataType dataType, final String dateFormat, final String timeFormat, final String timestampFormat, final String fieldName) {
         switch (dataType.getFieldType()) {
             case BIGINT:
-                return toBigInt(value);
+                return toBigInt(value, fieldName);
             case BOOLEAN:
-                return toBoolean(value);
+                return toBoolean(value, fieldName);
             case BYTE:
-                return toByte(value);
+                return toByte(value, fieldName);
             case CHAR:
-                return toCharacter(value);
+                return toCharacter(value, fieldName);
             case DATE:
-                return toDate(value, dateFormat);
+                return toDate(value, dateFormat, fieldName);
             case DOUBLE:
-                return toDouble(value);
+                return toDouble(value, fieldName);
             case FLOAT:
-                return toFloat(value);
+                return toFloat(value, fieldName);
             case INT:
-                return toInteger(value);
+                return toInteger(value, fieldName);
             case LONG:
-                return toLong(value);
+                return toLong(value, fieldName);
             case SHORT:
-                return toShort(value);
+                return toShort(value, fieldName);
             case STRING:
                 return toString(value, dateFormat, timeFormat, timestampFormat);
             case TIME:
-                return toTime(value, timeFormat);
+                return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
-                return toTimestamp(value, timestampFormat);
+                return toTimestamp(value, timestampFormat, fieldName);
             case ARRAY:
-                return toArray(value);
+                return toArray(value, fieldName);
+            case MAP:
+                return toMap(value, fieldName);
             case RECORD:
                 final RecordDataType recordType = (RecordDataType) dataType;
                 final RecordSchema childSchema = recordType.getChildSchema();
-                return toRecord(value, childSchema);
+                return toRecord(value, childSchema, fieldName);
             case CHOICE: {
                 if (value == null) {
                     return null;
@@ -89,10 +91,10 @@ public class DataTypeUtils {
                 final DataType chosenDataType = chooseDataType(value, choiceDataType);
                 if (chosenDataType == null) {
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass()
-                        + " to any of the following available Sub-Types for a Choice: " + choiceDataType.getPossibleSubTypes());
+                        + " for field " + fieldName + " to any of the following available Sub-Types for a Choice: " + choiceDataType.getPossibleSubTypes());
                 }
 
-                return convertType(value, chosenDataType);
+                return convertType(value, chosenDataType, fieldName);
             }
         }
 
@@ -132,6 +134,8 @@ public class DataTypeUtils {
                 return isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING:
                 return isStringTypeCompatible(value);
+            case MAP:
+                return isMapTypeCompatible(value);
             case CHOICE: {
                 final DataType chosenDataType = chooseDataType(value, (ChoiceDataType) dataType);
                 return chosenDataType != null;
@@ -151,7 +155,7 @@ public class DataTypeUtils {
         return null;
     }
 
-    public static Record toRecord(final Object value, final RecordSchema recordSchema) {
+    public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -163,7 +167,7 @@ public class DataTypeUtils {
         if (value instanceof Map) {
             if (recordSchema == null) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass()
-                    + " to Record because the value is a Map but no Record Schema was provided");
+                    + " to Record for field " + fieldName + " because the value is a Map but no Record Schema was provided");
             }
 
             final Map<?, ?> map = (Map<?, ?>) value;
@@ -182,21 +186,21 @@ public class DataTypeUtils {
                 }
 
                 final Object rawValue = entry.getValue();
-                final Object coercedValue = convertType(rawValue, desiredTypeOption.get());
+                final Object coercedValue = convertType(rawValue, desiredTypeOption.get(), fieldName);
                 coercedValues.put(key, coercedValue);
             }
 
             return new MapRecord(recordSchema, coercedValues);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Record");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Record for field " + fieldName);
     }
 
     public static boolean isRecordTypeCompatible(final Object value) {
         return value != null && value instanceof Record;
     }
 
-    public static Object[] toArray(final Object value) {
+    public static Object[] toArray(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -205,12 +209,69 @@ public class DataTypeUtils {
             return (Object[]) value;
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
     }
 
     public static boolean isArrayTypeCompatible(final Object value) {
         return value != null && value instanceof Object[];
     }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> toMap(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Map) {
+            final Map<?, ?> original = (Map<?, ?>) value;
+
+            boolean keysAreStrings = true;
+            for (final Object key : original.keySet()) {
+                if (!(key instanceof String)) {
+                    keysAreStrings = false;
+                }
+            }
+
+            if (keysAreStrings) {
+                return (Map<String, Object>) value;
+            }
+
+            final Map<String, Object> transformed = new HashMap<>();
+            for (final Map.Entry<?, ?> entry : original.entrySet()) {
+                final Object key = entry.getKey();
+                if (key == null) {
+                    transformed.put(null, entry.getValue());
+                } else {
+                    transformed.put(key.toString(), entry.getValue());
+                }
+            }
+
+            return transformed;
+        }
+
+        if (value instanceof Record) {
+            final Record record = (Record) value;
+            final RecordSchema recordSchema = record.getSchema();
+            if (recordSchema == null) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type Record to Map for field " + fieldName
+                    + " because Record does not have an associated Schema");
+            }
+
+            final Map<String, Object> map = new HashMap<>();
+            for (final String recordFieldName : recordSchema.getFieldNames()) {
+                map.put(recordFieldName, record.getValue(recordFieldName));
+            }
+
+            return map;
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Map for field " + fieldName);
+    }
+
+    public static boolean isMapTypeCompatible(final Object value) {
+        return value != null && value instanceof Map;
+    }
+
 
     public static String toString(final Object value, final String dateFormat, final String timeFormat, final String timestampFormat) {
         if (value == null) {
@@ -238,10 +299,10 @@ public class DataTypeUtils {
     }
 
     public static boolean isStringTypeCompatible(final Object value) {
-        return value != null && (value instanceof String || value instanceof java.util.Date);
+        return value != null;
     }
 
-    public static java.sql.Date toDate(final Object value, final String format) {
+    public static java.sql.Date toDate(final Object value, final String format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -261,11 +322,11 @@ public class DataTypeUtils {
                 return new Date(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Date because the value is not in the expected date format: " + format);
+                    + "] of type java.lang.String to Date because the value is not in the expected date format: " + format + " for field " + fieldName);
             }
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
@@ -289,7 +350,7 @@ public class DataTypeUtils {
         return false;
     }
 
-    public static Time toTime(final Object value, final String format) {
+    public static Time toTime(final Object value, final String format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -309,11 +370,11 @@ public class DataTypeUtils {
                 return new Time(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Time because the value is not in the expected date format: " + format);
+                    + "] of type java.lang.String to Time for field " + fieldName + " because the value is not in the expected date format: " + format);
             }
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time for field " + fieldName);
     }
 
     private static DateFormat getDateFormat(final String format) {
@@ -326,7 +387,7 @@ public class DataTypeUtils {
         return isDateTypeCompatible(value, format);
     }
 
-    public static Timestamp toTimestamp(final Object value, final String format) {
+    public static Timestamp toTimestamp(final Object value, final String format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -346,11 +407,11 @@ public class DataTypeUtils {
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Timestamp because the value is not in the expected date format: " + format);
+                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: " + format);
             }
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Timestamp");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Timestamp for field " + fieldName);
     }
 
     public static boolean isTimestampTypeCompatible(final Object value, final String format) {
@@ -358,7 +419,7 @@ public class DataTypeUtils {
     }
 
 
-    public static BigInteger toBigInt(final Object value) {
+    public static BigInteger toBigInt(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -370,14 +431,14 @@ public class DataTypeUtils {
             return BigInteger.valueOf((Long) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
         return value == null && (value instanceof BigInteger || value instanceof Long);
     }
 
-    public static Boolean toBoolean(final Object value) {
+    public static Boolean toBoolean(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -394,7 +455,7 @@ public class DataTypeUtils {
             }
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Boolean");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Boolean for field " + fieldName);
     }
 
     public static boolean isBooleanTypeCompatible(final Object value) {
@@ -411,7 +472,7 @@ public class DataTypeUtils {
         return false;
     }
 
-    public static Double toDouble(final Object value) {
+    public static Double toDouble(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -424,7 +485,7 @@ public class DataTypeUtils {
             return Double.parseDouble((String) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Double");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Double for field " + fieldName);
     }
 
     public static boolean isDoubleTypeCompatible(final Object value) {
@@ -452,7 +513,7 @@ public class DataTypeUtils {
         return false;
     }
 
-    public static Float toFloat(final Object value) {
+    public static Float toFloat(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -465,14 +526,14 @@ public class DataTypeUtils {
             return Float.parseFloat((String) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Float");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Float for field " + fieldName);
     }
 
     public static boolean isFloatTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> Float.parseFloat(s));
     }
 
-    public static Long toLong(final Object value) {
+    public static Long toLong(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -489,7 +550,7 @@ public class DataTypeUtils {
             return ((java.util.Date) value).getTime();
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Long");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Long for field " + fieldName);
     }
 
     public static boolean isLongTypeCompatible(final Object value) {
@@ -518,7 +579,7 @@ public class DataTypeUtils {
     }
 
 
-    public static Integer toInteger(final Object value) {
+    public static Integer toInteger(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -531,7 +592,7 @@ public class DataTypeUtils {
             return Integer.parseInt((String) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer for field " + fieldName);
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
@@ -539,7 +600,7 @@ public class DataTypeUtils {
     }
 
 
-    public static Short toShort(final Object value) {
+    public static Short toShort(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -552,14 +613,14 @@ public class DataTypeUtils {
             return Short.parseShort((String) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Short");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Short for field " + fieldName);
     }
 
     public static boolean isShortTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> Short.parseShort(s));
     }
 
-    public static Byte toByte(final Object value) {
+    public static Byte toByte(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -572,7 +633,7 @@ public class DataTypeUtils {
             return Byte.parseByte((String) value);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Byte");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Byte for field " + fieldName);
     }
 
     public static boolean isByteTypeCompatible(final Object value) {
@@ -580,7 +641,7 @@ public class DataTypeUtils {
     }
 
 
-    public static Character toCharacter(final Object value) {
+    public static Character toCharacter(final Object value, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -592,13 +653,14 @@ public class DataTypeUtils {
         if (value instanceof CharSequence) {
             final CharSequence charSeq = (CharSequence) value;
             if (charSeq.length() == 0) {
-                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Character because it has a length of 0");
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass()
+                    + " to Character because it has a length of 0 for field " + fieldName);
             }
 
             return charSeq.charAt(0);
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Character");
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Character for field " + fieldName);
     }
 
     public static boolean isCharacterTypeCompatible(final Object value) {

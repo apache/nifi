@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.standard.util.record.MockRecordParser;
 import org.apache.nifi.processors.standard.util.record.MockRecordWriter;
@@ -40,7 +42,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TestQueryFlowFile {
+public class TestQueryRecord {
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -60,15 +62,15 @@ public class TestQueryFlowFile {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryFlowFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
         runner.setProperty(REL_NAME, "select name, age from FLOWFILE WHERE name <> ''");
-        runner.setProperty(QueryFlowFile.RECORD_READER_FACTORY, "parser");
-        runner.setProperty(QueryFlowFile.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
         final int numIterations = 1;
         for (int i = 0; i < numIterations; i++) {
@@ -93,15 +95,15 @@ public class TestQueryFlowFile {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryFlowFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
         runner.setProperty(REL_NAME, "select name, age from FLOWFILE WHERE name <> ''");
-        runner.setProperty(QueryFlowFile.RECORD_READER_FACTORY, "parser");
-        runner.setProperty(QueryFlowFile.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
         final int numIterations = 1;
         for (int i = 0; i < numIterations; i++) {
@@ -133,15 +135,15 @@ public class TestQueryFlowFile {
 
         final MockRecordWriter writer = new MockRecordWriter("\"NAME\",\"POINTS\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryFlowFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
         runner.setProperty(REL_NAME, "select ID, AMOUNT1+AMOUNT2+AMOUNT3 as TOTAL from FLOWFILE where ID=100");
-        runner.setProperty(QueryFlowFile.RECORD_READER_FACTORY, "parser");
-        runner.setProperty(QueryFlowFile.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
         runner.enqueue(new byte[0]);
         runner.run();
@@ -152,6 +154,36 @@ public class TestQueryFlowFile {
         out.assertContentEquals("\"NAME\",\"POINTS\"\n\"100\",\"90.75\"\n");
     }
 
+    @Test
+    public void testHandlingWithInvalidSchema() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("favorite_color", RecordFieldType.STRING);
+        parser.addSchemaField("address", RecordFieldType.STRING);
+        parser.addRecord("Tom", "blue", null);
+        parser.addRecord("Jerry", "red", null);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        runner.enforceReadStreamsClosed(false);
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "false");
+        runner.setProperty("rel1", "select * from FLOWFILE where address IS NOT NULL");
+        runner.setProperty("rel2", "select name, CAST(favorite_color AS DOUBLE) AS num from FLOWFILE");
+        runner.setProperty("rel3", "select * from FLOWFILE where address IS NOT NULL");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(QueryRecord.REL_FAILURE, 1);
+    }
 
     @Test
     public void testAggregateFunction() throws InitializationException, IOException {
@@ -164,15 +196,15 @@ public class TestQueryFlowFile {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryFlowFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
         runner.setProperty(REL_NAME, "select name, sum(points) as points from FLOWFILE GROUP BY name");
-        runner.setProperty(QueryFlowFile.RECORD_READER_FACTORY, "parser");
-        runner.setProperty(QueryFlowFile.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
         runner.enqueue("");
         runner.run();
@@ -199,15 +231,15 @@ public class TestQueryFlowFile {
         colNames.add("FAV_GREETING");
         final ResultSetValidatingRecordWriter writer = new ResultSetValidatingRecordWriter(colNames);
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryFlowFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
         runner.setProperty(REL_NAME, "select *, greeting AS FAV_GREETING from FLOWFILE");
-        runner.setProperty(QueryFlowFile.RECORD_READER_FACTORY, "parser");
-        runner.setProperty(QueryFlowFile.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
         runner.enqueue("");
         runner.run();
@@ -224,7 +256,7 @@ public class TestQueryFlowFile {
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger) {
+        public RecordSetWriter createWriter(ComponentLog logger, FlowFile flowFile, InputStream in) {
             return new RecordSetWriter() {
                 @Override
                 public WriteResult write(final RecordSet rs, final OutputStream out) throws IOException {

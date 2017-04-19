@@ -29,19 +29,67 @@ import java.util.stream.Collectors;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SimpleRecordSchema implements RecordSchema {
     private final List<RecordField> fields;
     private final Map<String, Integer> fieldIndices;
+    private final boolean textAvailable;
+    private final String text;
+    private final String schemaFormat;
+    private final SchemaIdentifier schemaIdentifier;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
+        this(fields, createText(fields), null, false, SchemaIdentifier.EMPTY);
+    }
+
+    public SimpleRecordSchema(final List<RecordField> fields, final SchemaIdentifier id) {
+        this(fields, createText(fields), null, false, id);
+    }
+
+    public SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final SchemaIdentifier id) {
+        this(fields, text, schemaFormat, true, id);
+    }
+
+    private SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
+        this.text = text;
+        this.schemaFormat = schemaFormat;
+        this.schemaIdentifier = id;
+        this.textAvailable = textAvailable;
         this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
         this.fieldIndices = new HashMap<>(fields.size());
 
         int index = 0;
         for (final RecordField field : fields) {
-            fieldIndices.put(field.getFieldName(), index++);
+            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
+            if (previousValue != null) {
+                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+            }
+
+            for (final String alias : field.getAliases()) {
+                previousValue = fieldIndices.put(alias, index);
+                if (previousValue != null) {
+                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+                }
+            }
+
+            index++;
         }
+    }
+
+    @Override
+    public Optional<String> getSchemaText() {
+        if (textAvailable) {
+            return Optional.ofNullable(text);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+
+    @Override
+    public Optional<String> getSchemaFormat() {
+        return Optional.ofNullable(schemaFormat);
     }
 
     @Override
@@ -77,6 +125,16 @@ public class SimpleRecordSchema implements RecordSchema {
         return idx.isPresent() ? Optional.of(fields.get(idx.getAsInt()).getDataType()) : Optional.empty();
     }
 
+    @Override
+    public Optional<RecordField> getField(final String fieldName) {
+        final OptionalInt indexOption = getFieldIndex(fieldName);
+        if (indexOption.isPresent()) {
+            return Optional.of(fields.get(indexOption.getAsInt()));
+        }
+
+        return Optional.empty();
+    }
+
     private OptionalInt getFieldIndex(final String fieldName) {
         final Integer index = fieldIndices.get(fieldName);
         return index == null ? OptionalInt.empty() : OptionalInt.of(index);
@@ -103,8 +161,7 @@ public class SimpleRecordSchema implements RecordSchema {
         return 143 + 3 * fields.hashCode();
     }
 
-    @Override
-    public String toString() {
+    private static String createText(final List<RecordField> fields) {
         final StringBuilder sb = new StringBuilder("[");
 
         for (int i = 0; i < fields.size(); i++) {
@@ -122,5 +179,15 @@ public class SimpleRecordSchema implements RecordSchema {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return text;
+    }
+
+    @Override
+    public SchemaIdentifier getIdentifier() {
+        return schemaIdentifier;
     }
 }

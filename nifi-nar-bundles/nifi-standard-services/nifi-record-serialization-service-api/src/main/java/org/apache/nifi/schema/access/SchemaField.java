@@ -15,24 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization;
+package org.apache.nifi.schema.access;
 
-import java.io.IOException;
-import java.io.InputStream;
+public enum SchemaField {
+    SCHEMA_TEXT("Schema Text"),
+    SCHEMA_TEXT_FORMAT("Schema Text Format"),
+    SCHEMA_NAME("Schema Name"),
+    SCHEMA_IDENTIFIER("Schema Identifier"),
+    SCHEMA_VERSION("Schema Version");
 
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.record.RecordSchema;
+    private final String description;
 
-/**
- * <p>
- * A Controller Service that is responsible for creating a {@link RecordReader}.
- * </p>
- */
-public interface RowRecordReaderFactory extends ControllerService {
+    private SchemaField(final String description) {
+        this.description = description;
+    }
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException;
-
-    RecordSchema getSchema(FlowFile flowFile) throws MalformedRecordException, IOException;
+    @Override
+    public String toString() {
+        return description;
+    }
 }

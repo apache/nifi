@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -69,10 +71,10 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.queryflowfile.FlowFileTable;
+import org.apache.nifi.queryrecord.FlowFileTable;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
@@ -96,12 +98,12 @@ import org.apache.nifi.util.StopWatch;
 @DynamicProperty(name = "The name of the relationship to route data to", value="A SQL SELECT statement that is used to determine what data should be routed to this "
         + "relationship.", supportsExpressionLanguage=true, description="Each user-defined property specifies a SQL SELECT statement to run over the data, with the data "
         + "that is selected being routed to the relationship whose name is the property name")
-public class QueryFlowFile extends AbstractProcessor {
+public class QueryRecord extends AbstractProcessor {
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
         .name("record-reader")
         .displayName("Record Reader")
         .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
-        .identifiesControllerService(RowRecordReaderFactory.class)
+        .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
@@ -240,14 +242,21 @@ public class QueryFlowFile extends AbstractProcessor {
 
         final RecordSetWriterFactory resultSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY)
             .asControllerService(RecordSetWriterFactory.class);
-        final RowRecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY)
-            .asControllerService(RowRecordReaderFactory.class);
+        final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY)
+            .asControllerService(RecordReaderFactory.class);
 
-        final RecordSetWriter resultSetWriter = resultSetWriterFactory.createWriter(getLogger());
         final Map<FlowFile, Relationship> transformedFlowFiles = new HashMap<>();
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
 
+        int recordsRead = 0;
+
         try {
+            final RecordSetWriter resultSetWriter;
+            try (final InputStream rawIn = session.read(original);
+                final InputStream in = new BufferedInputStream(rawIn)) {
+                resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), original, in);
+            }
+
             for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
                 if (!descriptor.isDynamic()) {
                     continue;
@@ -259,51 +268,60 @@ public class QueryFlowFile extends AbstractProcessor {
                 // and we cannot call session.read() on the original FlowFile while we are within a write
                 // callback for the original FlowFile.
                 FlowFile transformed = session.create(original);
-
-                // Ensure that we have the FlowFile in the map in case we throw any Exception
-                createdFlowFiles.add(transformed);
-
-                final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
-                final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
-                final QueryResult queryResult;
-                if (context.getProperty(CACHE_SCHEMA).asBoolean()) {
-                    queryResult = queryWithCache(session, original, sql, context, recordParserFactory);
-                } else {
-                    queryResult = query(session, original, sql, context, recordParserFactory);
-                }
+                boolean flowFileRemoved = false;
 
                 try {
-                    final ResultSet rs = queryResult.getResultSet();
-                    transformed = session.write(transformed, new OutputStreamCallback() {
-                        @Override
-                        public void process(final OutputStream out) throws IOException {
-                            try {
-                                final ResultSetRecordSet recordSet = new ResultSetRecordSet(rs);
-                                writeResultRef.set(resultSetWriter.write(recordSet, out));
-                            } catch (final Exception e) {
-                                throw new IOException(e);
-                            }
-                        }
-                    });
-                } finally {
-                    closeQuietly(queryResult);
-                }
-
-                final WriteResult result = writeResultRef.get();
-                if (result.getRecordCount() == 0 && !context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()) {
-                    session.remove(transformed);
-                    transformedFlowFiles.remove(transformed);
-                    getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", new Object[] {original});
-                } else {
-                    final Map<String, String> attributesToAdd = new HashMap<>();
-                    if (result.getAttributes() != null) {
-                        attributesToAdd.putAll(result.getAttributes());
+                    final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
+                    final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
+                    final QueryResult queryResult;
+                    if (context.getProperty(CACHE_SCHEMA).asBoolean()) {
+                        queryResult = queryWithCache(session, original, sql, context, recordParserFactory);
+                    } else {
+                        queryResult = query(session, original, sql, context, recordParserFactory);
                     }
 
-                    attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), resultSetWriter.getMimeType());
-                    attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
-                    transformed = session.putAllAttributes(transformed, attributesToAdd);
-                    transformedFlowFiles.put(transformed, relationship);
+                    try {
+                        final ResultSet rs = queryResult.getResultSet();
+                        transformed = session.write(transformed, new OutputStreamCallback() {
+                            @Override
+                            public void process(final OutputStream out) throws IOException {
+                                try {
+                                    final ResultSetRecordSet recordSet = new ResultSetRecordSet(rs);
+                                    writeResultRef.set(resultSetWriter.write(recordSet, out));
+                                } catch (final Exception e) {
+                                    throw new IOException(e);
+                                }
+                            }
+                        });
+                    } finally {
+                        closeQuietly(queryResult);
+                    }
+
+                    recordsRead = Math.max(recordsRead, queryResult.getRecordsRead());
+                    final WriteResult result = writeResultRef.get();
+                    if (result.getRecordCount() == 0 && !context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()) {
+                        session.remove(transformed);
+                        flowFileRemoved = true;
+                        transformedFlowFiles.remove(transformed);
+                        getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", new Object[] {original});
+                    } else {
+                        final Map<String, String> attributesToAdd = new HashMap<>();
+                        if (result.getAttributes() != null) {
+                            attributesToAdd.putAll(result.getAttributes());
+                        }
+
+                        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), resultSetWriter.getMimeType());
+                        attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
+                        transformed = session.putAllAttributes(transformed, attributesToAdd);
+                        transformedFlowFiles.put(transformed, relationship);
+
+                        session.adjustCounter("Records Written", result.getRecordCount(), false);
+                    }
+                } finally {
+                    // Ensure that we have the FlowFile in the set in case we throw any Exception
+                    if (!flowFileRemoved) {
+                        createdFlowFiles.add(transformed);
+                    }
                 }
             }
 
@@ -320,21 +338,23 @@ public class QueryFlowFile extends AbstractProcessor {
                 }
             }
 
-            getLogger().info("Successfully transformed {} in {} millis", new Object[] {original, elapsedMillis});
+            getLogger().info("Successfully queried {} in {} millis", new Object[] {original, elapsedMillis});
             session.transfer(original, REL_ORIGINAL);
-        } catch (ProcessException e) {
-            getLogger().error("Unable to transform {} due to {}", new Object[] {original, e});
+        } catch (final SQLException e) {
+            getLogger().error("Unable to query {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
-        } catch (final SQLException e) {
-            getLogger().error("Unable to transform {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
+        } catch (final Exception e) {
+            getLogger().error("Unable to query {} due to {}", new Object[] {original, e});
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         }
+
+        session.adjustCounter("Records Read", recordsRead, false);
     }
 
     private synchronized CachedStatement getStatement(final String sql, final Supplier<CalciteConnection> connectionSupplier, final ProcessSession session,
-        final FlowFile flowFile, final RowRecordReaderFactory recordReaderFactory) throws SQLException {
+        final FlowFile flowFile, final RecordReaderFactory recordReaderFactory) throws SQLException {
 
         final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql);
         if (statementQueue == null) {
@@ -350,7 +370,7 @@ public class QueryFlowFile extends AbstractProcessor {
     }
 
     private CachedStatement buildCachedStatement(final String sql, final Supplier<CalciteConnection> connectionSupplier, final ProcessSession session,
-        final FlowFile flowFile, final RowRecordReaderFactory recordReaderFactory) throws SQLException {
+        final FlowFile flowFile, final RecordReaderFactory recordReaderFactory) throws SQLException {
 
         final CalciteConnection connection = connectionSupplier.get();
         final SchemaPlus rootSchema = connection.getRootSchema();
@@ -391,7 +411,7 @@ public class QueryFlowFile extends AbstractProcessor {
     }
 
     protected QueryResult queryWithCache(final ProcessSession session, final FlowFile flowFile, final String sql, final ProcessContext context,
-        final RowRecordReaderFactory recordParserFactory) throws SQLException {
+        final RecordReaderFactory recordParserFactory) throws SQLException {
 
         final Supplier<CalciteConnection> connectionSupplier = () -> {
             final Properties properties = new Properties();
@@ -430,11 +450,17 @@ public class QueryFlowFile extends AbstractProcessor {
             public ResultSet getResultSet() {
                 return rs;
             }
+
+            @Override
+            public int getRecordsRead() {
+                return table.getRecordsRead();
+            }
+
         };
     }
 
     protected QueryResult query(final ProcessSession session, final FlowFile flowFile, final String sql, final ProcessContext context,
-        final RowRecordReaderFactory recordParserFactory) throws SQLException {
+        final RecordReaderFactory recordParserFactory) throws SQLException {
 
         final Properties properties = new Properties();
         properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.JAVA.name());
@@ -466,6 +492,11 @@ public class QueryFlowFile extends AbstractProcessor {
                 @Override
                 public ResultSet getResultSet() {
                     return rs;
+                }
+
+                @Override
+                public int getRecordsRead() {
+                    return flowFileTable.getRecordsRead();
                 }
             };
         } catch (final Exception e) {
@@ -526,6 +557,8 @@ public class QueryFlowFile extends AbstractProcessor {
 
     private static interface QueryResult extends Closeable {
         ResultSet getResultSet();
+
+        int getRecordsRead();
     }
 
     private static class CachedStatement {

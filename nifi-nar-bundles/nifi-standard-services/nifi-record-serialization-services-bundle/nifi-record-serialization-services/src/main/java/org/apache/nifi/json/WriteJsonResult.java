@@ -22,17 +22,22 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.codehaus.jackson.JsonFactory;
@@ -42,24 +47,31 @@ import org.codehaus.jackson.JsonGenerator;
 public class WriteJsonResult implements RecordSetWriter {
     private final ComponentLog logger;
     private final boolean prettyPrint;
+    private final SchemaAccessWriter schemaAccess;
+    private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
 
-    public WriteJsonResult(final ComponentLog logger, final boolean prettyPrint, final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final boolean prettyPrint,
+        final String dateFormat, final String timeFormat, final String timestampFormat) {
+
+        this.logger = logger;
+        this.recordSchema = recordSchema;
         this.prettyPrint = prettyPrint;
+        this.schemaAccess = schemaAccess;
 
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
-
-        this.logger = logger;
     }
 
     @Override
     public WriteResult write(final RecordSet rs, final OutputStream rawOut) throws IOException {
         int count = 0;
+
+        schemaAccess.writeHeader(recordSchema, rawOut);
 
         try (final JsonGenerator generator = factory.createJsonGenerator(new NonCloseableOutputStream(rawOut))) {
             if (prettyPrint) {
@@ -71,7 +83,7 @@ public class WriteJsonResult implements RecordSetWriter {
             Record record;
             while ((record = rs.next()) != null) {
                 count++;
-                writeRecord(record, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
+                writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
             }
 
             generator.writeEndArray();
@@ -79,7 +91,7 @@ public class WriteJsonResult implements RecordSetWriter {
             throw new IOException("Failed to serialize Result Set to stream", e);
         }
 
-        return WriteResult.of(count, Collections.emptyMap());
+        return WriteResult.of(count, schemaAccess.getAttributes(recordSchema));
     }
 
     @Override
@@ -89,7 +101,7 @@ public class WriteJsonResult implements RecordSetWriter {
                 generator.useDefaultPrettyPrinter();
             }
 
-            writeRecord(record, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
+            writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
         } catch (final SQLException e) {
             throw new IOException("Failed to write records to stream", e);
         }
@@ -97,24 +109,24 @@ public class WriteJsonResult implements RecordSetWriter {
         return WriteResult.of(1, Collections.emptyMap());
     }
 
-    private void writeRecord(final Record record, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)
+    private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)
         throws JsonGenerationException, IOException, SQLException {
 
         try {
-            final RecordSchema schema = record.getSchema();
             startTask.apply(generator);
-            for (int i = 0; i < schema.getFieldCount(); i++) {
-                final String fieldName = schema.getField(i).getFieldName();
-                final Object value = record.getValue(fieldName);
+            for (int i = 0; i < writeSchema.getFieldCount(); i++) {
+                final RecordField field = writeSchema.getField(i);
+                final String fieldName = field.getFieldName();
+                final Object value = record.getValue(field);
                 if (value == null) {
                     generator.writeNullField(fieldName);
                     continue;
                 }
 
                 generator.writeFieldName(fieldName);
-                final DataType dataType = schema.getDataType(fieldName).get();
+                final DataType dataType = writeSchema.getDataType(fieldName).get();
 
-                writeValue(generator, value, dataType, i < schema.getFieldCount() - 1);
+                writeValue(generator, value, fieldName, dataType, i < writeSchema.getFieldCount() - 1);
             }
 
             endTask.apply(generator);
@@ -125,7 +137,8 @@ public class WriteJsonResult implements RecordSetWriter {
     }
 
 
-    private void writeValue(final JsonGenerator generator, final Object value, final DataType dataType, final boolean moreCols)
+    @SuppressWarnings("unchecked")
+    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType, final boolean moreCols)
         throws JsonGenerationException, IOException, SQLException {
         if (value == null) {
             generator.writeNull();
@@ -133,7 +146,7 @@ public class WriteJsonResult implements RecordSetWriter {
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
             return;
@@ -146,18 +159,18 @@ public class WriteJsonResult implements RecordSetWriter {
                 generator.writeString(DataTypeUtils.toString(coercedValue, dateFormat, timeFormat, timestampFormat));
                 break;
             case DOUBLE:
-                generator.writeNumber(DataTypeUtils.toDouble(coercedValue));
+                generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
                 break;
             case FLOAT:
-                generator.writeNumber(DataTypeUtils.toFloat(coercedValue));
+                generator.writeNumber(DataTypeUtils.toFloat(coercedValue, fieldName));
                 break;
             case LONG:
-                generator.writeNumber(DataTypeUtils.toLong(coercedValue));
+                generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 break;
             case INT:
             case BYTE:
             case SHORT:
-                generator.writeNumber(DataTypeUtils.toInteger(coercedValue));
+                generator.writeNumber(DataTypeUtils.toInteger(coercedValue, fieldName));
                 break;
             case CHAR:
             case STRING:
@@ -182,7 +195,24 @@ public class WriteJsonResult implements RecordSetWriter {
                 break;
             case RECORD: {
                 final Record record = (Record) coercedValue;
-                writeRecord(record, generator, gen -> gen.writeStartObject(), gen -> gen.writeEndObject());
+                final RecordDataType recordDataType = (RecordDataType) chosenDataType;
+                final RecordSchema childSchema = recordDataType.getChildSchema();
+                writeRecord(record, childSchema, generator, gen -> gen.writeStartObject(), gen -> gen.writeEndObject());
+                break;
+            }
+            case MAP: {
+                final MapDataType mapDataType = (MapDataType) chosenDataType;
+                final DataType valueDataType = mapDataType.getValueType();
+                final Map<String, ?> map = (Map<String, ?>) coercedValue;
+                generator.writeStartObject();
+                int i = 0;
+                for (final Map.Entry<String, ?> entry : map.entrySet()) {
+                    final String mapKey = entry.getKey();
+                    final Object mapValue = entry.getValue();
+                    generator.writeFieldName(mapKey);
+                    writeValue(generator, mapValue, fieldName + "." + mapKey, valueDataType, ++i < map.size());
+                }
+                generator.writeEndObject();
                 break;
             }
             case ARRAY:
@@ -191,7 +221,7 @@ public class WriteJsonResult implements RecordSetWriter {
                     final Object[] values = (Object[]) coercedValue;
                     final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                     final DataType elementType = arrayDataType.getElementType();
-                    writeArray(values, generator, elementType);
+                    writeArray(values, fieldName, generator, elementType);
                 } else {
                     generator.writeString(coercedValue.toString());
                 }
@@ -199,12 +229,13 @@ public class WriteJsonResult implements RecordSetWriter {
         }
     }
 
-    private void writeArray(final Object[] values, final JsonGenerator generator, final DataType elementType) throws JsonGenerationException, IOException, SQLException {
+    private void writeArray(final Object[] values, final String fieldName, final JsonGenerator generator, final DataType elementType)
+        throws JsonGenerationException, IOException, SQLException {
         generator.writeStartArray();
         for (int i = 0; i < values.length; i++) {
             final boolean moreEntries = i < values.length - 1;
             final Object element = values[i];
-            writeValue(generator, element, elementType, moreEntries);
+            writeValue(generator, element, fieldName, elementType, moreEntries);
         }
         generator.writeEndArray();
     }
