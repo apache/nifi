@@ -36,11 +36,12 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.SchemaRegistryRecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SchemaRegistryService;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import com.jayway.jsonpath.JsonPath;
@@ -56,7 +57,7 @@ import com.jayway.jsonpath.JsonPath;
         + "field whose name is the same as the property name.",
     description="User-defined properties identifiy how to extract specific fields from a JSON object in order to create a Record",
     supportsExpressionLanguage=false)
-public class JsonPathReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
+public class JsonPathReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -127,8 +128,8 @@ public class JsonPathReader extends SchemaRegistryRecordReader implements RowRec
     }
 
     @Override
-    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
-        final RecordSchema schema = getSchema(flowFile);
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
+        final RecordSchema schema = getSchema(flowFile, in);
         return new JsonPathRowRecordReader(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat);
     }
 

@@ -30,11 +30,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
-import org.apache.nifi.serialization.SchemaRegistryRecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SchemaRegistryService;
 
 @Tags({"json", "tree", "record", "reader", "parser"})
 @CapabilityDescription("Parses JSON into individual Record objects. The Record that is produced will contain all top-level "
@@ -45,7 +46,7 @@ import org.apache.nifi.serialization.SchemaRegistryRecordReader;
     + "a field that is not present in the schema, that field will be skipped. "
     + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
-public class JsonTreeReader extends SchemaRegistryRecordReader implements RowRecordReaderFactory {
+public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -68,7 +69,7 @@ public class JsonTreeReader extends SchemaRegistryRecordReader implements RowRec
     }
 
     @Override
-    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
-        return new JsonTreeRowRecordReader(in, logger, getSchema(flowFile), dateFormat, timeFormat, timestampFormat);
+    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
+        return new JsonTreeRowRecordReader(in, logger, getSchema(flowFile, in), dateFormat, timeFormat, timestampFormat);
     }
 }

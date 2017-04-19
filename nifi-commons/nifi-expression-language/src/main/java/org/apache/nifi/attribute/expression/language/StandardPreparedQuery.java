@@ -59,4 +59,9 @@ public class StandardPreparedQuery implements PreparedQuery {
             throws ProcessException {
         return evaluateExpressions(valMap, decorator, null);
     }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        return !trees.isEmpty();
+    }
 }

@@ -48,6 +48,7 @@ public class CSVRecordReader implements RecordReader {
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
+        // TODO: Need to make sure that we use correct logic for skipping header line.
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
         csvParser = new CSVParser(reader, csvFormat);
 
@@ -71,7 +72,7 @@ public class CSVRecordReader implements RecordReader {
                     continue;
                 }
 
-                final Object converted = convert(rawValue, schema.getDataType(fieldName).orElse(null));
+                final Object converted = convert(rawValue, schema.getDataType(fieldName).orElse(null), fieldName);
                 rowValues.put(fieldName, converted);
             }
 
@@ -86,7 +87,7 @@ public class CSVRecordReader implements RecordReader {
         return schema;
     }
 
-    protected Object convert(final String value, final DataType dataType) {
+    protected Object convert(final String value, final DataType dataType, final String fieldName) {
         if (dataType == null || value == null) {
             return value;
         }
@@ -97,7 +98,7 @@ public class CSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat);
+        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
     }
 
     @Override

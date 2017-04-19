@@ -17,6 +17,8 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.util.Objects;
+
 public class DataType {
     private final RecordFieldType fieldType;
     private final String format;
@@ -36,7 +38,7 @@ public class DataType {
 
     @Override
     public int hashCode() {
-        return 31 + 41 * fieldType.hashCode() + 41 * (format == null ? 0 : format.hashCode());
+        return 31 + 41 * getFieldType().hashCode() + 41 * (getFormat() == null ? 0 : getFormat().hashCode());
     }
 
     @Override
@@ -52,15 +54,15 @@ public class DataType {
         }
 
         final DataType other = (DataType) obj;
-        return fieldType.equals(other.fieldType) && ((format == null && other.format == null) || (format != null && format.equals(other.format)));
+        return getFieldType().equals(other.getFieldType()) && Objects.equals(getFormat(), other.getFormat());
     }
 
     @Override
     public String toString() {
-        if (format == null) {
-            return fieldType.toString();
+        if (getFormat() == null) {
+            return getFieldType().toString();
         } else {
-            return fieldType.toString() + ":" + format;
+            return getFieldType().toString() + ":" + getFormat();
         }
     }
 }
