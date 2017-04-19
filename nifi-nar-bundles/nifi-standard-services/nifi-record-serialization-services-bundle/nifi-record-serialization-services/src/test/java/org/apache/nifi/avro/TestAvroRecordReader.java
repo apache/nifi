@@ -83,7 +83,7 @@ public class TestAvroRecordReader {
             record.put("timeMicros", millisSinceMidnight * 1000L);
             record.put("timestampMillis", timeLong);
             record.put("timestampMicros", timeLong * 1000L);
-            record.put("date", 17261);
+            record.put("date", 17260);
 
             writer.append(record);
             writer.flush();
@@ -106,7 +106,9 @@ public class TestAvroRecordReader {
             assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMicros"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMillis"));
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
-            assertEquals(new java.sql.Date(timeLong).toString(), record.getValue("date").toString());
+            final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
+            assertEquals(new java.sql.Date(timeLong).toString(), noTimeOfDayDateFormat.format(record.getValue("date")));
         }
     }
 
