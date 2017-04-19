@@ -88,7 +88,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the document that cannot be mapped to a column in the database is ignored");
-    static final AllowableValue FAIL_UNMATCHED_FIELD = new AllowableValue("Fail", "Fail",
+    static final AllowableValue FAIL_UNMATCHED_FIELD = new AllowableValue("Fail on Unmatched Fields", "Fail on Unmatched Fields",
             "If the document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
     static final AllowableValue IGNORE_UNMATCHED_COLUMN = new AllowableValue("Ignore Unmatched Columns",
             "Ignore Unmatched Columns",
@@ -246,16 +246,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("put-db-record-batch-size")
-            .displayName("Batch Size")
-            .description("The preferred number of FlowFiles to put to the database in a single transaction")
-            .required(true)
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("100")
-            .build();
-
     protected static List<PropertyDescriptor> propDescriptors;
 
     private final Map<SchemaKey, TableSchema> schemaCache = new LinkedHashMap<SchemaKey, TableSchema>(100) {
@@ -290,7 +280,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
         pds.add(QUOTED_IDENTIFIERS);
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
-        pds.add(BATCH_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -420,6 +409,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                                     new Object[]{sqlField, flowFile});
                                             flowFile = session.penalize(flowFile);
                                             session.transfer(flowFile, REL_FAILURE);
+                                            return;
                                         }
                                     }
                                     session.transfer(flowFile, REL_SUCCESS);
@@ -445,7 +435,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             return;
                         }
 
-                        final boolean includePrimaryKeys = UPDATE_TYPE.equals(statementType) && updateKeys == null;
+                        final boolean includePrimaryKeys = UPDATE_TYPE.equalsIgnoreCase(statementType) && updateKeys == null;
 
                         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
                         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
