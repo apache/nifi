@@ -72,7 +72,7 @@ public class NotificationTool extends AbstractAdminTool {
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).desc("Set mode to verbose (default is false)").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
-        options.addOption(Option.builder("m").longOpt(NOTIFICATION_MESSAGE).hasArg().desc("Notification message for cluster").build())
+        options.addOption(Option.builder("m").longOpt(NOTIFICATION_MESSAGE).hasArg().desc("Notification message for nifi instance or cluster").build())
         options.addOption(Option.builder("l").longOpt(NOTIFICATION_LEVEL).required(false).hasArg().desc("Level for notification bulletin INFO,WARN,ERROR").build())
         options
     }
