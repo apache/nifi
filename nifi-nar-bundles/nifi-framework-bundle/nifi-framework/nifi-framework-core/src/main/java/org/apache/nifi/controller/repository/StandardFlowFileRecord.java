@@ -309,11 +309,19 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         }
 
         public Builder fromFlowFile(final FlowFileRecord specFlowFile) {
+            return fromFlowFile(specFlowFile, false);
+        }
+
+        public Builder fromFlowFile(final FlowFileRecord specFlowFile, final boolean updateEntryDate) {
             if (specFlowFile == null) {
                 return this;
             }
             bId = specFlowFile.getId();
-            bEntryDate = specFlowFile.getEntryDate();
+            if (updateEntryDate) {
+                bEntryDate = System.currentTimeMillis();
+            } else {
+                bEntryDate = specFlowFile.getEntryDate();
+            }
             bLineageStartDate = specFlowFile.getLineageStartDate();
             bLineageStartIndex = specFlowFile.getLineageStartIndex();
             bLineageIdentifiers.clear();
