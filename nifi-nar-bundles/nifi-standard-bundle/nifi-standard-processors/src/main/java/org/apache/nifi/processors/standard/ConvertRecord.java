@@ -64,20 +64,22 @@ import org.apache.nifi.serialization.WriteResult;
 })
 @CapabilityDescription("Converts records from one data format to another using configured Record Reader and Record Write Controller Services. "
     + "The Reader and Writer must be configured with \"matching\" schemas. By this, we mean the schemas must have the same field names. The types of the fields "
-    + "do not have to be the same if a field value can be coerced from one format to another. For instance, if the input schema has a field named \"balance\" of type double, "
+    + "do not have to be the same if a field value can be coerced from one type to another. For instance, if the input schema has a field named \"balance\" of type double, "
     + "the output schema can have a field named \"balance\" with a type of string, double, or float. If any field is present in the input that is not present in the output, "
     + "the field will be left out of the output. If any field is specified in the output schema but is not present in the input data/schema, then the field will not be "
-    + "present in the output.")
+    + "present in the output or will have a null value, depending on the writer.")
 public class ConvertRecord extends AbstractProcessor {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("Record Reader")
+        .name("record-reader")
+        .displayName("Record Reader")
         .description("Specifies the Controller Service to use for reading incoming data")
         .identifiesControllerService(RowRecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("Record Writer")
+        .name("record-writer")
+        .displayName("Record Writer")
         .description("Specifies the Controller Service to use for writing out the records")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
@@ -152,6 +154,7 @@ public class ConvertRecord extends AbstractProcessor {
 
         flowFile = session.putAllAttributes(flowFile, attributes);
         session.transfer(flowFile, REL_SUCCESS);
+        session.adjustCounter("Records Converted", writeResult.getRecordCount(), false);
         getLogger().info("Successfully converted {} records for {}", new Object[] {writeResult.getRecordCount(), flowFile});
     }
 
