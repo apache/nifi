@@ -18,8 +18,10 @@ package org.apache.nifi.provenance;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.provenance.schema.EventFieldNames;
@@ -129,22 +131,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
     }
 
     private byte[] decrypt(byte[] encryptedBytes, String eventId) throws IOException, EncryptionException {
-        // String keyId = getKeyId();
         try {
-            // final byte[] SENTINEL = new byte[]{ 0x01};
-            // // Detect if the first byte is the sentinel and remove it before attempting to decrypt
-            // if (Arrays.equals(Arrays.copyOfRange(encryptedBytes, 0, 1), SENTINEL)) {
-            //     encryptedBytes = Arrays.copyOfRange(encryptedBytes, 1, encryptedBytes.length);
-            // }
-            // byte[] ivBytes = Arrays.copyOfRange(encryptedBytes, 0, 16);
-            //
-            // // TODO: Need to deserialize and parse encryption details fields (algo, IV, keyId, version) outside of decryption
-            // byte[] cipherBytes = Arrays.copyOfRange(encryptedBytes, 16, encryptedBytes.length);
-            //
-            // SecretKey key = keyProvider.getKey(keyId);
-            // Cipher cipher = new AESKeyedCipherProvider().getCipher(EncryptionMethod.AES_GCM, key, ivBytes, false);
-            //
-            // byte[] plainBytes = cipher.doFinal(cipherBytes);
             byte[] plainBytes = provenanceEventEncryptor.decrypt(encryptedBytes, eventId);
             return plainBytes;
         } catch (Exception e) {
@@ -168,5 +155,15 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
         } catch (Exception e) {
             return "EncryptedSchemaRecordReader@" + Integer.toHexString(this.hashCode());
         }
+    }
+
+    /**
+     * Sets the encryptor to use (necessary because the
+     * {@link org.apache.nifi.provenance.serialization.RecordReaders#newRecordReader(File, Collection, int)} method doesn't accept the encryptor.
+     *
+     * @param provenanceEventEncryptor the encryptor
+     */
+    void setProvenanceEventEncryptor(ProvenanceEventEncryptor provenanceEventEncryptor) {
+        this.provenanceEventEncryptor = provenanceEventEncryptor;
     }
 }

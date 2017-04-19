@@ -32,11 +32,13 @@ import org.slf4j.LoggerFactory;
 public class StaticKeyProvider implements KeyProvider {
     private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
 
-    private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210";
-    private static final String KEY_HEX_256 = KEY_HEX_128.concat(KEY_HEX_128);
-    private static final String KEY_HEX = CryptoUtils.isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128;
-    private static final SecretKey KEY = new SecretKeySpec(DatatypeConverter.parseHexBinary(KEY_HEX), "AES");
-    private static final String KEY_ID = "MOCK_KEY_1.2.0";
+    private final String KEY_ID;
+    private final SecretKey KEY;
+
+    StaticKeyProvider(String keyId, String keyHex) {
+        this.KEY_ID = keyId;
+        this.KEY = new SecretKeySpec(DatatypeConverter.parseHexBinary(keyHex), "AES");
+    }
 
     /**
      * Returns the key identified by this ID or throws an exception if one is not available.

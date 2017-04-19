@@ -87,7 +87,7 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
                 writeRecord(record, 0L, dos);
                 serialized = baos.toByteArray();
             }
-            String eventId = ((StandardProvenanceEventRecord) record).getBestEventIdentifier();
+            String eventId = record.getBestEventIdentifier();
             cipherBytes = encrypt(serialized, eventId);
         } catch (EncryptionException e) {
             logger.error("Encountered an error: ", e);

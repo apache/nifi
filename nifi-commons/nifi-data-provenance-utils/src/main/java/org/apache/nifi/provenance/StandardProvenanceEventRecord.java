@@ -99,8 +99,8 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         contentClaimOffset = builder.contentClaimOffset;
         contentSize = builder.contentSize;
 
-        previousAttributes = builder.previousAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
-        updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
+        previousAttributes = builder.previousAttributes == null ? Collections.emptyMap() : Collections.unmodifiableMap(builder.previousAttributes);
+        updatedAttributes = builder.updatedAttributes == null ? Collections.emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
 
@@ -203,12 +203,12 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
     @Override
     public List<String> getParentUuids() {
-        return parentUuids == null ? Collections.<String>emptyList() : parentUuids;
+        return parentUuids == null ? Collections.emptyList() : parentUuids;
     }
 
     @Override
     public List<String> getChildUuids() {
-        return childrenUuids == null ? Collections.<String>emptyList() : childrenUuids;
+        return childrenUuids == null ? Collections.emptyList() : childrenUuids;
     }
 
     @Override
@@ -431,6 +431,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
      *
      * @return a String identifying the record for later analysis
      */
+    @Override
     public String getBestEventIdentifier() {
         if (getEventId() != -1) {
             return Long.toString(getEventId());
@@ -753,7 +754,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         public ProvenanceEventBuilder fromFlowFile(final FlowFile flowFile) {
             setFlowFileEntryDate(flowFile.getEntryDate());
             setLineageStartDate(flowFile.getLineageStartDate());
-            setAttributes(Collections.<String, String>emptyMap(), flowFile.getAttributes());
+            setAttributes(Collections.emptyMap(), flowFile.getAttributes());
             uuid = flowFile.getAttribute(CoreAttributes.UUID.key());
             this.contentSize = flowFile.getSize();
             return this;

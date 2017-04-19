@@ -16,17 +16,31 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
+import org.apache.nifi.util.NiFiProperties;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +49,8 @@ public class CryptoUtils {
     private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.StaticKeyProvider";
     private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.FileBasedKeyProvider";
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
+
+    public static final int IV_LENGTH = 16;
 
     public static boolean isUnlimitedStrengthCryptoAvailable() {
         try {
@@ -206,5 +222,104 @@ public class CryptoUtils {
      */
     public static boolean isHexString(String hexString) {
         return StringUtils.isNotEmpty(hexString) && HEX_PATTERN.matcher(hexString).matches();
+    }
+
+    /**
+     * Returns a {@link SecretKey} formed from the hexadecimal key bytes (validity is checked).
+     *
+     * @param keyHex the key in hex form
+     * @return the SecretKey
+     */
+    public static SecretKey formKeyFromHex(String keyHex) throws KeyManagementException {
+        if (keyIsValid(keyHex)) {
+            return new SecretKeySpec(Hex.decode(keyHex), "AES");
+        } else {
+            throw new KeyManagementException("The provided key material is not valid");
+        }
+    }
+
+    /**
+     * Returns a map containing the key IDs and the parsed key from a key provider definition file.
+     * The values in the file are decrypted using the master key provided. If the file is missing or empty,
+     * cannot be read, or if no valid keys are read, a {@link KeyManagementException} will be thrown.
+     *
+     * @param filepath  the key definition file path
+     * @param masterKey the master key used to decrypt each key definition
+     * @return a Map of key IDs to SecretKeys
+     * @throws KeyManagementException if the file is missing or invalid
+     */
+    public static Map<String, SecretKey> readKeys(String filepath, SecretKey masterKey) throws KeyManagementException {
+        Map<String, SecretKey> keys = new HashMap<>();
+
+        if (StringUtils.isBlank(filepath)) {
+            throw new KeyManagementException("The key provider file is not present and readable");
+        }
+        File file = new File(filepath);
+        if (!file.exists() || !file.canRead()) {
+            throw new KeyManagementException("The key provider file is not present and readable");
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            AESKeyedCipherProvider masterCipherProvider = new AESKeyedCipherProvider();
+
+            String line;
+            int l = 1;
+            while ((line = br.readLine()) != null) {
+                String[] components = line.split("=", 2);
+                if (components.length != 2 || StringUtils.isAnyEmpty(components)) {
+                    logger.warn("Line " + l + " is not properly formatted -- keyId=Base64EncodedKey...");
+                }
+                String keyId = components[0];
+                if (StringUtils.isNotEmpty(keyId)) {
+                    try {
+                        byte[] base64Bytes = Base64.getDecoder().decode(components[1]);
+                        byte[] ivBytes = Arrays.copyOfRange(base64Bytes, 0, IV_LENGTH);
+
+                        Cipher masterCipher = null;
+                        try {
+                            masterCipher = masterCipherProvider.getCipher(EncryptionMethod.AES_GCM, masterKey, ivBytes, false);
+                        } catch (Exception e) {
+                            throw new KeyManagementException("Error building cipher to decrypt FileBaseKeyProvider definition at " + filepath, e);
+                        }
+                        byte[] individualKeyBytes = masterCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
+
+                        SecretKey key = new SecretKeySpec(individualKeyBytes, "AES");
+                        logger.debug("Read and decrypted key for " + keyId);
+                        if (keys.containsKey(keyId)) {
+                            logger.warn("Multiple key values defined for " + keyId + " -- using most recent value");
+                        }
+                        keys.put(keyId, key);
+                    } catch (IllegalArgumentException e) {
+                        logger.error("Encountered an error decoding Base64 for " + keyId + ": " + e.getLocalizedMessage());
+                    } catch (BadPaddingException | IllegalBlockSizeException e) {
+                        logger.error("Encountered an error decrypting key for " + keyId + ": " + e.getLocalizedMessage());
+                    }
+                }
+                l++;
+            }
+
+            if (keys.isEmpty()) {
+                throw new KeyManagementException("The provided file contained no valid keys");
+            }
+
+            logger.info("Read " + keys.size() + " keys from FileBasedKeyProvider " + filepath);
+            return keys;
+        } catch (IOException e) {
+            throw new KeyManagementException("Error reading FileBasedKeyProvider definition at " + filepath, e);
+        }
+
+    }
+
+    public static boolean isProvenanceRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
+        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
+        // Referencing EWAPR.class.getName() would require a dependency on the module
+        boolean encryptedRepo = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository".equals(implementationClassName);
+        boolean keyProviderConfigured = isValidKeyProvider(
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID),
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY));
+
+        return encryptedRepo && keyProviderConfigured;
     }
 }

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.KeyManagementException;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.List;
@@ -98,6 +99,7 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
             throw new EncryptionException("The requested key ID is not available");
         } else {
             byte[] ivBytes = new byte[IV_LENGTH];
+            new SecureRandom().nextBytes(ivBytes);
             try {
                 logger.debug("Encrypting provenance record " + recordId + " with key ID " + keyId);
                 Cipher cipher = initCipher(EncryptionMethod.AES_GCM, Cipher.ENCRYPT_MODE, keyProvider.getKey(keyId), ivBytes);

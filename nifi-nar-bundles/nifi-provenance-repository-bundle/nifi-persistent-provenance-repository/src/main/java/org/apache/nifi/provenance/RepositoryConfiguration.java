@@ -49,6 +49,7 @@ public class RepositoryConfiguration {
     private int journalCount = 16;
     private int compressionBlockBytes = 1024 * 1024;
     private int maxAttributeChars = 65536;
+    private int debugFrequency = 1_000_000;
 
     // TODO: Add encrypted boolean and keyId/provider/algorithm?
     private String encryptionKeyHex;
@@ -403,6 +404,16 @@ public class RepositoryConfiguration {
         this.keyProviderLocation = keyProviderLocation;
     }
 
+
+    public int getDebugFrequency() {
+        return debugFrequency;
+    }
+
+    public void setDebugFrequency(int debugFrequency) {
+        this.debugFrequency = debugFrequency;
+    }
+
+
     public static RepositoryConfiguration create(final NiFiProperties nifiProperties) {
         final Map<String, Path> storageDirectories = nifiProperties.getProvenanceRepositoryPaths();
         if (storageDirectories.isEmpty()) {
@@ -478,6 +489,17 @@ public class RepositoryConfiguration {
         }
 
         config.setAlwaysSync(alwaysSync);
+
+        config.setDebugFrequency(nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_REPO_DEBUG_FREQUENCY, config.getDebugFrequency()));
+
+        // Encryption values may not be present but are only required for EncryptedWriteAheadProvenanceRepository
+        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
+        if (EncryptedWriteAheadProvenanceRepository.class.getName().equals(implementationClassName)) {
+            config.setEncryptionKeyHex(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY));
+            config.setKeyId(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID));
+            config.setKeyProviderImplementation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS));
+            config.setKeyProviderLocation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION));
+        }
 
         return config;
     }
