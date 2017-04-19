@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,11 +47,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.RowRecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
 
 @EventDriven
@@ -74,7 +76,7 @@ public class ConvertRecord extends AbstractProcessor {
         .name("record-reader")
         .displayName("Record Reader")
         .description("Specifies the Controller Service to use for reading incoming data")
-        .identifiesControllerService(RowRecordReaderFactory.class)
+        .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
@@ -118,9 +120,17 @@ public class ConvertRecord extends AbstractProcessor {
             return;
         }
 
-        final RowRecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RowRecordReaderFactory.class);
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSetWriter writer = writerFactory.createWriter(getLogger());
+        final RecordSetWriter writer;
+        try (final InputStream rawIn = session.read(flowFile);
+            final InputStream in = new BufferedInputStream(rawIn)) {
+            writer = writerFactory.createWriter(getLogger(), flowFile, in);
+        } catch (final Exception e) {
+            getLogger().error("Failed to convert records for {}; will route to failure", new Object[] {flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
 
@@ -134,7 +144,7 @@ public class ConvertRecord extends AbstractProcessor {
                         final WriteResult writeResult = writer.write(reader.createRecordSet(), out);
                         writeResultRef.set(writeResult);
 
-                    } catch (final MalformedRecordException e) {
+                    } catch (final SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
                     }
                 }
