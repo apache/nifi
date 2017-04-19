@@ -106,7 +106,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 value = null;
             }
 
-            value = convert(value, desiredType);
+            value = convert(value, desiredType, fieldName);
             values.put(fieldName, value);
         }
 
@@ -115,7 +115,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
 
     @SuppressWarnings("unchecked")
-    protected Object convert(final Object value, final DataType dataType) {
+    protected Object convert(final Object value, final DataType dataType, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -131,7 +131,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             final Object[] coercedValues = new Object[list.size()];
             int i = 0;
             for (final Object rawValue : list) {
-                coercedValues[i++] = DataTypeUtils.convertType(rawValue, arrayType.getElementType(), dateFormat, timeFormat, timestampFormat);
+                coercedValues[i++] = convert(rawValue, arrayType.getElementType(), fieldName);
             }
             return coercedValues;
         }
@@ -147,14 +147,14 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 final String key = entry.getKey();
                 final Optional<DataType> desiredTypeOption = childSchema.getDataType(key);
                 if (desiredTypeOption.isPresent()) {
-                    final Object coercedValue = DataTypeUtils.convertType(entry.getValue(), desiredTypeOption.get(), dateFormat, timeFormat, timestampFormat);
+                    final Object coercedValue = convert(entry.getValue(), desiredTypeOption.get(), fieldName + "." + key);
                     coercedValues.put(key, coercedValue);
                 }
             }
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, dateFormat, timeFormat, timestampFormat);
+            return DataTypeUtils.convertType(value, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
         }
     }
 

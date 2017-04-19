@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -52,9 +53,6 @@ public class TestWriteJsonResult {
 
     @Test
     public void testDataTypes() throws IOException, ParseException {
-        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), true, RecordFieldType.DATE.getDefaultFormat(),
-            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
-
         final List<RecordField> fields = new ArrayList<>();
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
             if (fieldType == RecordFieldType.CHOICE) {
@@ -63,15 +61,24 @@ public class TestWriteJsonResult {
                 possibleTypes.add(RecordFieldType.LONG.getDataType());
 
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getChoiceDataType(possibleTypes)));
+            } else if (fieldType == RecordFieldType.MAP) {
+                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getMapDataType(RecordFieldType.INT.getDataType())));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
             }
         }
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
+        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), true, RecordFieldType.DATE.getDefaultFormat(),
+            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("height", 48);
+        map.put("width", 96);
 
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("string", "string");
@@ -90,6 +97,7 @@ public class TestWriteJsonResult {
         valueMap.put("record", null);
         valueMap.put("array", null);
         valueMap.put("choice", 48L);
+        valueMap.put("map", map);
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);

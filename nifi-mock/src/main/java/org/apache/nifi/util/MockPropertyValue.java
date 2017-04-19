@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.util;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
@@ -218,5 +221,15 @@ public class MockPropertyValue implements PropertyValue {
     @Override
     public String toString() {
         return getValue();
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        if (!expectExpressions) {
+            return false;
+        }
+
+        final List<Range> elRanges = Query.extractExpressionRanges(rawValue);
+        return (elRanges != null && !elRanges.isEmpty());
     }
 }

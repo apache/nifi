@@ -17,15 +17,14 @@
 
 package org.apache.nifi.serialization;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 
-public abstract class DateTimeTextRecordSetWriter extends AbstractControllerService {
+public abstract class DateTimeTextRecordSetWriter extends SchemaRegistryRecordSetWriter {
 
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -33,7 +32,11 @@ public abstract class DateTimeTextRecordSetWriter extends AbstractControllerServ
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(DateTimeUtils.DATE_FORMAT, DateTimeUtils.TIME_FORMAT, DateTimeUtils.TIMESTAMP_FORMAT);
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(DateTimeUtils.DATE_FORMAT);
+        properties.add(DateTimeUtils.TIME_FORMAT);
+        properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        return properties;
     }
 
     @OnEnabled

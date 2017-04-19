@@ -157,6 +157,7 @@ public class CSVUtils {
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines()
+            // TODO: Need property to specify whether or not to skip first line as header!
             .withFirstRecordAsHeader();
 
         format = format.withQuote(getChar(context, QUOTE_CHAR));

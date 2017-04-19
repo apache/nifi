@@ -85,42 +85,42 @@ public class MapRecord implements Record {
 
     @Override
     public Long getAsLong(final String fieldName) {
-        return DataTypeUtils.toLong(getValue(fieldName));
+        return DataTypeUtils.toLong(getValue(fieldName), fieldName);
     }
 
     @Override
     public Integer getAsInt(final String fieldName) {
-        return DataTypeUtils.toInteger(getValue(fieldName));
+        return DataTypeUtils.toInteger(getValue(fieldName), fieldName);
     }
 
     @Override
     public Double getAsDouble(final String fieldName) {
-        return DataTypeUtils.toDouble(getValue(fieldName));
+        return DataTypeUtils.toDouble(getValue(fieldName), fieldName);
     }
 
     @Override
     public Float getAsFloat(final String fieldName) {
-        return DataTypeUtils.toFloat(getValue(fieldName));
+        return DataTypeUtils.toFloat(getValue(fieldName), fieldName);
     }
 
     @Override
     public Record getAsRecord(String fieldName, final RecordSchema schema) {
-        return DataTypeUtils.toRecord(getValue(fieldName), schema);
+        return DataTypeUtils.toRecord(getValue(fieldName), schema, fieldName);
     }
 
     @Override
     public Boolean getAsBoolean(final String fieldName) {
-        return DataTypeUtils.toBoolean(getValue(fieldName));
+        return DataTypeUtils.toBoolean(getValue(fieldName), fieldName);
     }
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return DataTypeUtils.toDate(getValue(fieldName), format);
+        return DataTypeUtils.toDate(getValue(fieldName), format, fieldName);
     }
 
     @Override
     public Object[] getAsArray(final String fieldName) {
-        return DataTypeUtils.toArray(getValue(fieldName));
+        return DataTypeUtils.toArray(getValue(fieldName), fieldName);
     }
 
 

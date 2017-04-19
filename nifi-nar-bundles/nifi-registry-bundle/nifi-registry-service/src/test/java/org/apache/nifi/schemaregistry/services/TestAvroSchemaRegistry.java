@@ -17,7 +17,6 @@
 package org.apache.nifi.schemaregistry.services;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -27,9 +26,11 @@ import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestAvroSchemaRegistry {
@@ -55,17 +56,17 @@ public class TestAvroSchemaRegistry {
         properties.put(fooSchema, fooSchemaText);
         properties.put(barSchema, "");
         when(configContext.getProperties()).thenReturn(properties);
-        SchemaRegistry delegate = new AvroSchemaRegistry();
-        ((AvroSchemaRegistry) delegate).enable(configContext);
+        AvroSchemaRegistry delegate = new AvroSchemaRegistry();
+        delegate.enable(configContext);
 
         String locatedSchemaText = delegate.retrieveSchemaText(schemaName);
         assertEquals(fooSchemaText, locatedSchemaText);
         try {
-            locatedSchemaText = delegate.retrieveSchemaText("barSchema");
-            fail();
-        } catch (Exception e) {
-            // ignore
+            delegate.retrieveSchemaText("barSchema");
+            Assert.fail("Expected a SchemaNotFoundException to be thrown but it was not");
+        } catch (final SchemaNotFoundException expected) {
         }
+
         delegate.close();
     }
 
@@ -91,8 +92,8 @@ public class TestAvroSchemaRegistry {
         properties.put(fooSchema, fooSchemaText);
         properties.put(barSchema, "");
         when(configContext.getProperties()).thenReturn(properties);
-        SchemaRegistry delegate = new AvroSchemaRegistry();
-        ((AvroSchemaRegistry) delegate).enable(configContext);
+        AvroSchemaRegistry delegate = new AvroSchemaRegistry();
+        delegate.enable(configContext);
 
         RecordSchema locatedSchema = delegate.retrieveSchema(schemaName);
         List<RecordField> recordFields = locatedSchema.getFields();

@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public enum RecordFieldType {
@@ -149,7 +150,7 @@ public enum RecordFieldType {
 
     /**
      * <p>
-     * An array field type. Records should be updated using an {@code Object[]} value for this field. Note that we are explicitly indicating that
+     * An array field type. Fields of this type use a {@code Object[]} value. Note that we are explicitly indicating that
      * Object[] should be used here and not primitive array types. For instance, setting a value of {@code int[]} is not allowed. The DataType for
      * this field should be created using the {@link #getArrayDataType(DataType)} method:
      * </p>
@@ -173,7 +174,34 @@ public enum RecordFieldType {
      * </pre>
      * </code>
      */
-    ARRAY("array", null, new ArrayDataType(null));
+    ARRAY("array", null, new ArrayDataType(null)),
+
+    /**
+     * <p>
+     * A record field type. Fields of this type use a {@code Map<String, Object>} value. A Map DataType should be
+     * created by providing the {@link DataType} for the values:
+     * </p>
+     *
+     * <code>
+     * final DataType recordType = RecordFieldType.MAP.getRecordDataType( RecordFieldType.STRING.getDataType() );
+     * </code>
+     *
+     * <p>
+     * A field of type MAP should always have a {@link MapDataType}, so the following idiom is acceptable for use:
+     * </p>
+     *
+     * <code>
+     * <pre>
+     * final DataType dataType = ...;
+     * if (dataType.getFieldType() == RecordFieldType.MAP) {
+     *     final MapDataType mapDataType = (MapDataType) dataType;
+     *     final DataType valueType = mapDataType.getValueType();
+     *     ...
+     * }
+     * </pre>
+     * </code>
+     */
+    MAP("map", null, new MapDataType(null));
 
 
     private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<String, RecordFieldType>();
@@ -235,11 +263,11 @@ public enum RecordFieldType {
     }
 
     /**
-     * Returns a Data Type that represents a "RECORD" or "ARRAY" type with the given schema.
+     * Returns a Data Type that represents an "ARRAY" type with the given element type.
      *
      * @param elementType the type of the arrays in the element
-     * @return a DataType that represents a Record or Array with the given schema, or <code>null</code> if this RecordFieldType
-     *         is not the RECORD or ARRAY type.
+     * @return a DataType that represents an Array with the given element type, or <code>null</code> if this RecordFieldType
+     *         is not the ARRAY type.
      */
     public DataType getArrayDataType(final DataType elementType) {
         if (this != ARRAY) {
@@ -285,6 +313,21 @@ public enum RecordFieldType {
         }
 
         return new ChoiceDataType(list);
+    }
+
+    /**
+     * Returns a Data Type that represents a "MAP" type with the given value type.
+     *
+     * @param valueDataType the type of the values in the map
+     * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
+     *         is not the MAP type.
+     */
+    public DataType getMapDataType(final DataType valueDataType) {
+        if (this != MAP) {
+            return null;
+        }
+
+        return new MapDataType(valueDataType);
     }
 
 

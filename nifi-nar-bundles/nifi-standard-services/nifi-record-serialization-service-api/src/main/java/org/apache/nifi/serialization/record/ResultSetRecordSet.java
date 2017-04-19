@@ -157,6 +157,20 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case Types.OTHER:
+                // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
+                if (rs.isAfterLast()) {
+                    return RecordFieldType.RECORD.getDataType();
+                }
+
+                final Object obj = rs.getObject(columnIndex);
+                if (obj == null || !(obj instanceof Record)) {
+                    return RecordFieldType.RECORD.getDataType();
+                }
+
+                final Record record = (Record) obj;
+                final RecordSchema recordSchema = record.getSchema();
+                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
             default:
                 return getFieldType(sqlType).getDataType();
         }

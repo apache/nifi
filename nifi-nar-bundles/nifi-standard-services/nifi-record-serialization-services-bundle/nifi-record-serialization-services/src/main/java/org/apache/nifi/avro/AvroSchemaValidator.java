@@ -26,6 +26,15 @@ public class AvroSchemaValidator implements Validator {
 
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder()
+                .input(input)
+                .subject(subject)
+                .valid(true)
+                .explanation("Expression Language is present")
+                .build();
+        }
+
         try {
             new Schema.Parser().parse(input);
 
