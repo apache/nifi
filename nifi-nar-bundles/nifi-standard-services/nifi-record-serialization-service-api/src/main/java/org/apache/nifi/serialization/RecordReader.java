@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
 
 /**
  * <p>
@@ -51,4 +52,29 @@ public interface RecordReader extends Closeable {
      * @throws MalformedRecordException if an unrecoverable failure occurs when trying to parse the underlying data
      */
     RecordSchema getSchema() throws MalformedRecordException;
+
+    /**
+     * @return a RecordSet that returns the records in this Record Reader in a streaming fashion
+     */
+    default RecordSet createRecordSet() {
+        return new RecordSet() {
+            @Override
+            public RecordSchema getSchema() throws IOException {
+                try {
+                    return RecordReader.this.getSchema();
+                } catch (final MalformedRecordException mre) {
+                    throw new IOException(mre);
+                }
+            }
+
+            @Override
+            public Record next() throws IOException {
+                try {
+                    return RecordReader.this.nextRecord();
+                } catch (final MalformedRecordException mre) {
+                    throw new IOException(mre);
+                }
+            }
+        };
+    }
 }

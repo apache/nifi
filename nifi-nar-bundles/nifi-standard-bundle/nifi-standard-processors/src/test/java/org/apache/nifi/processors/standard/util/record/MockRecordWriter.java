@@ -31,9 +31,21 @@ import org.apache.nifi.serialization.record.RecordSet;
 
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
     private final String header;
+    private final int failAfterN;
+    private final boolean quoteValues;
 
     public MockRecordWriter(final String header) {
+        this(header, true, -1);
+    }
+
+    public MockRecordWriter(final String header, final boolean quoteValues) {
+        this(header, quoteValues, -1);
+    }
+
+    public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN) {
         this.header = header;
+        this.quoteValues = quoteValues;
+        this.failAfterN = failAfterN;
     }
 
     @Override
@@ -48,13 +60,20 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 final int numCols = rs.getSchema().getFieldCount();
                 Record record = null;
                 while ((record = rs.next()) != null) {
-                    recordCount++;
+                    if (++recordCount > failAfterN && failAfterN > -1) {
+                        throw new IOException("Unit Test intentionally throwing IOException after " + failAfterN + " records were written");
+                    }
+
                     int i = 0;
                     for (final String fieldName : record.getSchema().getFieldNames()) {
                         final String val = record.getAsString(fieldName);
-                        out.write("\"".getBytes());
-                        out.write(val.getBytes());
-                        out.write("\"".getBytes());
+                        if (quoteValues) {
+                            out.write("\"".getBytes());
+                            out.write(val.getBytes());
+                            out.write("\"".getBytes());
+                        } else {
+                            out.write(val.getBytes());
+                        }
 
                         if (i++ < numCols - 1) {
                             out.write(",".getBytes());
