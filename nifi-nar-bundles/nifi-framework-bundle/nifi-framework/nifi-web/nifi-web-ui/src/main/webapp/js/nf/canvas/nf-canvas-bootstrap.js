@@ -356,7 +356,7 @@
 
                     // initialize the connection config and invert control of the birdseye and graph
                     nfConnectionConfiguration.init(nfBirdseye, nfGraph);
-                    nfControllerService.init();
+                    nfControllerService.init(nfControllerServices);
                     nfReportingTask.init(nfSettings);
                     nfPolicyManagement.init();
                     nfProcessorConfiguration.init();
