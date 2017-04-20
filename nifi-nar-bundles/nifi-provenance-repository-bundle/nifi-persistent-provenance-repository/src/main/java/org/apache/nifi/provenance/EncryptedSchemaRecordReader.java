@@ -24,13 +24,9 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.provenance.schema.EventFieldNames;
-import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
-import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.repository.schema.Record;
-import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
@@ -42,19 +38,13 @@ import org.slf4j.LoggerFactory;
 public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReader.class);
 
-    private static final RecordSchema eventSchema = LookupTableEventSchema.ENCRYPTED_EVENT_SCHEMA;
-    private static final RecordSchema contentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.CONTENT_CLAIM).getSubFields());
-    private static final RecordSchema previousContentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.PREVIOUS_CONTENT_CLAIM).getSubFields());
-    private static final RecordSchema headerSchema = EventIdFirstHeaderSchema.SCHEMA;
     private static final int DEFAULT_DEBUG_FREQUENCY = 1_000_000;
 
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
     private static final TimedBuffer<TimestampedLong> decryptTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
 
-    private String keyId;
-
-    private int debugFrequency;
+    private int debugFrequency = DEFAULT_DEBUG_FREQUENCY;
     public static final int SERIALIZATION_VERSION = 1;
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
@@ -132,16 +122,11 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     private byte[] decrypt(byte[] encryptedBytes, String eventId) throws IOException, EncryptionException {
         try {
-            byte[] plainBytes = provenanceEventEncryptor.decrypt(encryptedBytes, eventId);
-            return plainBytes;
+            return provenanceEventEncryptor.decrypt(encryptedBytes, eventId);
         } catch (Exception e) {
             logger.error("Encountered an error: ", e);
             throw new EncryptionException(e);
         }
-    }
-
-    public String getKeyId() {
-        return keyId;
     }
 
     @Override
@@ -151,7 +136,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
 
     private String getDescription() {
         try {
-            return "EncryptedSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename() + ", keyId: " + getKeyId();
+            return "EncryptedSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename();
         } catch (Exception e) {
             return "EncryptedSchemaRecordReader@" + Integer.toHexString(this.hashCode());
         }

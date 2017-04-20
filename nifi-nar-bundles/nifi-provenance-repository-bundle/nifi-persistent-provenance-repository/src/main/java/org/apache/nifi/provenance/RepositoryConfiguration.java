@@ -51,7 +51,6 @@ public class RepositoryConfiguration {
     private int maxAttributeChars = 65536;
     private int debugFrequency = 1_000_000;
 
-    // TODO: Add encrypted boolean and keyId/provider/algorithm?
     private String encryptionKeyHex;
     private String keyId;
     private String keyProviderImplementation;

@@ -34,8 +34,6 @@ import org.slf4j.LoggerFactory;
 public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanceRepository {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedWriteAheadProvenanceRepository.class);
 
-    private ProvenanceEventEncryptor provenanceEventEncryptor;
-
     /**
      * This constructor exists solely for the use of the Java Service Loader mechanism and should not be used.
      */
@@ -66,10 +64,10 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     public synchronized void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
                                         final IdentifierLookup idLookup) throws IOException {
         // Initialize the encryption-specific fields
+        ProvenanceEventEncryptor provenanceEventEncryptor;
         if (getConfig().supportsEncryption()) {
             try {
                 KeyProvider keyProvider = buildKeyProvider();
-                // TODO: May not need to store state
                 provenanceEventEncryptor = new AESProvenanceEventEncryptor();
                 provenanceEventEncryptor.initialize(keyProvider);
             } catch (KeyManagementException e) {

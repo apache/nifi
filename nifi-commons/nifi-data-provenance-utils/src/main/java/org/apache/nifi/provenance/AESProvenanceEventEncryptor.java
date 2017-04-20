@@ -234,6 +234,4 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
     public String toString() {
         return "AES Provenance Event Encryptor with Key Provider: " + keyProvider.toString();
     }
-
-    // TODO: #clear()/#reset()?
 }

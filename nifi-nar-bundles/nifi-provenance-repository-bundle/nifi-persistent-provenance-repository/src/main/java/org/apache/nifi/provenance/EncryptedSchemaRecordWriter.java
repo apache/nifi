@@ -23,12 +23,8 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.nifi.provenance.schema.EventFieldNames;
-import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
-import org.apache.nifi.provenance.schema.LookupTableEventSchema;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
@@ -38,10 +34,6 @@ import org.slf4j.LoggerFactory;
 public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordWriter.class);
 
-    private static final RecordSchema eventSchema = LookupTableEventSchema.ENCRYPTED_EVENT_SCHEMA;
-    private static final RecordSchema contentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.CONTENT_CLAIM).getSubFields());
-    private static final RecordSchema previousContentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.PREVIOUS_CONTENT_CLAIM).getSubFields());
-    private static final RecordSchema headerSchema = EventIdFirstHeaderSchema.SCHEMA;
     private static final int DEFAULT_DEBUG_FREQUENCY = 1_000_000;
 
     private ProvenanceEventEncryptor provenanceEventEncryptor;
