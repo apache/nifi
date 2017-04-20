@@ -71,9 +71,11 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                         final String val = record.getAsString(fieldName);
                         if (quoteValues) {
                             out.write("\"".getBytes());
-                            out.write(val.getBytes());
+                            if (val != null) {
+                                out.write(val.getBytes());
+                            }
                             out.write("\"".getBytes());
-                        } else {
+                        } else if (val != null) {
                             out.write(val.getBytes());
                         }
 

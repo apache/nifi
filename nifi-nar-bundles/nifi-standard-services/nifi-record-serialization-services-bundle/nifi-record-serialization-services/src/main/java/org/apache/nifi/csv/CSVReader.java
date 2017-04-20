@@ -67,6 +67,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
+        properties.add(CSVUtils.SKIP_HEADER_LINE);
         properties.add(CSVUtils.QUOTE_CHAR);
         properties.add(CSVUtils.ESCAPE_CHAR);
         properties.add(CSVUtils.COMMENT_MARKER);

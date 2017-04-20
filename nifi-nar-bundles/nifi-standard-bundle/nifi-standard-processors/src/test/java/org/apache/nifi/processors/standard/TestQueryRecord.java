@@ -154,6 +154,36 @@ public class TestQueryRecord {
         out.assertContentEquals("\"NAME\",\"POINTS\"\n\"100\",\"90.75\"\n");
     }
 
+    @Test
+    public void testHandlingWithInvalidSchema() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("favorite_color", RecordFieldType.STRING);
+        parser.addSchemaField("address", RecordFieldType.STRING);
+        parser.addRecord("Tom", "blue", null);
+        parser.addRecord("Jerry", "red", null);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        runner.enforceReadStreamsClosed(false);
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "false");
+        runner.setProperty("rel1", "select * from FLOWFILE where address IS NOT NULL");
+        runner.setProperty("rel2", "select name, CAST(favorite_color AS DOUBLE) AS num from FLOWFILE");
+        runner.setProperty("rel3", "select * from FLOWFILE where address IS NOT NULL");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(QueryRecord.REL_FAILURE, 1);
+    }
 
     @Test
     public void testAggregateFunction() throws InitializationException, IOException {

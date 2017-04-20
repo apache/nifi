@@ -42,12 +42,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
     private volatile CSVFormat csvFormat;
+    private volatile boolean includeHeader;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
+        properties.add(CSVUtils.INCLUDE_HEADER_LINE);
         properties.add(CSVUtils.QUOTE_CHAR);
         properties.add(CSVUtils.ESCAPE_CHAR);
         properties.add(CSVUtils.COMMENT_MARKER);
@@ -62,11 +64,12 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     @OnEnabled
     public void storeCsvFormat(final ConfigurationContext context) {
         this.csvFormat = CSVUtils.createCSVFormat(context);
+        this.includeHeader = context.getProperty(CSVUtils.INCLUDE_HEADER_LINE).asBoolean();
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws SchemaNotFoundException, IOException {
         final RecordSchema schema = getSchema(flowFile, in);
-        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(), getDateFormat(), getTimeFormat(), getTimestampFormat());
+        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(), getDateFormat(), getTimeFormat(), getTimestampFormat(), includeHeader);
     }
 }

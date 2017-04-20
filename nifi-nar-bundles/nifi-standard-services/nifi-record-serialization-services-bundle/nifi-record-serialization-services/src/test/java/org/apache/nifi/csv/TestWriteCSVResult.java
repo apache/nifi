@@ -72,7 +72,7 @@ public class TestWriteCSVResult {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(),
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true);
 
         final long now = System.currentTimeMillis();
         final Map<String, Object> valueMap = new HashMap<>();

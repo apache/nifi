@@ -34,8 +34,8 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
 
 @Tags({"avro", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
-@CapabilityDescription("Parses Avro data and returns each Avro record as an separate Record object. The Avro data must contain "
-    + "the schema itself.")
+@CapabilityDescription("Parses Avro data and returns each Avro record as an separate Record object. The Avro data may contain the schema itself, "
+    + "or the schema can be externalized and accessed by one of the methods offered by the 'Schema Access Strategy' property.")
 public class AvroReader extends SchemaRegistryService implements RecordReaderFactory {
     private final AllowableValue EMBEDDED_AVRO_SCHEMA = new AllowableValue("embedded-avro-schema",
         "Use Embedded Avro Schema", "The FlowFile has the Avro Schema embedded within the content, and this schema will be used.");

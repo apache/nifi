@@ -268,6 +268,7 @@ public class QueryRecord extends AbstractProcessor {
                 // and we cannot call session.read() on the original FlowFile while we are within a write
                 // callback for the original FlowFile.
                 FlowFile transformed = session.create(original);
+                boolean flowFileRemoved = false;
 
                 try {
                     final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
@@ -300,6 +301,7 @@ public class QueryRecord extends AbstractProcessor {
                     final WriteResult result = writeResultRef.get();
                     if (result.getRecordCount() == 0 && !context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()) {
                         session.remove(transformed);
+                        flowFileRemoved = true;
                         transformedFlowFiles.remove(transformed);
                         getLogger().info("Transformed {} but the result contained no data so will not pass on a FlowFile", new Object[] {original});
                     } else {
@@ -317,7 +319,9 @@ public class QueryRecord extends AbstractProcessor {
                     }
                 } finally {
                     // Ensure that we have the FlowFile in the set in case we throw any Exception
-                    createdFlowFiles.add(transformed);
+                    if (!flowFileRemoved) {
+                        createdFlowFiles.add(transformed);
+                    }
                 }
             }
 

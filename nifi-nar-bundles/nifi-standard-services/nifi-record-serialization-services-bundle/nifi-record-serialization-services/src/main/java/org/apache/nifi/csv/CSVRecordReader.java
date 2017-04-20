@@ -48,14 +48,14 @@ public class CSVRecordReader implements RecordReader {
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
-        // TODO: Need to make sure that we use correct logic for skipping header line.
-        final Reader reader = new InputStreamReader(new BOMInputStream(in));
-        csvParser = new CSVParser(reader, csvFormat);
-
         this.schema = schema;
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
+
+        final Reader reader = new InputStreamReader(new BOMInputStream(in));
+        final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+        csvParser = new CSVParser(reader, withHeader);
     }
 
     @Override

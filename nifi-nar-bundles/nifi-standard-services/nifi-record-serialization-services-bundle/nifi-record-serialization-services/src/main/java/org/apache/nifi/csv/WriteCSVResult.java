@@ -41,15 +41,17 @@ public class WriteCSVResult implements RecordSetWriter {
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
+    private final boolean includeHeaderLine;
 
     public WriteCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter,
-        final String dateFormat, final String timeFormat, final String timestampFormat) {
+        final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine) {
         this.csvFormat = csvFormat;
         this.recordSchema = recordSchema;
         this.schemaWriter = schemaWriter;
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
+        this.includeHeaderLine = includeHeaderLine;
     }
 
     private String getFormat(final Record record, final String fieldName) {
@@ -76,7 +78,7 @@ public class WriteCSVResult implements RecordSetWriter {
         int count = 0;
 
         final String[] columnNames = recordSchema.getFieldNames().toArray(new String[0]);
-        final CSVFormat formatWithHeader = csvFormat.withHeader(columnNames).withSkipHeaderRecord(false);
+        final CSVFormat formatWithHeader = csvFormat.withHeader(columnNames).withSkipHeaderRecord(!includeHeaderLine);
 
         schemaWriter.writeHeader(recordSchema, rawOut);
 
