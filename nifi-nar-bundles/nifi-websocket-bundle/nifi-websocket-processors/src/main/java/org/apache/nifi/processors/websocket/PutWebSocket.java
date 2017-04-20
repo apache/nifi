@@ -77,7 +77,8 @@ public class PutWebSocket extends AbstractProcessor {
     public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
             .name("websocket-session-id")
             .displayName("WebSocket Session Id")
-            .description("A NiFi Expression to retrieve the session id.")
+            .description("A NiFi Expression to retrieve the session id. If not specified, a message will be " +
+                    "sent to all connected WebSocket peers for the WebSocket controller service endpoint.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(true)
