@@ -20,9 +20,7 @@ import java.security.KeyManagementException;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.naming.OperationNotSupportedException;
-import javax.xml.bind.DatatypeConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +33,9 @@ public class StaticKeyProvider implements KeyProvider {
     private final String KEY_ID;
     private final SecretKey KEY;
 
-    StaticKeyProvider(String keyId, String keyHex) {
+    StaticKeyProvider(String keyId, String keyHex) throws KeyManagementException {
         this.KEY_ID = keyId;
-        this.KEY = new SecretKeySpec(DatatypeConverter.parseHexBinary(keyHex), "AES");
+        this.KEY = CryptoUtils.formKeyFromHex(keyHex);
     }
 
     /**
