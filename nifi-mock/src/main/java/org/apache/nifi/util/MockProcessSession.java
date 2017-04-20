@@ -347,6 +347,12 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
+    public List<FlowFile> getOneFromEachConnection(boolean isEveryConnection) {
+        // only one incoming connection
+        return get(1);
+    }
+
+    @Override
     public List<FlowFile> get(final FlowFileFilter filter) {
         final List<FlowFile> flowFiles = new ArrayList<>();
         final List<MockFlowFile> unselected = new ArrayList<>();
