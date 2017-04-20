@@ -17,9 +17,7 @@
 package org.apache.nifi.toolkit.admin.client
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule
 import com.google.common.collect.Lists
-import com.google.common.collect.Maps
 import com.sun.jersey.api.client.Client
 import com.sun.jersey.api.client.ClientResponse
 import com.sun.jersey.api.client.WebResource

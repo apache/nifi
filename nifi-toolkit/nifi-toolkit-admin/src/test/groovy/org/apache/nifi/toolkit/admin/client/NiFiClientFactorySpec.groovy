@@ -19,15 +19,37 @@ package org.apache.nifi.toolkit.admin.client
 
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine
 import org.apache.nifi.util.NiFiProperties
+import org.bouncycastle.asn1.x509.Extension
+import org.bouncycastle.asn1.x509.Extensions
+import org.bouncycastle.asn1.x509.ExtensionsGenerator
+import org.bouncycastle.asn1.x509.GeneralName
+import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.operator.OperatorCreationException
 import spock.lang.Specification
 
+import javax.net.ssl.SSLSession
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import java.security.InvalidKeyException
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.NoSuchAlgorithmException
+import java.security.NoSuchProviderException
+import java.security.SignatureException
+import java.security.cert.Certificate
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
 
 class NiFiClientFactorySpec extends Specification {
+
+    private static final int KEY_SIZE = 2048
+    private static final String SIGNATURE_ALGORITHM = "SHA256withRSA"
+    private static final int DAYS_IN_YEAR = 365
+    private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
 
     def "get client for unsecure nifi"(){
 
@@ -69,6 +91,71 @@ class NiFiClientFactorySpec extends Specification {
         cleanup:
         tmpDir.deleteDir()
 
+    }
+
+    def "should verify CN in certificate based on subjectDN"(){
+
+        given:
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN,ISSUER_DN)
+        def mockSession = Mock(SSLSession)
+        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("client.nifi.apache.org",mockSession)
+
+        then:
+        verified
+
+    }
+
+    def "should verify CN in certificate based on SAN"(){
+
+        given:
+
+        final List<String> SANS = ["127.0.0.1", "nifi.apache.org"]
+        def gns = SANS.collect { String san ->
+            new GeneralName(GeneralName.dNSName, san)
+        }
+        def generalNames = new GeneralNames(gns as GeneralName[])
+        ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator()
+        extensionsGenerator.addExtension(Extension.subjectAlternativeName, false, generalNames)
+        Extensions extensions = extensionsGenerator.generate()
+
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final KeyPair issuerKeyPair = generateKeyPair()
+        final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair,ISSUER_DN, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
+        final X509Certificate certificate = generateIssuedCertificate(EXPECTED_DN, issuerCertificate,extensions, issuerKeyPair)
+        Certificate[] certificateChain = [certificate, issuerCertificate] as X509Certificate[]
+        def mockSession = Mock(SSLSession)
+        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("nifi.apache.org",mockSession)
+
+        then:
+        verified
+
+    }
+
+    def KeyPair generateKeyPair() throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+        keyPairGenerator.initialize(KEY_SIZE)
+        return keyPairGenerator.generateKeyPair()
+    }
+
+    def X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer,Extensions extensions, KeyPair issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+        KeyPair keyPair = generateKeyPair()
+        return CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(),extensions, issuer, issuerKey, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
+    }
+
+    def X509Certificate[] generateCertificateChain(String dn,String issuerDn) {
+        final KeyPair issuerKeyPair = generateKeyPair()
+        final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, issuerDn, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
+        final X509Certificate certificate = generateIssuedCertificate(dn, issuerCertificate,null, issuerKeyPair)
+        [certificate, issuerCertificate] as X509Certificate[]
     }
 
     def setFilePermissions(File file, List<PosixFilePermission> permissions = []) {

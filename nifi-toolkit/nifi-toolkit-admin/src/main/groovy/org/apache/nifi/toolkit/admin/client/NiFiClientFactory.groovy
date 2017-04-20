@@ -21,7 +21,11 @@ import com.sun.jersey.api.client.config.ClientConfig
 import com.sun.jersey.api.client.config.DefaultClientConfig
 import com.sun.jersey.client.urlconnection.HTTPSProperties
 import org.apache.commons.lang3.StringUtils
+import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.util.NiFiProperties
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -41,6 +45,7 @@ import java.security.cert.X509Certificate
 
 class NiFiClientFactory implements ClientFactory{
 
+    private static final Logger logger = LoggerFactory.getLogger(NiFiClientFactory.class)
     static enum NiFiAuthType{ NONE, SSL }
 
     public Client getClient(NiFiProperties niFiProperties, String nifiInstallDir) throws Exception {
@@ -86,7 +91,7 @@ class NiFiClientFactory implements ClientFactory{
     }
 
 
-    private static SSLContext createSslContext(
+    static SSLContext createSslContext(
             final String keystore, final char[] keystorePasswd, final String keystoreType,
             final String truststore, final char[] truststorePasswd, final String truststoreType,
             final String protocol)
@@ -116,22 +121,27 @@ class NiFiClientFactory implements ClientFactory{
         return sslContext;
     }
 
-    private static class NiFiHostnameVerifier implements HostnameVerifier {
+    static class NiFiHostnameVerifier implements HostnameVerifier {
 
         @Override
         public boolean verify(final String hostname, final SSLSession ssls) {
             try {
-                for (final Certificate peerCertificate : ssls.getPeerCertificates()) {
-                    if (peerCertificate instanceof X509Certificate) {
-                        final X509Certificate x509Cert = (X509Certificate) peerCertificate;
-                        final List<String> subjectAltNames = getSubjectAlternativeNames(x509Cert);
-                        if (subjectAltNames.contains(hostname.toLowerCase())) {
-                            return true;
-                        }
+
+                final Certificate peerCertificate = ssls.getPeerCertificates()[0]
+                final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(peerCertificate)
+                final String dn = x509Cert.getSubjectDN().getName().trim()
+                final String cn = dn.tokenize(",").find { cn -> cn.startsWith("CN=")}
+
+                if(StringUtils.isNoneEmpty(cn) && StringUtils.substringAfter(cn,"=").toLowerCase().equals(hostname.toLowerCase())){
+                    return true
+                }else {
+                    final List<String> subjectAltNames = getSubjectAlternativeNames(x509Cert)
+                    if (subjectAltNames.contains(hostname.toLowerCase())) {
+                        return true
                     }
                 }
             } catch (final SSLPeerUnverifiedException | CertificateParsingException ex) {
-                LOG.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
+                logger.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
             }
 
             return false;
@@ -149,7 +159,6 @@ class NiFiClientFactory implements ClientFactory{
                 if (value instanceof String) {
                     result.add(((String) value).toLowerCase());
                 }
-
             }
 
             return result;
