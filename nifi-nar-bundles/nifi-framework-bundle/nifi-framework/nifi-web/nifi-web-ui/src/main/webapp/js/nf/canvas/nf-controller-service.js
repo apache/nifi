@@ -25,15 +25,14 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
-                'nf.ControllerServices',
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.CanvasUtils',
                 'nf.ReportingTask',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerServices, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerServices, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -43,7 +42,6 @@
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
-                require('nf.ControllerServices'),
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
@@ -57,7 +55,6 @@
             root.nf.Common,
             root.nf.Dialog,
             root.nf.Client,
-            root.nf.ControllerServices,
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
@@ -65,8 +62,10 @@
             root.nf.ReportingTask,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerServices, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
     'use strict';
+
+    var nfControllerServices;
 
     var config = {
         edit: 'edit',
@@ -1625,7 +1624,9 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function () {
+        init: function (nfControllerServicesRef) {
+            nfControllerServices = nfControllerServicesRef;
+
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
                 tabStyle: 'tab',
@@ -1795,7 +1796,6 @@
                     descriptorDeferred: getControllerServicePropertyDescriptor,
                     controllerServiceCreatedDeferred: function (response) {
                         var controllerServicesUri;
-                        var createdControllerServicesTable;
 
                         // calculate the correct uri
                         var createdControllerService = response.component;
