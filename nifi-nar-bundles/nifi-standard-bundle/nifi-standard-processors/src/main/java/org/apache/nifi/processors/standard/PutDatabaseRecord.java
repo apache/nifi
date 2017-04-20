@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -68,12 +67,14 @@ import java.util.stream.IntStream;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"sql", "record", "convert", "jdbc", "put", "database"})
-@SeeAlso({ConvertJSONToSQL.class, PutSQL.class})
+@Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
 @CapabilityDescription("The PutDatabaseRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming flow file. These records are translated to SQL "
         + "statements and executed as a single batch. If any errors occur, the flow file is routed to failure or retry, and if the records are transmitted successfully, the incoming flow file is "
         + "routed to success.  The type of statement executed by the processor is specified via the Statement Type property, which accepts some hard-coded values such as INSERT, UPDATE, and DELETE, "
-        + "as well as 'Use statement.type Attribute', which causes the processor to get the statement type from a flow file attribute.")
+        + "as well as 'Use statement.type Attribute', which causes the processor to get the statement type from a flow file attribute.  IMPORTANT: If the Statement Type is UPDATE, then the incoming "
+        + "records must not alter the value(s) of the primary keys (or user-specified Update Keys). If such records are encountered, the UPDATE statement issued to the database may do nothing "
+        + "(if no existing records with the new primary key values are found), or could inadvertently corrupt the existing data (by changing records for which the new values of the primary keys "
+        + "exist).")
 @ReadsAttribute(attribute = PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, description = "If 'Use statement.type Attribute' is selected for the Statement Type property, the value of this attribute "
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
 public class PutDatabaseRecord extends AbstractProcessor {
@@ -428,7 +429,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     } else {
                         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
-                        if(StringUtils.isEmpty(tableName)) {
+                        if (StringUtils.isEmpty(tableName)) {
                             log.error("Cannot process {} because Table Name is null or empty; penalizing and routing to failure", new Object[]{flowFile});
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
