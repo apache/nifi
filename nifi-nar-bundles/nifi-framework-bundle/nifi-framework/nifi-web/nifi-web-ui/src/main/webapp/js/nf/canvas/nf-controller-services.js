@@ -1018,8 +1018,11 @@
                      $('#shell-close-button').click();
 
                      // open the documentation for this controller service
-                     nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                         select: nfCommon.substringAfterLast(controllerServiceEntity.component.type, '.')
+                    nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                            select: controllerServiceEntity.component.type,
+                            group: controllerServiceEntity.component.bundle.group,
+                            artifact: controllerServiceEntity.component.bundle.artifact,
+                            version: controllerServiceEntity.component.bundle.version
                      })).done(function() {
                          if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
                              var groupId;
