@@ -23,12 +23,22 @@ import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine
 import org.apache.nifi.util.NiFiProperties
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.X500NameBuilder
+import org.bouncycastle.asn1.x500.style.BCStyle
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.OperatorCreationException
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import spock.lang.Specification
 
 import javax.net.ssl.SSLSession
@@ -43,6 +53,7 @@ import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
 
 class NiFiClientFactorySpec extends Specification {
 
@@ -110,7 +121,61 @@ class NiFiClientFactorySpec extends Specification {
 
     }
 
-    def "should verify CN in certificate based on SAN"(){
+    def "should not verify based on no certificate chain"(){
+
+        given:
+        final String EXPECTED_DN = "CN=client.nifi.apache.org, OU=Security, O=Apache, ST=CA, C=US"
+        Certificate[] certificateChain = [] as Certificate[]
+        def mockSession = Mock(SSLSession)
+        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def notVerified = !verifier.verify("client.nifi.apache.org",mockSession)
+
+        then:
+        notVerified
+
+    }
+
+    def "should not verify based on multiple CN values"(){
+
+        given:
+        final KeyPair issuerKeyPair = generateKeyPair()
+        KeyPair keyPair = generateKeyPair()
+        final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair,ISSUER_DN, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
+
+        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(issuerKeyPair.getPrivate());
+        SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.public.getEncoded());
+        Date startDate = new Date();
+        Date endDate = new Date(startDate.getTime() + TimeUnit.DAYS.toMillis(DAYS_IN_YEAR));
+
+        def X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE)
+        nameBuilder.addRDN(BCStyle.CN,"client.nifi.apache.org,nifi.apache.org")
+        def name = nameBuilder.build()
+
+        X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(new X500Name(issuerCertificate.getSubjectX500Principal().getName()),
+                BigInteger.valueOf(System.currentTimeMillis()), startDate, endDate, name,
+                subPubKeyInfo);
+
+        X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
+        Certificate certificate = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certificateHolder);
+
+        Certificate[] certificateChain = [certificate,issuerCertificate] as Certificate[]
+        def mockSession = Mock(SSLSession)
+        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+
+        when:
+        def notVerified = !verifier.verify("client.nifi.apache.org",mockSession)
+
+        then:
+        notVerified
+
+    }
+
+    def "should verify appropriately CN in certificate based on SAN"(){
 
         given:
 
@@ -134,9 +199,12 @@ class NiFiClientFactorySpec extends Specification {
 
         when:
         def verified = verifier.verify("nifi.apache.org",mockSession)
+        def notVerified = !verifier.verify("fake.apache.org",mockSession)
+
 
         then:
         verified
+        notVerified
 
     }
 

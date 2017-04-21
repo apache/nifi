@@ -26,6 +26,8 @@ import org.apache.nifi.util.NiFiProperties
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.naming.ldap.LdapName
+import javax.naming.ldap.Rdn
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -83,10 +85,10 @@ class NiFiClientFactory implements ClientFactory{
         final ClientConfig config = new DefaultClientConfig();
 
         if (sslContext != null) {
-            config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,new HTTPSProperties(new NiFiHostnameVerifier(), sslContext));
+            config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,new HTTPSProperties(new NiFiHostnameVerifier(), sslContext))
         }
 
-        return  Client.create(config);
+        return  Client.create(config)
 
     }
 
@@ -125,43 +127,45 @@ class NiFiClientFactory implements ClientFactory{
 
         @Override
         public boolean verify(final String hostname, final SSLSession ssls) {
-            try {
 
-                final Certificate peerCertificate = ssls.getPeerCertificates()[0]
-                final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(peerCertificate)
-                final String dn = x509Cert.getSubjectDN().getName().trim()
-                final String cn = dn.tokenize(",").find { cn -> cn.startsWith("CN=")}
+            if (ssls.getPeerCertificates() != null && ssls.getPeerCertificates().length > 0) {
 
-                if(StringUtils.isNoneEmpty(cn) && StringUtils.substringAfter(cn,"=").toLowerCase().equals(hostname.toLowerCase())){
-                    return true
-                }else {
-                    final List<String> subjectAltNames = getSubjectAlternativeNames(x509Cert)
-                    if (subjectAltNames.contains(hostname.toLowerCase())) {
-                        return true
-                    }
+                try {
+                    final Certificate peerCertificate = ssls.getPeerCertificates()[0]
+                    final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(peerCertificate)
+                    final String dn = x509Cert.getSubjectDN().getName().trim()
+
+                    final LdapName ln = new LdapName(dn)
+                    final boolean match = ln.getRdns().any { Rdn rdn -> rdn.getType().equalsIgnoreCase("CN") && rdn.getValue().toString().equalsIgnoreCase(hostname)}
+                    return match || getSubjectAlternativeNames(x509Cert).any { String san -> san.equalsIgnoreCase(hostname) }
+
+                } catch (final SSLPeerUnverifiedException | CertificateParsingException ex ) {
+                    logger.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
                 }
-            } catch (final SSLPeerUnverifiedException | CertificateParsingException ex) {
-                logger.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
+
+            }else{
+                logger.warn("Peer certificates not found on ssl session ");
             }
 
-            return false;
+            return false
         }
 
         private List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
-            final Collection<List<?>> altNames = certificate.getSubjectAlternativeNames();
+            final Collection<List<?>> altNames = certificate.getSubjectAlternativeNames()
+
             if (altNames == null) {
-                return new ArrayList<>();
+                return new ArrayList<>()
             }
 
-            final List<String> result = new ArrayList<>();
+            final List<String> result = new ArrayList<>()
             for (final List<?> generalName : altNames) {
-                final Object value = generalName.get(1);
+                final Object value = generalName.get(1)
                 if (value instanceof String) {
-                    result.add(((String) value).toLowerCase());
+                    result.add(((String) value).toLowerCase())
                 }
             }
 
-            return result;
+            return result
         }
     }
 
