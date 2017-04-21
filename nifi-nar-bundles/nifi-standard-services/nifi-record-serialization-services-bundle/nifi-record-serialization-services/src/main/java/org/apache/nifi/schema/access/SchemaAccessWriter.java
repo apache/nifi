@@ -20,6 +20,7 @@ package org.apache.nifi.schema.access;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -52,4 +53,11 @@ public interface SchemaAccessWriter {
      * @throws SchemaNotFoundException if the schema does not contain sufficient information to be written
      */
     void validateSchema(RecordSchema schema) throws SchemaNotFoundException;
+
+    /**
+     * Specifies the set of SchemaField's that are required in order to use this Schema Access Writer
+     *
+     * @return the set of SchemaField's that are required in order to use this Schema Access Writer
+     */
+    Set<SchemaField> getRequiredSchemaFields();
 }

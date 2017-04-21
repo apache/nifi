@@ -21,14 +21,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWriter {
+    private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
     private static final int LATEST_PROTOCOL_VERSION = 1;
 
     @Override
@@ -65,6 +68,11 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
         if (!versionOption.isPresent()) {
             throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version is not known");
         }
+    }
+
+    @Override
+    public Set<SchemaField> getRequiredSchemaFields() {
+        return requiredSchemaFields;
     }
 
 }

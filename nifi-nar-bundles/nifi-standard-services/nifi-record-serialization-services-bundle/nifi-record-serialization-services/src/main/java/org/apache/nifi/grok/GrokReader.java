@@ -22,8 +22,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,6 +38,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordReader;
@@ -178,9 +181,16 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry) {
         if (allowableValue.equalsIgnoreCase(STRING_FIELDS_FROM_GROK_EXPRESSION.getValue())) {
             return new SchemaAccessStrategy() {
+                private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
+
                 @Override
                 public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final ConfigurationContext context) throws SchemaNotFoundException {
                     return recordSchema;
+                }
+
+                @Override
+                public Set<SchemaField> getSuppliedSchemaFields() {
+                    return schemaFields;
                 }
             };
         } else {

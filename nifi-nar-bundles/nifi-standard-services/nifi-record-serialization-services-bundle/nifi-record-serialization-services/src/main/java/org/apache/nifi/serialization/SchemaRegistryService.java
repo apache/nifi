@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroSchemaValidator;
@@ -39,6 +40,7 @@ import org.apache.nifi.schema.access.AvroSchemaTextStrategy;
 import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceStrategy;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceStrategy;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNamePropertyStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -78,7 +80,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
         .defaultValue("${schema.name}")
-        .required(true)
+        .required(false)
         .build();
 
     static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
@@ -88,7 +90,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         .addValidator(new AvroSchemaValidator())
         .expressionLanguageSupported(true)
         .defaultValue("${avro.schema}")
-        .required(true)
+        .required(false)
         .build();
 
 
@@ -181,11 +183,34 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         return strategyList;
     }
 
+    protected Set<SchemaField> getSuppliedSchemaFields(final ValidationContext validationContext) {
+        final String accessStrategyValue = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+        final SchemaRegistry schemaRegistry = validationContext.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
+        final SchemaAccessStrategy accessStrategy = getSchemaAccessStrategy(accessStrategyValue, schemaRegistry, validationContext);
+
+        final Set<SchemaField> suppliedFields = accessStrategy.getSuppliedSchemaFields();
+        return suppliedFields;
+    }
+
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry) {
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
             return new SchemaNamePropertyStrategy(schemaRegistry, getConfigurationContext().getProperty(SCHEMA_NAME));
         } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return new AvroSchemaTextStrategy(getConfigurationContext().getProperty(SCHEMA_TEXT));
+        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        }
+
+        return null;
+    }
+
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
+        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
+            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
+            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
             return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
         } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {

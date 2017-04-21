@@ -20,16 +20,20 @@ package org.apache.nifi.avro;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -40,6 +44,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @Tags({"avro", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Binary Avro format.")
 public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
+    private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
 
     static final AllowableValue AVRO_EMBEDDED = new AllowableValue("avro-embedded", "Embed Avro Schema",
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
@@ -90,5 +95,15 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     @Override
     protected AllowableValue getDefaultSchemaWriteStrategy() {
         return AVRO_EMBEDDED;
+    }
+
+    @Override
+    protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
+        final String writeStrategyValue = validationContext.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        if (writeStrategyValue.equalsIgnoreCase(AVRO_EMBEDDED.getValue())) {
+            return requiredSchemaFields;
+        }
+
+        return super.getRequiredSchemaFields(validationContext);
     }
 }

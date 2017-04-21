@@ -20,6 +20,9 @@ package org.apache.nifi.schema.access;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
@@ -29,10 +32,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 public class HortonworksEncodedSchemaReferenceStrategy implements SchemaAccessStrategy {
     private static final int LATEST_PROTOCOL_VERSION = 1;
+
+    private final Set<SchemaField> schemaFields;
     private final SchemaRegistry schemaRegistry;
 
     public HortonworksEncodedSchemaReferenceStrategy(final SchemaRegistry schemaRegistry) {
         this.schemaRegistry = schemaRegistry;
+
+        schemaFields = new HashSet<>();
+        schemaFields.add(SchemaField.SCHEMA_IDENTIFIER);
+        schemaFields.add(SchemaField.SCHEMA_VERSION);
+        schemaFields.addAll(schemaRegistry == null ? Collections.emptySet() : schemaRegistry.getSuppliedSchemaFields());
     }
 
     @Override
@@ -60,4 +70,8 @@ public class HortonworksEncodedSchemaReferenceStrategy implements SchemaAccessSt
         return schemaRegistry.retrieveSchema(schemaId, schemaVersion);
     }
 
+    @Override
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return schemaFields;
+    }
 }

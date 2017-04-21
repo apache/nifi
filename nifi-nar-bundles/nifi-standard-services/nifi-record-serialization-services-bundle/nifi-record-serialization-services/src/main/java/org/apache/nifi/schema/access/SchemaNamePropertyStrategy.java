@@ -18,6 +18,9 @@
 package org.apache.nifi.schema.access;
 
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -26,12 +29,18 @@ import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
+    private final Set<SchemaField> schemaFields;
+
     private final SchemaRegistry schemaRegistry;
     private final PropertyValue schemaNamePropertyValue;
 
     public SchemaNamePropertyStrategy(final SchemaRegistry schemaRegistry, final PropertyValue schemaNamePropertyValue) {
         this.schemaRegistry = schemaRegistry;
         this.schemaNamePropertyValue = schemaNamePropertyValue;
+
+        schemaFields = new HashSet<>();
+        schemaFields.add(SchemaField.SCHEMA_NAME);
+        schemaFields.addAll(schemaRegistry == null ? Collections.emptySet() : schemaRegistry.getSuppliedSchemaFields());
     }
 
     @Override
@@ -51,5 +60,10 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
         } catch (final Exception e) {
             throw new SchemaNotFoundException("Could not retrieve schema with name '" + schemaName + "' from the configured Schema Registry", e);
         }
+    }
+
+    @Override
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return schemaFields;
     }
 }

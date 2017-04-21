@@ -18,6 +18,8 @@
 package org.apache.nifi.schema.access;
 
 import java.io.InputStream;
+import java.util.EnumSet;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -29,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
+    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
+
     private static final Logger logger = LoggerFactory.getLogger(AvroSchemaTextStrategy.class);
     private final PropertyValue schemaTextPropertyValue;
 
@@ -53,4 +57,8 @@ public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
         }
     }
 
+    @Override
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return schemaFields;
+    }
 }

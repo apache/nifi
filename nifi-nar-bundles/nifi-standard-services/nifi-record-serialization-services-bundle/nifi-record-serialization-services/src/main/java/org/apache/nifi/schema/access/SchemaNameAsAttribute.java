@@ -20,13 +20,16 @@ package org.apache.nifi.schema.access;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SchemaNameAsAttribute implements SchemaAccessWriter {
+    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME);
     private static final String SCHEMA_NAME_ATTRIBUTE = "schema.name";
 
     @Override
@@ -49,6 +52,11 @@ public class SchemaNameAsAttribute implements SchemaAccessWriter {
         if (!schemaId.getName().isPresent()) {
             throw new SchemaNotFoundException("Cannot write Schema Name As Attribute because the Schema Name is not known");
         }
+    }
+
+    @Override
+    public Set<SchemaField> getRequiredSchemaFields() {
+        return schemaFields;
     }
 
 }

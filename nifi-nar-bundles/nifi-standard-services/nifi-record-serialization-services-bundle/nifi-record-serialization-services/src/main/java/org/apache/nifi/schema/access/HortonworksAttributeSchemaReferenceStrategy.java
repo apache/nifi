@@ -19,6 +19,9 @@ package org.apache.nifi.schema.access;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
@@ -26,6 +29,8 @@ import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccessStrategy {
+    private final Set<SchemaField> schemaFields;
+
     public static final String SCHEMA_ID_ATTRIBUTE = "schema.identifier";
     public static final String SCHEMA_VERSION_ATTRIBUTE = "schema.version";
     public static final String SCHEMA_PROTOCOL_VERSION_ATTRIBUTE = "schema.protocol.version";
@@ -35,6 +40,11 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
 
     public HortonworksAttributeSchemaReferenceStrategy(final SchemaRegistry schemaRegistry) {
         this.schemaRegistry = schemaRegistry;
+
+        schemaFields = new HashSet<>();
+        schemaFields.add(SchemaField.SCHEMA_IDENTIFIER);
+        schemaFields.add(SchemaField.SCHEMA_VERSION);
+        schemaFields.addAll(schemaRegistry == null ? Collections.emptySet() : schemaRegistry.getSuppliedSchemaFields());
     }
 
     @Override
@@ -97,5 +107,10 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
         }
 
         return true;
+    }
+
+    @Override
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return schemaFields;
     }
 }

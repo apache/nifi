@@ -19,13 +19,16 @@ package org.apache.nifi.schema.access;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWriter {
+    private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
     private static final int LATEST_PROTOCOL_VERSION = 1;
 
     @Override
@@ -56,6 +59,11 @@ public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWr
         if (!id.getVersion().isPresent()) {
             throw new SchemaNotFoundException("Cannot write Schema Reference as Attributes because it does not contain a Schema Version");
         }
+    }
+
+    @Override
+    public Set<SchemaField> getRequiredSchemaFields() {
+        return requiredSchemaFields;
     }
 
 }

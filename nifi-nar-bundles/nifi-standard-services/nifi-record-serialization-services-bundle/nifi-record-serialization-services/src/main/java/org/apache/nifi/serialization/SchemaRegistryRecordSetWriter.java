@@ -19,16 +19,22 @@ package org.apache.nifi.serialization;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceWriter;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
+import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.SchemaTextAsAttribute;
@@ -36,10 +42,10 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryService {
 
-    static final AllowableValue SCHEMA_NAME_ATTRIBUTE = new AllowableValue("schema-name", "Use 'schema.name' Attribute",
+    static final AllowableValue SCHEMA_NAME_ATTRIBUTE = new AllowableValue("schema-name", "Set 'schema.name' Attribute",
         "The FlowFile will be given an attribute named 'schema.name' and this attribute will indicate the name of the schema in the Schema Registry. Note that if"
             + "the schema for a record is not obtained from a Schema Registry, then no attribute will be added.");
-    static final AllowableValue AVRO_SCHEMA_ATTRIBUTE = new AllowableValue("full-schema-attribute", "Use 'avro.schema' Attribute",
+    static final AllowableValue AVRO_SCHEMA_ATTRIBUTE = new AllowableValue("full-schema-attribute", "Set 'avro.schema' Attribute",
         "The FlowFile will be given an attribute named 'avro.schema' and this attribute will contain the Avro Schema that describes the records in the FlowFile. "
             + "The contents of the FlowFile need not be Avro, but the text of the schema will be used.");
     static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
@@ -68,7 +74,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        final List<PropertyDescriptor> properties = new ArrayList<>();
 
         final AllowableValue[] strategies = getSchemaWriteStrategyValues().toArray(new AllowableValue[0]);
         properties.add(new PropertyDescriptor.Builder()
@@ -76,6 +82,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             .defaultValue(getDefaultSchemaWriteStrategy().getValue())
             .allowableValues(strategies)
             .build());
+        properties.addAll(super.getSupportedPropertyDescriptors());
 
         return properties;
     }
@@ -118,5 +125,35 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         }
 
         return null;
+    }
+
+    protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
+        final String writeStrategyValue = validationContext.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        final SchemaAccessWriter writer = getSchemaWriteStrategy(writeStrategyValue);
+        final Set<SchemaField> requiredFields = writer.getRequiredSchemaFields();
+        return requiredFields;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final Set<SchemaField> suppliedFields = getSuppliedSchemaFields(validationContext);
+        final Set<SchemaField> requiredFields = getRequiredSchemaFields(validationContext);
+
+        final Set<SchemaField> missingFields = new HashSet<>(requiredFields);
+        missingFields.removeAll(suppliedFields);
+
+        if (!missingFields.isEmpty()) {
+            results.add(new ValidationResult.Builder()
+                .subject("Schema Access Strategy")
+                .valid(false)
+                .explanation("The configured Schema Write Strategy requires the " + missingFields.iterator().next()
+                    + " but the configured Schema Access Strategy does not provide this information in conjunction with the selected Schema Registry. "
+                    + "This Schema Access Strategy, as configured, cannot be used in conjunction with this Schema Write Strategy.")
+                .build());
+        }
+
+        return results;
     }
 }
