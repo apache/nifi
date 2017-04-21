@@ -44,4 +44,12 @@ public interface SchemaAccessWriter {
      */
     Map<String, String> getAttributes(RecordSchema schema);
 
+    /**
+     * Ensures that the given schema can be written by this SchemaAccessWriter or throws SchemaNotFoundException if
+     * the schema does not contain sufficient information to be written
+     *
+     * @param schema the schema to validate
+     * @throws SchemaNotFoundException if the schema does not contain sufficient information to be written
+     */
+    void validateSchema(RecordSchema schema) throws SchemaNotFoundException;
 }

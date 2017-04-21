@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.AvroSchemaTextStrategy;
+import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceStrategy;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceStrategy;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNamePropertyStrategy;
@@ -53,6 +54,8 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
         "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
             + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers.");
+    static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
+        "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
 
     protected static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
         .name("Schema Registry")
@@ -64,7 +67,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     protected static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
         .name("Schema Access Strategy")
         .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
-        .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_CONTENT_ENCODED_SCHEMA)
+        .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
         .defaultValue(SCHEMA_TEXT_PROPERTY.getValue())
         .required(true)
         .build();
@@ -92,7 +95,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     private volatile ConfigurationContext configurationContext;
     private volatile SchemaAccessStrategy schemaAccessStrategy;
 
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_CONTENT_ENCODED_SCHEMA));
+    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA));
 
 
     @Override
@@ -151,7 +154,8 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     }
 
     private boolean isSchemaRegistryRequired(final String schemaAccessValue) {
-        return HWX_CONTENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue) || SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue);
+        return HWX_CONTENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue) || SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue)
+            || HWX_SCHEMA_REF_ATTRIBUTES.getValue().equalsIgnoreCase(schemaAccessValue);
     }
 
     @Override
@@ -184,6 +188,8 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
             return new AvroSchemaTextStrategy(getConfigurationContext().getProperty(SCHEMA_TEXT));
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
             return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
         }
 
         return null;

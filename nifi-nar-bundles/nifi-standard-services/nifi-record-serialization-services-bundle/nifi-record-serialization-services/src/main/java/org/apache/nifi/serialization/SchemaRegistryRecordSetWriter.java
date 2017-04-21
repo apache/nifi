@@ -26,10 +26,13 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceWriter;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.SchemaTextAsAttribute;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryService {
 
@@ -44,11 +47,14 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers. "
             + "This will be prepended to each FlowFile. Note that "
             + "if the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
+    static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
+        "The FlowFile will be given a set of 3 attributes to describe the schema: 'schema.identifier', 'schema.version', and 'schema.protocol.version'. Note that if "
+            + "the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
 
     protected static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
         .name("Schema Write Strategy")
         .description("Specifies how the schema for a Record should be added to the data.")
-        .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_CONTENT_ENCODED_SCHEMA)
+        .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
         .defaultValue(AVRO_SCHEMA_ATTRIBUTE.getValue())
         .required(true)
         .build();
@@ -57,7 +63,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     private volatile ConfigurationContext configurationContext;
     private volatile SchemaAccessWriter schemaAccessWriter;
 
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_CONTENT_ENCODED_SCHEMA));
+    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA));
 
 
     @Override
@@ -91,7 +97,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return configurationContext;
     }
 
-    protected SchemaAccessWriter getSchemaAccessWriter() {
+    protected SchemaAccessWriter getSchemaAccessWriter(final RecordSchema schema) throws SchemaNotFoundException {
+        schemaAccessWriter.validateSchema(schema);
         return schemaAccessWriter;
     }
 
@@ -106,6 +113,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             return new SchemaTextAsAttribute();
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
             return new HortonworksEncodedSchemaReferenceWriter();
+        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+            return new HortonworksAttributeSchemaReferenceWriter();
         }
 
         return null;

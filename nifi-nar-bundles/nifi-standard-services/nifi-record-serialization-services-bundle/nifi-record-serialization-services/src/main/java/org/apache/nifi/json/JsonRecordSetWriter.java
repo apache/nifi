@@ -66,7 +66,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream flowFileContent) throws SchemaNotFoundException, IOException {
         final RecordSchema schema = getSchema(flowFile, flowFileContent);
-        return new WriteJsonResult(logger, schema, getSchemaAccessWriter(), prettyPrint, getDateFormat(), getTimeFormat(), getTimestampFormat());
+        return new WriteJsonResult(logger, schema, getSchemaAccessWriter(schema), prettyPrint, getDateFormat(), getTimeFormat(), getTimestampFormat());
     }
 
 }

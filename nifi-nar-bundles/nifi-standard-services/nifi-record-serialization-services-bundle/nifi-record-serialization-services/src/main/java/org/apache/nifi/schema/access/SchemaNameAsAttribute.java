@@ -43,4 +43,12 @@ public class SchemaNameAsAttribute implements SchemaAccessWriter {
         return Collections.emptyMap();
     }
 
+    @Override
+    public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
+        final SchemaIdentifier schemaId = schema.getIdentifier();
+        if (!schemaId.getName().isPresent()) {
+            throw new SchemaNotFoundException("Cannot write Schema Name As Attribute because the Schema Name is not known");
+        }
+    }
+
 }

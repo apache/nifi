@@ -33,14 +33,20 @@ public class SchemaTextAsAttribute implements SchemaAccessWriter {
     @Override
     public Map<String, String> getAttributes(final RecordSchema schema) {
         final Optional<String> textFormatOption = schema.getSchemaFormat();
-        if (textFormatOption.isPresent()) {
-            final Optional<String> textOption = schema.getSchemaText();
-            if (textOption.isPresent()) {
-                return Collections.singletonMap(textFormatOption.get() + ".schema", textOption.get());
-            }
-        }
-
-        return Collections.emptyMap();
+        final Optional<String> textOption = schema.getSchemaText();
+        return Collections.singletonMap(textFormatOption.get() + ".schema", textOption.get());
     }
 
+    @Override
+    public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
+        final Optional<String> textFormatOption = schema.getSchemaFormat();
+        if (!textFormatOption.isPresent()) {
+            throw new SchemaNotFoundException("Cannot write Schema Text as Attribute because the Schema's Text Format is not present");
+        }
+
+        final Optional<String> textOption = schema.getSchemaText();
+        if (!textOption.isPresent()) {
+            throw new SchemaNotFoundException("Cannot write Schema Text as Attribute because the Schema's Text is not present");
+        }
+    }
 }
