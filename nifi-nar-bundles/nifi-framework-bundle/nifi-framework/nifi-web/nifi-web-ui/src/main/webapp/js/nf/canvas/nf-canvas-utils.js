@@ -301,20 +301,36 @@
 
             // Feature detection and browser support for URLSearchParams
             if ('URLSearchParams' in window) {
+                // get the `urlSearchParams` from the URL
                 var urlSearchParams = new URL(window.location).searchParams;
+                // if the `urlSearchParams` are `undefined` then the browser does not support
+                // the URL object's `.searchParams` property
+                if (!nf.Common.isDefinedAndNotNull(urlSearchParams)) {
+                    // attempt to get the `urlSearchParams` using the URLSearchParams constructor and
+                    // the URL object's `.search` property
+                    urlSearchParams = new URLSearchParams(new URL(window.location).search);
+                }
+
                 var groupId = nfCanvasUtils.getGroupId();
-                var componentIds = [];
 
-                if (urlSearchParams.get('processGroupId')) {
-                    groupId = urlSearchParams.get('processGroupId');
-                }
-                if (urlSearchParams.get('componentIds')) {
-                    componentIds = urlSearchParams.get('componentIds').split(',');
-                }
+                // if the `urlSearchParams` are still `undefined` then the browser does not support
+                // the URL object's `.search` property. In this case we cannot support deep links.
+                if (nf.Common.isDefinedAndNotNull(urlSearchParams)) {
+                    var componentIds = [];
 
-                // load the graph but do not update the browser history
-                if (componentIds.length >= 1) {
-                    return nfCanvasUtils.showComponents(groupId, componentIds, forceCanvasLoad);
+                    if (urlSearchParams.get('processGroupId')) {
+                        groupId = urlSearchParams.get('processGroupId');
+                    }
+                    if (urlSearchParams.get('componentIds')) {
+                        componentIds = urlSearchParams.get('componentIds').split(',');
+                    }
+
+                    // load the graph but do not update the browser history
+                    if (componentIds.length >= 1) {
+                        return nfCanvasUtils.showComponents(groupId, componentIds, forceCanvasLoad);
+                    } else {
+                        return nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(groupId);
+                    }
                 } else {
                     return nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(groupId);
                 }
@@ -406,29 +422,44 @@
                 });
 
                 // get all URL parameters
-                var params = new URL(window.location).searchParams;
-                params.set('processGroupId', groupId);
-                params.set('componentIds', selectedComponentIds.sort());
-
                 var url = new URL(window.location);
-                var newUrl = url.origin + url.pathname;
 
-                if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId()) || selectedComponentIds.length > 0) {
-                    if (!nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
-                        // we are in the root group so set processGroupId param value to 'root' alias
-                        params.set('processGroupId', 'root');
-                    }
-
-                    if ((url.origin + url.pathname + '?' + params.toString()).length <= nfCanvasUtils.MAX_URL_LENGTH) {
-                        newUrl = url.origin + url.pathname + '?' + params.toString();
-                    } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
-                        // silently remove all component ids
-                        params.set('componentIds', '');
-                        newUrl = url.origin + url.pathname + '?' + params.toString();
-                    }
+                // get the `params` from the URL
+                var params = new URL(window.location).searchParams;
+                // if the `params` are undefined then the browser does not support
+                // the URL object's `.searchParams` property
+                if (!nf.Common.isDefinedAndNotNull(params)) {
+                    // attempt to get the `params` using the URLSearchParams constructor and
+                    // the URL object's `.search` property
+                    params = new URLSearchParams(url.search);
                 }
 
-                window.history.replaceState({'previous_url': url.href}, window.document.title, newUrl);
+                // if the `params` are still `undefined` then the browser does not support
+                // the URL object's `.search` property. In this case we cannot support deep links.
+                if (nf.Common.isDefinedAndNotNull(params)) {
+                    var params = new URLSearchParams(url.search);
+                    params.set('processGroupId', groupId);
+                    params.set('componentIds', selectedComponentIds.sort());
+
+                    var newUrl = url.origin + url.pathname;
+
+                    if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId()) || selectedComponentIds.length > 0) {
+                        if (!nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
+                            // we are in the root group so set processGroupId param value to 'root' alias
+                            params.set('processGroupId', 'root');
+                        }
+
+                        if ((url.origin + url.pathname + '?' + params.toString()).length <= nfCanvasUtils.MAX_URL_LENGTH) {
+                            newUrl = url.origin + url.pathname + '?' + params.toString();
+                        } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
+                            // silently remove all component ids
+                            params.set('componentIds', '');
+                            newUrl = url.origin + url.pathname + '?' + params.toString();
+                        }
+                    }
+
+                    window.history.replaceState({'previous_url': url.href}, window.document.title, newUrl);
+                }
             }
         },
 
