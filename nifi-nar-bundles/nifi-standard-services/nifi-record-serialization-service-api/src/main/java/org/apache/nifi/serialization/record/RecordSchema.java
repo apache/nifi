@@ -67,6 +67,12 @@ public interface RecordSchema {
     Optional<String> getSchemaFormat();
 
     /**
+     * @param fieldName the name of the field
+     * @return an Optional RecordField for the field with the given name
+     */
+    Optional<RecordField> getField(String fieldName);
+
+    /**
      * @return the SchemaIdentifier, which provides various attributes for identifying a schema
      */
     SchemaIdentifier getIdentifier();

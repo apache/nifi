@@ -73,7 +73,16 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         for (int i = 0; i < schema.getFieldCount(); i++) {
             final RecordField field = schema.getField(i);
             final String fieldName = field.getFieldName();
-            final JsonNode fieldNode = jsonNode.get(fieldName);
+
+            JsonNode fieldNode = jsonNode.get(fieldName);
+            if (fieldNode == null) {
+                for (final String alias : field.getAliases()) {
+                    fieldNode = jsonNode.get(alias);
+                    if (fieldNode != null) {
+                        break;
+                    }
+                }
+            }
 
             final DataType desiredType = field.getDataType();
             final Object value = convertField(fieldNode, fieldNamePrefix + fieldName, desiredType);

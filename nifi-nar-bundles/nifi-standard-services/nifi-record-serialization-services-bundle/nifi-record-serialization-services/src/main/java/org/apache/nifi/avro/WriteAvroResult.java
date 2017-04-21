@@ -42,6 +42,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -62,8 +63,9 @@ public abstract class WriteAvroResult implements RecordSetWriter {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
-        for (final String fieldName : recordSchema.getFieldNames()) {
-            final Object rawValue = record.getValue(fieldName);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            final Object rawValue = record.getValue(recordField);
+            final String fieldName = recordField.getFieldName();
 
             final Field field = avroSchema.getField(fieldName);
             if (field == null) {
@@ -138,10 +140,10 @@ public abstract class WriteAvroResult implements RecordSetWriter {
                 if (rawValue instanceof Record) {
                     final Record recordValue = (Record) rawValue;
                     final Map<String, Object> map = new HashMap<>();
-                    for (final String recordFieldName : recordValue.getSchema().getFieldNames()) {
-                        final Object v = recordValue.getValue(recordFieldName);
+                    for (final RecordField recordField : recordValue.getSchema().getFields()) {
+                        final Object v = recordValue.getValue(recordField);
                         if (v != null) {
-                            map.put(recordFieldName, v);
+                            map.put(recordField.getFieldName(), v);
                         }
                     }
 
@@ -153,8 +155,9 @@ public abstract class WriteAvroResult implements RecordSetWriter {
                 final GenericData.Record avroRecord = new GenericData.Record(fieldSchema);
 
                 final Record record = (Record) rawValue;
-                for (final String recordFieldName : record.getSchema().getFieldNames()) {
-                    final Object recordFieldValue = record.getValue(recordFieldName);
+                for (final RecordField recordField : record.getSchema().getFields()) {
+                    final Object recordFieldValue = record.getValue(recordField);
+                    final String recordFieldName = recordField.getFieldName();
 
                     final Field field = fieldSchema.getField(recordFieldName);
                     if (field == null) {

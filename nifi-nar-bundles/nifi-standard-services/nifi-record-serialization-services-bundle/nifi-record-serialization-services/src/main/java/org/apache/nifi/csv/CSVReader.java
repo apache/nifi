@@ -110,4 +110,9 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         allowableValues.add(headerDerivedAllowableValue);
         return allowableValues;
     }
+
+    @Override
+    protected AllowableValue getDefaultSchemaAccessStrategy() {
+        return headerDerivedAllowableValue;
+    }
 }

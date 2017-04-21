@@ -44,6 +44,9 @@ public class HortonworksEncodedSchemaReferenceStrategy implements SchemaAccessSt
             throw new SchemaNotFoundException("Could not read first 13 bytes from stream", ioe);
         }
 
+        // This encoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
+        // as it is provided at:
+        // https://github.com/hortonworks/registry/blob/master/schema-registry/serdes/src/main/java/com/hortonworks/registries/schemaregistry/serdes/avro/AvroSnapshotSerializer.java
         final ByteBuffer bb = ByteBuffer.wrap(buffer);
         final int protocolVersion = bb.get();
         if (protocolVersion != 1) {

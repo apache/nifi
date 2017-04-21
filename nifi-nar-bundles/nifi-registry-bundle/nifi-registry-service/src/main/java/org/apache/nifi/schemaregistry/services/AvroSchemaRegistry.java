@@ -127,7 +127,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final DataType dataType = determineDataType(field.schema());
-            recordFields.add(new RecordField(fieldName, dataType));
+
+            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
         }
 
         final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, text, "avro", SchemaIdentifier.ofName(schemaName));
@@ -185,7 +186,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
                     final String fieldName = field.name();
                     final Schema fieldSchema = field.schema();
                     final DataType fieldType = determineDataType(fieldSchema);
-                    recordFields.add(new RecordField(fieldName, fieldType));
+
+                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
                 }
 
                 final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), "avro", SchemaIdentifier.EMPTY);

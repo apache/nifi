@@ -117,7 +117,7 @@ public class AvroTypeUtil {
                     final String fieldName = field.name();
                     final Schema fieldSchema = field.schema();
                     final DataType fieldType = determineDataType(fieldSchema);
-                    recordFields.add(new RecordField(fieldName, fieldType));
+                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
                 }
 
                 final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
@@ -156,7 +156,8 @@ public class AvroTypeUtil {
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final DataType dataType = AvroTypeUtil.determineDataType(field.schema());
-            recordFields.add(new RecordField(fieldName, dataType));
+
+            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
         }
 
         final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);

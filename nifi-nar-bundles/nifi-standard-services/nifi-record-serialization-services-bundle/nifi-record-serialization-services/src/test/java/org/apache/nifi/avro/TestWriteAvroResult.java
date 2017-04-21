@@ -110,7 +110,6 @@ public abstract class TestWriteAvroResult {
 
     @Test
     public void testDataTypes() throws IOException {
-        // TODO: Test Enums
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/datatypes.avsc"));
         final WriteAvroResult writer = createWriter(schema);
 
@@ -124,7 +123,7 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
         fields.add(new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()));
-        fields.add(new RecordField("bytes", RecordFieldType.ARRAY.getChoiceDataType(Collections.singletonList(RecordFieldType.BYTE.getDataType()))));
+        fields.add(new RecordField("bytes", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
         fields.add(new RecordField("nullOrLong", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
         fields.add(new RecordField("record", RecordFieldType.RECORD.getRecordDataType(subRecordSchema)));

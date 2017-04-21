@@ -61,7 +61,19 @@ public class SimpleRecordSchema implements RecordSchema {
 
         int index = 0;
         for (final RecordField field : fields) {
-            fieldIndices.put(field.getFieldName(), index++);
+            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
+            if (previousValue != null) {
+                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+            }
+
+            for (final String alias : field.getAliases()) {
+                previousValue = fieldIndices.put(alias, index);
+                if (previousValue != null) {
+                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+                }
+            }
+
+            index++;
         }
     }
 
@@ -111,6 +123,16 @@ public class SimpleRecordSchema implements RecordSchema {
     public Optional<DataType> getDataType(final String fieldName) {
         final OptionalInt idx = getFieldIndex(fieldName);
         return idx.isPresent() ? Optional.of(fields.get(idx.getAsInt()).getDataType()) : Optional.empty();
+    }
+
+    @Override
+    public Optional<RecordField> getField(final String fieldName) {
+        final OptionalInt indexOption = getFieldIndex(fieldName);
+        if (indexOption.isPresent()) {
+            return Optional.of(fields.get(indexOption.getAsInt()));
+        }
+
+        return Optional.empty();
     }
 
     private OptionalInt getFieldIndex(final String fieldName) {

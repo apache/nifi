@@ -30,6 +30,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -114,8 +115,9 @@ public class WriteJsonResult implements RecordSetWriter {
         try {
             startTask.apply(generator);
             for (int i = 0; i < writeSchema.getFieldCount(); i++) {
-                final String fieldName = writeSchema.getField(i).getFieldName();
-                final Object value = record.getValue(fieldName);
+                final RecordField field = writeSchema.getField(i);
+                final String fieldName = field.getFieldName();
+                final Object value = record.getValue(field);
                 if (value == null) {
                     generator.writeNullField(fieldName);
                     continue;

@@ -34,6 +34,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -65,15 +66,27 @@ public class CSVRecordReader implements RecordReader {
         for (final CSVRecord csvRecord : csvParser) {
             final Map<String, Object> rowValues = new HashMap<>(schema.getFieldCount());
 
-            for (final String fieldName : schema.getFieldNames()) {
-                final String rawValue = csvRecord.get(fieldName);
+            for (final RecordField recordField : schema.getFields()) {
+                String rawValue = csvRecord.get(recordField.getFieldName());
+                if (rawValue == null) {
+                    for (final String alias : recordField.getAliases()) {
+                        rawValue = csvRecord.get(alias);
+                        if (rawValue != null) {
+                            break;
+                        }
+                    }
+                }
+
+                final String fieldName = recordField.getFieldName();
                 if (rawValue == null) {
                     rowValues.put(fieldName, null);
                     continue;
                 }
 
-                final Object converted = convert(rawValue, schema.getDataType(fieldName).orElse(null), fieldName);
-                rowValues.put(fieldName, converted);
+                final Object converted = convert(rawValue, recordField.getDataType(), fieldName);
+                if (converted != null) {
+                    rowValues.put(fieldName, converted);
+                }
             }
 
             return new MapRecord(schema, rowValues);

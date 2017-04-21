@@ -299,7 +299,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isStringTypeCompatible(final Object value) {
-        return value != null && (value instanceof String || value instanceof java.util.Date);
+        return value != null;
     }
 
     public static java.sql.Date toDate(final Object value, final String format, final String fieldName) {

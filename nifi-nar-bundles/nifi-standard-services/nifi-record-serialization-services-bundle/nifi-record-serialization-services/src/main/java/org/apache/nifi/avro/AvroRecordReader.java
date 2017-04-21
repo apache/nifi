@@ -66,9 +66,18 @@ public abstract class AvroRecordReader implements RecordReader {
     private Map<String, Object> convertAvroRecordToMap(final GenericRecord avroRecord, final RecordSchema recordSchema) {
         final Map<String, Object> values = new HashMap<>(recordSchema.getFieldCount());
 
-        for (final String fieldName : recordSchema.getFieldNames()) {
-            final Object value = avroRecord.get(fieldName);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            Object value = avroRecord.get(recordField.getFieldName());
+            if (value == null) {
+                for (final String alias : recordField.getAliases()) {
+                    value = avroRecord.get(alias);
+                    if (value != null) {
+                        break;
+                    }
+                }
+            }
 
+            final String fieldName = recordField.getFieldName();
             final Field avroField = avroRecord.getSchema().getField(fieldName);
             if (avroField == null) {
                 values.put(fieldName, null);
@@ -78,7 +87,7 @@ public abstract class AvroRecordReader implements RecordReader {
             final Schema fieldSchema = avroField.schema();
             final Object rawValue = normalizeValue(value, fieldSchema);
 
-            final DataType desiredType = recordSchema.getDataType(fieldName).get();
+            final DataType desiredType = recordField.getDataType();
             final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName);
 
             values.put(fieldName, coercedValue);

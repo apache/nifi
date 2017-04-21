@@ -38,9 +38,13 @@ public interface Record {
 
     Object getValue(String fieldName);
 
+    Object getValue(RecordField field);
+
     String getAsString(String fieldName);
 
     String getAsString(String fieldName, String format);
+
+    String getAsString(RecordField field, String format);
 
     Long getAsLong(String fieldName);
 

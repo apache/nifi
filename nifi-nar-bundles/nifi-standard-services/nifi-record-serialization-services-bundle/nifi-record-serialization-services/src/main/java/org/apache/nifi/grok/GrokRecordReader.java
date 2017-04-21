@@ -32,6 +32,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -111,14 +112,24 @@ public class GrokRecordReader implements RecordReader {
             final List<DataType> fieldTypes = schema.getDataTypes();
             final Map<String, Object> values = new HashMap<>(fieldTypes.size());
 
-            for (final String fieldName : schema.getFieldNames()) {
-                final Object value = valueMap.get(fieldName);
+            for (final RecordField field : schema.getFields()) {
+                Object value = valueMap.get(field.getFieldName());
+                if (value == null) {
+                    for (final String alias : field.getAliases()) {
+                        value = valueMap.get(alias);
+                        if (value != null) {
+                            break;
+                        }
+                    }
+                }
+
+                final String fieldName = field.getFieldName();
                 if (value == null) {
                     values.put(fieldName, null);
                     continue;
                 }
 
-                final DataType fieldType = schema.getDataType(fieldName).orElse(null);
+                final DataType fieldType = field.getDataType();
                 final Object converted = convert(fieldType, value.toString(), fieldName);
                 values.put(fieldName, converted);
             }
