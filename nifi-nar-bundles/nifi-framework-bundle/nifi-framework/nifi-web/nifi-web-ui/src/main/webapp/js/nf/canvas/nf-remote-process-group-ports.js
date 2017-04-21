@@ -98,9 +98,11 @@
                                     groupId: remoteProcessGroupId,
                                     useCompression: $('#remote-port-use-compression').hasClass('checkbox-checked'),
                                     concurrentlySchedulableTaskCount: remotePortConcurrentTasks,
-                                    batchCount: remotePortBatchCount,
-                                    batchSize: $('#remote-port-batch-size').val(),
-                                    batchDuration: $('#remote-port-batch-duration').val()
+                                    batchSettings : {
+                                        count: remotePortBatchCount,
+                                        size: $('#remote-port-batch-size').val(),
+                                        duration: $('#remote-port-batch-duration').val()
+                                    }
                                 }
                             };
 
@@ -134,9 +136,12 @@
                                 // set the new values
                                 $('#' + remotePortId + '-concurrent-tasks').text(remotePort.concurrentlySchedulableTaskCount);
                                 $('#' + remotePortId + '-compression').text(compressionLabel);
-                                $('#' + remotePortId + '-batch-count').text(typeof(remotePort.batchCount) === 'number' ? remotePort.batchCount : '');
-                                $('#' + remotePortId + '-batch-size').text(remotePort.batchSize);
-                                $('#' + remotePortId + '-batch-duration').text(remotePort.batchDuration);
+
+                                var batchSettings = getBatchSettingsDisplayValues(remotePort);
+                                $('#' + remotePortId + '-batch-count').text(batchSettings.count);
+                                $('#' + remotePortId + '-batch-size').text(batchSettings.size);
+                                $('#' + remotePortId + '-batch-duration').text(batchSettings.duration);
+
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400) {
                                     var errors = xhr.responseText.split('\n');
@@ -252,6 +257,26 @@
             }
         });
     };
+
+    /**
+     * Create and return an object contains count, size and duration values to display.
+     * If port does not have batch settings or batch setting value is not defined, 'No value set' is displayed.
+     */
+    var getBatchSettingsDisplayValues = function (port) {
+        var values = {};
+        var batchSettings = port.batchSettings;
+        if (batchSettings) {
+            values.count = typeof(batchSettings.count) === 'number' ? batchSettings.count : 'No value set';
+            values.size = batchSettings.size ? batchSettings.size : 'No value set';
+            values.duration = batchSettings.duration ? batchSettings.duration : 'No value set';
+        } else {
+            // if it doesn't have batch settings, clear values
+            values.count = 'No value set';
+            values.size = 'No value set';
+            values.duration = 'No value set';
+        }
+        return values;
+    }
 
     /**
      * Creates the markup for configuration concurrent tasks for a port.
@@ -508,17 +533,21 @@
         batchSettingsContainer.find('div.batch-settings-info').qtip($.extend({},
             nf.Common.config.tooltipConfig,
             {
-                content: 'The preferred batch settings in a transaction for this port.' +
-                 ' NiFi will transfer as many flow files as they are remaining in a queue,' +
-                 ' until it reaches to one of these limits.' +
-                 ' If none of them is specified, NiFi batches flow files up to ' +
-                 (portType === 'input' ? '500ms for sending to an input port' : '5s for receiving from an output port') +
-                 ' by default.'
+                content: (portType === 'input'
+                    ? 'The batch settings to control how this NiFi sends data to the remote input port in a transaction.'
+                        + ' This NiFi will transfer as much flow files as they are queued in incoming relationships,'
+                        + ' until any of these limits is met.'
+                        + ' If none of these setting is specified, this NiFi uses 500 milliseconds batch duration by default.'
+                    : 'The batch settings to tell the remote NiFi how this NiFi prefers to receive data from the remote output port in a transaction.'
+                        + ' The remote NiFi will use these settings as a hint to control batch data transferring.'
+                        + ' However, actual behavior depends on the version of remote NiFi instance.'
+                        + ' Recent version of NiFi uses 5 seconds for batch duration if none of these setting is specified.')
             }));
 
-        var batchCount = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-count"></div>').text(typeof(port.batchCount) === 'number' ? port.batchCount : ''));
-        var batchSize = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-size"></div>').text(port.batchSize));
-        var batchDuration = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-duration"></div>').text(port.batchDuration));
+        var batchSettings = getBatchSettingsDisplayValues(port);
+        var batchCount = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-count"></div>').text(batchSettings.count));
+        var batchSize = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-size"></div>').text(batchSettings.size));
+        var batchDuration = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-duration"></div>').text(batchSettings.duration));
 
         // add this ports batch count
         $('<div class="batch-setting">' +
@@ -578,9 +607,9 @@
         }
         $('#remote-port-use-compression').addClass(checkState);
         $('#remote-port-concurrent-tasks').val(portConcurrentTasks);
-        $('#remote-port-batch-count').val(batchCount);
-        $('#remote-port-batch-size').val(batchSize);
-        $('#remote-port-batch-duration').val(batchDuration);
+        $('#remote-port-batch-count').val(batchCount === 'No value set' ? null : batchCount);
+        $('#remote-port-batch-size').val(batchSize === 'No value set' ? null : batchSize);
+        $('#remote-port-batch-duration').val(batchDuration === 'No value set' ? null : batchDuration);
 
         // set the port name
         $('#remote-port-name').text(portName).ellipsis();

@@ -21,6 +21,7 @@ import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.junit.Test;
 
@@ -78,6 +79,8 @@ public class TestStandardRemoteProcessGroupDAO {
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setGroupId(remoteProcessGroupId);
         dto.setId(remoteProcessGroupInputPortId);
+        final BatchSettingsDTO batchSettings = new BatchSettingsDTO();
+        dto.setBatchSettings(batchSettings);
 
         // Empty input values should pass validation.
         dao.verifyUpdateInputPort(remoteProcessGroupId, dto);
@@ -90,33 +93,33 @@ public class TestStandardRemoteProcessGroupDAO {
         validate(dao, dto);
 
         // Batch count
-        dto.setBatchCount(-1);
+        batchSettings.setCount(-1);
         validate(dao, dto, "Batch count", "positive integer");
 
-        dto.setBatchCount(0);
+        batchSettings.setCount(0);
         validate(dao, dto);
 
-        dto.setBatchCount(1000);
+        batchSettings.setCount(1000);
         validate(dao, dto);
 
         // Batch size
-        dto.setBatchSize("AB");
+        batchSettings.setSize("AB");
         validate(dao, dto, "Batch size", "Data Size");
 
-        dto.setBatchSize("10 days");
+        batchSettings.setSize("10 days");
         validate(dao, dto, "Batch size", "Data Size");
 
-        dto.setBatchSize("300MB");
+        batchSettings.setSize("300MB");
         validate(dao, dto);
 
         // Batch duration
-        dto.setBatchDuration("AB");
+        batchSettings.setDuration("AB");
         validate(dao, dto, "Batch duration", "Time Unit");
 
-        dto.setBatchDuration("10 KB");
+        batchSettings.setDuration("10 KB");
         validate(dao, dto, "Batch duration", "Time Unit");
 
-        dto.setBatchDuration("10 secs");
+        batchSettings.setDuration("10 secs");
         validate(dao, dto);
 
     }

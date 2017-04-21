@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -434,9 +435,13 @@ public class TestRemoteProcessGroupAuditor {
         }
         when(updatedRPGPort.getMaxConcurrentTasks()).thenReturn(inputRPGPortDTO.getConcurrentlySchedulableTaskCount());
         when(updatedRPGPort.isUseCompression()).thenReturn(inputRPGPortDTO.getUseCompression());
-        when(updatedRPGPort.getBatchCount()).thenReturn(inputRPGPortDTO.getBatchCount());
-        when(updatedRPGPort.getBatchSize()).thenReturn(inputRPGPortDTO.getBatchSize());
-        when(updatedRPGPort.getBatchDuration()).thenReturn(inputRPGPortDTO.getBatchDuration());
+
+        final BatchSettingsDTO batchSettings = inputRPGPortDTO.getBatchSettings();
+        if (batchSettings != null) {
+            when(updatedRPGPort.getBatchCount()).thenReturn(batchSettings.getCount());
+            when(updatedRPGPort.getBatchSize()).thenReturn(batchSettings.getSize());
+            when(updatedRPGPort.getBatchDuration()).thenReturn(batchSettings.getDuration());
+        }
 
         when(joinPoint.proceed()).thenReturn(updatedRPGPort);
 
@@ -565,9 +570,11 @@ public class TestRemoteProcessGroupAuditor {
         when(existingRPGPort.getName()).thenReturn("input-port-1");
 
         final RemoteProcessGroupPortDTO inputRPGPortDTO = defaultRemoteProcessGroupPortDTO();
-        inputRPGPortDTO.setBatchCount(1234);
-        inputRPGPortDTO.setBatchSize("64KB");
-        inputRPGPortDTO.setBatchDuration("10sec");
+        final BatchSettingsDTO batchSettingsDTO = new BatchSettingsDTO();
+        batchSettingsDTO.setCount(1234);
+        batchSettingsDTO.setSize("64KB");
+        batchSettingsDTO.setDuration("10sec");
+        inputRPGPortDTO.setBatchSettings(batchSettingsDTO);
 
         final Collection<Action> actions = updateProcessGroupInputPortConfiguration(inputRPGPortDTO, existingRPGPort);
 
@@ -575,14 +582,14 @@ public class TestRemoteProcessGroupAuditor {
         final Iterator<Action> iterator = actions.iterator();
         Action action = iterator.next();
         assertEquals(Operation.Configure, action.getOperation());
-        assertConfigureDetails(action.getActionDetails(), "Batch Count", "0", "1234");
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Count", "0", "1234");
 
         action = iterator.next();
         assertEquals(Operation.Configure, action.getOperation());
-        assertConfigureDetails(action.getActionDetails(), "Batch Size", "", "64KB");
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Size", "", "64KB");
 
         action = iterator.next();
         assertEquals(Operation.Configure, action.getOperation());
-        assertConfigureDetails(action.getActionDetails(), "Batch Duration", "", "10sec");
+        assertConfigureDetails(action.getActionDetails(), "input-port-1.Batch Duration", "", "10sec");
     }
 }

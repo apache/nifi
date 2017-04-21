@@ -95,11 +95,14 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                     dto -> dto.getUseCompression() != null, RemoteGroupPort::isUseCompression)
                     .setConvertName(PORT_NAME_CONVERT),
             new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Count",
-                    dto -> dto.getBatchCount() != null, RemoteGroupPort::getBatchCount),
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getCount() != null, RemoteGroupPort::getBatchCount)
+                    .setConvertName(PORT_NAME_CONVERT),
             new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Size",
-                    dto -> dto.getBatchSize() != null, RemoteGroupPort::getBatchSize),
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getSize() != null, RemoteGroupPort::getBatchSize)
+                    .setConvertName(PORT_NAME_CONVERT),
             new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Duration",
-                    dto -> dto.getBatchDuration() != null, RemoteGroupPort::getBatchDuration)
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getDuration() != null, RemoteGroupPort::getBatchDuration)
+                    .setConvertName(PORT_NAME_CONVERT)
     );
 
     /**

@@ -35,9 +35,7 @@ public class RemoteProcessGroupPortDTO {
     private Boolean exists;
     private Boolean targetRunning;
     private Boolean connected;
-    private Integer batchCount;
-    private String batchSize;
-    private String batchDuration;
+    private BatchSettingsDTO batchSettings;
 
     /**
      * @return comments as configured in the target port
@@ -180,47 +178,18 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * @return preferred number of flow files to include in a transaction
+     * @return batch settings for data transmission
      */
     @ApiModelProperty(
-            value = "Preferred number of bytes to include in a transaction."
+            value = "The batch settings for data transmission."
     )
-    public Integer getBatchCount() {
-        return batchCount;
+    public BatchSettingsDTO getBatchSettings() {
+        return batchSettings;
     }
 
-    public void setBatchCount(Integer batchCount) {
-        this.batchCount = batchCount;
+    public void setBatchSettings(BatchSettingsDTO batchSettings) {
+        this.batchSettings = batchSettings;
     }
-
-    /**
-     * @return preferred number of bytes to include in a transaction
-     */
-    @ApiModelProperty(
-            value = "Preferred number of bytes to include in a transaction."
-    )
-    public String getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(String batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    /**
-     * @return preferred amount of time that a transaction should span
-     */
-    @ApiModelProperty(
-            value = "Preferred amount of time that a transaction should span."
-    )
-    public String getBatchDuration() {
-        return batchDuration;
-    }
-
-    public void setBatchDuration(String batchDuration) {
-        this.batchDuration = batchDuration;
-    }
-
 
     @Override
     public int hashCode() {

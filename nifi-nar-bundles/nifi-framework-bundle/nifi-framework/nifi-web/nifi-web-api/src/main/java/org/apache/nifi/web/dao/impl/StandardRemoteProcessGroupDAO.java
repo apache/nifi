@@ -34,6 +34,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -206,9 +207,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // verify update when appropriate
         if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(),
                 remoteProcessGroupPortDto.getUseCompression(),
-                remoteProcessGroupPortDto.getBatchCount(),
-                remoteProcessGroupPortDto.getBatchSize(),
-                remoteProcessGroupPortDto.getBatchDuration())) {
+                remoteProcessGroupPortDto.getBatchSettings())) {
             port.verifyCanUpdate();
         }
     }
@@ -224,25 +223,28 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             validationErrors.add(String.format("Concurrent tasks for port '%s' must be a positive integer.", remoteGroupPort.getName()));
         }
 
-        final Integer batchCount = remoteProcessGroupPortDTO.getBatchCount();
-        if (isNotNull(batchCount) && batchCount < 0) {
-            validationErrors.add(String.format("Batch count for port '%s' must be a positive integer.", remoteGroupPort.getName()));
-        }
+        final BatchSettingsDTO batchSettingsDTO = remoteProcessGroupPortDTO.getBatchSettings();
+        if (batchSettingsDTO != null) {
+            final Integer batchCount = batchSettingsDTO.getCount();
+            if (isNotNull(batchCount) && batchCount < 0) {
+                validationErrors.add(String.format("Batch count for port '%s' must be a positive integer.", remoteGroupPort.getName()));
+            }
 
-        final String batchSize = remoteProcessGroupPortDTO.getBatchSize();
-        if (isNotNull(batchSize) && batchSize.length() > 0
-                && !DataUnit.DATA_SIZE_PATTERN.matcher(batchSize.trim().toUpperCase()).matches()) {
-            validationErrors.add(String.format("Batch size for port '%s' must be of format <Data Size> <Data Unit>" +
-                    " where <Data Size> is a non-negative integer and <Data Unit> is a supported Data"
-                    + " Unit, such as: B, KB, MB, GB, TB", remoteGroupPort.getName()));
-        }
+            final String batchSize = batchSettingsDTO.getSize();
+            if (isNotNull(batchSize) && batchSize.length() > 0
+                    && !DataUnit.DATA_SIZE_PATTERN.matcher(batchSize.trim().toUpperCase()).matches()) {
+                validationErrors.add(String.format("Batch size for port '%s' must be of format <Data Size> <Data Unit>" +
+                        " where <Data Size> is a non-negative integer and <Data Unit> is a supported Data"
+                        + " Unit, such as: B, KB, MB, GB, TB", remoteGroupPort.getName()));
+            }
 
-        final String batchDuration = remoteProcessGroupPortDTO.getBatchDuration();
-        if (isNotNull(batchDuration) && batchDuration.length() > 0
-                && !FormatUtils.TIME_DURATION_PATTERN.matcher(batchDuration.trim().toLowerCase()).matches()) {
-            validationErrors.add(String.format("Batch duration for port '%s' must be of format <duration> <TimeUnit>" +
-                    " where <duration> is a non-negative integer and TimeUnit is a supported Time Unit, such "
-                    + "as: nanos, millis, secs, mins, hrs, days", remoteGroupPort.getName()));
+            final String batchDuration = batchSettingsDTO.getDuration();
+            if (isNotNull(batchDuration) && batchDuration.length() > 0
+                    && !FormatUtils.TIME_DURATION_PATTERN.matcher(batchDuration.trim().toLowerCase()).matches()) {
+                validationErrors.add(String.format("Batch duration for port '%s' must be of format <duration> <TimeUnit>" +
+                        " where <duration> is a non-negative integer and TimeUnit is a supported Time Unit, such "
+                        + "as: nanos, millis, secs, mins, hrs, days", remoteGroupPort.getName()));
+            }
         }
 
         return validationErrors;
@@ -349,13 +351,11 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             port.setUseCompression(remoteProcessGroupPortDto.getUseCompression());
         }
 
-        final Integer batchCount = remoteProcessGroupPortDto.getBatchCount();
-        final String batchSize = remoteProcessGroupPortDto.getBatchSize();
-        final String batchDuration = remoteProcessGroupPortDto.getBatchDuration();
-        if (isAnyNotNull(batchCount, batchSize, batchDuration)) {
-            port.setBatchCount(batchCount);
-            port.setBatchSize(batchSize);
-            port.setBatchDuration(batchDuration);
+        final BatchSettingsDTO batchSettingsDTO = remoteProcessGroupPortDto.getBatchSettings();
+        if (isNotNull(batchSettingsDTO)) {
+            port.setBatchCount(batchSettingsDTO.getCount());
+            port.setBatchSize(batchSettingsDTO.getSize());
+            port.setBatchDuration(batchSettingsDTO.getDuration());
         }
 
         final Boolean isTransmitting = remoteProcessGroupPortDto.isTransmitting();
