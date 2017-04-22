@@ -220,6 +220,16 @@ public class PutHiveStreaming extends AbstractProcessor {
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("100")
             .build();
+    
+    public static final PropertyDescriptor RECORDS_PER_TXN = new PropertyDescriptor.Builder()
+            .name("hive-stream-records-per-transaction")
+            .displayName("Records per Transaction")
+            .description("Number of records to process before committing the transaction. This value must be greater than 1.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(GREATER_THAN_ONE_VALIDATOR)
+            .defaultValue("10000")
+            .build();
 
     public static final PropertyDescriptor RECORDS_PER_TXN = new PropertyDescriptor.Builder()
             .name("hive-stream-records-per-transaction")
