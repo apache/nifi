@@ -66,4 +66,20 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/blank_ssdeep.list</exclude>
+                        <exclude>src/test/resources/empty.list</exclude>
+                        <exclude>src/test/resources/ssdeep.list</exclude>
+                        <exclude>src/test/resources/tlsh.list</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
