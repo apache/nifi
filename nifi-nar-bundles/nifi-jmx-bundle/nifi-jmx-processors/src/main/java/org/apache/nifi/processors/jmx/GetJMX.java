@@ -273,7 +273,7 @@ public class GetJMX extends AbstractProcessor {
             logger.error( "Exception with MBean Server: " + e.getMessage() );
         } catch( Exception e ) {
             logger.error( "Exception performing MBean Query: " + e.getMessage() );
-        } 
+        }
 
         return metricsSet;
     }
