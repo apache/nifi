@@ -55,7 +55,6 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
-    private static final int IV_LENGTH = 16
     private static final String KEY_ID = "K1"
 
     private static final String TRANSIT_URI = "nifi://unit-test"
@@ -106,10 +105,6 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
                     keyId == KEY_ID
                 }] as KeyProvider
         provenanceEventEncryptor.initialize(mockKeyProvider)
-//
-//        mockEncryptor = [encrypt: { byte[] record, String recordId ->
-//            logger.mock("Encrypting ${recordId}: ${Hex.toHexString(record)}")
-//        }] as ProvenanceEventEncryptor
     }
 
     @Before
@@ -124,7 +119,7 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         try {
             FileUtils.deleteFile(journalFile.getParentFile(), true)
         } catch (Exception e) {
-            logger.error(e)
+            logger.error(e.getMessage())
         }
     }
 

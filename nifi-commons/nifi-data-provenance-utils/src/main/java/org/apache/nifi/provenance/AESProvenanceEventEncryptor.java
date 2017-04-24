@@ -219,8 +219,8 @@ public class AESProvenanceEventEncryptor implements ProvenanceEventEncryptor {
         }
 
         // Skip the first byte (SENTINEL) and don't need to copy all the serialized record
-        byte[] metadataBytes = Arrays.copyOfRange(encryptedRecord, 1, encryptedRecord.length);
-        ByteArrayInputStream bais = new ByteArrayInputStream(metadataBytes);
+        ByteArrayInputStream bais = new ByteArrayInputStream(encryptedRecord);
+        bais.read();
         try (ObjectInputStream ois = new ObjectInputStream(bais)) {
             return (EncryptionMetadata) ois.readObject();
         }
