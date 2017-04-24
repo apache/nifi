@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import javax.crypto.BadPaddingException;
@@ -46,6 +47,8 @@ public class CryptoUtils {
     private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.StaticKeyProvider";
     private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.FileBasedKeyProvider";
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
+
+    private static final List<Integer> UNLIMITED_KEY_LENGTHS = Arrays.asList(32, 48, 64);
 
     public static final int IV_LENGTH = 16;
 
@@ -69,6 +72,27 @@ public class CryptoUtils {
     }
 
     /**
+     * Concatenates multiple byte[] into a single byte[].
+     *
+     * @param arrays the component byte[] in order
+     * @return a concatenated byte[]
+     * @throws IOException this should never be thrown
+     */
+    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+        int totalByteLength = 0;
+        for (byte[] bytes : arrays) {
+            totalByteLength += bytes.length;
+        }
+        byte[] totalBytes = new byte[totalByteLength];
+        int currentLength = 0;
+        for (byte[] bytes : arrays) {
+            System.arraycopy(bytes, 0, totalBytes, currentLength, bytes.length);
+            currentLength += bytes.length;
+        }
+        return totalBytes;
+    }
+
+    /**
      * Concatenates multiple byte[] into a single byte[]. Because it uses a {@link ByteArrayOutputStream}
      * rather than {@link System#arraycopy(Object, int, Object, int, int)} the performance is much better
      * with an arbitrary number of input byte[]s.
@@ -77,7 +101,7 @@ public class CryptoUtils {
      * @return a concatenated byte[]
      * @throws IOException this should never be thrown
      */
-    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+    public static byte[] concatByteArraysWithBAOS(byte[]... arrays) throws IOException {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         for (byte[] arr : arrays) {
             boas.write(arr);
@@ -113,7 +137,7 @@ public class CryptoUtils {
     public static boolean keyIsValid(String encryptionKeyHex) {
         return isHexString(encryptionKeyHex)
                 && (isUnlimitedStrengthCryptoAvailable()
-                ? Arrays.asList(32, 48, 64).contains(encryptionKeyHex.length())
+                ? UNLIMITED_KEY_LENGTHS.contains(encryptionKeyHex.length())
                 : encryptionKeyHex.length() == 32);
     }
 
