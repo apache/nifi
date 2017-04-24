@@ -42,61 +42,44 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
-public class WriteAvroResult implements RecordSetWriter {
+public abstract class WriteAvroResult implements RecordSetWriter {
     private final Schema schema;
 
     public WriteAvroResult(final Schema schema) {
         this.schema = schema;
     }
 
-    @Override
-    public WriteResult write(final RecordSet rs, final OutputStream outStream) throws IOException {
-        Record record = rs.next();
-        if (record == null) {
-            return WriteResult.of(0, Collections.emptyMap());
-        }
-
-        int nrOfRows = 0;
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
-            dataFileWriter.create(schema, outStream);
-
-            do {
-                final GenericRecord rec = createAvroRecord(record, schema);
-                dataFileWriter.append(rec);
-                nrOfRows++;
-            } while ((record = rs.next()) != null);
-        }
-
-        return WriteResult.of(nrOfRows, Collections.emptyMap());
+    protected Schema getSchema() {
+        return schema;
     }
 
-    private GenericRecord createAvroRecord(final Record record, final Schema avroSchema) throws IOException {
+    protected GenericRecord createAvroRecord(final Record record, final Schema avroSchema) throws IOException {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
-        for (final String fieldName : recordSchema.getFieldNames()) {
-            final Object rawValue = record.getValue(fieldName);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            final Object rawValue = record.getValue(recordField);
+            final String fieldName = recordField.getFieldName();
 
             final Field field = avroSchema.getField(fieldName);
             if (field == null) {
                 continue;
             }
 
-            final Object converted = convertToAvroObject(rawValue, field.schema());
+            final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName);
             rec.put(fieldName, converted);
         }
 
         return rec;
     }
 
-    private Object convertToAvroObject(final Object rawValue, final Schema fieldSchema) throws IOException {
+    protected Object convertToAvroObject(final Object rawValue, final Schema fieldSchema, final String fieldName) throws IOException {
         if (rawValue == null) {
             return null;
         }
@@ -105,43 +88,43 @@ public class WriteAvroResult implements RecordSetWriter {
             case INT: {
                 final LogicalType logicalType = fieldSchema.getLogicalType();
                 if (logicalType == null) {
-                    return DataTypeUtils.toInteger(rawValue);
+                    return DataTypeUtils.toInteger(rawValue, fieldName);
                 }
 
                 if (LogicalTypes.date().getName().equals(logicalType.getName())) {
-                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final long longValue = DataTypeUtils.toLong(rawValue, fieldName);
                     final Date date = new Date(longValue);
                     final Duration duration = Duration.between(new Date(0L).toInstant(), date.toInstant());
                     final long days = duration.toDays();
                     return (int) days;
                 } else if (LogicalTypes.timeMillis().getName().equals(logicalType.getName())) {
-                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final long longValue = DataTypeUtils.toLong(rawValue, fieldName);
                     final Date date = new Date(longValue);
                     final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
                     final long millisSinceMidnight = duration.toMillis();
                     return (int) millisSinceMidnight;
                 }
 
-                return DataTypeUtils.toInteger(rawValue);
+                return DataTypeUtils.toInteger(rawValue, fieldName);
             }
             case LONG: {
                 final LogicalType logicalType = fieldSchema.getLogicalType();
                 if (logicalType == null) {
-                    return DataTypeUtils.toLong(rawValue);
+                    return DataTypeUtils.toLong(rawValue, fieldName);
                 }
 
                 if (LogicalTypes.timeMicros().getName().equals(logicalType.getName())) {
-                    final long longValue = DataTypeUtils.toLong(rawValue);
+                    final long longValue = DataTypeUtils.toLong(rawValue, fieldName);
                     final Date date = new Date(longValue);
                     final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
                     return duration.toMillis() * 1000L;
                 } else if (LogicalTypes.timestampMillis().getName().equals(logicalType.getName())) {
-                    return DataTypeUtils.toLong(rawValue);
+                    return DataTypeUtils.toLong(rawValue, fieldName);
                 } else if (LogicalTypes.timestampMicros().getName().equals(logicalType.getName())) {
-                    return DataTypeUtils.toLong(rawValue) * 1000L;
+                    return DataTypeUtils.toLong(rawValue, fieldName) * 1000L;
                 }
 
-                return DataTypeUtils.toLong(rawValue);
+                return DataTypeUtils.toLong(rawValue, fieldName);
             }
             case BYTES:
             case FIXED:
@@ -157,10 +140,10 @@ public class WriteAvroResult implements RecordSetWriter {
                 if (rawValue instanceof Record) {
                     final Record recordValue = (Record) rawValue;
                     final Map<String, Object> map = new HashMap<>();
-                    for (final String recordFieldName : recordValue.getSchema().getFieldNames()) {
-                        final Object v = recordValue.getValue(recordFieldName);
+                    for (final RecordField recordField : recordValue.getSchema().getFields()) {
+                        final Object v = recordValue.getValue(recordField);
                         if (v != null) {
-                            map.put(recordFieldName, v);
+                            map.put(recordField.getFieldName(), v);
                         }
                     }
 
@@ -172,15 +155,16 @@ public class WriteAvroResult implements RecordSetWriter {
                 final GenericData.Record avroRecord = new GenericData.Record(fieldSchema);
 
                 final Record record = (Record) rawValue;
-                for (final String recordFieldName : record.getSchema().getFieldNames()) {
-                    final Object recordFieldValue = record.getValue(recordFieldName);
+                for (final RecordField recordField : record.getSchema().getFields()) {
+                    final Object recordFieldValue = record.getValue(recordField);
+                    final String recordFieldName = recordField.getFieldName();
 
                     final Field field = fieldSchema.getField(recordFieldName);
                     if (field == null) {
                         continue;
                     }
 
-                    final Object converted = convertToAvroObject(recordFieldValue, field.schema());
+                    final Object converted = convertToAvroObject(recordFieldValue, field.schema(), fieldName);
                     avroRecord.put(recordFieldName, converted);
                 }
                 return avroRecord;
@@ -188,16 +172,16 @@ public class WriteAvroResult implements RecordSetWriter {
                 final Object[] objectArray = (Object[]) rawValue;
                 final List<Object> list = new ArrayList<>(objectArray.length);
                 for (final Object o : objectArray) {
-                    final Object converted = convertToAvroObject(o, fieldSchema.getElementType());
+                    final Object converted = convertToAvroObject(o, fieldSchema.getElementType(), fieldName);
                     list.add(converted);
                 }
                 return list;
             case BOOLEAN:
-                return DataTypeUtils.toBoolean(rawValue);
+                return DataTypeUtils.toBoolean(rawValue, fieldName);
             case DOUBLE:
-                return DataTypeUtils.toDouble(rawValue);
+                return DataTypeUtils.toDouble(rawValue, fieldName);
             case FLOAT:
-                return DataTypeUtils.toFloat(rawValue);
+                return DataTypeUtils.toFloat(rawValue, fieldName);
             case NULL:
                 return null;
             case ENUM:

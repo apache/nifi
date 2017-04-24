@@ -78,7 +78,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final Processor processor;
     private final MockProcessContext context;
     private final MockFlowFileQueue flowFileQueue;
-    private final MockSessionFactory sessionFactory;
     private final SharedSessionState sharedState;
     private final AtomicLong idGenerator;
     private final boolean triggerSerially;
@@ -87,17 +86,19 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final MockVariableRegistry variableRegistry;
 
     private int numThreads = 1;
+    private MockSessionFactory sessionFactory;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
     private final MockComponentLog logger;
+    private boolean enforceReadStreamsClosed = true;
 
     StandardProcessorTestRunner(final Processor processor) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
-        this.sessionFactory = new MockSessionFactory(sharedState, processor);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
         this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
@@ -115,6 +116,12 @@ public class StandardProcessorTestRunner implements TestRunner {
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
 
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
+    }
+
+    @Override
+    public void enforceReadStreamsClosed(final boolean enforce) {
+        enforceReadStreamsClosed = enforce;
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
     }
 
     @Override
@@ -412,7 +419,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed);
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);

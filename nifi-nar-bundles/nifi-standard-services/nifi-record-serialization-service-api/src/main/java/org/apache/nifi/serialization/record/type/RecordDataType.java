@@ -60,4 +60,9 @@ public class RecordDataType extends DataType {
         final RecordDataType other = (RecordDataType) obj;
         return getFieldType().equals(other.getFieldType()) && Objects.equals(childSchema, other.childSchema);
     }
+
+    @Override
+    public String toString() {
+        return RecordFieldType.RECORD.toString();
+    }
 }

@@ -21,40 +21,34 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import io.thekraken.grok.api.Grok;
-import io.thekraken.grok.api.GrokUtils;
 import io.thekraken.grok.api.Match;
 
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
     private final Grok grok;
+    private final boolean append;
     private RecordSchema schema;
 
     private String nextLine;
 
-    static final String STACK_TRACE_COLUMN_NAME = "STACK_TRACE";
+    static final String STACK_TRACE_COLUMN_NAME = "stackTrace";
     private static final Pattern STACK_TRACE_PATTERN = Pattern.compile(
         "^\\s*(?:(?:    |\\t)+at )|"
             + "(?:(?:    |\\t)+\\[CIRCULAR REFERENCE\\:)|"
@@ -62,21 +56,11 @@ public class GrokRecordReader implements RecordReader {
             + "(?:Suppressed\\: )|"
             + "(?:\\s+... \\d+ (?:more|common frames? omitted)$)");
 
-    private static final FastDateFormat TIME_FORMAT_DATE;
-    private static final FastDateFormat TIME_FORMAT_TIME;
-    private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
-
-    static {
-        final TimeZone gmt = TimeZone.getTimeZone("GMT");
-        TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
-        TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
-        TIME_FORMAT_TIMESTAMP = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
-    }
-
-    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final boolean append) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
         this.schema = schema;
+        this.append = append;
     }
 
     @Override
@@ -115,7 +99,7 @@ public class GrokRecordReader implements RecordReader {
                 if (isStartOfStackTrace(nextLine)) {
                     stackTrace = readStackTrace(nextLine);
                     break;
-                } else {
+                } else if (append) {
                     toAppend.append("\n").append(nextLine);
                 }
             } else {
@@ -128,20 +112,34 @@ public class GrokRecordReader implements RecordReader {
             final List<DataType> fieldTypes = schema.getDataTypes();
             final Map<String, Object> values = new HashMap<>(fieldTypes.size());
 
-            for (final String fieldName : schema.getFieldNames()) {
-                final Object value = valueMap.get(fieldName);
+            for (final RecordField field : schema.getFields()) {
+                Object value = valueMap.get(field.getFieldName());
+                if (value == null) {
+                    for (final String alias : field.getAliases()) {
+                        value = valueMap.get(alias);
+                        if (value != null) {
+                            break;
+                        }
+                    }
+                }
+
+                final String fieldName = field.getFieldName();
                 if (value == null) {
                     values.put(fieldName, null);
                     continue;
                 }
 
-                final DataType fieldType = schema.getDataType(fieldName).orElse(null);
-                final Object converted = convert(fieldType, value.toString());
+                final DataType fieldType = field.getDataType();
+                final Object converted = convert(fieldType, value.toString(), fieldName);
                 values.put(fieldName, converted);
             }
 
-            final String lastFieldBeforeStackTrace = schema.getFieldNames().get(schema.getFieldCount() - 2);
-            if (toAppend.length() > 0) {
+            if (append && toAppend.length() > 0) {
+                final String lastFieldName = schema.getField(schema.getFieldCount() - 1).getFieldName();
+
+                final int fieldIndex = STACK_TRACE_COLUMN_NAME.equals(lastFieldName) ? schema.getFieldCount() - 2 : schema.getFieldCount() - 1;
+                final String lastFieldBeforeStackTrace = schema.getFieldNames().get(fieldIndex);
+
                 final Object existingValue = values.get(lastFieldBeforeStackTrace);
                 final String updatedValue = existingValue == null ? toAppend.toString() : existingValue + toAppend.toString();
                 values.put(lastFieldBeforeStackTrace, updatedValue);
@@ -205,7 +203,7 @@ public class GrokRecordReader implements RecordReader {
     }
 
 
-    protected Object convert(final DataType fieldType, final String string) {
+    protected Object convert(final DataType fieldType, final String string, final String fieldName) {
         if (fieldType == null) {
             return string;
         }
@@ -220,79 +218,12 @@ public class GrokRecordReader implements RecordReader {
             return null;
         }
 
-        switch (fieldType.getFieldType()) {
-            case BOOLEAN:
-                return Boolean.parseBoolean(string);
-            case BYTE:
-                return Byte.parseByte(string);
-            case SHORT:
-                return Short.parseShort(string);
-            case INT:
-                return Integer.parseInt(string);
-            case LONG:
-                return Long.parseLong(string);
-            case FLOAT:
-                return Float.parseFloat(string);
-            case DOUBLE:
-                return Double.parseDouble(string);
-            case DATE:
-                try {
-                    Date date = TIME_FORMAT_DATE.parse(string);
-                    return new java.sql.Date(date.getTime());
-                } catch (ParseException e) {
-                    return null;
-                }
-            case TIME:
-                try {
-                    Date date = TIME_FORMAT_TIME.parse(string);
-                    return new java.sql.Time(date.getTime());
-                } catch (ParseException e) {
-                    return null;
-                }
-            case TIMESTAMP:
-                try {
-                    Date date = TIME_FORMAT_TIMESTAMP.parse(string);
-                    return new java.sql.Timestamp(date.getTime());
-                } catch (ParseException e) {
-                    return null;
-                }
-            case STRING:
-            default:
-                return string;
-        }
+        return DataTypeUtils.convertType(string, fieldType, fieldName);
     }
 
 
     @Override
     public RecordSchema getSchema() {
-        if (schema != null) {
-            return schema;
-        }
-
-        final List<RecordField> fields = new ArrayList<>();
-
-        String grokExpression = grok.getOriginalGrokPattern();
-        while (grokExpression.length() > 0) {
-            final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
-            if (matcher.find()) {
-                final Map<String, String> namedGroups = GrokUtils.namedGroups(matcher, grokExpression);
-                final String fieldName = namedGroups.get("subname");
-
-                DataType dataType = RecordFieldType.STRING.getDataType();
-                final RecordField recordField = new RecordField(fieldName, dataType);
-                fields.add(recordField);
-
-                if (grokExpression.length() > matcher.end() + 1) {
-                    grokExpression = grokExpression.substring(matcher.end() + 1);
-                } else {
-                    break;
-                }
-            }
-        }
-
-        fields.add(new RecordField(STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType()));
-
-        schema = new SimpleRecordSchema(fields);
         return schema;
     }
 

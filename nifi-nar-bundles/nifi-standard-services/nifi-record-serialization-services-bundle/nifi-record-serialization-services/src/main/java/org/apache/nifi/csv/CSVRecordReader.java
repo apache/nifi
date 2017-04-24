@@ -34,6 +34,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -48,13 +49,14 @@ public class CSVRecordReader implements RecordReader {
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in));
-        csvParser = new CSVParser(reader, csvFormat);
-
         this.schema = schema;
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
+
+        final Reader reader = new InputStreamReader(new BOMInputStream(in));
+        final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+        csvParser = new CSVParser(reader, withHeader);
     }
 
     @Override
@@ -64,15 +66,27 @@ public class CSVRecordReader implements RecordReader {
         for (final CSVRecord csvRecord : csvParser) {
             final Map<String, Object> rowValues = new HashMap<>(schema.getFieldCount());
 
-            for (final String fieldName : schema.getFieldNames()) {
-                final String rawValue = csvRecord.get(fieldName);
+            for (final RecordField recordField : schema.getFields()) {
+                String rawValue = csvRecord.get(recordField.getFieldName());
+                if (rawValue == null) {
+                    for (final String alias : recordField.getAliases()) {
+                        rawValue = csvRecord.get(alias);
+                        if (rawValue != null) {
+                            break;
+                        }
+                    }
+                }
+
+                final String fieldName = recordField.getFieldName();
                 if (rawValue == null) {
                     rowValues.put(fieldName, null);
                     continue;
                 }
 
-                final Object converted = convert(rawValue, schema.getDataType(fieldName).orElse(null));
-                rowValues.put(fieldName, converted);
+                final Object converted = convert(rawValue, recordField.getDataType(), fieldName);
+                if (converted != null) {
+                    rowValues.put(fieldName, converted);
+                }
             }
 
             return new MapRecord(schema, rowValues);
@@ -86,7 +100,7 @@ public class CSVRecordReader implements RecordReader {
         return schema;
     }
 
-    protected Object convert(final String value, final DataType dataType) {
+    protected Object convert(final String value, final DataType dataType, final String fieldName) {
         if (dataType == null || value == null) {
             return value;
         }
@@ -97,7 +111,7 @@ public class CSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat);
+        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
     }
 
     @Override

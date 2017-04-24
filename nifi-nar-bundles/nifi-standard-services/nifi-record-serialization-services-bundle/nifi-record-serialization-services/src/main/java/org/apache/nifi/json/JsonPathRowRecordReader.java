@@ -30,6 +30,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
@@ -106,7 +107,10 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 value = null;
             }
 
-            value = convert(value, desiredType);
+            final Optional<RecordField> field = schema.getField(fieldName);
+            final Object defaultValue = field.isPresent() ? field.get().getDefaultValue() : null;
+
+            value = convert(value, desiredType, fieldName, defaultValue);
             values.put(fieldName, value);
         }
 
@@ -115,9 +119,9 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
 
     @SuppressWarnings("unchecked")
-    protected Object convert(final Object value, final DataType dataType) {
+    protected Object convert(final Object value, final DataType dataType, final String fieldName, final Object defaultValue) {
         if (value == null) {
-            return null;
+            return defaultValue;
         }
 
         if (value instanceof List) {
@@ -131,7 +135,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             final Object[] coercedValues = new Object[list.size()];
             int i = 0;
             for (final Object rawValue : list) {
-                coercedValues[i++] = DataTypeUtils.convertType(rawValue, arrayType.getElementType(), dateFormat, timeFormat, timestampFormat);
+                coercedValues[i++] = convert(rawValue, arrayType.getElementType(), fieldName, null);
             }
             return coercedValues;
         }
@@ -147,14 +151,17 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 final String key = entry.getKey();
                 final Optional<DataType> desiredTypeOption = childSchema.getDataType(key);
                 if (desiredTypeOption.isPresent()) {
-                    final Object coercedValue = DataTypeUtils.convertType(entry.getValue(), desiredTypeOption.get(), dateFormat, timeFormat, timestampFormat);
+                    final Optional<RecordField> field = childSchema.getField(key);
+                    final Object defaultFieldValue = field.isPresent() ? field.get().getDefaultValue() : null;
+
+                    final Object coercedValue = convert(entry.getValue(), desiredTypeOption.get(), fieldName + "." + key, defaultFieldValue);
                     coercedValues.put(key, coercedValue);
                 }
             }
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, dateFormat, timeFormat, timestampFormat);
+            return DataTypeUtils.convertType(value, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
         }
     }
 

@@ -15,24 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization;
+package org.apache.nifi.schema.access;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-/**
- * <p>
- * A Controller Service that is responsible for creating a {@link RecordReader}.
- * </p>
- */
-public interface RowRecordReaderFactory extends ControllerService {
+public interface SchemaAccessStrategy {
+    /**
+     * Returns the schema for the given FlowFile using the supplied stream of content and configuration
+     *
+     * @param flowFile flowfile
+     * @param contentStream content of flowfile
+     * @param context configuration
+     * @return the RecordSchema for the FlowFile
+     */
+    RecordSchema getSchema(FlowFile flowFile, InputStream contentStream, ConfigurationContext context) throws SchemaNotFoundException, IOException;
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException;
-
-    RecordSchema getSchema(FlowFile flowFile) throws MalformedRecordException, IOException;
+    /**
+     * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #getSchema(FlowFile, InputStream, ConfigurationContext)}.
+     */
+    Set<SchemaField> getSuppliedSchemaFields();
 }

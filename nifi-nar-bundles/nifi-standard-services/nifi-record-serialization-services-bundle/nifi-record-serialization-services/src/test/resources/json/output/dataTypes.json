@@ -14,5 +14,9 @@
   "timestamp" : "2017-01-01 17:00:00",
   "record" : null,
   "choice" : 48,
-  "array" : null
+  "array" : null,
+  "map" : {
+    "height" : 48,
+    "width" : 96
+  }
 } ]

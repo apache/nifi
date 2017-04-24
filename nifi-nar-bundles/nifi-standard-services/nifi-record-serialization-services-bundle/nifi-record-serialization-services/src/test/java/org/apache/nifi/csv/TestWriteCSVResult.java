@@ -36,6 +36,7 @@ import java.util.TimeZone;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -52,7 +53,6 @@ public class TestWriteCSVResult {
     @Test
     public void testDataTypes() throws IOException {
         final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.ALL).withRecordSeparator("\n");
-        final WriteCSVResult result = new WriteCSVResult(csvFormat, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
 
         final StringBuilder headerBuilder = new StringBuilder();
         final List<RecordField> fields = new ArrayList<>();
@@ -70,6 +70,9 @@ public class TestWriteCSVResult {
             headerBuilder.append('"').append(fieldType.name().toLowerCase()).append('"').append(",");
         }
         final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(),
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true);
 
         final long now = System.currentTimeMillis();
         final Map<String, Object> valueMap = new HashMap<>();
@@ -117,7 +120,7 @@ public class TestWriteCSVResult {
         expectedBuilder.append('"').append(dateValue).append('"').append(',');
         expectedBuilder.append('"').append(timeValue).append('"').append(',');
         expectedBuilder.append('"').append(timestampValue).append('"').append(',');
-        expectedBuilder.append(",\"48\",");
+        expectedBuilder.append(",\"48\",,");
         final String expectedValues = expectedBuilder.toString();
 
         assertEquals(expectedValues, values);

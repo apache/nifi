@@ -38,4 +38,9 @@ public class EmptyPreparedQuery implements PreparedQuery {
     public String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator, Map<String, String> stateVariables) throws ProcessException {
         return value;
     }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        return false;
+    }
 }

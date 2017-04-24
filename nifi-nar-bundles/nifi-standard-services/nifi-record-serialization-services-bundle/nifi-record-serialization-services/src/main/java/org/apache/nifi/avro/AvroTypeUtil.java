@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.avro.LogicalType;
@@ -27,14 +28,37 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public class AvroTypeUtil {
+    public static final String AVRO_SCHEMA_FORMAT = "avro";
+
+    public static Schema extractAvroSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
+        final Optional<String> schemaFormatOption = recordSchema.getSchemaFormat();
+        if (!schemaFormatOption.isPresent()) {
+            throw new SchemaNotFoundException("No Schema Format was present in the RecordSchema");
+        }
+
+        final String schemaFormat = schemaFormatOption.get();
+        if (!schemaFormat.equals(AVRO_SCHEMA_FORMAT)) {
+            throw new SchemaNotFoundException("Schema provided is not in Avro format");
+        }
+
+        final Optional<String> textOption = recordSchema.getSchemaText();
+        if (!textOption.isPresent()) {
+            throw new SchemaNotFoundException("No Schema text was present in the RecordSchema");
+        }
+
+        final String text = textOption.get();
+        return new Schema.Parser().parse(text);
+    }
 
     public static DataType determineDataType(final Schema avroSchema) {
         final Type avroType = avroSchema.getType();
@@ -93,15 +117,18 @@ public class AvroTypeUtil {
                     final String fieldName = field.name();
                     final Schema fieldSchema = field.schema();
                     final DataType fieldType = determineDataType(fieldSchema);
-                    recordFields.add(new RecordField(fieldName, fieldType));
+                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
                 }
 
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
                 return RecordFieldType.RECORD.getRecordDataType(recordSchema);
             }
             case NULL:
+                return RecordFieldType.STRING.getDataType();
             case MAP:
-                return RecordFieldType.RECORD.getDataType();
+                final Schema valueSchema = avroSchema.getValueType();
+                final DataType valueType = determineDataType(valueSchema);
+                return RecordFieldType.MAP.getMapDataType(valueType);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = avroSchema.getTypes().stream()
                     .filter(s -> s.getType() != Type.NULL)
@@ -129,10 +156,11 @@ public class AvroTypeUtil {
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final DataType dataType = AvroTypeUtil.determineDataType(field.schema());
-            recordFields.add(new RecordField(fieldName, dataType));
+
+            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
         }
 
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
         return recordSchema;
     }
 
