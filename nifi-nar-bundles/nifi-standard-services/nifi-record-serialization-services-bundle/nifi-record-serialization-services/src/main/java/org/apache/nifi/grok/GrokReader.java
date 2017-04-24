@@ -59,10 +59,9 @@ import io.thekraken.grok.api.exception.GrokException;
     + "so that it can be processed. The service is configured using Grok patterns. "
     + "The service reads from a stream of data and splits each message that it finds into a separate Record, each containing the fields that are configured. "
     + "If a line in the input does not match the expected message pattern, the line of text is either considered to be part of the previous "
-    + "message or is skipped, depending on the configuration,, with the exception of stack traces. A stack trace that is found at the end of "
+    + "message or is skipped, depending on the configuration, with the exception of stack traces. A stack trace that is found at the end of "
     + "a log message is considered to be part of the previous message but is added to the 'stackTrace' field of the Record. If a record has "
-    + "no stack trace, it will have a NULL value for the stackTrace field. All fields that are parsed are considered to be of type String by default. "
-    + "If there is need to change the type of a field, this can be accomplished by configuring the Schema Registry to use and adding the appropriate schema.")
+    + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String).")
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
     private volatile Grok grok;
     private volatile boolean appendUnmatchedLine;
@@ -76,7 +75,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         "The line of text that does not match the Grok Expression will be skipped.");
 
     static final AllowableValue STRING_FIELDS_FROM_GROK_EXPRESSION = new AllowableValue("string-fields-from-grok-expression", "Use String Fields From Grok Expression",
-        "The schema will be derived by using the field names present in the Grok Expression. All fields will be assumed to be of type String.");
+        "The schema will be derived by using the field names present in the Grok Expression. All fields will be assumed to be of type String. Additionally, a field will be included "
+            + "with a name of 'stackTrace' and a type of String.");
 
     static final PropertyDescriptor PATTERN_FILE = new PropertyDescriptor.Builder()
         .name("Grok Pattern File")
@@ -197,6 +197,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             return super.getSchemaAccessStrategy(allowableValue, schemaRegistry);
         }
     }
+
 
     @Override
     public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {

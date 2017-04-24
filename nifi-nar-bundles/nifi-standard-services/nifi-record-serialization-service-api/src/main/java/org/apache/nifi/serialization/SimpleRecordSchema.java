@@ -51,7 +51,7 @@ public class SimpleRecordSchema implements RecordSchema {
         this(fields, text, schemaFormat, true, id);
     }
 
-    public SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
+    private SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
         this.text = text;
         this.schemaFormat = schemaFormat;
         this.schemaIdentifier = id;

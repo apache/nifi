@@ -135,7 +135,11 @@ public class GrokRecordReader implements RecordReader {
             }
 
             if (append && toAppend.length() > 0) {
-                final String lastFieldBeforeStackTrace = schema.getFieldNames().get(schema.getFieldCount() - 2);
+                final String lastFieldName = schema.getField(schema.getFieldCount() - 1).getFieldName();
+
+                final int fieldIndex = STACK_TRACE_COLUMN_NAME.equals(lastFieldName) ? schema.getFieldCount() - 2 : schema.getFieldCount() - 1;
+                final String lastFieldBeforeStackTrace = schema.getFieldNames().get(fieldIndex);
+
                 final Object existingValue = values.get(lastFieldBeforeStackTrace);
                 final String updatedValue = existingValue == null ? toAppend.toString() : existingValue + toAppend.toString();
                 values.put(lastFieldBeforeStackTrace, updatedValue);

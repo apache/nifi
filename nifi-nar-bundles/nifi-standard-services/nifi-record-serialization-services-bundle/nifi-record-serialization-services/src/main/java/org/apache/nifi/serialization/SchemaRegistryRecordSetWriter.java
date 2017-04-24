@@ -50,7 +50,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             + "The contents of the FlowFile need not be Avro, but the text of the schema will be used.");
     static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
         "The content of the FlowFile will contain a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
-            + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers. "
+            + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, "
+            + "as found at https://github.com/hortonworks/registry. "
             + "This will be prepended to each FlowFile. Note that "
             + "if the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
     static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",

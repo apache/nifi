@@ -55,7 +55,8 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
             + "If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions.");
     static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
         "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
-            + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers.");
+            + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, "
+            + "found at https://github.com/hortonworks/registry");
     static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
         "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
 
@@ -70,7 +71,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         .name("Schema Access Strategy")
         .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
         .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
-        .defaultValue(SCHEMA_TEXT_PROPERTY.getValue())
+        .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
         .required(true)
         .build();
 
@@ -119,7 +120,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     }
 
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return SCHEMA_TEXT_PROPERTY;
+        return SCHEMA_NAME_PROPERTY;
     }
 
     @OnEnabled
