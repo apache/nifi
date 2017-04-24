@@ -92,11 +92,15 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return AVRO_SCHEMA_ATTRIBUTE;
     }
 
+    protected PropertyDescriptor getSchemaWriteStrategyDescriptor() {
+        return getPropertyDescriptor(SCHEMA_WRITE_STRATEGY.getName());
+    }
+
     @OnEnabled
     public void storeSchemaWriteStrategy(final ConfigurationContext context) {
         this.configurationContext = context;
 
-        final String writerValue = context.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        final String writerValue = context.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         this.schemaAccessWriter = getSchemaWriteStrategy(writerValue);
     }
 
@@ -129,7 +133,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     }
 
     protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
-        final String writeStrategyValue = validationContext.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        final String writeStrategyValue = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final SchemaAccessWriter writer = getSchemaWriteStrategy(writeStrategyValue);
         final Set<SchemaField> requiredFields = writer.getRequiredSchemaFields();
         return requiredFields;

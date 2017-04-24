@@ -100,6 +100,9 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
     private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA));
 
+    private PropertyDescriptor getSchemaAcessStrategyDescriptor() {
+        return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -129,7 +132,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
         final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
 
-        final PropertyDescriptor descriptor = getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
+        final PropertyDescriptor descriptor = getSchemaAcessStrategyDescriptor();
         final String schemaAccess = context.getProperty(descriptor).getValue();
         this.schemaAccessStrategy = getSchemaAccessStrategy(schemaAccess, schemaRegistry);
     }
@@ -147,7 +150,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     }
 
     private String getSchemaAccessStrategyName(final String schemaAccessValue) {
-        for (final AllowableValue allowableValue : SCHEMA_ACCESS_STRATEGY.getAllowableValues()) {
+        for (final AllowableValue allowableValue : getSchemaAcessStrategyDescriptor().getAllowableValues()) {
             if (allowableValue.getValue().equalsIgnoreCase(schemaAccessValue)) {
                 return allowableValue.getDisplayName();
             }
@@ -163,7 +166,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final String schemaAccessStrategy = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+        final String schemaAccessStrategy = validationContext.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
         if (isSchemaRegistryRequired(schemaAccessStrategy)) {
             final boolean registrySet = validationContext.getProperty(SCHEMA_REGISTRY).isSet();
             if (!registrySet) {
@@ -185,7 +188,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
     }
 
     protected Set<SchemaField> getSuppliedSchemaFields(final ValidationContext validationContext) {
-        final String accessStrategyValue = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+        final String accessStrategyValue = validationContext.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
         final SchemaRegistry schemaRegistry = validationContext.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
         final SchemaAccessStrategy accessStrategy = getSchemaAccessStrategy(accessStrategyValue, schemaRegistry, validationContext);
 
