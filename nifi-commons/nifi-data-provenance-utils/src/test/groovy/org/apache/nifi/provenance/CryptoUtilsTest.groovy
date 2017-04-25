@@ -23,6 +23,7 @@ import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
@@ -70,11 +71,12 @@ class CryptoUtilsTest {
 
     @Before
     void setUp() throws Exception {
-
+        tempFolder.create()
     }
 
     @After
     void tearDown() throws Exception {
+        tempFolder?.delete()
     }
 
     @AfterClass
@@ -419,6 +421,7 @@ class CryptoUtilsTest {
         assert emptyMsg.getMessage() == "The key provider file is not present and readable"
     }
 
+    @Ignore("Performance test")
     @Test
     void testShouldComparePerformanceOfByteArrayConcatenation() {
         // Arrange

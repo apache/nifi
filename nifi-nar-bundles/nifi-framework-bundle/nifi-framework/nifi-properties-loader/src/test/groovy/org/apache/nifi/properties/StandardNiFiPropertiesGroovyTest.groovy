@@ -32,58 +32,60 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiPropertiesGroovyTest.class)
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
+    private static final String PREK = NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY
+    private static final String PREKID = NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
     }
 
     @AfterClass
-    public static void tearDownOnce() {
+    static void tearDownOnce() {
         if (originalPropertiesPath) {
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
         }
     }
 
     private static StandardNiFiProperties loadFromFile(String propertiesFilePath) {
-        String filePath;
+        String filePath
         try {
-            filePath = StandardNiFiPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath();
+            filePath = StandardNiFiPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath()
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex);
+                    + ex.getLocalizedMessage(), ex)
         }
 
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, filePath);
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, filePath)
 
-        StandardNiFiProperties properties = new StandardNiFiProperties();
+        StandardNiFiProperties properties = new StandardNiFiProperties()
 
         // clear out existing properties
         for (String prop : properties.stringPropertyNames()) {
-            properties.remove(prop);
+            properties.remove(prop)
         }
 
-        InputStream inStream = null;
+        InputStream inStream = null
         try {
-            inStream = new BufferedInputStream(new FileInputStream(filePath));
-            properties.load(inStream);
+            inStream = new BufferedInputStream(new FileInputStream(filePath))
+            properties.load(inStream)
         } catch (final Exception ex) {
             throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex);
+                    + ex.getLocalizedMessage(), ex)
         } finally {
             if (null != inStream) {
                 try {
-                    inStream.close();
+                    inStream.close()
                 } catch (Exception ex) {
                     /**
                      * do nothing *
@@ -92,11 +94,11 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
             }
         }
 
-        return properties;
+        return properties
     }
 
     @Test
-    public void testConstructorShouldCreateNewInstance() throws Exception {
+    void testConstructorShouldCreateNewInstance() throws Exception {
         // Arrange
 
         // Act
@@ -109,7 +111,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testConstructorShouldAcceptRawProperties() throws Exception {
+    void testConstructorShouldAcceptRawProperties() throws Exception {
         // Arrange
         Properties rawProperties = new Properties()
         rawProperties.setProperty("key", "value")
@@ -126,7 +128,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldAllowMultipleInstances() throws Exception {
+    void testShouldAllowMultipleInstances() throws Exception {
         // Arrange
         Properties rawProperties = new Properties()
         rawProperties.setProperty("key", "value")
@@ -139,12 +141,185 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         NiFiProperties emptyProperties = new StandardNiFiProperties()
         logger.info("emptyProperties has ${emptyProperties.size()} properties: ${emptyProperties.getPropertyKeys()}")
 
-
         // Assert
         assert niFiProperties.size() == 1
         assert niFiProperties.getPropertyKeys() == ["key"] as Set
 
         assert emptyProperties.size() == 0
         assert emptyProperties.getPropertyKeys() == [] as Set
+    }
+
+    @Test
+    void testShouldGetProvenanceRepoEncryptionKeyFromDefaultProperty() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        rawProperties.setProperty(PREKID, KEY_ID)
+        rawProperties.setProperty(PREK, KEY_HEX)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX]
+    }
+
+    @Test
+    void testShouldGetProvenanceRepoEncryptionKeysFromMultipleProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(PREKID, KEY_ID)
+        rawProperties.setProperty(PREK, KEY_HEX)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
+
+    @Test
+    void testShouldGetProvenanceRepoEncryptionKeysWithNoDefaultDefined() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(PREKID, KEY_ID)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
+
+    @Test
+    void testShouldGetProvenanceRepoEncryptionKeysWithNoneDefined() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == null
+        assert key == null
+        assert keys == [:]
+    }
+
+    @Test
+    void testShouldNotGetProvenanceRepoEncryptionKeysIfFileBasedKeyProvider() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+
+        rawProperties.setProperty(PREKID, KEY_ID)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == null
+        assert keys == [:]
+    }
+
+    @Test
+    void testGetProvenanceRepoEncryptionKeysShouldFilterOtherProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(PREKID, KEY_ID)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        rawProperties.setProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, "some.class.provider")
+        rawProperties.setProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION, "some://url")
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getProvenanceRepoEncryptionKeyId()
+        def key = niFiProperties.getProvenanceRepoEncryptionKey()
+        def keys = niFiProperties.getProvenanceRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
     }
 }

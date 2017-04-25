@@ -18,10 +18,6 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.OperationNotSupportedException;
@@ -30,19 +26,18 @@ import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileBasedKeyProvider implements KeyProvider {
+public class FileBasedKeyProvider extends StaticKeyProvider {
     private static final Logger logger = LoggerFactory.getLogger(FileBasedKeyProvider.class);
 
     private String filepath;
-    private Map<String, SecretKey> keys = new HashMap<>();
 
     FileBasedKeyProvider(String location) throws KeyManagementException {
         this(location, getMasterKey());
     }
 
     FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
+        super(CryptoUtils.readKeys(location, masterKey));
         this.filepath = location;
-        this.keys = CryptoUtils.readKeys(this.filepath, masterKey);
     }
 
     private static SecretKey getMasterKey() throws KeyManagementException {
@@ -54,43 +49,6 @@ public class FileBasedKeyProvider implements KeyProvider {
             logger.error("Encountered an error: ", e);
             throw new KeyManagementException(e);
         }
-    }
-
-    /**
-     * Returns the key identified by this ID or throws an exception if one is not available.
-     *
-     * @param keyId the key identifier
-     * @return the key
-     * @throws KeyManagementException if the key cannot be retrieved
-     */
-    @Override
-    public SecretKey getKey(String keyId) throws KeyManagementException {
-        if (keyExists(keyId)) {
-            return keys.get(keyId);
-        } else {
-            throw new KeyManagementException("No key available for ID: " + keyId);
-        }
-    }
-
-    /**
-     * Returns true if the key exists and is available. Null or empty IDs will return false.
-     *
-     * @param keyId the key identifier
-     * @return true if the key can be used
-     */
-    @Override
-    public boolean keyExists(String keyId) {
-        return keys.containsKey(keyId);
-    }
-
-    /**
-     * Returns a list of available key identifiers (useful for encryption, as retired keys may not be listed here even if they are available for decryption for legacy/BC reasons).
-     *
-     * @return a List of keyIds (empty list if none are available)
-     */
-    @Override
-    public List<String> getAvailableKeyIds() {
-        return new ArrayList<>(keys.keySet());
     }
 
     /**

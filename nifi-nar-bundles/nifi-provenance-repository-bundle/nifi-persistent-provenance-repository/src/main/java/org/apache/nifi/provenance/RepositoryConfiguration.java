@@ -51,7 +51,7 @@ public class RepositoryConfiguration {
     private int maxAttributeChars = 65536;
     private int debugFrequency = 1_000_000;
 
-    private String encryptionKeyHex;
+    private Map<String, String> encryptionKeys;
     private String keyId;
     private String keyProviderImplementation;
     private String keyProviderLocation;
@@ -366,17 +366,17 @@ public class RepositoryConfiguration {
     }
 
     public boolean supportsEncryption() {
-        boolean keyProviderIsConfigured = CryptoUtils.isValidKeyProvider(keyProviderImplementation, keyProviderLocation, keyId, encryptionKeyHex);
+        boolean keyProviderIsConfigured = CryptoUtils.isValidKeyProvider(keyProviderImplementation, keyProviderLocation, keyId, encryptionKeys);
 
         return keyProviderIsConfigured;
     }
 
-    public String getEncryptionKeyHex() {
-        return encryptionKeyHex;
+    public Map<String, String> getEncryptionKeys() {
+        return encryptionKeys;
     }
 
-    public void setEncryptionKeyHex(String encryptionKeyHex) {
-        this.encryptionKeyHex = encryptionKeyHex;
+    public void setEncryptionKeys(Map<String, String> encryptionKeys) {
+        this.encryptionKeys = encryptionKeys;
     }
 
     public String getKeyId() {
@@ -494,7 +494,7 @@ public class RepositoryConfiguration {
         // Encryption values may not be present but are only required for EncryptedWriteAheadProvenanceRepository
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         if (EncryptedWriteAheadProvenanceRepository.class.getName().equals(implementationClassName)) {
-            config.setEncryptionKeyHex(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY));
+            config.setEncryptionKeys(nifiProperties.getProvenanceRepoEncryptionKeys());
             config.setKeyId(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID));
             config.setKeyProviderImplementation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS));
             config.setKeyProviderLocation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION));

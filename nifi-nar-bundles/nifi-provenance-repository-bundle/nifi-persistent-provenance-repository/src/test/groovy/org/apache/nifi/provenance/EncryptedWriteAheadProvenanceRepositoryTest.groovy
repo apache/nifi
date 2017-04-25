@@ -117,7 +117,7 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
 
     private static RepositoryConfiguration createEncryptedConfiguration() {
         RepositoryConfiguration config = createConfiguration()
-        config.setEncryptionKeyHex(KEY_HEX)
+        config.setEncryptionKeys([(KEY_ID): KEY_HEX])
         config.setKeyId(KEY_ID)
         config.setKeyProviderImplementation(StaticKeyProvider.class.name)
         config

@@ -17,8 +17,10 @@
 package org.apache.nifi.provenance;
 
 import java.security.KeyManagementException;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.naming.OperationNotSupportedException;
 import org.slf4j.Logger;
@@ -30,12 +32,14 @@ import org.slf4j.LoggerFactory;
 public class StaticKeyProvider implements KeyProvider {
     private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
 
-    private final String KEY_ID;
-    private final SecretKey KEY;
+    private Map<String, SecretKey> keys = new HashMap<>();
 
     StaticKeyProvider(String keyId, String keyHex) throws KeyManagementException {
-        this.KEY_ID = keyId;
-        this.KEY = CryptoUtils.formKeyFromHex(keyHex);
+        this.keys.put(keyId, CryptoUtils.formKeyFromHex(keyHex));
+    }
+
+    StaticKeyProvider(Map<String, SecretKey> keys) throws KeyManagementException {
+        this.keys.putAll(keys);
     }
 
     /**
@@ -49,7 +53,7 @@ public class StaticKeyProvider implements KeyProvider {
     public SecretKey getKey(String keyId) throws KeyManagementException {
         logger.debug("Attempting to get key: " + keyId);
         if (keyExists(keyId)) {
-            return KEY;
+            return keys.get(keyId);
         } else {
             throw new KeyManagementException("No key available for " + keyId);
         }
@@ -63,7 +67,7 @@ public class StaticKeyProvider implements KeyProvider {
      */
     @Override
     public boolean keyExists(String keyId) {
-       return KEY_ID.equals(keyId);
+        return keys.containsKey(keyId);
     }
 
     /**
@@ -73,7 +77,7 @@ public class StaticKeyProvider implements KeyProvider {
      */
     @Override
     public List<String> getAvailableKeyIds() {
-        return Collections.singletonList(KEY_ID);
+        return new ArrayList<>(keys.keySet());
     }
 
     /**

@@ -433,9 +433,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         // Add the protected keys and the protection schemes
         for (String key : getSensitivePropertyKeys()) {
             final String plainValue = getInternalNiFiProperties().getProperty(key);
-            if (plainValue == null || plainValue.trim().isEmpty()) {
-                protectedProperties.setProperty(key, plainValue);
-            } else {
+            if (plainValue != null && !plainValue.trim().isEmpty()) {
                 final String protectedValue = spp.protect(plainValue);
                 protectedProperties.setProperty(key, protectedValue);
                 protectedProperties.setProperty(getProtectionKey(key), protectionScheme);

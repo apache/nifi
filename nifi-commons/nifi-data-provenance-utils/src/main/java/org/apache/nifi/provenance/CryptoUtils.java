@@ -109,10 +109,11 @@ public class CryptoUtils {
         return boas.toByteArray();
     }
 
-    public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, String encryptionKeyHex) {
+    public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) {
         if (STATIC_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
-            // Ensure the keyId and key are valid
-            return keyIsValid(encryptionKeyHex) && StringUtils.isNotEmpty(keyId);
+            // Ensure the keyId and key(s) are valid
+            boolean everyKeyValid = encryptionKeys.values().stream().allMatch(CryptoUtils::keyIsValid);
+            return everyKeyValid && StringUtils.isNotEmpty(keyId);
         } else if (FILE_BASED_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
             // Ensure the file can be read and the keyId is populated (does not read file to validate)
             final File kpf = new File(keyProviderLocation);
@@ -121,8 +122,8 @@ public class CryptoUtils {
             logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
                     + keyProviderImplementation + " , keyProviderLocation = "
                     + keyProviderLocation + " , keyId = "
-                    + keyId + " , encryptedKeyHex = "
-                    + (StringUtils.isNotEmpty(encryptionKeyHex) ? "********" : ""));
+                    + keyId + " , encryptionKeys = "
+                    + encryptionKeys.size());
 
             return false;
         }
@@ -244,8 +245,8 @@ public class CryptoUtils {
         boolean keyProviderConfigured = isValidKeyProvider(
                 niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
                 niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID),
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY));
+                niFiProperties.getProvenanceRepoEncryptionKeyId(),
+                niFiProperties.getProvenanceRepoEncryptionKeys());
 
         return encryptedRepo && keyProviderConfigured;
     }

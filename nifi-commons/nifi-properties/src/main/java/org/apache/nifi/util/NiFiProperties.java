@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -1037,6 +1038,61 @@ public abstract class NiFiProperties {
 
     public int size() {
         return getPropertyKeys().size();
+    }
+
+    public String getProvenanceRepoEncryptionKeyId() {
+        return getProperty(PROVENANCE_REPO_ENCRYPTION_KEY_ID);
+    }
+
+    /**
+     * Returns the active provenance repository encryption key if a {@code StaticKeyProvider} is in use.
+     * If no key ID is specified in the properties file, the default
+     * {@code nifi.provenance.repository.encryption.key} value is returned. If a key ID is specified in
+     * {@code nifi.provenance.repository.encryption.key.id}, it will attempt to read from
+     * {@code nifi.provenance.repository.encryption.key.id.XYZ} where {@code XYZ} is the provided key
+     * ID. If that value is empty, it will use the default property
+     * {@code nifi.provenance.repository.encryption.key}.
+     *
+     * @return the provenance repository encryption key in hex form
+     */
+    public String getProvenanceRepoEncryptionKey() {
+        String keyId = getProvenanceRepoEncryptionKeyId();
+        String keyKey = StringUtils.isBlank(keyId) ? PROVENANCE_REPO_ENCRYPTION_KEY : PROVENANCE_REPO_ENCRYPTION_KEY + ".id." + keyId;
+        return getProperty(keyKey, getProperty(PROVENANCE_REPO_ENCRYPTION_KEY));
+    }
+
+    /**
+     * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
+     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     *
+     * @return a Map of the keys identified by key ID
+     */
+    public Map<String, String> getProvenanceRepoEncryptionKeys() {
+        Map<String, String> keys = new HashMap<>();
+        List<String> keyProperties = getProvenanceRepositoryEncryptionKeyProperties();
+
+        // Retrieve the actual key values and store non-empty values in the map
+        for (String prop : keyProperties) {
+            final String value = getProperty(prop);
+            if (!StringUtils.isBlank(value)) {
+                if (prop.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)) {
+                    prop = getProvenanceRepoEncryptionKeyId();
+                } else {
+                    // Extract nifi.provenance.repository.encryption.key.id.key1 -> key1
+                    prop = prop.substring(prop.lastIndexOf(".") + 1);
+                }
+                keys.put(prop, value);
+            }
+        }
+        return keys;
+    }
+
+    private List<String> getProvenanceRepositoryEncryptionKeyProperties() {
+        // Filter all the property keys that define a key
+        return getPropertyKeys().stream().filter(k ->
+                k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
+        ).collect(Collectors.toList());
     }
 
     /**
