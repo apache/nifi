@@ -21,22 +21,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
@@ -46,26 +46,17 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @CapabilityDescription("Writes the contents of a RecordSet in Binary Avro format.")
 public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
+    private static final int MAX_AVRO_SCHEMA_CACHE_SIZE = 20;
+
+    private final Map<String, Schema> compiledAvroSchemaCache = new LinkedHashMap<String, Schema>() {
+        @Override
+        protected boolean removeEldestEntry(final Map.Entry<String, Schema> eldest) {
+            return size() >= MAX_AVRO_SCHEMA_CACHE_SIZE;
+        }
+    };
 
     static final AllowableValue AVRO_EMBEDDED = new AllowableValue("avro-embedded", "Embed Avro Schema",
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
-
-    protected static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-        .name("Schema Registry")
-        .description("Specifies the Controller Service to use for the Schema Registry")
-        .identifiesControllerService(SchemaRegistry.class)
-        .required(false)
-        .build();
-
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY);
-        properties.add(SCHEMA_REGISTRY);
-        return properties;
-    }
-
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws IOException {
@@ -73,7 +64,24 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
 
         try {
             final RecordSchema recordSchema = getSchema(flowFile, in);
-            final Schema avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+
+
+
+            final Schema avroSchema;
+            try {
+                if (recordSchema.getSchemaFormat().isPresent() & recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {
+                    final Optional<String> textOption = recordSchema.getSchemaText();
+                    if (textOption.isPresent()) {
+                        avroSchema = compileAvroSchema(textOption.get());
+                    } else {
+                        avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                    }
+                } else {
+                    avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+                }
+            } catch (final Exception e) {
+                throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
+            }
 
             if (AVRO_EMBEDDED.getValue().equals(strategyValue)) {
                 return new WriteAvroResultWithSchema(avroSchema);
@@ -82,6 +90,30 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             }
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
+        }
+    }
+
+
+    private Schema compileAvroSchema(final String text) {
+        // Access to the LinkedHashMap must be done while synchronized on this.
+        // However, if no compiled schema exists, we don't want to remain synchronized
+        // while we compile it, as compilation can be expensive. As a result, if there is
+        // not a compiled schema already, we will compile it outside of the synchronized
+        // block, and then re-synchronize to update the map. All of this is functionally
+        // equivalent to calling compiledAvroSchema.computeIfAbsent(text, t -> new Schema.Parser().parse(t));
+        // but does so without synchronizing when not necessary.
+        Schema compiled;
+        synchronized (this) {
+            compiled = compiledAvroSchemaCache.get(text);
+        }
+
+        if (compiled != null) {
+            return compiled;
+        }
+
+        final Schema newlyCompiled = new Schema.Parser().parse(text);
+        synchronized (this) {
+            return compiledAvroSchemaCache.computeIfAbsent(text, t -> newlyCompiled);
         }
     }
 

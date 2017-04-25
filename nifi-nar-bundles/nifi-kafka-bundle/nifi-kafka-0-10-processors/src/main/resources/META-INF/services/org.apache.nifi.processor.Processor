@@ -13,4 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.kafka.pubsub.PublishKafka_0_10
+org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_0_10
 org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_0_10
+org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10

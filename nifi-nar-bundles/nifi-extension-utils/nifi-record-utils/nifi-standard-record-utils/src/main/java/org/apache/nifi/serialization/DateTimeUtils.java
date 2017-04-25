@@ -18,33 +18,32 @@
 package org.apache.nifi.serialization;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class DateTimeUtils {
     public static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
         .name("Date Format")
-        .description("Specifies the format to use when reading/writing Date fields")
+        .description("Specifies the format to use when reading/writing Date fields. "
+            + "If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
         .expressionLanguageSupported(false)
-        .defaultValue(RecordFieldType.DATE.getDefaultFormat())
         .addValidator(new SimpleDateFormatValidator())
-        .required(true)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor TIME_FORMAT = new PropertyDescriptor.Builder()
         .name("Time Format")
-        .description("Specifies the format to use when reading/writing Time fields")
+        .description("Specifies the format to use when reading/writing Time fields. "
+            + "If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
         .expressionLanguageSupported(false)
-        .defaultValue(RecordFieldType.TIME.getDefaultFormat())
         .addValidator(new SimpleDateFormatValidator())
-        .required(true)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
         .name("Timestamp Format")
-        .description("Specifies the format to use when reading/writing Timestamp fields")
+        .description("Specifies the format to use when reading/writing Timestamp fields. "
+            + "If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
         .expressionLanguageSupported(false)
-        .defaultValue(RecordFieldType.TIMESTAMP.getDefaultFormat())
         .addValidator(new SimpleDateFormatValidator())
-        .required(true)
+        .required(false)
         .build();
 }

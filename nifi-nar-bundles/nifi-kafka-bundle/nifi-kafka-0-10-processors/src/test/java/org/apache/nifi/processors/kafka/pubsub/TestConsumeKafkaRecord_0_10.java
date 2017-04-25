@@ -29,30 +29,58 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
+import org.apache.nifi.processors.kafka.pubsub.util.MockRecordWriter;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConsumeKafkaTest {
+public class TestConsumeKafkaRecord_0_10 {
 
-    ConsumerLease mockLease = null;
-    ConsumerPool mockConsumerPool = null;
+    private ConsumerLease mockLease = null;
+    private ConsumerPool mockConsumerPool = null;
+    private TestRunner runner;
 
     @Before
-    public void setup() {
+    public void setup() throws InitializationException {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
+
+        ConsumeKafkaRecord_0_10 proc = new ConsumeKafkaRecord_0_10() {
+            @Override
+            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
+                return mockConsumerPool;
+            }
+        };
+
+        runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+
+        final String readerId = "record-reader";
+        final MockRecordParser readerService = new MockRecordParser();
+        readerService.addSchemaField("name", RecordFieldType.STRING);
+        readerService.addSchemaField("age", RecordFieldType.INT);
+        runner.addControllerService(readerId, readerService);
+        runner.enableControllerService(readerService);
+
+        final String writerId = "record-writer";
+        final RecordSetWriterFactory writerService = new MockRecordWriter("name, age");
+        runner.addControllerService(writerId, writerService);
+        runner.enableControllerService(writerService);
+
+        runner.setProperty(ConsumeKafkaRecord_0_10.RECORD_READER, readerId);
+        runner.setProperty(ConsumeKafkaRecord_0_10.RECORD_WRITER, writerId);
     }
 
     @Test
     public void validateCustomValidatorSettings() throws Exception {
-        ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
-        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "Foo");
@@ -67,14 +95,11 @@ public class ConsumeKafkaTest {
 
     @Test
     public void validatePropertiesValidation() throws Exception {
-        ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
-        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
 
-        runner.removeProperty(ConsumeKafka_0_10.GROUP_ID);
+        runner.removeProperty(ConsumeKafkaRecord_0_10.GROUP_ID);
         try {
             runner.assertValid();
             fail();
@@ -82,7 +107,7 @@ public class ConsumeKafkaTest {
             assertTrue(e.getMessage().contains("invalid because Group ID is required"));
         }
 
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "");
         try {
             runner.assertValid();
             fail();
@@ -90,7 +115,7 @@ public class ConsumeKafkaTest {
             assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
         }
 
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "  ");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "  ");
         try {
             runner.assertValid();
             fail();
@@ -107,18 +132,10 @@ public class ConsumeKafkaTest {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
@@ -138,19 +155,11 @@ public class ConsumeKafkaTest {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "(fo.*)|(ba)");
-        runner.setProperty(ConsumeKafka_0_10.TOPIC_TYPE, "pattern");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "(fo.*)|(ba)");
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPIC_TYPE, "pattern");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
@@ -170,18 +179,10 @@ public class ConsumeKafkaTest {
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
         verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
@@ -195,12 +196,9 @@ public class ConsumeKafkaTest {
 
     @Test
     public void testJaasConfiguration() throws Exception {
-        ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
-        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafkaRecord_0_10.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_0_10.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_10.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();

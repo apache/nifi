@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,17 +43,17 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 public class CSVRecordReader implements RecordReader {
     private final CSVParser csvParser;
     private final RecordSchema schema;
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         this.schema = schema;
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
         final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));

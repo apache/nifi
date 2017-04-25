@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.controller.service;
 
+import static java.util.Objects.requireNonNull;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -50,20 +65,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 public class StandardControllerServiceProvider implements ControllerServiceProvider {
 
@@ -322,9 +323,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void enableControllerService(final ControllerServiceNode serviceNode) {
+    public Future<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanEnable();
-        processScheduler.enableControllerService(serviceNode);
+        return processScheduler.enableControllerService(serviceNode);
     }
 
     @Override
@@ -349,7 +350,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         this.enableControllerServiceDependenciesFirst(controllerServiceNode);
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
+                    logger.error("Failed to enable " + controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
                         this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                                 Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
@@ -359,16 +360,28 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
     }
 
-    private void enableControllerServiceDependenciesFirst(ControllerServiceNode serviceNode) {
+    private Future<Void> enableControllerServiceDependenciesFirst(ControllerServiceNode serviceNode) {
+        final List<Future<Void>> futures = new ArrayList<>();
+
         for (ControllerServiceNode depNode : serviceNode.getRequiredControllerServices()) {
             if (!depNode.isActive()) {
-                this.enableControllerServiceDependenciesFirst(depNode);
+                futures.add(this.enableControllerServiceDependenciesFirst(depNode));
             }
         }
+
         if (logger.isDebugEnabled()) {
             logger.debug("Enabling " + serviceNode);
         }
-        this.enableControllerService(serviceNode);
+
+        for (final Future<Void> future : futures) {
+            try {
+                future.get();
+            } catch (final Exception e) {
+                // Nothing we can really do. Will attempt to enable this service anyway.
+            }
+        }
+
+        return this.enableControllerService(serviceNode);
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {

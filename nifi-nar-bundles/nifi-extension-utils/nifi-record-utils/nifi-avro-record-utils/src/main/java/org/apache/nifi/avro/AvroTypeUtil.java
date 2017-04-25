@@ -296,6 +296,8 @@ public class AvroTypeUtil {
                     }
 
                     return map;
+                } else if (rawValue instanceof Map) {
+                    return rawValue;
                 } else {
                     throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Map");
                 }
@@ -358,7 +360,7 @@ public class AvroTypeUtil {
             case ENUM:
                 return new GenericData.EnumSymbol(fieldSchema, rawValue);
             case STRING:
-                return DataTypeUtils.toString(rawValue, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+                return DataTypeUtils.toString(rawValue, (String) null);
         }
 
         return rawValue;

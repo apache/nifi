@@ -72,4 +72,23 @@ public class WriteAvroResultWithExternalSchema extends WriteAvroResult {
 
         return WriteResult.of(nrOfRows, schemaAccessWriter.getAttributes(recordSchema));
     }
+
+    @Override
+    public WriteResult write(final Record record, final OutputStream out) throws IOException {
+        final Schema schema = getSchema();
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+
+        final BufferedOutputStream bufferedOut = new BufferedOutputStream(out);
+        schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
+
+        final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
+
+        datumWriter.write(rec, encoder);
+        encoder.flush();
+
+        bufferedOut.flush();
+
+        return WriteResult.of(1, schemaAccessWriter.getAttributes(recordSchema));
+    }
 }

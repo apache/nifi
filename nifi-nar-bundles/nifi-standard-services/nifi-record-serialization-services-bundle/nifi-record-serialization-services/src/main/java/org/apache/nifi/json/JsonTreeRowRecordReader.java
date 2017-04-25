@@ -19,11 +19,13 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -34,6 +36,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
@@ -44,24 +47,24 @@ import org.codehaus.jackson.node.ArrayNode;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final RecordSchema schema;
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
         super(in, logger);
         this.schema = schema;
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
     }
 
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema) throws IOException, MalformedRecordException {
-        return convertJsonNodeToRecord(jsonNode, schema, "");
+        return convertJsonNodeToRecord(jsonNode, schema, null);
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix) throws IOException, MalformedRecordException {
@@ -70,26 +73,35 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         }
 
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
-        for (int i = 0; i < schema.getFieldCount(); i++) {
-            final RecordField field = schema.getField(i);
+        for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
 
-            JsonNode fieldNode = jsonNode.get(fieldName);
-            if (fieldNode == null) {
-                for (final String alias : field.getAliases()) {
-                    fieldNode = jsonNode.get(alias);
-                    if (fieldNode != null) {
-                        break;
-                    }
-                }
-            }
+            final JsonNode fieldNode = getJsonNode(jsonNode, field);
 
             final DataType desiredType = field.getDataType();
-            final Object value = convertField(fieldNode, fieldNamePrefix + fieldName, desiredType);
+            final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
+            final Object value = convertField(fieldNode, fullFieldName, desiredType);
             values.put(fieldName, value);
         }
 
-        return new MapRecord(schema, values);
+        final Supplier<String> supplier = () -> jsonNode.toString();
+        return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"));
+    }
+
+    private JsonNode getJsonNode(final JsonNode parent, final RecordField field) {
+        JsonNode fieldNode = parent.get(field.getFieldName());
+        if (fieldNode != null) {
+            return fieldNode;
+        }
+
+        for (final String alias : field.getAliases()) {
+            fieldNode = parent.get(alias);
+            if (fieldNode != null) {
+                return fieldNode;
+            }
+        }
+
+        return fieldNode;
     }
 
     protected Object convertField(final JsonNode fieldNode, final String fieldName, final DataType desiredType) throws IOException, MalformedRecordException {
@@ -115,7 +127,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case SHORT:
                 return DataTypeUtils.toShort(getRawNodeValue(fieldNode), fieldName);
             case STRING:
-                return DataTypeUtils.toString(getRawNodeValue(fieldNode), dateFormat, timeFormat, timestampFormat);
+                return DataTypeUtils.toString(getRawNodeValue(fieldNode), DataTypeUtils.getDateFormat(desiredType.getFieldType(), dateFormat, timeFormat, timestampFormat));
             case DATE:
                 return DataTypeUtils.toDate(getRawNodeValue(fieldNode), dateFormat, fieldName);
             case TIME:

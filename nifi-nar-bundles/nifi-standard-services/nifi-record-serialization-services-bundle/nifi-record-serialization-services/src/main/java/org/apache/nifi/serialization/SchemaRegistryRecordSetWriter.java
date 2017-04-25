@@ -62,7 +62,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         .name("Schema Write Strategy")
         .description("Specifies how the schema for a Record should be added to the data.")
         .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
-        .defaultValue(AVRO_SCHEMA_ATTRIBUTE.getValue())
+        .defaultValue(SCHEMA_NAME_ATTRIBUTE.getValue())
         .required(true)
         .build();
 
@@ -89,7 +89,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     }
 
     protected AllowableValue getDefaultSchemaWriteStrategy() {
-        return AVRO_SCHEMA_ATTRIBUTE;
+        return SCHEMA_NAME_ATTRIBUTE;
     }
 
     protected PropertyDescriptor getSchemaWriteStrategyDescriptor() {

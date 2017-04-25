@@ -59,4 +59,23 @@ public class WriteAvroResultWithSchema extends WriteAvroResult {
 
         return WriteResult.of(nrOfRows, Collections.emptyMap());
     }
+
+    @Override
+    public WriteResult write(final Record record, final OutputStream out) throws IOException {
+        if (record == null) {
+            return WriteResult.of(0, Collections.emptyMap());
+        }
+
+        final Schema schema = getSchema();
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
+            dataFileWriter.create(schema, out);
+
+            final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
+            dataFileWriter.append(rec);
+        }
+
+        return WriteResult.of(1, Collections.emptyMap());
+    }
 }

@@ -21,8 +21,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.Collections;
+import java.text.DateFormat;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -34,6 +35,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -50,9 +52,9 @@ public class WriteJsonResult implements RecordSetWriter {
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final boolean prettyPrint,
         final String dateFormat, final String timeFormat, final String timestampFormat) {
@@ -62,9 +64,9 @@ public class WriteJsonResult implements RecordSetWriter {
         this.prettyPrint = prettyPrint;
         this.schemaAccess = schemaAccess;
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
     }
 
     @Override
@@ -96,6 +98,8 @@ public class WriteJsonResult implements RecordSetWriter {
 
     @Override
     public WriteResult write(final Record record, final OutputStream rawOut) throws IOException {
+        schemaAccess.writeHeader(recordSchema, rawOut);
+
         try (final JsonGenerator generator = factory.createJsonGenerator(new NonCloseableOutputStream(rawOut))) {
             if (prettyPrint) {
                 generator.useDefaultPrettyPrinter();
@@ -106,11 +110,23 @@ public class WriteJsonResult implements RecordSetWriter {
             throw new IOException("Failed to write records to stream", e);
         }
 
-        return WriteResult.of(1, Collections.emptyMap());
+        return WriteResult.of(1, schemaAccess.getAttributes(recordSchema));
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)
         throws JsonGenerationException, IOException, SQLException {
+
+        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
+        if (serializedForm.isPresent()) {
+            final SerializedForm form = serializedForm.get();
+            if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
+                final Object serialized = form.getSerialized();
+                if (serialized instanceof String) {
+                    generator.writeRawValue((String) serialized);
+                    return;
+                }
+            }
+        }
 
         try {
             startTask.apply(generator);
@@ -146,18 +162,40 @@ public class WriteJsonResult implements RecordSetWriter {
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, dateFormat, timeFormat, timestampFormat, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
             return;
         }
 
         switch (chosenDataType.getFieldType()) {
-            case DATE:
-            case TIME:
-            case TIMESTAMP:
-                generator.writeString(DataTypeUtils.toString(coercedValue, dateFormat, timeFormat, timestampFormat));
+            case DATE: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, dateFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
                 break;
+            }
+            case TIME: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, timeFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
+                break;
+            }
+            case TIMESTAMP: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, timestampFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
+                break;
+            }
             case DOUBLE:
                 generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
                 break;

@@ -19,6 +19,7 @@ package org.apache.nifi.serialization;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -26,9 +27,9 @@ import org.apache.nifi.controller.ConfigurationContext;
 
 public abstract class DateTimeTextRecordSetWriter extends SchemaRegistryRecordSetWriter {
 
-    private volatile String dateFormat;
-    private volatile String timeFormat;
-    private volatile String timestampFormat;
+    private volatile Optional<String> dateFormat;
+    private volatile Optional<String> timeFormat;
+    private volatile Optional<String> timestampFormat;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -41,20 +42,20 @@ public abstract class DateTimeTextRecordSetWriter extends SchemaRegistryRecordSe
 
     @OnEnabled
     public void captureValues(final ConfigurationContext context) {
-        this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
-        this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
-        this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        this.dateFormat = Optional.ofNullable(context.getProperty(DateTimeUtils.DATE_FORMAT).getValue());
+        this.timeFormat = Optional.ofNullable(context.getProperty(DateTimeUtils.TIME_FORMAT).getValue());
+        this.timestampFormat = Optional.ofNullable(context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue());
     }
 
-    protected String getDateFormat() {
+    protected Optional<String> getDateFormat() {
         return dateFormat;
     }
 
-    protected String getTimeFormat() {
+    protected Optional<String> getTimeFormat() {
         return timeFormat;
     }
 
-    protected String getTimestampFormat() {
+    protected Optional<String> getTimestampFormat() {
         return timestampFormat;
     }
 }

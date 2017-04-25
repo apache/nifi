@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -65,11 +66,13 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
 
     /**
      * Enables the given controller service that it can be used by other
-     * components
+     * components. This method will asynchronously enable the service, returning
+     * immediately.
      *
      * @param serviceNode the service node
+     * @return a Future that can be used to wait for the service to finish being enabled.
      */
-    void enableControllerService(ControllerServiceNode serviceNode);
+    Future<Void> enableControllerService(ControllerServiceNode serviceNode);
 
     /**
      * Enables the collection of services. If a service in this collection

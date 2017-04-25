@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import java.util.Date;
+import java.util.Optional;
 
 public interface Record {
 
@@ -61,4 +62,6 @@ public interface Record {
     Date getAsDate(String fieldName, String format);
 
     Object[] getAsArray(String fieldName);
+
+    Optional<SerializedForm> getSerializedForm();
 }

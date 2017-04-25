@@ -27,10 +27,18 @@ import java.util.Optional;
 public class MapRecord implements Record {
     private final RecordSchema schema;
     private final Map<String, Object> values;
+    private final Optional<SerializedForm> serializedForm;
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values) {
         this.schema = Objects.requireNonNull(schema);
         this.values = Objects.requireNonNull(values);
+        this.serializedForm = Optional.empty();
+    }
+
+    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm) {
+        this.schema = Objects.requireNonNull(schema);
+        this.values = Objects.requireNonNull(values);
+        this.serializedForm = Optional.ofNullable(serializedForm);
     }
 
     @Override
@@ -144,19 +152,12 @@ public class MapRecord implements Record {
         return convertToString(getValue(field), format);
     }
 
-    private String getFormat(final String optionalFormat, final RecordFieldType fieldType) {
-        return (optionalFormat == null) ? fieldType.getDefaultFormat() : optionalFormat;
-    }
-
     private String convertToString(final Object value, final String format) {
         if (value == null) {
             return null;
         }
 
-        final String dateFormat = getFormat(format, RecordFieldType.DATE);
-        final String timestampFormat = getFormat(format, RecordFieldType.TIMESTAMP);
-        final String timeFormat = getFormat(format, RecordFieldType.TIME);
-        return DataTypeUtils.toString(value, dateFormat, timeFormat, timestampFormat);
+        return DataTypeUtils.toString(value, format);
     }
 
     @Override
@@ -191,7 +192,7 @@ public class MapRecord implements Record {
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return DataTypeUtils.toDate(getValue(fieldName), format, fieldName);
+        return DataTypeUtils.toDate(getValue(fieldName), DataTypeUtils.getDateFormat(format), fieldName);
     }
 
     @Override
@@ -223,5 +224,10 @@ public class MapRecord implements Record {
     @Override
     public String toString() {
         return "MapRecord[values=" + values + "]";
+    }
+
+    @Override
+    public Optional<SerializedForm> getSerializedForm() {
+        return serializedForm;
     }
 }

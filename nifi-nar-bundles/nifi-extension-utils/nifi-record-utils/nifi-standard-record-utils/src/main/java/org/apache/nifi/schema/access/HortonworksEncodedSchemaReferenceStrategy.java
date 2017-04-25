@@ -60,7 +60,7 @@ public class HortonworksEncodedSchemaReferenceStrategy implements SchemaAccessSt
         final int protocolVersion = bb.get();
         if (protocolVersion != 1) {
             throw new SchemaNotFoundException("Schema Encoding appears to be of an incompatible version. The latest known Protocol is Version "
-                + LATEST_PROTOCOL_VERSION + " but the data was encoded with version " + protocolVersion);
+                + LATEST_PROTOCOL_VERSION + " but the data was encoded with version " + protocolVersion + " or was not encoded with this data format");
         }
 
         final long schemaId = bb.getLong();
