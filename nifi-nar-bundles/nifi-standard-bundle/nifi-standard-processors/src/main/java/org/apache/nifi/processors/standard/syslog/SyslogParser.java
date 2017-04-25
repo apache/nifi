@@ -167,4 +167,7 @@ public class SyslogParser {
         return builder.build();
     }
 
+    public String getCharsetName() {
+        return charset == null ? StandardCharsets.UTF_8.name() : charset.name();
+    }
 }
