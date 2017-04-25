@@ -111,7 +111,7 @@ class CryptoUtilsTest {
         String providerLocation = null
 
         // Act
-        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, KEY_ID, KEY_HEX)
+        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
         logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} is ${keyProviderIsValid ? "valid" : "invalid"}")
 
         // Assert
@@ -125,7 +125,7 @@ class CryptoUtilsTest {
         String providerLocation = null
 
         // Act
-        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, null, KEY_HEX)
+        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, null, [(KEY_ID): KEY_HEX])
         logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${null} / ${KEY_HEX} is ${keyProviderIsValid ? "valid" : "invalid"}")
 
         // Assert
@@ -153,7 +153,7 @@ class CryptoUtilsTest {
         String providerLocation = null
 
         // Act
-        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, KEY_ID, KEY_HEX[0..<-2])
+        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX[0..<-2]])
         logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX[0..<-2]} is ${keyProviderIsValid ? "valid" : "invalid"}")
 
         // Assert

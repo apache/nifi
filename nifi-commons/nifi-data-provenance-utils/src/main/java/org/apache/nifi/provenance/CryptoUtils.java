@@ -17,7 +17,6 @@
 package org.apache.nifi.provenance;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -93,27 +92,23 @@ public class CryptoUtils {
     }
 
     /**
-     * Concatenates multiple byte[] into a single byte[]. Because it uses a {@link ByteArrayOutputStream}
-     * rather than {@link System#arraycopy(Object, int, Object, int, int)} the performance is much better
-     * with an arbitrary number of input byte[]s.
+     * Returns true if the provided configuration values successfully define the specified {@link KeyProvider}.
      *
-     * @param arrays the component byte[] in order
-     * @return a concatenated byte[]
-     * @throws IOException this should never be thrown
+     * @param keyProviderImplementation the FQ class name of the {@link KeyProvider} implementation
+     * @param keyProviderLocation       the location of the definition (for {@link FileBasedKeyProvider}, etc.)
+     * @param keyId                     the active key ID
+     * @param encryptionKeys            a map of key IDs to key material in hex format
+     * @return true if the provided configuration is valid
      */
-    public static byte[] concatByteArraysWithBAOS(byte[]... arrays) throws IOException {
-        ByteArrayOutputStream boas = new ByteArrayOutputStream();
-        for (byte[] arr : arrays) {
-            boas.write(arr);
-        }
-        return boas.toByteArray();
-    }
-
     public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) {
         if (STATIC_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
             // Ensure the keyId and key(s) are valid
-            boolean everyKeyValid = encryptionKeys.values().stream().allMatch(CryptoUtils::keyIsValid);
-            return everyKeyValid && StringUtils.isNotEmpty(keyId);
+            if (encryptionKeys == null) {
+                return false;
+            } else {
+                boolean everyKeyValid = encryptionKeys.values().stream().allMatch(CryptoUtils::keyIsValid);
+                return everyKeyValid && StringUtils.isNotEmpty(keyId);
+            }
         } else if (FILE_BASED_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
             // Ensure the file can be read and the keyId is populated (does not read file to validate)
             final File kpf = new File(keyProviderLocation);
@@ -123,7 +118,7 @@ public class CryptoUtils {
                     + keyProviderImplementation + " , keyProviderLocation = "
                     + keyProviderLocation + " , keyId = "
                     + keyId + " , encryptionKeys = "
-                    + encryptionKeys.size());
+                    + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
 
             return false;
         }
