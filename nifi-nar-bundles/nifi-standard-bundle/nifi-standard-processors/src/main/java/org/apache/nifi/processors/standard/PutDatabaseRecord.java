@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -46,6 +47,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -79,6 +81,8 @@ import java.util.stream.IntStream;
         + "exist).")
 @ReadsAttribute(attribute = PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, description = "If 'Use statement.type Attribute' is selected for the Statement Type property, the value of this attribute "
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
+@WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the flow file will be routed to failure or retry, and this attribute "
+        + "will be populated with the cause of the error.")
 public class PutDatabaseRecord extends AbstractProcessor {
 
     static final String UPDATE_TYPE = "UPDATE";
@@ -88,6 +92,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final String USE_ATTR_TYPE = "Use statement.type Attribute";
 
     static final String STATEMENT_TYPE_ATTRIBUTE = "statement.type";
+
+    static final String PUT_DATABASE_RECORD_ERROR = "putdatabaserecord.error";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the document that cannot be mapped to a column in the database is ignored");
@@ -347,219 +353,273 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         try (final Connection con = dbcpService.getConnection()) {
 
-            String jdbcURL = "DBCPService";
+            final boolean originalAutoCommit = con.getAutoCommit();
             try {
-                DatabaseMetaData databaseMetaData = con.getMetaData();
-                if (databaseMetaData != null) {
-                    jdbcURL = databaseMetaData.getURL();
+                con.setAutoCommit(false);
+
+                String jdbcURL = "DBCPService";
+                try {
+                    DatabaseMetaData databaseMetaData = con.getMetaData();
+                    if (databaseMetaData != null) {
+                        jdbcURL = databaseMetaData.getURL();
+                    }
+                } catch (SQLException se) {
+                    // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
                 }
-            } catch (SQLException se) {
-                // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
-            }
 
-            final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
-            final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
+                final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
+                final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
+                final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+                final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
+                final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
 
-            // Get the statement type from the attribute if necessary
-            String statementType = statementTypeProperty;
-            if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
-                statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
-            }
-            if (StringUtils.isEmpty(statementType)) {
-                log.error("Statement Type is not specified, flowfile {} will be penalized and routed to failure", new Object[]{flowFile});
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
-                RecordSchema recordSchema;
-                try (final InputStream in = session.read(flowFile)) {
+                // Get the statement type from the attribute if necessary
+                String statementType = statementTypeProperty;
+                if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
+                    statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+                }
+                if (StringUtils.isEmpty(statementType)) {
+                    log.error("Statement Type is not specified, flowfile {} will be penalized and routed to failure", new Object[]{flowFile});
+                    flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Statement Type not specified");
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
+                } else {
+                    RecordSchema recordSchema;
+                    try (final InputStream in = session.read(flowFile)) {
 
-                    final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, log);
-                    recordSchema = recordParser.getSchema();
+                        final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, log);
+                        recordSchema = recordParser.getSchema();
 
-                    if (SQL_TYPE.equalsIgnoreCase(statementType)) {
+                        if (SQL_TYPE.equalsIgnoreCase(statementType)) {
 
-                        // Find which field has the SQL statement in it
-                        final String sqlField = context.getProperty(FIELD_CONTAINING_SQL).evaluateAttributeExpressions(flowFile).getValue();
-                        if (StringUtils.isEmpty(sqlField)) {
-                            log.error("SQL specified as Statement Type but no Field Containing SQL was found, flowfile {} will be penalized and routed to failure", new Object[]{flowFile});
-                            flowFile = session.penalize(flowFile);
-                            session.transfer(flowFile, REL_FAILURE);
-                        } else {
-                            boolean schemaHasSqlField = recordSchema.getFields().stream().anyMatch((field) -> sqlField.equals(field.getFieldName()));
-                            if (schemaHasSqlField) {
-                                try (Statement s = con.createStatement()) {
-
-                                    try {
-                                        s.setQueryTimeout(queryTimeout); // timeout in seconds
-                                    } catch (SQLException se) {
-                                        // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
-                                        if (queryTimeout > 0) {
-                                            throw se;
-                                        }
-                                    }
-
-                                    Record currentRecord;
-                                    while ((currentRecord = recordParser.nextRecord()) != null) {
-                                        Object sql = currentRecord.getValue(sqlField);
-                                        if (sql != null && !StringUtils.isEmpty((String) sql)) {
-                                            // Execute the statement as-is
-                                            s.execute((String) sql);
-                                        } else {
-                                            log.error("Record had no (or null) value for Field Containing SQL: {}, flowfile {} will be penalized and routed to failure",
-                                                    new Object[]{sqlField, flowFile});
-                                            flowFile = session.penalize(flowFile);
-                                            session.transfer(flowFile, REL_FAILURE);
-                                            return;
-                                        }
-                                    }
-                                    session.transfer(flowFile, REL_SUCCESS);
-                                    session.getProvenanceReporter().send(flowFile, jdbcURL);
-                                } catch (final SQLNonTransientException e) {
-                                    log.error("Failed to update database for {} due to {}; routing to failure", new Object[]{flowFile, e});
-                                    flowFile = session.penalize(flowFile);
-                                    session.transfer(flowFile, REL_FAILURE);
-                                } catch (final SQLException e) {
-                                    log.error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                                            new Object[]{flowFile, e});
-                                    flowFile = session.penalize(flowFile);
-                                    session.transfer(flowFile, REL_RETRY);
-                                }
-                            } else {
-                                log.warn("Record schema does not contain Field Containing SQL: {}, flowfile {} will be penalized and routed to failure", new Object[]{sqlField, flowFile});
+                            // Find which field has the SQL statement in it
+                            final String sqlField = context.getProperty(FIELD_CONTAINING_SQL).evaluateAttributeExpressions(flowFile).getValue();
+                            if (StringUtils.isEmpty(sqlField)) {
+                                log.error("SQL specified as Statement Type but no Field Containing SQL was found, flowfile {} will be penalized and routed to failure", new Object[]{flowFile});
+                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Field Containing SQL not found");
                                 flowFile = session.penalize(flowFile);
                                 session.transfer(flowFile, REL_FAILURE);
-                            }
-                        }
+                            } else {
+                                boolean schemaHasSqlField = recordSchema.getFields().stream().anyMatch((field) -> sqlField.equals(field.getFieldName()));
+                                if (schemaHasSqlField) {
+                                    try (Statement s = con.createStatement()) {
 
-                    } else {
-                        // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
-                        if (StringUtils.isEmpty(tableName)) {
-                            log.error("Cannot process {} because Table Name is null or empty; penalizing and routing to failure", new Object[]{flowFile});
-                            flowFile = session.penalize(flowFile);
-                            session.transfer(flowFile, REL_FAILURE);
-                            return;
-                        }
+                                        try {
+                                            s.setQueryTimeout(queryTimeout); // timeout in seconds
+                                        } catch (SQLException se) {
+                                            // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
+                                            if (queryTimeout > 0) {
+                                                throw se;
+                                            }
+                                        }
 
-                        final boolean includePrimaryKeys = UPDATE_TYPE.equalsIgnoreCase(statementType) && updateKeys == null;
-
-                        // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
-                        // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
-                        // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
-                        // Java Heap if there are a lot of different SQL statements being generated that reference different tables.
-                        TableSchema schema;
-                        synchronized (this) {
-                            schema = schemaCache.get(schemaKey);
-                            if (schema == null) {
-                                // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
-                                try (final Connection conn = dbcpService.getConnection()) {
-                                    schema = TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
-                                    schemaCache.put(schemaKey, schema);
-                                } catch (final SQLNonTransientException e) {
-                                    log.error("Failed to update database for {} due to {}; routing to failure", new Object[]{flowFile, e});
+                                        Record currentRecord;
+                                        while ((currentRecord = recordParser.nextRecord()) != null) {
+                                            Object sql = currentRecord.getValue(sqlField);
+                                            if (sql != null && !StringUtils.isEmpty((String) sql)) {
+                                                // Execute the statement as-is
+                                                s.execute((String) sql);
+                                            } else {
+                                                log.error("Record had no (or null) value for Field Containing SQL: {}, flowfile {} will be penalized and routed to failure",
+                                                        new Object[]{sqlField, flowFile});
+                                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Field Containing SQL missing value");
+                                                flowFile = session.penalize(flowFile);
+                                                session.transfer(flowFile, REL_FAILURE);
+                                                return;
+                                            }
+                                        }
+                                        session.transfer(flowFile, REL_SUCCESS);
+                                        session.getProvenanceReporter().send(flowFile, jdbcURL);
+                                    } catch (final SQLNonTransientException e) {
+                                        log.error("Failed to update database for {} due to {}; rolling back database and routing to failure", new Object[]{flowFile, e}, e);
+                                        try {
+                                            con.rollback();
+                                        } catch (SQLException se) {
+                                            log.error("Failed to rollback database, transaction may be incomplete.", se);
+                                        }
+                                        flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                        flowFile = session.penalize(flowFile);
+                                        session.transfer(flowFile, REL_FAILURE);
+                                    } catch (final SQLException e) {
+                                        log.error("Failed to update database for {} due to {}; rolling back database. It is possible that retrying the operation will succeed, so routing to retry",
+                                                new Object[]{flowFile, e}, e);
+                                        try {
+                                            con.rollback();
+                                        } catch (SQLException se) {
+                                            log.error("Failed to rollback database, transaction may be incomplete.", se);
+                                        }
+                                        flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                        flowFile = session.penalize(flowFile);
+                                        session.transfer(flowFile, REL_RETRY);
+                                    }
+                                } else {
+                                    log.error("Record schema does not contain Field Containing SQL: {}, flowfile {} will be penalized and routed to failure", new Object[]{sqlField, flowFile});
+                                    flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Record schema missing Field Containing SQL value");
                                     flowFile = session.penalize(flowFile);
                                     session.transfer(flowFile, REL_FAILURE);
-                                    return;
-                                } catch (final SQLException e) {
-                                    log.error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                                            new Object[]{flowFile, e});
-                                    flowFile = session.penalize(flowFile);
-                                    session.transfer(flowFile, REL_RETRY);
-                                    return;
                                 }
                             }
-                        }
 
-                        final SqlAndIncludedColumns sqlHolder;
-                        try {
-                            // build the fully qualified table name
-                            final StringBuilder tableNameBuilder = new StringBuilder();
-                            if (catalog != null) {
-                                tableNameBuilder.append(catalog).append(".");
-                            }
-                            if (schemaName != null) {
-                                tableNameBuilder.append(schemaName).append(".");
-                            }
-                            tableNameBuilder.append(tableName);
-                            final String fqTableName = tableNameBuilder.toString();
-
-                            if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
-                                sqlHolder = generateInsert(recordSchema, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
-                                        failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
-                            } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
-                                sqlHolder = generateUpdate(recordSchema, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
-                                        failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
-                            } else if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                sqlHolder = generateDelete(recordSchema, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
-                                        failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
-                            } else {
-                                log.error("Statement Type {} is not valid, flowfile {} will be penalized and routed to failure", new Object[]{statementType, flowFile});
+                        } else {
+                            // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
+                            if (StringUtils.isEmpty(tableName)) {
+                                log.error("Cannot process {} because Table Name is null or empty; penalizing and routing to failure", new Object[]{flowFile});
+                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Table Name missing");
                                 flowFile = session.penalize(flowFile);
                                 session.transfer(flowFile, REL_FAILURE);
                                 return;
                             }
-                        } catch (final ProcessException pe) {
-                            log.error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
-                                    new Object[]{flowFile, statementType, pe.toString()}, pe);
-                            flowFile = session.penalize(flowFile);
-                            session.transfer(flowFile, REL_FAILURE);
-                            return;
-                        }
 
-                        try (PreparedStatement ps = con.prepareStatement(sqlHolder.getSql())) {
+                            final boolean includePrimaryKeys = UPDATE_TYPE.equalsIgnoreCase(statementType) && updateKeys == null;
 
-                            try {
-                                ps.setQueryTimeout(queryTimeout); // timeout in seconds
-                            } catch (SQLException se) {
-                                // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
-                                if (queryTimeout > 0) {
-                                    throw se;
-                                }
-                            }
-
-                            Record currentRecord;
-                            List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
-
-                            while ((currentRecord = recordParser.nextRecord()) != null) {
-                                Object[] values = currentRecord.getValues();
-                                if (values != null) {
-                                    if (fieldIndexes != null) {
-                                        for (int i = 0; i < fieldIndexes.size(); i++) {
-                                            ps.setObject(i + 1, values[fieldIndexes.get(i)]);
-                                        }
-                                    } else {
-                                        // If there's no index map, assume all values are included and set them in order
-                                        for (int i = 0; i < values.length; i++) {
-                                            ps.setObject(i + 1, values[i]);
-                                        }
+                            // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
+                            // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
+                            // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
+                            // Java Heap if there are a lot of different SQL statements being generated that reference different tables.
+                            TableSchema schema;
+                            synchronized (this) {
+                                schema = schemaCache.get(schemaKey);
+                                if (schema == null) {
+                                    // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
+                                    try (final Connection conn = dbcpService.getConnection()) {
+                                        schema = TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
+                                        schemaCache.put(schemaKey, schema);
+                                    } catch (final SQLNonTransientException e) {
+                                        log.error("Failed to update database for {} due to {}; routing to failure", new Object[]{flowFile, e}, e);
+                                        flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                        flowFile = session.penalize(flowFile);
+                                        session.transfer(flowFile, REL_FAILURE);
+                                        return;
+                                    } catch (final SQLException e) {
+                                        log.error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
+                                                new Object[]{flowFile, e}, e);
+                                        flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                        flowFile = session.penalize(flowFile);
+                                        session.transfer(flowFile, REL_RETRY);
+                                        return;
                                     }
-                                    ps.addBatch();
                                 }
                             }
 
-                            log.debug("Executing query {}", new Object[]{sqlHolder});
-                            ps.executeBatch();
-                            session.transfer(flowFile, REL_SUCCESS);
-                            session.getProvenanceReporter().send(flowFile, jdbcURL);
+                            final SqlAndIncludedColumns sqlHolder;
+                            try {
+                                // build the fully qualified table name
+                                final StringBuilder tableNameBuilder = new StringBuilder();
+                                if (catalog != null) {
+                                    tableNameBuilder.append(catalog).append(".");
+                                }
+                                if (schemaName != null) {
+                                    tableNameBuilder.append(schemaName).append(".");
+                                }
+                                tableNameBuilder.append(tableName);
+                                final String fqTableName = tableNameBuilder.toString();
 
-                        } catch (final SQLNonTransientException e) {
-                            log.error("Failed to update database for {} due to {}; routing to failure", new Object[]{flowFile, e});
-                            flowFile = session.penalize(flowFile);
-                            session.transfer(flowFile, REL_FAILURE);
-                        } catch (final SQLException e) {
-                            log.error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                                    new Object[]{flowFile, e});
-                            flowFile = session.penalize(flowFile);
-                            session.transfer(flowFile, REL_RETRY);
+                                if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
+                                    sqlHolder = generateInsert(recordSchema, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
+                                } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
+                                    sqlHolder = generateUpdate(recordSchema, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
+                                } else if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
+                                    sqlHolder = generateDelete(recordSchema, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
+                                } else {
+                                    log.error("Statement Type {} is not valid, flowfile {} will be penalized and routed to failure", new Object[]{statementType, flowFile});
+                                    flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, "Statement Type invalid");
+                                    flowFile = session.penalize(flowFile);
+                                    session.transfer(flowFile, REL_FAILURE);
+                                    return;
+                                }
+                            } catch (final ProcessException pe) {
+                                log.error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
+                                        new Object[]{flowFile, statementType, pe.toString()}, pe);
+                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, pe.getMessage());
+                                flowFile = session.penalize(flowFile);
+                                session.transfer(flowFile, REL_FAILURE);
+                                return;
+                            }
+
+                            try (PreparedStatement ps = con.prepareStatement(sqlHolder.getSql())) {
+
+                                try {
+                                    ps.setQueryTimeout(queryTimeout); // timeout in seconds
+                                } catch (SQLException se) {
+                                    // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
+                                    if (queryTimeout > 0) {
+                                        throw se;
+                                    }
+                                }
+
+                                Record currentRecord;
+                                List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
+
+                                while ((currentRecord = recordParser.nextRecord()) != null) {
+                                    Object[] values = currentRecord.getValues();
+                                    if (values != null) {
+                                        if (fieldIndexes != null) {
+                                            for (int i = 0; i < fieldIndexes.size(); i++) {
+                                                ps.setObject(i + 1, values[fieldIndexes.get(i)]);
+                                            }
+                                        } else {
+                                            // If there's no index map, assume all values are included and set them in order
+                                            for (int i = 0; i < values.length; i++) {
+                                                ps.setObject(i + 1, values[i]);
+                                            }
+                                        }
+                                        ps.addBatch();
+                                    }
+                                }
+
+                                log.debug("Executing query {}", new Object[]{sqlHolder});
+                                ps.executeBatch();
+                                session.transfer(flowFile, REL_SUCCESS);
+                                session.getProvenanceReporter().send(flowFile, jdbcURL);
+
+                            } catch (final SQLNonTransientException | BatchUpdateException e) {
+                                log.error("Failed to update database for {} due to {}; rolling back database, routing to failure", new Object[]{flowFile, e}, e);
+                                try {
+                                    con.rollback();
+                                } catch (SQLException se) {
+                                    log.error("Failed to rollback database, transaction may be incomplete.", se);
+                                }
+                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                flowFile = session.penalize(flowFile);
+                                session.transfer(flowFile, REL_FAILURE);
+                            } catch (final SQLException e) {
+                                log.error("Failed to update database for {} due to {}; rolling back database. It is possible that retrying the operation will succeed, so routing to retry",
+                                        new Object[]{flowFile, e}, e);
+                                try {
+                                    con.rollback();
+                                } catch (SQLException se) {
+                                    log.error("Failed to rollback database, transaction may be incomplete.", se);
+                                }
+                                flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                                flowFile = session.penalize(flowFile);
+                                session.transfer(flowFile, REL_RETRY);
+                            }
+                        }
+                    } catch (final MalformedRecordException | SchemaNotFoundException | IOException e) {
+                        log.error("Failed to determine schema of data records for {}, routing to failure", new Object[]{flowFile}, e);
+
+                        flowFile = session.putAttribute(flowFile, PUT_DATABASE_RECORD_ERROR, e.getMessage());
+                        flowFile = session.penalize(flowFile);
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
+                }
+            } finally {
+                try {
+                    con.commit();
+                } finally {
+                    // make sure that we try to set the auto commit back to whatever it was.
+                    if (originalAutoCommit) {
+                        try {
+                            con.setAutoCommit(originalAutoCommit);
+                        } catch (final SQLException se) {
+                            // Nothing to do if it didn't work, indicates an issue with the driver
                         }
                     }
-                } catch (final MalformedRecordException | SchemaNotFoundException | IOException e) {
-                    throw new ProcessException("Failed to determine schema of data records for " + flowFile, e);
                 }
             }
-
         } catch (final ProcessException | SQLException e) {
             log.error("Error occurred during processing, yielding the processor", e);
             context.yield();
