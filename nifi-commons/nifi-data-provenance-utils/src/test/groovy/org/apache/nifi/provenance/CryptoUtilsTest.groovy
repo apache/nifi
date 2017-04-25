@@ -23,7 +23,6 @@ import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
@@ -43,7 +42,6 @@ import java.security.SecureRandom
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
-
 
 @RunWith(JUnit4.class)
 class CryptoUtilsTest {
@@ -419,86 +417,6 @@ class CryptoUtilsTest {
         // Assert
         assert missingMsg.getMessage() == "The provided file contained no valid keys"
         assert emptyMsg.getMessage() == "The key provider file is not present and readable"
-    }
-
-    @Ignore("Performance test")
-    @Test
-    void testShouldComparePerformanceOfByteArrayConcatenation() {
-        // Arrange
-        int iterations = 1_000_000
-
-        def smallCollectionOfSmallArrays = generateByteArrays(2, 5)
-        def smallCollectionOfLargeArrays = generateByteArrays(2, 5, 100, 1000)
-        def largeCollectionOfSmallArrays = generateByteArrays(100, 200)
-        def largeCollectionOfLargeArrays = generateByteArrays(100, 200, 100, 1000)
-
-        def allLists = ["small/small": smallCollectionOfSmallArrays, "small/large": smallCollectionOfLargeArrays, "large/small": largeCollectionOfSmallArrays, "large/large": largeCollectionOfLargeArrays]
-
-        // Warmup the JVM
-        def warmupIterations = iterations / 1000
-        long warmupStart = System.nanoTime()
-        warmupIterations.times {
-            byte[] warmupBytes = new byte[1024]
-            new Random().nextBytes(warmupBytes)
-        }
-        long warmupDuration = System.nanoTime() - warmupStart
-        logger.info("Ran ${warmupIterations} iterations in ${warmupDuration} ns to warm up the JVM")
-
-        // Act
-        allLists.each { String label, List<byte[]> list ->
-            logger.info("Calculating ${label} -- ${list.size()} arrays with avg length ${list.sum { it.length } / list.size() as int}")
-            def arrayOfBytes = list.toArray() as byte[][]
-            long arrayStart = System.nanoTime()
-            def results = [:]
-            iterations.times { int i ->
-                long iterStart = System.nanoTime()
-                byte[] concat = CryptoUtils.concatByteArrays(arrayOfBytes)
-                long iterStop = System.nanoTime()
-                results["${label} $i"] = iterStop - iterStart
-            }
-            long arrayStop = System.nanoTime()
-            long avg = results.values().sum() / results.size()
-            long arrayDuration = arrayStop - arrayStart
-            logger.info("Ran ${iterations} of ${label} (traditional) with a total wall time of ${arrayDuration} ns and average run of ${avg} ns")
-
-            long arrayStartBAOS = System.nanoTime()
-            def resultsBAOS = [:]
-            iterations.times { int i ->
-                long iterStart = System.nanoTime()
-                byte[] concat = CryptoUtils.concatByteArraysWithBAOS(arrayOfBytes)
-                long iterStop = System.nanoTime()
-                resultsBAOS["${label} $i"] = iterStop - iterStart
-            }
-            long arrayStopBAOS = System.nanoTime()
-            long avgBAOS = resultsBAOS.values().sum() / resultsBAOS.size()
-            long arrayDurationBAOS = arrayStopBAOS - arrayStartBAOS
-            logger.info("Ran ${iterations} of ${label} (BAOS) with a total wall time of ${arrayDurationBAOS} ns and average run of ${avgBAOS} ns")
-        }
-
-        // Assert
-
-    }
-
-    /**
-     * Returns a List of byte[] -- the list length is random between countMin and countMax, and the size of each byte[] is random between arrayMin and arrayMax (independent for each).
-     * @param countMin the minimum size of the list (inclusive)
-     * @param countMax the maximum size of the list (inclusive)
-     * @param arrayMin the minimum size of the component arrays (inclusive)
-     * @param arrayMax the maximum size of the component arrays (inclusive)
-     * @return
-     */
-    private
-    static List<byte[]> generateByteArrays(int countMin = 2, int countMax = 10, int arrayMin = 1, int arrayMax = 16) {
-        Random random = new Random()
-        int count = random.nextInt(countMax + 1 - countMin) + countMin
-        List<byte[]> array = []
-        count.times {
-            int length = random.nextInt(arrayMax + 1 - arrayMin) + arrayMin
-            byte[] b = new byte[length]
-            random.nextBytes(b)
-            array.add(b)
-        }
-        array
     }
 
     private static String generateEncryptedKey(SecretKey masterKey) {
