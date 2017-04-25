@@ -48,7 +48,6 @@ class AESProvenanceEventEncryptorTest {
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
-    private static final int IV_LENGTH = 16
 
     private static KeyProvider mockKeyProvider
     private static AESKeyedCipherProvider mockCipherProvider
