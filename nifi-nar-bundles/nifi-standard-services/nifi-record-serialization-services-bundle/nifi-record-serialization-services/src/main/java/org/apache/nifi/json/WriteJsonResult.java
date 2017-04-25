@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
@@ -96,6 +95,8 @@ public class WriteJsonResult implements RecordSetWriter {
 
     @Override
     public WriteResult write(final Record record, final OutputStream rawOut) throws IOException {
+        schemaAccess.writeHeader(recordSchema, rawOut);
+
         try (final JsonGenerator generator = factory.createJsonGenerator(new NonCloseableOutputStream(rawOut))) {
             if (prettyPrint) {
                 generator.useDefaultPrettyPrinter();
@@ -106,7 +107,7 @@ public class WriteJsonResult implements RecordSetWriter {
             throw new IOException("Failed to write records to stream", e);
         }
 
-        return WriteResult.of(1, Collections.emptyMap());
+        return WriteResult.of(1, schemaAccess.getAttributes(recordSchema));
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)

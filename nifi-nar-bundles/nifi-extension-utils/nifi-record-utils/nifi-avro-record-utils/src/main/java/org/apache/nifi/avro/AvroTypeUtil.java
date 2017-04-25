@@ -296,6 +296,8 @@ public class AvroTypeUtil {
                     }
 
                     return map;
+                } else if (rawValue instanceof Map) {
+                    return rawValue;
                 } else {
                     throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Map");
                 }

@@ -16,15 +16,25 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import javax.xml.bind.DatatypeConverter;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -34,8 +44,22 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+
 import static org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_0_10.REL_SUCCESS;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
@@ -56,11 +80,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private final String keyEncoding;
     private final String securityProtocol;
     private final String bootstrapServers;
+    private final RecordSetWriterFactory writerFactory;
+    private final RecordReaderFactory readerFactory;
     private boolean poisoned = false;
     //used for tracking demarcated flowfiles to their TopicPartition so we can append
     //to them on subsequent poll calls
     private final Map<TopicPartition, BundleTracker> bundleMap = new HashMap<>();
-    private final Map<TopicPartition, OffsetAndMetadata> uncommittedOffsetsMap = new HashMap<>();
+    private Map<TopicPartition, OffsetAndMetadata> uncommittedOffsetsMap = new HashMap<>();
     private long leaseStartNanos = -1;
     private boolean lastPollEmpty = false;
     private int totalFlowFiles = 0;
@@ -72,6 +98,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
+            final RecordReaderFactory readerFactory,
+            final RecordSetWriterFactory writerFactory,
             final ComponentLog logger) {
         this.maxWaitMillis = maxWaitMillis;
         this.kafkaConsumer = kafkaConsumer;
@@ -79,6 +107,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         this.keyEncoding = keyEncoding;
         this.securityProtocol = securityProtocol;
         this.bootstrapServers = bootstrapServers;
+        this.readerFactory = readerFactory;
+        this.writerFactory = writerFactory;
         this.logger = logger;
     }
 
@@ -88,7 +118,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     private void resetInternalState() {
         bundleMap.clear();
-        uncommittedOffsetsMap.clear();
+        uncommittedOffsetsMap = new HashMap<>();
         leaseStartNanos = -1;
         lastPollEmpty = false;
         totalFlowFiles = 0;
@@ -175,7 +205,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 getProcessSession().transfer(bundledFlowFiles, REL_SUCCESS);
             }
             getProcessSession().commit();
-            kafkaConsumer.commitSync(uncommittedOffsetsMap);
+
+            final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
+            kafkaConsumer.commitAsync(offsetsMap, (a, b) -> {});
             resetInternalState();
             return true;
         } catch (final KafkaException kex) {
@@ -282,13 +314,15 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 uncommittedOffsetsMap.put(partition, new OffsetAndMetadata(maxOffset + 1L));
 
                 //write records to content repository and session
-                if (demarcatorBytes == null) {
+                if (demarcatorBytes != null) {
+                    writeDemarcatedData(getProcessSession(), messages, partition);
+                } else if (readerFactory != null && writerFactory != null) {
+                    writeRecordData(getProcessSession(), messages, partition);
+                } else {
                     totalFlowFiles += messages.size();
                     messages.stream().forEach(message -> {
                         writeData(getProcessSession(), message, partition);
                     });
-                } else {
-                    writeData(getProcessSession(), messages, partition);
                 }
             }
         });
@@ -329,7 +363,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         session.transfer(tracker.flowFile, REL_SUCCESS);
     }
 
-    private void writeData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
+    private void writeDemarcatedData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
         final ConsumerRecord<byte[], byte[]> firstRecord = records.get(0);
         final boolean demarcateFirstRecord;
         BundleTracker tracker = bundleMap.get(topicPartition);
@@ -343,6 +377,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             demarcateFirstRecord = true; //have already been writing records for this topic/partition in this lease
         }
         flowFile = tracker.flowFile;
+
         tracker.incrementRecordCount(records.size());
         flowFile = session.append(flowFile, out -> {
             boolean useDemarcator = demarcateFirstRecord;
@@ -356,6 +391,75 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         });
         tracker.updateFlowFile(flowFile);
         bundleMap.put(topicPartition, tracker);
+    }
+
+    private void writeRecordData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
+        FlowFile flowFile = session.create();
+        try {
+            final RecordSetWriter writer;
+            try {
+                writer = writerFactory.createWriter(logger, flowFile, new ByteArrayInputStream(new byte[0]));
+            } catch (final Exception e) {
+                throw new ProcessException(e);
+            }
+
+            final FlowFile ff = flowFile;
+            final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
+
+            flowFile = session.write(flowFile, rawOut -> {
+                final Iterator<ConsumerRecord<byte[], byte[]>> itr = records.iterator();
+
+                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                    final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
+                    final RecordSet recordSet = new RecordSet() {
+                        @Override
+                        public RecordSchema getSchema() throws IOException {
+                            return emptySchema;
+                        }
+
+                        @Override
+                        public Record next() throws IOException {
+                            if (!itr.hasNext()) {
+                                return null;
+                            }
+
+                            final ConsumerRecord<byte[], byte[]> consumerRecord = itr.next();
+
+                            final InputStream in = new ByteArrayInputStream(consumerRecord.value());
+                            try {
+                                final RecordReader reader = readerFactory.createRecordReader(ff, in, logger);
+                                final Record record = reader.nextRecord();
+                                return record;
+                            } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                                throw new IOException(e);
+                            }
+                        }
+
+                    };
+
+                    writeResult.set(writer.write(recordSet, out));
+                }
+            });
+
+            final Map<String, String> attributes = new HashMap<>(writeResult.get().getAttributes());
+            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+            attributes.put("record.count", String.valueOf(writeResult.get().getRecordCount()));
+
+            attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
+            attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
+
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            final long executionDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
+            final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
+            session.getProvenanceReporter().receive(flowFile, transitUri, executionDurationMillis);
+
+            session.adjustCounter("Records Received", writeResult.get().getRecordCount(), false);
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (final Exception e) {
+            session.remove(flowFile);
+            throw e;
+        }
     }
 
     private void populateAttributes(final BundleTracker tracker) {

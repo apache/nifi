@@ -61,7 +61,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema) throws IOException, MalformedRecordException {
-        return convertJsonNodeToRecord(jsonNode, schema, "");
+        return convertJsonNodeToRecord(jsonNode, schema, null);
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix) throws IOException, MalformedRecordException {
@@ -70,26 +70,34 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         }
 
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
-        for (int i = 0; i < schema.getFieldCount(); i++) {
-            final RecordField field = schema.getField(i);
+        for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
 
-            JsonNode fieldNode = jsonNode.get(fieldName);
-            if (fieldNode == null) {
-                for (final String alias : field.getAliases()) {
-                    fieldNode = jsonNode.get(alias);
-                    if (fieldNode != null) {
-                        break;
-                    }
-                }
-            }
+            final JsonNode fieldNode = getJsonNode(jsonNode, field);
 
             final DataType desiredType = field.getDataType();
-            final Object value = convertField(fieldNode, fieldNamePrefix + fieldName, desiredType);
+            final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
+            final Object value = convertField(fieldNode, fullFieldName, desiredType);
             values.put(fieldName, value);
         }
 
         return new MapRecord(schema, values);
+    }
+
+    private JsonNode getJsonNode(final JsonNode parent, final RecordField field) {
+        JsonNode fieldNode = parent.get(field.getFieldName());
+        if (fieldNode != null) {
+            return fieldNode;
+        }
+
+        for (final String alias : field.getAliases()) {
+            fieldNode = parent.get(alias);
+            if (fieldNode != null) {
+                return fieldNode;
+            }
+        }
+
+        return fieldNode;
     }
 
     protected Object convertField(final JsonNode fieldNode, final String fieldName, final DataType desiredType) throws IOException, MalformedRecordException {

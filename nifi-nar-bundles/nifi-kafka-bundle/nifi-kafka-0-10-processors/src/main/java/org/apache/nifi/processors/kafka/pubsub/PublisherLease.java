@@ -17,9 +17,11 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -29,6 +31,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordWriter;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
 
@@ -85,6 +91,41 @@ public class PublisherLease implements Closeable {
         }
     }
 
+    void publish(final FlowFile flowFile, final RecordReader reader, final RecordWriter writer, final String messageKeyField, final String topic) throws IOException {
+        if (tracker == null) {
+            tracker = new InFlightMessageTracker();
+        }
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+
+        Record record;
+        final RecordSet recordSet = reader.createRecordSet();
+
+        try {
+            while ((record = recordSet.next()) != null) {
+                baos.reset();
+                writer.write(record, baos);
+
+                final byte[] messageContent = baos.toByteArray();
+                final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
+                final byte[] messageKey = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
+
+                publish(flowFile, messageKey, messageContent, topic, tracker);
+
+                if (tracker.isFailed(flowFile)) {
+                    // If we have a failure, don't try to send anything else.
+                    return;
+                }
+            }
+        } catch (final TokenTooLargeException ttle) {
+            tracker.fail(flowFile, ttle);
+        } catch (final Exception e) {
+            tracker.fail(flowFile, e);
+            poison();
+            throw e;
+        }
+    }
+
     private void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
         final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, messageKey, messageContent);
         producer.send(record, new Callback() {
@@ -101,6 +142,7 @@ public class PublisherLease implements Closeable {
 
         tracker.incrementSentCount(flowFile);
     }
+
 
     public PublishResult complete() {
         if (tracker == null) {
