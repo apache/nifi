@@ -274,11 +274,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor INCLUDE_SCHEMA_CHANGES = new PropertyDescriptor.Builder()
-            .name("capture-change-mysql-include-schema-changes")
-            .displayName("Include Schema Change Events")
-            .description("Specifies whether to emit events corresponding to a schema change event (ALTER TABLE, e.g.) in the binary log. Set to true if the schema change events are "
-                    + "desired/necessary in the downstream flow, otherwise set to false, which suppresses generation of these events and can increase flow performance.")
+    public static final PropertyDescriptor INCLUDE_DDL_EVENTS = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-include-ddl-events")
+            .displayName("Include DDL Events")
+            .description("Specifies whether to emit events corresponding to Data Definition Language (DDL) events such as ALTER TABLE, TRUNCATE TABLE, e.g. in the binary log. Set to true "
+                    + "if the DDL events are desired/necessary in the downstream flow, otherwise set to false, which suppresses generation of these events and can increase flow performance.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -354,7 +354,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private volatile Pattern databaseNamePattern;
     private volatile Pattern tableNamePattern;
     private volatile boolean includeBeginCommit = false;
-    private volatile boolean includeSchemaChanges = false;
+    private volatile boolean includeDDLEvents = false;
 
     private volatile boolean inTransaction = false;
     private volatile boolean skipTable = false;
@@ -401,7 +401,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(DIST_CACHE_CLIENT);
         pds.add(RETRIEVE_ALL_RECORDS);
         pds.add(INCLUDE_BEGIN_COMMIT);
-        pds.add(INCLUDE_SCHEMA_CHANGES);
+        pds.add(INCLUDE_DDL_EVENTS);
         pds.add(STATE_UPDATE_INTERVAL);
         pds.add(INIT_SEQUENCE_ID);
         pds.add(INIT_BINLOG_FILENAME);
@@ -447,7 +447,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         boolean getAllRecords = context.getProperty(RETRIEVE_ALL_RECORDS).asBoolean();
 
         includeBeginCommit = context.getProperty(INCLUDE_BEGIN_COMMIT).asBoolean();
-        includeSchemaChanges = context.getProperty(INCLUDE_SCHEMA_CHANGES).asBoolean();
+        includeDDLEvents = context.getProperty(INCLUDE_DDL_EVENTS).asBoolean();
 
         // Set current binlog filename to whatever is in State, falling back to the Retrieve All Records then Initial Binlog Filename if no State variable is present
         currentBinlogFile = stateMap.get(BinlogEventInfo.BINLOG_FILENAME_KEY);
@@ -791,7 +791,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         currentTable = null;
 
                     } else {
-                        // Check for schema change events (alter table, e.g.). Normalize the query to do string matching on the type of change
+                        // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
                         String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
                         if (normalizedQuery.startsWith("alter table")
                                 || normalizedQuery.startsWith("alter ignore table")
@@ -800,7 +800,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 || normalizedQuery.startsWith("drop table")
                                 || normalizedQuery.startsWith("drop database")) {
 
-                            if (includeSchemaChanges) {
+                            if (includeDDLEvents) {
                                 SchemaChangeEventInfo schemaChangeEvent = new SchemaChangeEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
                                 currentSequenceId.set(schemaChangeEventWriter.writeEvent(currentSession, transitUri, schemaChangeEvent, currentSequenceId.get(), REL_SUCCESS));
                             }

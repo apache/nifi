@@ -205,7 +205,7 @@ class CaptureChangeMySQLTest {
 
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
 
-        resultFiles.eachWithIndex { e, i ->
+        resultFiles.eachWithIndex {e, i ->
             // Sequence ID should start from 1 (as was put into the state map), showing that the
             // Initial Sequence ID value was ignored
             assertEquals(i + 1, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
@@ -245,7 +245,7 @@ class CaptureChangeMySQLTest {
 
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
 
-        resultFiles.eachWithIndex { e, i ->
+        resultFiles.eachWithIndex {e, i ->
             assertEquals(i + 10, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
         }
     }
@@ -280,7 +280,7 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_FILENAME, 'master.000001')
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, '4')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
-        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_SCHEMA_CHANGES, 'true')
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, 'true')
         final DistributedMapCacheClientImpl cacheClient = createCacheClient()
         def clientProperties = [:]
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
@@ -405,16 +405,16 @@ class CaptureChangeMySQLTest {
         List<String> expectedEventTypes = ([] + 'begin' + Collections.nCopies(3, 'insert') + 'commit' + 'begin' + 'update' + 'commit'
                 + 'begin' + 'schema_change' + Collections.nCopies(2, 'delete') + 'commit')
 
-        resultFiles.eachWithIndex { e, i ->
+        resultFiles.eachWithIndex {e, i ->
             assertEquals(i, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
             assertEquals(EventWriter.APPLICATION_JSON, e.getAttribute(CoreAttributes.MIME_TYPE.key()))
             assertEquals((i < 8) ? 'master.000001' : 'master.000002', e.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY))
             assertTrue(Long.valueOf(e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY)) % 4 == 0L)
-            assertEquals(e.getAttribute('cdc.event.type'), expectedEventTypes[i])
+            assertEquals(expectedEventTypes[i], e.getAttribute('cdc.event.type'))
         }
         assertEquals(13, resultFiles.size())
         assertEquals(13, testRunner.provenanceEvents.size())
-        testRunner.provenanceEvents.each { assertEquals(ProvenanceEventType.RECEIVE, it.eventType)}
+        testRunner.provenanceEvents.each {assertEquals(ProvenanceEventType.RECEIVE, it.eventType)}
     }
 
     @Test
@@ -427,7 +427,8 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_FILENAME, 'master.000001')
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, '4')
-        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_SCHEMA_CHANGES, 'false')
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, 'false')
         final DistributedMapCacheClientImpl cacheClient = createCacheClient()
         def clientProperties = [:]
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
@@ -480,12 +481,12 @@ class CaptureChangeMySQLTest {
         // No 'schema_change' events expected
         List<String> expectedEventTypes = ([] + 'begin' + Collections.nCopies(3, 'insert') + 'commit')
 
-        resultFiles.eachWithIndex { e, i ->
+        resultFiles.eachWithIndex {e, i ->
             assertEquals(i, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
             assertEquals(EventWriter.APPLICATION_JSON, e.getAttribute(CoreAttributes.MIME_TYPE.key()))
             assertEquals((i < 8) ? 'master.000001' : 'master.000002', e.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY))
             assertTrue(Long.valueOf(e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY)) % 4 == 0L)
-            assertEquals(e.getAttribute('cdc.event.type'), expectedEventTypes[i])
+            assertEquals(expectedEventTypes[i], e.getAttribute('cdc.event.type'))
         }
         assertEquals(5, resultFiles.size())
     }
@@ -907,7 +908,7 @@ class CaptureChangeMySQLTest {
                 }
             }
             final long numRemoved = removedRecords.size()
-            removedRecords.each { cacheMap.remove(it) }
+            removedRecords.each {cacheMap.remove(it)}
             return numRemoved
         }
 
