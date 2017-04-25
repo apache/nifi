@@ -18,6 +18,26 @@ package org.apache.nifi.processors.standard;
 
 import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -54,27 +74,6 @@ import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.processors.standard.syslog.SyslogEvent;
 import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -410,11 +409,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             }
 
             final String sender = rawSyslogEvent.getSender();
-            FlowFile flowFile = flowFilePerSender.get(sender);
-            if (flowFile == null) {
-                flowFile = session.create();
-                flowFilePerSender.put(sender, flowFile);
-            }
+            FlowFile flowFile = flowFilePerSender.computeIfAbsent(sender, k -> session.create());
 
             if (shouldParse) {
                 boolean valid = true;
@@ -428,7 +423,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 // If the event is invalid, route it to 'invalid' and then stop.
                 // We create a separate FlowFile for this case instead of using 'flowFile',
                 // because the 'flowFile' object may already have data written to it.
-                if (!valid || !event.isValid()) {
+                if (!valid || event == null || !event.isValid()) {
                     FlowFile invalidFlowFile = session.create();
                     invalidFlowFile = session.putAllAttributes(invalidFlowFile, defaultAttributes);
                     if (sender != null) {

@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -86,6 +85,8 @@ public class ParseSyslog extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
 
+    private SyslogParser parser;
+
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -110,7 +111,12 @@ public class ParseSyslog extends AbstractProcessor {
         }
 
         final String charsetName = context.getProperty(CHARSET).getValue();
-        final SyslogParser parser = new SyslogParser(Charset.forName(charsetName));
+
+        // If the parser already exists and uses the same charset, it does not need to be re-initialized
+        if (parser == null || !parser.getCharsetName().equals(charsetName)) {
+            parser = new SyslogParser(Charset.forName(charsetName));
+        }
+
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
             @Override
@@ -128,7 +134,7 @@ public class ParseSyslog extends AbstractProcessor {
             return;
         }
 
-        if (!event.isValid()) {
+        if (event == null || !event.isValid()) {
             getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", new Object[] {flowFile});
             session.transfer(flowFile, REL_FAILURE);
             return;
