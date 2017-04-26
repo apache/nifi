@@ -44,6 +44,7 @@ import org.apache.nifi.cdc.event.ColumnDefinition
 import org.apache.nifi.cdc.event.TableInfo
 import org.apache.nifi.cdc.event.TableInfoCacheKey
 import org.apache.nifi.cdc.event.io.EventWriter
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.state.MockStateManager
@@ -59,6 +60,7 @@ import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.util.concurrent.TimeoutException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -86,6 +88,38 @@ class CaptureChangeMySQLTest {
     @After
     void tearDown() throws Exception {
 
+    }
+
+    @Test
+    void testConnectionFailures() throws Exception {
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
+        client.connectionError = true
+        try {
+            testRunner.run()
+        } catch (AssertionError ae) {
+            def pe = ae.getCause()
+            assertTrue(pe instanceof ProcessException)
+            def ioe = pe.getCause()
+            assertTrue(ioe instanceof IOException)
+            assertEquals('Could not connect binlog client to any of the specified hosts due to: Error during connect', ioe.getMessage())
+            assertTrue(ioe.getCause() instanceof IOException)
+        }
+        client.connectionError = false
+
+        client.connectionTimeout = true
+        try {
+            testRunner.run()
+        } catch (AssertionError ae) {
+            def pe = ae.getCause()
+            assertTrue(pe instanceof ProcessException)
+            def ioe = pe.getCause()
+            assertTrue(ioe instanceof IOException)
+            assertEquals('Could not connect binlog client to any of the specified hosts due to: Connection timed out', ioe.getMessage())
+            assertTrue(ioe.getCause() instanceof TimeoutException)
+        }
+        client.connectionTimeout = false
     }
 
     @Test
