@@ -112,7 +112,7 @@ public class CSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
+        return DataTypeUtils.convertType(trimmed, dataType, () -> dateFormat, () -> timeFormat, () -> timestampFormat, fieldName);
     }
 
     @Override

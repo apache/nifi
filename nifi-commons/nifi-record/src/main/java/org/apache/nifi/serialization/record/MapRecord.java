@@ -17,17 +17,21 @@
 
 package org.apache.nifi.serialization.record;
 
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+
 public class MapRecord implements Record {
-    private final RecordSchema schema;
+    private RecordSchema schema;
     private final Map<String, Object> values;
-    private final Optional<SerializedForm> serializedForm;
+    private Optional<SerializedForm> serializedForm;
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values) {
         this.schema = Objects.requireNonNull(schema);
@@ -192,7 +196,7 @@ public class MapRecord implements Record {
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return DataTypeUtils.toDate(getValue(fieldName), format == null ? null : DataTypeUtils.getDateFormat(format), fieldName);
+        return DataTypeUtils.toDate(getValue(fieldName), () -> DataTypeUtils.getDateFormat(format), fieldName);
     }
 
     @Override
@@ -223,11 +227,104 @@ public class MapRecord implements Record {
 
     @Override
     public String toString() {
-        return "MapRecord[values=" + values + "]";
+        return "MapRecord[" + values + "]";
     }
 
     @Override
     public Optional<SerializedForm> getSerializedForm() {
         return serializedForm;
+    }
+
+    @Override
+    public void setValue(final String fieldName, final Object value) {
+        final Optional<RecordField> field = getSchema().getField(fieldName);
+        if (!field.isPresent()) {
+            return;
+        }
+
+        final RecordField recordField = field.get();
+        final Object coerced = DataTypeUtils.convertType(value, recordField.getDataType(), fieldName);
+        final Object previousValue = values.put(recordField.getFieldName(), coerced);
+        if (!Objects.equals(coerced, previousValue)) {
+            serializedForm = Optional.empty();
+        }
+    }
+
+    @Override
+    public void setArrayValue(final String fieldName, final int arrayIndex, final Object value) {
+        final Optional<RecordField> field = getSchema().getField(fieldName);
+        if (!field.isPresent()) {
+            return;
+        }
+
+        final RecordField recordField = field.get();
+        final DataType dataType = recordField.getDataType();
+        if (dataType.getFieldType() != RecordFieldType.ARRAY) {
+            throw new IllegalTypeConversionException("Cannot set the value of an array index on Record because the field '" + fieldName
+                + "' is of type '" + dataType + "' and cannot be coerced into an ARRAY type");
+        }
+
+        final Object arrayObject = values.get(recordField.getFieldName());
+        if (arrayObject == null) {
+            return;
+        }
+        if (!(arrayObject instanceof Object[])) {
+            return;
+        }
+
+        final Object[] array = (Object[]) arrayObject;
+        if (arrayIndex >= array.length) {
+            return;
+        }
+
+        final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+        final DataType elementType = arrayDataType.getElementType();
+        final Object coerced = DataTypeUtils.convertType(value, elementType, fieldName);
+
+        final boolean update = !Objects.equals(coerced, array[arrayIndex]);
+        if (update) {
+            array[arrayIndex] = coerced;
+            serializedForm = Optional.empty();
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void setMapValue(final String fieldName, final String mapKey, final Object value) {
+        final Optional<RecordField> field = getSchema().getField(fieldName);
+        if (!field.isPresent()) {
+            return;
+        }
+
+        final RecordField recordField = field.get();
+        final DataType dataType = recordField.getDataType();
+        if (dataType.getFieldType() != RecordFieldType.MAP) {
+            throw new IllegalTypeConversionException("Cannot set the value of map entry on Record because the field '" + fieldName
+                + "' is of type '" + dataType + "' and cannot be coerced into an MAP type");
+        }
+
+        Object mapObject = values.get(recordField.getFieldName());
+        if (mapObject == null) {
+            mapObject = new HashMap<String, Object>();
+        }
+        if (!(mapObject instanceof Map)) {
+            return;
+        }
+
+        final Map<String, Object> map = (Map<String, Object>) mapObject;
+
+        final MapDataType mapDataType = (MapDataType) dataType;
+        final DataType valueDataType = mapDataType.getValueType();
+        final Object coerced = DataTypeUtils.convertType(value, valueDataType, fieldName);
+
+        final Object replaced = map.put(mapKey, coerced);
+        if (replaced == null || !replaced.equals(coerced)) {
+            serializedForm = Optional.empty();
+        }
+    }
+
+    @Override
+    public void incorporateSchema(RecordSchema other) {
+        this.schema = DataTypeUtils.merge(this.schema, other);
     }
 }

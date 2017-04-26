@@ -102,3 +102,4 @@ org.apache.nifi.processors.standard.FetchDistributedMapCache
 org.apache.nifi.processors.standard.ListFTP
 org.apache.nifi.processors.standard.FetchFTP
 org.apache.nifi.processors.standard.UpdateCounter
+org.apache.nifi.processors.standard.UpdateRecord

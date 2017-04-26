@@ -187,7 +187,8 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
 
                 final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-                final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), originalFlowFile, new NullInputStream(0));
+                final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile, new NullInputStream(0));
+                final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema);
 
                 final StopWatch stopWatch = new StopWatch(true);
 

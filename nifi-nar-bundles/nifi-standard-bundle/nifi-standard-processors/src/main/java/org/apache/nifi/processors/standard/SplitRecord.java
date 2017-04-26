@@ -136,7 +136,7 @@ public class SplitRecord extends AbstractProcessor {
         final RecordSetWriter writer;
         try (final InputStream rawIn = session.read(original);
             final InputStream in = new BufferedInputStream(rawIn)) {
-            writer = writerFactory.createWriter(getLogger(), original, in);
+            writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(original, in));
         } catch (final Exception e) {
             getLogger().error("Failed to create Record Writer for {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);

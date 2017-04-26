@@ -16,6 +16,10 @@
  */
 
 import groovy.xml.MarkupBuilder
+
+import java.io.IOException
+import java.io.InputStream
+
 import org.apache.nifi.controller.AbstractControllerService
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.logging.ComponentLog
@@ -24,6 +28,7 @@ import org.apache.nifi.serialization.RecordSetWriter
 import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.WriteResult
 import org.apache.nifi.serialization.record.Record
+import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.serialization.record.RecordSet
 import org.apache.nifi.stream.io.NonCloseableOutputStream
 
@@ -73,7 +78,12 @@ class GroovyRecordSetWriter implements RecordSetWriter {
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
 
     @Override
-    RecordSetWriter createWriter(ComponentLog logger, FlowFile flowFile, InputStream flowFileContent) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(FlowFile flowFile, InputStream inStream) throws SchemaNotFoundException, IOException {
+        return null;
+    }
+    
+    @Override
+    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) throws SchemaNotFoundException, IOException {
         return new GroovyRecordSetWriter()
     }
 }

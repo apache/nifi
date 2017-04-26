@@ -254,7 +254,7 @@ public class QueryRecord extends AbstractProcessor {
             final RecordSetWriter resultSetWriter;
             try (final InputStream rawIn = session.read(original);
                 final InputStream in = new BufferedInputStream(rawIn)) {
-                resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), original, in);
+                resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), resultSetWriterFactory.getSchema(original, in));
             }
 
             for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {

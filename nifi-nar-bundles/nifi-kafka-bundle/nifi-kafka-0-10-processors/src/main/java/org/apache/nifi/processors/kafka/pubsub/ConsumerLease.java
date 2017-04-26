@@ -415,7 +415,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         try {
             final RecordSetWriter writer;
             try {
-                writer = writerFactory.createWriter(logger, flowFile, new ByteArrayInputStream(records.get(0).value()));
+                final RecordSchema schema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
+                writer = writerFactory.createWriter(logger, schema);
             } catch (final Exception e) {
                 logger.error(
                     "Failed to obtain a Record Writer for serializing Kafka messages. This generally happens because the "

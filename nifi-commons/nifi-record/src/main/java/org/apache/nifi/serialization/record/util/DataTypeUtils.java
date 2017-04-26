@@ -17,14 +17,6 @@
 
 package org.apache.nifi.serialization.record.util;
 
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
@@ -32,37 +24,59 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public class DataTypeUtils {
 
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
-        return convertType(value, dataType, getDateFormat(RecordFieldType.DATE.getDefaultFormat()), getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
-            getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
+        return convertType(value, dataType, () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat()), () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
+            () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
     }
 
-    public static DateFormat getDateFormat(final RecordFieldType fieldType, final DateFormat dateFormat, final DateFormat timeFormat, final DateFormat timestampFormat) {
+    public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
+        final Supplier<DateFormat> timeFormat, final Supplier<DateFormat> timestampFormat) {
         switch (fieldType) {
             case DATE:
-                return dateFormat;
+                return dateFormat.get();
             case TIME:
-                return timeFormat;
+                return timeFormat.get();
             case TIMESTAMP:
-                return timestampFormat;
+                return timestampFormat.get();
         }
 
         return null;
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final DateFormat dateFormat, final DateFormat timeFormat,
-        final DateFormat timestampFormat, final String fieldName) {
+    public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
+        final Supplier<DateFormat> timestampFormat, final String fieldName) {
+
+        if (value == null) {
+            return null;
+        }
+
         switch (dataType.getFieldType()) {
             case BIGINT:
                 return toBigInt(value, fieldName);
@@ -85,7 +99,7 @@ public class DataTypeUtils {
             case SHORT:
                 return toShort(value, fieldName);
             case STRING:
-                return toString(value, getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
+                return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
             case TIME:
                 return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
@@ -99,10 +113,6 @@ public class DataTypeUtils {
                 final RecordSchema childSchema = recordType.getChildSchema();
                 return toRecord(value, childSchema, fieldName);
             case CHOICE: {
-                if (value == null) {
-                    return null;
-                }
-
                 final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
                 final DataType chosenDataType = chooseDataType(value, choiceDataType);
                 if (chosenDataType == null) {
@@ -289,7 +299,7 @@ public class DataTypeUtils {
     }
 
 
-    public static String toString(final Object value, final DateFormat format) {
+    public static String toString(final Object value, final Supplier<DateFormat> format) {
         if (value == null) {
             return null;
         }
@@ -302,20 +312,20 @@ public class DataTypeUtils {
             return String.valueOf(((java.util.Date) value).getTime());
         }
 
-        if (value instanceof java.sql.Date) {
-            return format.format((java.util.Date) value);
-        }
-        if (value instanceof java.sql.Time) {
-            return format.format((java.util.Date) value);
-        }
-        if (value instanceof java.sql.Timestamp) {
-            return format.format((java.util.Date) value);
-        }
         if (value instanceof java.util.Date) {
-            return format.format((java.util.Date) value);
+            return formatDate((java.util.Date) value, format);
         }
 
         return value.toString();
+    }
+
+    private static String formatDate(final java.util.Date date, final Supplier<DateFormat> formatSupplier) {
+        final DateFormat dateFormat = formatSupplier.get();
+        if (dateFormat == null) {
+            return String.valueOf((date).getTime());
+        }
+
+        return dateFormat.format(date);
     }
 
     public static String toString(final Object value, final String format) {
@@ -355,7 +365,7 @@ public class DataTypeUtils {
         return value != null;
     }
 
-    public static java.sql.Date toDate(final Object value, final DateFormat format, final String fieldName) {
+    public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -380,7 +390,11 @@ public class DataTypeUtils {
                     return new Date(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Date(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Date(utilDate.getTime());
             } catch (final ParseException | NumberFormatException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -430,7 +444,7 @@ public class DataTypeUtils {
         return true;
     }
 
-    public static Time toTime(final Object value, final DateFormat format, final String fieldName) {
+    public static Time toTime(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -455,7 +469,11 @@ public class DataTypeUtils {
                     return new Time(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Time(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Time(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -467,6 +485,9 @@ public class DataTypeUtils {
     }
 
     public static DateFormat getDateFormat(final String format) {
+        if (format == null) {
+            return null;
+        }
         final DateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(gmt);
         return df;
@@ -476,7 +497,7 @@ public class DataTypeUtils {
         return isDateTypeCompatible(value, format);
     }
 
-    public static Timestamp toTimestamp(final Object value, final DateFormat format, final String fieldName) {
+    public static Timestamp toTimestamp(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -501,7 +522,11 @@ public class DataTypeUtils {
                     return new Timestamp(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Timestamp(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -765,4 +790,107 @@ public class DataTypeUtils {
         return value != null && (value instanceof Character || (value instanceof CharSequence && ((CharSequence) value).length() > 0));
     }
 
+    public static RecordSchema merge(final RecordSchema thisSchema, final RecordSchema otherSchema) {
+        if (thisSchema == null) {
+            return otherSchema;
+        }
+        if (otherSchema == null) {
+            return thisSchema;
+        }
+
+        final List<RecordField> otherFields = otherSchema.getFields();
+        if (otherFields.isEmpty()) {
+            return thisSchema;
+        }
+
+        final List<RecordField> thisFields = thisSchema.getFields();
+        if (thisFields.isEmpty()) {
+            return otherSchema;
+        }
+
+        final Map<String, Integer> fieldIndices = new HashMap<>();
+        final List<RecordField> fields = new ArrayList<>();
+        for (int i = 0; i < thisFields.size(); i++) {
+            final RecordField field = thisFields.get(i);
+
+            final Integer index = Integer.valueOf(i);
+
+            fieldIndices.put(field.getFieldName(), index);
+            for (final String alias : field.getAliases()) {
+                fieldIndices.put(alias, index);
+            }
+
+            fields.add(field);
+        }
+
+        for (final RecordField otherField : otherFields) {
+            Integer fieldIndex = fieldIndices.get(otherField.getFieldName());
+
+            // Find the field in 'thisSchema' that corresponds to 'otherField',
+            // if one exists.
+            if (fieldIndex == null) {
+                for (final String alias : otherField.getAliases()) {
+                    fieldIndex = fieldIndices.get(alias);
+                    if (fieldIndex != null) {
+                        break;
+                    }
+                }
+            }
+
+            // If there is no field with the same name then just add 'otherField'.
+            if (fieldIndex == null) {
+                fields.add(otherField);
+                continue;
+            }
+
+            // Merge the two fields, if necessary
+            final RecordField thisField = fields.get(fieldIndex);
+            if (isMergeRequired(thisField, otherField)) {
+                final RecordField mergedField = merge(thisField, otherField);
+                fields.set(fieldIndex, mergedField);
+            }
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+
+    private static boolean isMergeRequired(final RecordField thisField, final RecordField otherField) {
+        if (!thisField.getDataType().equals(otherField.getDataType())) {
+            return true;
+        }
+
+        if (!thisField.getAliases().equals(otherField.getAliases())) {
+            return true;
+        }
+
+        if (!Objects.equals(thisField.getDefaultValue(), otherField.getDefaultValue())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static RecordField merge(final RecordField thisField, final RecordField otherField) {
+        final String fieldName = thisField.getFieldName();
+        final Set<String> aliases = new HashSet<>();
+        aliases.addAll(thisField.getAliases());
+        aliases.addAll(otherField.getAliases());
+
+        final Object defaultValue;
+        if (thisField.getDefaultValue() == null && otherField.getDefaultValue() != null) {
+            defaultValue = otherField.getDefaultValue();
+        } else {
+            defaultValue = thisField.getDefaultValue();
+        }
+
+        final DataType dataType;
+        if (thisField.getDataType().equals(otherField.getDataType())) {
+            dataType = thisField.getDataType();
+        } else {
+            dataType = RecordFieldType.CHOICE.getChoiceDataType(thisField.getDataType(), otherField.getDataType());
+        }
+
+        return new RecordField(fieldName, dataType, defaultValue, aliases);
+    }
 }

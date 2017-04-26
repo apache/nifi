@@ -1,0 +1,293 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+Apache NiFi RecordPath Guide
+============================
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
+
+[[overview]]
+Overview
+--------
+Apache NiFi offers a very robust set of Processors that are capable of ingesting, processing,
+routing, transforming, and delivering data of any format. This is possible because the NiFi
+framework itself is data-agnostic. It doesn't care whether your data is a 100-byte JSON message
+or a 100-gigabyte video. This is an incredibly powerful feature. However, there are many patterns
+that have quickly developed to handle data of differing types.
+
+One class of data that is often processed by NiFi is record-oriented data. When we say record-oriented
+data, we are often (but not always) talking about structured data such as JSON, CSV, and Avro. There
+are many other types of data that can also be represented as "records" or "messages," though. As a result,
+a set of Controller Services have been developed for parsing these different data formats and representing
+the data in a consistent way by using the RecordReader API. This allows data that has been written in any
+data format to be treated the same, so long as there is a RecordReader that is capable of producing a Record
+object that represents the data.
+
+When we talk about a Record, this is an abstraction that allows us to treat data in the same
+way, regardless of the format that it is in. A Record is made up of one or more Fields. Each Field has a name
+and a Type associated with it. The Fields of a Record are described using a Record Schema. The Schema indicates
+which fields make up a specific type of Record. The Type of a Field will be one of the following:
+
+- String
+- Boolean
+- Byte
+- Character
+- Short
+- Integer
+- Long
+- BigInt
+- Float
+- Double
+- Date - Represents a Date without a Time component
+- Time - Represents a Time of Day without a Date component
+- Timestamp - Represents a Date and Time
+- Embedded Record - Hierarchical data, such as JSON, can be represented by allowing a field to be of Type Record itself.
+- Choice - A field may be any one of several types.
+- Array - All elements of an array have the same type.
+- Map - All Map Keys are of type String. The Values are of the same type.
+
+
+Once a stream of data has been converted into Records, the RecordWriter API
+allows us to then serialize those Records back into streams of bytes so that they can be passed onto other
+systems.
+
+Of course, there's not much point in reading and writing this data if we aren't going to do something with
+the data in between. There are several processors that have already been developed for NiFi that provide some
+very powerful capabilities for routing, querying, and transforming Record-oriented data. Often times, in order
+to perform the desired function, a processor will need input from the user in order to determine which fields
+in a Record or which values in a Record should be operated on.
+
+Enter the NiFi RecordPath language. RecordPath is intended to be a simple, easy-to-use Domain-Specific Language
+(DSL) to specify which fields in a Record we care about or want to access when configuring a processor.
+
+
+
+[[structure]]
+Structure of a RecordPath
+-------------------------
+
+A Record in NiFi is made up of (potentially) many fields, and each of these fields could actually be itself a Record. This means that
+a Record can be thought of as having a hierarchical, or nested, structure. We talk about an "inner Record" as being the child of the
+"outer Record." The child of an inner Record, then, is a descendant of the outer-most Record. Similarly, we can refer to an outer Record
+as being an ancestor of an inner Record.
+
+
+[[child]]
+== Child Operator
+The RecordPath language is structured in such a way that we are able to easily reference fields of the outer-most Record, or fields of a
+child Record, or descendant Record. To accomplish this, we separate the names of the children with a slash character (`/`), which we
+refer to as the `child` operator. For example,
+let's assume that we have a Record that is made up of two fields: `name` and `details`. Also, assume that `details` is a field that is
+itself a Record and has two Fields: `identifier` and `address`. Further, let's consider that `address` is itself a Record that contains
+5 fields: `number`, `street`, `city`, `state`, and `zip`. An example, written here in JSON for illustrative purposes may look like this:
+
+----
+{
+	"name": "John Doe",
+	"details": {
+		"identifier": 100,
+		"address": {
+			"number": "123",
+			"street": "5th Avenue",
+			"city": "New York",
+			"state": "NY",
+			"zip": "10020"
+		}
+	}
+}
+----
+
+We can reference the `zip` field by using the RecordPath: `/details/address/zip`. This tells us that we want to use the `details` field of
+the "root" Record. We then want to reference the `address` field of the child Record and the `zip` field of that Record.
+
+
+[[descendant]]
+== Descendant Operator
+In addition to providing an explicit path to reach the `zip` field, it may sometimes be useful to reference the `zip` field without knowing
+the full path. In such a case, we can use the `descendant` operator (`//`) instead of the `child` operator (`/`). To reach the same `zip`
+field as above, we can accomplish this by simply using the path `//zip`. 
+
+There is a very important distinction, though, between the `child` operator and the `descendant` operator: the `descendant` operator may match
+many fields, whereas the `child` operator will match at most one field. To help understand this, consider the following Record:
+
+----
+{
+	"name": "John Doe",
+	"workAddress": {
+		"number": "123",
+		"street": "5th Avenue",
+		"city": "New York",
+		"state": "NY",
+		"zip": "10020"
+	},
+	"homeAddress": {
+		"number": "456",
+		"street": "116th Avenue",
+		"city": "New York",
+		"state": "NY",
+		"zip": "11697"
+	}
+}
+---- 
+
+Now, if we use the RecordPath `/workAddress/zip`, we will be referencing the `zip` field that has a value of "10020." The RecordPath `/homeAddress/zip` will
+reference the `zip` field that has a value of "11697." However, the RecordPath `//zip` will reference both of these fields.
+
+
+
+[[filters]]
+== Filters
+
+With the above examples and explanation, we are able to easily reference a specific field within a Record. However, in real scenarios, the data is rarely as
+simple as in the examples above. Often times, we need to filter out or refine which fields we are referencing. Examples of when we might want to do this are
+when we reference an Array field and want to only reference some of the elements in the array; when we reference a Map field and want to reference one or a few
+specific entries in the Map; or when we want to reference a Record only if it adheres to some criteria. We can accomplish this by providing our criteria to the
+RecordPath within square brackets (using the `[` and `]` characters). We will go over each of these cases below.
+
+
+[[arrays]]
+=== Arrays
+
+When we reference an Array field, the value of the field may be an array that contains several elements, but we may want only a few of those elements. For example,
+we may want to reference only the first element; only the last element; or perhaps the first, second, third, and last elements. We can reference a specific element simply by
+using the index of the element within square brackets (the index is 0-based). So let us consider a modified version of the Record above:
+
+----
+{
+	"name": "John Doe",
+	"addresses": [
+		"work": {
+			"number": "123",
+			"street": "5th Avenue",
+			"city": "New York",
+			"state": "NY",
+			"zip": "10020"
+		},
+		"home": {
+			"number": "456",
+			"street": "116th Avenue",
+			"city": "New York",
+			"state": "NY",
+			"zip": "11697"
+		}
+	]
+}
+----
+ 
+We can now reference the first element in the `addresses` array by using the RecordPath `/addresses[0]`. We can access the second element using the RecordPath `/addresses[1]`.
+There may be times, though, that we don't know how many elements will exist in the array. So we can use negative indices to count backward from the end of the array. For example,
+we can access the last element as `/addresses[-1]` or the next-to-last element as `/addresses[-2]`. If we want to reference several elements, we can use a comma-separated list of
+elements, such as `/addresses[0, 1, 2, 3]`. Or, to access elements 0 through 8, we can use the `range` operator (`..`), as in `/addresses[0..8]`. We can also mix these, and reference
+all elements by using the syntax `/addresses[0..-1]` or even `/addresses[0, 1, 4, 6..-1]`. Of course, not all of the indices referenced here will match on the Record above, because
+the `addresses` array has only 2 elements. The indices that do not match will simply be skipped.
+
+
+[[maps]]
+=== Maps
+
+Similar to an Array field, a Map field may actually consist of several different values. RecordPath gives us the ability to select a set of values based on their keys.
+We do this by using a quoted String within square brackets. As an example, let's re-visit our original Record from above:
+
+----
+{
+	"name": "John Doe",
+	"details": {
+		"identifier": 100,
+		"address": {
+			"number": "123",
+			"street": "5th Avenue",
+			"city": "New York",
+			"state": "NY",
+			"zip": "10020"
+		}
+	}
+}
+----
+
+Now, though, let's consider that the Schema that is associated with the Record indicates that the `address` field is not a Record but rather a `Map` field.
+In this case, if we attempt to reference the `zip` using the RecordPath `/details/address/zip` the RecordPath will not match because the `address` field is not a Record
+and therefore does not have any Child Record named `zip`. Instead, it is a Map field with keys and values of type String.
+Unfortunately, when looking at JSON this may seem a bit confusing because JSON does not truly have a Type system. When we convert the JSON into a Record object in order
+to operate on the data, though, this distinction can be important.
+
+In the case laid out above, we can still access the `zip` field using RecordPath. We must now use the a slightly different syntax, though: `/details/address['zip']`. This
+is telling the RecordPath that we want to access the `details` field at the highest level. We then want to access its `address` field. Since the `address` field is a `Map`
+field we can use square brackets to indicate that we want to specify a Map Key, and we can then specify the key in quotes.
+
+Further, we can select more than one Map Key, using a comma-separated list: `/details/address['city', 'state', 'zip']`. We can also select all of the fields, if we want,
+using the Wildcard operator (`*`): `/details/address[*]`. Map fields do not contain any sort of ordering, so it is not possible to reference the keys by numeric indices.
+
+
+[[predicates]]
+=== Predicates
+
+Thus far, we have discussed two different types of filters. Each of them allows us to select one or more elements out from a field that allows for many values.
+Often times, though, we need to apply a filter that allows us to restrict which Record fields are selected. For example, what if we want to select the `zip` field but
+only for an `address` field where the state is not New York? The above examples do not give us any way to do this.
+
+RecordPath provides the user the ability to specify a Predicate. A Predicate is simply a filter that can be applied to a field in order to determine whether or not the
+field should be included in the results. Like other filters, a Predicate is specified within square brackets. The syntax of the Predicate is
+`<Relative RecordPath> <Operator> <Expression>`. The `Relative RecordPath` works just like any other RecordPath but must start with a `.` (to reference the current field)
+or a `..` (to reference the current field's parent) instead of a slash and references
+fields relative to the field that the Predicate applies to. The `Operator` must be one of:
+
+- Equals (`=`)
+- Not Equal (`!=`)
+- Greater Than (`>`)
+- Greater Than or Equal To (`>=`)
+- Less Than (`<`)
+- Less Than or Equal To (`<=`)
+
+The `Expression` can be a literal value such as `50` or `Hello` or can be another RecordPath.
+
+To illustrate this, let's take the following Record as an example:
+
+----
+{
+	"name": "John Doe",
+	"workAddress": {
+		"number": "123",
+		"street": "5th Avenue",
+		"city": "New York",
+		"state": "NY",
+		"zip": "10020"
+	},
+	"homeAddress": {
+		"number": "456",
+		"street": "Grand St",
+		"city": "Jersey City",
+		"state": "NJ",
+		"zip": "07304"
+	},
+	"details": {
+		"position": "Dataflow Engineer",
+		"preferredState": "NY"
+	}
+}
+---- 
+
+Now we can use a Predicate to choose only the fields where the state is not New York. For example, we can use `/*[./state != 'NY']`. This will select any Record field
+that has a `state` field if the state does not have a value of "NY". Note that the `details` Record will not be returned because it does not have a field named `state`.
+So in this example, the RecordPath will select only the `homeAddress` field. Once we have selected that field, we can continue on with our RecordPath. As we stated
+above, we can select the `zip` field: `/*[./state != 'NY']/zip`. This RecordPath will result in selecting the `zip` field only from the `homeAddress` field.  
+
+We can also compare the value in one field with the value in another field. For example, we can select the address that is in the person's preferred state by using
+the RecordPath `/*[./state = /details/preferredState]`. In this example, this RecordPath will retrieve the `workAddress` field because its `state` field matches the
+value of the `preferredState` field.
+
+Additionally, we can write a RecordPath that references the "city" field of any record whose state is "NJ" by using the parent operator (`..`): `/*/city[../state = 'NJ']`.
+
+

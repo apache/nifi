@@ -59,6 +59,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.RecordWriter;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "0.10.x"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 0.10.x Producer API. "
@@ -325,7 +326,10 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
 
                 final RecordWriter writer;
                 try (final InputStream in = new BufferedInputStream(session.read(flowFile))) {
-                    writer = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class).createWriter(getLogger(), flowFile, in);
+                    final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+                    final RecordSchema schema = writerFactory.getSchema(flowFile, in);
+
+                    writer = writerFactory.createWriter(getLogger(), schema);
                 } catch (final Exception e) {
                     getLogger().error("Failed to create a Record Writer for {}; routing to failure", new Object[] {flowFile, e});
                     session.transfer(flowFile, REL_FAILURE);

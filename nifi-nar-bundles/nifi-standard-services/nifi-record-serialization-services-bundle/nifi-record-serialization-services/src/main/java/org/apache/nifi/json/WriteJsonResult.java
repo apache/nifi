@@ -162,7 +162,7 @@ public class WriteJsonResult implements RecordSetWriter {
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, dateFormat, timeFormat, timestampFormat, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, () -> dateFormat, () -> timeFormat, () -> timestampFormat, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
             return;
@@ -170,7 +170,7 @@ public class WriteJsonResult implements RecordSetWriter {
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, dateFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> dateFormat);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -179,7 +179,7 @@ public class WriteJsonResult implements RecordSetWriter {
                 break;
             }
             case TIME: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, timeFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> timeFormat);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -188,7 +188,7 @@ public class WriteJsonResult implements RecordSetWriter {
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, timestampFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> timestampFormat);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {

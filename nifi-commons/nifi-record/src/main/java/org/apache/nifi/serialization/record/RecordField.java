@@ -97,5 +97,8 @@ public class RecordField {
         return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue);
     }
 
-
+    @Override
+    public String toString() {
+        return "RecordField[name=" + fieldName + ", dataType=" + dataType + (aliases.isEmpty() ? "" : ", aliases=" + aliases) + "]";
+    }
 }
