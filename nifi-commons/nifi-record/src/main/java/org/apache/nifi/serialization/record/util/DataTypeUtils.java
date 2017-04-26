@@ -38,31 +38,38 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class DataTypeUtils {
 
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
-        return convertType(value, dataType, getDateFormat(RecordFieldType.DATE.getDefaultFormat()), getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
-            getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
+        return convertType(value, dataType, () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat()), () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
+            () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
     }
 
-    public static DateFormat getDateFormat(final RecordFieldType fieldType, final DateFormat dateFormat, final DateFormat timeFormat, final DateFormat timestampFormat) {
+    public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
+        final Supplier<DateFormat> timeFormat, final Supplier<DateFormat> timestampFormat) {
         switch (fieldType) {
             case DATE:
-                return dateFormat;
+                return dateFormat.get();
             case TIME:
-                return timeFormat;
+                return timeFormat.get();
             case TIMESTAMP:
-                return timestampFormat;
+                return timestampFormat.get();
         }
 
         return null;
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final DateFormat dateFormat, final DateFormat timeFormat,
-        final DateFormat timestampFormat, final String fieldName) {
+    public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
+        final Supplier<DateFormat> timestampFormat, final String fieldName) {
+
+        if (value == null) {
+            return null;
+        }
+
         switch (dataType.getFieldType()) {
             case BIGINT:
                 return toBigInt(value, fieldName);
@@ -85,7 +92,7 @@ public class DataTypeUtils {
             case SHORT:
                 return toShort(value, fieldName);
             case STRING:
-                return toString(value, getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
+                return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
             case TIME:
                 return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
@@ -99,10 +106,6 @@ public class DataTypeUtils {
                 final RecordSchema childSchema = recordType.getChildSchema();
                 return toRecord(value, childSchema, fieldName);
             case CHOICE: {
-                if (value == null) {
-                    return null;
-                }
-
                 final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
                 final DataType chosenDataType = chooseDataType(value, choiceDataType);
                 if (chosenDataType == null) {
@@ -289,7 +292,7 @@ public class DataTypeUtils {
     }
 
 
-    public static String toString(final Object value, final DateFormat format) {
+    public static String toString(final Object value, final Supplier<DateFormat> format) {
         if (value == null) {
             return null;
         }
@@ -302,20 +305,20 @@ public class DataTypeUtils {
             return String.valueOf(((java.util.Date) value).getTime());
         }
 
-        if (value instanceof java.sql.Date) {
-            return format.format((java.util.Date) value);
-        }
-        if (value instanceof java.sql.Time) {
-            return format.format((java.util.Date) value);
-        }
-        if (value instanceof java.sql.Timestamp) {
-            return format.format((java.util.Date) value);
-        }
         if (value instanceof java.util.Date) {
-            return format.format((java.util.Date) value);
+            return formatDate((java.util.Date) value, format);
         }
 
         return value.toString();
+    }
+
+    private static String formatDate(final java.util.Date date, final Supplier<DateFormat> formatSupplier) {
+        final DateFormat dateFormat = formatSupplier.get();
+        if (dateFormat == null) {
+            return String.valueOf((date).getTime());
+        }
+
+        return dateFormat.format(date);
     }
 
     public static String toString(final Object value, final String format) {
@@ -355,7 +358,7 @@ public class DataTypeUtils {
         return value != null;
     }
 
-    public static java.sql.Date toDate(final Object value, final DateFormat format, final String fieldName) {
+    public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -380,7 +383,11 @@ public class DataTypeUtils {
                     return new Date(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Date(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Date(utilDate.getTime());
             } catch (final ParseException | NumberFormatException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -430,7 +437,7 @@ public class DataTypeUtils {
         return true;
     }
 
-    public static Time toTime(final Object value, final DateFormat format, final String fieldName) {
+    public static Time toTime(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -455,7 +462,11 @@ public class DataTypeUtils {
                     return new Time(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Time(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Time(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -467,6 +478,9 @@ public class DataTypeUtils {
     }
 
     public static DateFormat getDateFormat(final String format) {
+        if (format == null) {
+            return null;
+        }
         final DateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(gmt);
         return df;
@@ -476,7 +490,7 @@ public class DataTypeUtils {
         return isDateTypeCompatible(value, format);
     }
 
-    public static Timestamp toTimestamp(final Object value, final DateFormat format, final String fieldName) {
+    public static Timestamp toTimestamp(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -501,7 +515,11 @@ public class DataTypeUtils {
                     return new Timestamp(Long.parseLong(string));
                 }
 
-                final java.util.Date utilDate = format.parse(string);
+                final DateFormat dateFormat = format.get();
+                if (dateFormat == null) {
+                    return new Timestamp(Long.parseLong(string));
+                }
+                final java.util.Date utilDate = dateFormat.parse(string);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value

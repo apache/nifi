@@ -162,7 +162,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, dateFormat, timeFormat, timestampFormat, fieldName);
+            return DataTypeUtils.convertType(value, dataType, () -> dateFormat, () -> timeFormat, () -> timestampFormat, fieldName);
         }
     }
 

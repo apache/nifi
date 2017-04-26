@@ -20,6 +20,8 @@ package org.apache.nifi.serialization.record;
 import java.util.Date;
 import java.util.Optional;
 
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+
 public interface Record {
 
     RecordSchema getSchema();
@@ -64,4 +66,55 @@ public interface Record {
     Object[] getAsArray(String fieldName);
 
     Optional<SerializedForm> getSerializedForm();
+
+    /**
+     * Updates the value of the field with the given name to the given value. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     *
+     * @param fieldName the name of the field to update
+     * @param value the new value to set
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type.
+     */
+    void setValue(String fieldName, Object value);
+
+    /**
+     * Updates the value of a the specified index of a field. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If the field specified
+     * is not an Array, an IllegalArgumentException will be thrown. If the field specified is an array
+     * but the array has fewer elements than the specified index, this method will do nothing. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     *
+     * @param fieldName the name of the field to update
+     * @param arrayIndex the 0-based index into the array that should be updated. If this value is larger than the
+     *            number of elements in the array, or if the array is null, this method will do nothing.
+     * @param value the new value to set
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type; or if the field with the given
+     *             name is not an Array
+     * @throws IllegalArgumentException if the arrayIndex is less than 0.
+     */
+    void setArrayValue(String fieldName, int arrayIndex, Object value);
+
+    /**
+     * Updates the value of a the specified key in a Map field. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If the field specified
+     * is not a Map field, an IllegalArgumentException will be thrown. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     *
+     * @param fieldName the name of the field to update
+     * @param mapKey the key in the map of the entry to update
+     * @param value the new value to set
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type; or if the field with the given
+     *             name is not a Map
+     */
+    void setMapValue(String fieldName, String mapKey, Object value);
 }
