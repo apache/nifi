@@ -1236,6 +1236,11 @@ and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
          https://github.com/triplecheck/TLSH
 
+  (ASLv2) Hortonworks Schema Registry
+    The following NOTICE information applies:
+      Hortonworks Schema Registry
+      Copyright 2016-2017 Hortonworks, Inc.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
