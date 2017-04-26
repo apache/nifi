@@ -808,6 +808,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             if (cacheClient != null) {
                                 cacheClient.removeByPattern(this.getIdentifier() + ".*");
                             }
+                            // If not in a transaction, commit the session so the DDL event(s) will be transferred
+                            if (includeDDLEvents && !inTransaction) {
+                                session.commit();
+                            }
                         }
                     }
                     break;
