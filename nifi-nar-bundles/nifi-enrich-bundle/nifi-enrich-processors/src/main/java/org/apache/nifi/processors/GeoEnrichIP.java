@@ -130,7 +130,10 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
         }
 
-        attrs.put(new StringBuilder(ipAttributeName).append(".accuracy").toString(), response.getLocation().getAccuracyRadius().toString() );
+        final Integer accuracy = response.getLocation().getAccuracyRadius();
+        if (accuracy != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".accuracy").toString(), String.valueOf(accuracy));
+        }
 
         int i = 0;
         for (final Subdivision subd : response.getSubdivisions()) {
