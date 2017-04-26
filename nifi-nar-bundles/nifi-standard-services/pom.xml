@@ -38,5 +38,6 @@
         <module>nifi-schema-registry-service-api</module>
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
+        <module>nifi-hwx-schema-registry-bundle</module>
     </modules>
 </project>

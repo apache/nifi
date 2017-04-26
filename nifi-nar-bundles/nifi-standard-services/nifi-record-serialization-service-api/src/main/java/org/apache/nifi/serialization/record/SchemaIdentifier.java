@@ -39,58 +39,13 @@ public interface SchemaIdentifier {
     OptionalInt getVersion();
 
 
-    public static SchemaIdentifier EMPTY = new SchemaIdentifier() {
-        @Override
-        public Optional<String> getName() {
-            return Optional.empty();
-        }
-
-        @Override
-        public OptionalLong getIdentifier() {
-            return OptionalLong.empty();
-        }
-
-        @Override
-        public OptionalInt getVersion() {
-            return OptionalInt.empty();
-        }
-    };
+    public static SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null);
 
     public static SchemaIdentifier ofName(final String name) {
-        return new SchemaIdentifier() {
-            @Override
-            public Optional<String> getName() {
-                return Optional.ofNullable(name);
-            }
-
-            @Override
-            public OptionalLong getIdentifier() {
-                return OptionalLong.empty();
-            }
-
-            @Override
-            public OptionalInt getVersion() {
-                return OptionalInt.empty();
-            }
-        };
+        return new StandardSchemaIdentifier(name, null, null);
     }
 
     public static SchemaIdentifier of(final String name, final long identifier, final int version) {
-        return new SchemaIdentifier() {
-            @Override
-            public Optional<String> getName() {
-                return Optional.ofNullable(name);
-            }
-
-            @Override
-            public OptionalLong getIdentifier() {
-                return OptionalLong.of(identifier);
-            }
-
-            @Override
-            public OptionalInt getVersion() {
-                return OptionalInt.of(version);
-            }
-        };
+        return new StandardSchemaIdentifier(name, identifier, version);
     }
 }
