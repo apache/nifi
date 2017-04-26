@@ -640,6 +640,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
         InetSocketAddress connectedHost = null;
+        Exception lastConnectException = new Exception("Unknown connection error");
 
         while (connectedHost == null && connectionAttempts < numHosts) {
             if (binlogClient == null) {
@@ -682,11 +683,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 transitUri = "<unknown>";
                 currentHost = (currentHost + 1) % numHosts;
                 connectionAttempts++;
+                lastConnectException = te;
             }
         }
         if (!binlogClient.isConnected()) {
             binlogClient = null;
-            throw new IOException("Could not connect binlog client to any of the specified hosts");
+            throw new IOException("Could not connect binlog client to any of the specified hosts due to: " + lastConnectException.getMessage(), lastConnectException);
         }
 
         if (createEnrichmentConnection) {
