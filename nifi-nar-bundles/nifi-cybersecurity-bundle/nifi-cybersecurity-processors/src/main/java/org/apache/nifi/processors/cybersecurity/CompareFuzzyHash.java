@@ -14,11 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cybersecurity;
 
-import com.idealista.tlsh.digests.Digest;
-import com.idealista.tlsh.digests.DigestBuilder;
-import info.debatty.java.spamsum.SpamSum;
+package org.apache.nifi.processors.cybersecurity;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -40,6 +37,9 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.cybersecurity.matchers.FuzzyHashMatcher;
+import org.apache.nifi.processors.cybersecurity.matchers.SSDeepHashMatcher;
+import org.apache.nifi.processors.cybersecurity.matchers.TLSHHashMatcher;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -52,7 +52,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -67,10 +66,10 @@ import java.util.concurrent.ConcurrentHashMap;
         "appending an attribute to the FlowFile in case of a successful match.")
 
 @WritesAttributes({
-        @WritesAttribute(attribute = "XXXX.N.match", description = "The match that ressambles the attribute specified " +
+        @WritesAttribute(attribute = "XXXX.N.match", description = "The match that resembles the attribute specified " +
                 "by the <Hash Attribute Name> property. Note that: 'XXX' gets replaced with the <Hash Attribute Name>"),
         @WritesAttribute(attribute = "XXXX.N.similarity", description = "The similarity score between this flowfile" +
-                "and the its match of the same number N. Note that: 'XXX' gets replaced with the <Hash Attribute Name>")})
+                "and its match of the same number N. Note that: 'XXX' gets replaced with the <Hash Attribute Name>")})
 
 public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
     public static final AllowableValue singleMatch = new AllowableValue(
@@ -92,8 +91,6 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
 
     // Note we add a PropertyDescriptor HASH_ALGORITHM and ATTRIBUTE_NAME from parent class
 
-
-
     public static final PropertyDescriptor MATCH_THRESHOLD = new PropertyDescriptor.Builder()
             // Note that while both TLSH and SSDeep seems to return int, we treat them as double in code.
             // The rationale behind being the expectation that other algorithms thatmay return double values
@@ -110,24 +107,25 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
     public static final PropertyDescriptor MATCHING_MODE = new PropertyDescriptor.Builder()
             .name("MATCHING_MODE")
             .displayName("Matching mode")
-            .description("The ")
+            .description("Defines if the Processor should try to match as many entries as possible (" + multiMatch.getDisplayName() +
+                    ") or if it should stio after the first match (" + singleMatch.getDisplayName() + ")")
             .required(true)
             .allowableValues(singleMatch,multiMatch)
             .defaultValue(singleMatch.getValue())
             .build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder()
-            .name("Matched")
+    public static final Relationship REL_FOUND = new Relationship.Builder()
+            .name("found")
             .description("Any FlowFile that is successfully matched to an existing hash will be sent to this Relationship.")
             .build();
 
-    public static final Relationship REL_NON_MATCH = new Relationship.Builder()
-            .name("non-match")
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+            .name("not found")
             .description("Any FlowFile that cannot be matched to an existing hash will be sent to this Relationship.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("Failure")
+            .name("failure")
             .description("Any FlowFile that cannot be matched, e.g. (lacks the attribute) will be sent to this Relationship.")
             .build();
 
@@ -143,8 +141,8 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
-        relationships.add(REL_MATCH);
-        relationships.add(REL_NON_MATCH);
+        relationships.add(REL_FOUND);
+        relationships.add(REL_NOT_FOUND);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
@@ -183,38 +181,24 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             return;
         }
 
-        Digest inputDigest = null;
-        SpamSum spamSum = null;
+        FuzzyHashMatcher fuzzyHashMatcher = null;
 
         switch (algorithm) {
             case tlsh:
-                // In case we are using TLSH, makes sense to create the source Digest just once
-                inputDigest = compareStringToTLSHDigest(inputHash);
-                // we test the validation for null (failed)
-                if (inputDigest == null) {
-                    // and if that is the case we log
-                    logger.error("Invalid hash provided. Sending to failure");
-                    //  and send to failure
-                    session.transfer(flowFile, REL_FAILURE);
-                    session.commit();
-                    return;
-                }
+                fuzzyHashMatcher = new TLSHHashMatcher(getLogger());
                 break;
             case ssdeep:
-                // However, in SSDEEP, the compare function uses the two desired strings.
-                // So we try a poor man validation (the SpamSum comparison function seems to
-                // be resilient enough but we still want to route to failure in case it
-                // clearly bogus data
-                if (looksLikeSpamSum(inputHash) == true) {
-                    spamSum = new SpamSum();
-                } else {
-                    // and if that is the case we log
-                    logger.error("Invalid hash provided. Sending to failure");
-                    //  and send to failure
-                    session.transfer(flowFile, REL_FAILURE);
-                    session.commit();
-                    return;
-                }
+                fuzzyHashMatcher = new SSDeepHashMatcher(getLogger());
+                break;
+        }
+
+        if (fuzzyHashMatcher.isValidHash(inputHash) == false) {
+            // and if that is the case we log
+            logger.error("Invalid hash provided. Sending to failure");
+            //  and send to failure
+            session.transfer(flowFile, REL_FAILURE);
+            session.commit();
+            return;
         }
 
         File file = new File(context.getProperty(HASH_LIST_FILE).getValue());
@@ -234,40 +218,28 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             }
 
             String line = null;
-            String[] hashToCompare;
+            String[] hashToCompare = null;
 
             iterateFile: while ((line = reader.readLine()) != null) {
                 switch (context.getProperty(HASH_ALGORITHM).getValue()) {
                     case tlsh:
                         hashToCompare = line.split("\t", 2);
-
-                        // This will return null in case it fails validation
-                        Digest digestToCompare = compareStringToTLSHDigest(hashToCompare[0]);
-
-                        // So we test it
-                        if (digestToCompare != null) {
-                            similarity = inputDigest.calculateDifference(digestToCompare, true);
-                            // Note how the similarity is lower of greater than
-                            // This is due to TLSH 0 = perfect match, while 200 = no similarity
-                            if (similarity <= matchThreshold) {
-                                matched.put(hashToCompare[1], similarity);
-                            }
-                        }
                         break;
                     case ssdeep:
                         hashToCompare = line.split(",", 2);
-                        // within the match below, one can find a quick comparison of block length, which happens to be
-                        // the initial ssdeep optimisation strategy described by Brian Wallace at Virus Bulletin
-                        // on 2015-11-27 https://www.virusbulletin.com/virusbulletin/2015/11/optimizing-ssdeep-use-scale
-                        // The other strategy (integerDB) is better left for site specific implementations via Scripted
-                        // Processors for example.
-                        similarity = spamSum.match(inputHash, hashToCompare[0]);
-                        if (similarity >= matchThreshold) {
-                            matched.put(hashToCompare[1], similarity);
-                        }
                         break;
                 }
-                // Check if single match is desired and if a matche has been made
+
+                if (hashToCompare != null) {
+                    similarity = fuzzyHashMatcher.getSimilarity(inputHash, hashToCompare[0]);
+
+                    if (fuzzyHashMatcher.matchExceedsThreshold(similarity, matchThreshold)) {
+                        //
+                        matched.put(hashToCompare[1], similarity);
+                    }
+                }
+
+                // Check if single match is desired and if a match has been made
                 if (context.getProperty(MATCHING_MODE).getValue() == singleMatch.getValue() && (matched.size() > 0)) {
                     // and save time by breaking the outer loop
                     break iterateFile;
@@ -292,12 +264,12 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 }
                 // Finally, append the attributes to the flowfile and sent to match
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, REL_MATCH);
+                session.transfer(flowFile, REL_FOUND);
                 session.commit();
                 return;
             } else {
                 // Otherwise send it to non-match
-                session.transfer(flowFile, REL_NON_MATCH);
+                session.transfer(flowFile, REL_NOT_FOUND);
                 session.commit();
                 return;
             }
@@ -312,47 +284,6 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         }
     }
 
-    private Digest compareStringToTLSHDigest(String stringFromHashList) {
-        // Because DigestBuilder raises all sort of exceptions, so in order to keep the onTrigger loop a
-        // bit cleaner, we capture them here and return NaN to the loop above, otherwise simply return the
-        // similarity score.
-        try {
-            Digest digest = new DigestBuilder().withHash(stringFromHashList).build();
 
-            return digest;
-        } catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException | NumberFormatException e) {
-            getLogger().error("Got {} while processing the string '{}'. This usually means the file " +
-                    "defined by '{}' property contains invalid entries.",
-                    new Object[]{e.getCause(), stringFromHashList, HASH_LIST_FILE.getDisplayName()});
-            return null;
-        }
-    }
-
-    protected boolean looksLikeSpamSum(String inputHash) {
-        // format looks like
-        // blocksize:hash:hash
-
-        String [] fields = inputHash.split(":", 3);
-
-        if (fields.length == 3) {
-            Scanner sc = new Scanner(fields[0]);
-
-            boolean isNumber = sc.hasNextInt();
-            if (isNumber == false) {
-                if (getLogger().isDebugEnabled()) {
-                    getLogger().debug("Field should be numeric but got '{}'. Will tell processor to ignore.",
-                            new Object[] {fields[0]});
-                }
-            }
-
-            boolean hashOneIsNotEmpty = !fields[1].isEmpty();
-            boolean hashTwoIsNotEmpty = !fields[2].isEmpty();
-
-            if (isNumber && hashOneIsNotEmpty && hashTwoIsNotEmpty) {
-                return true;
-            }
-        }
-        return false;
-    }
 
 }

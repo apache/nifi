@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.cybersecurity;
 
 
+import org.apache.nifi.processors.cybersecurity.matchers.FuzzyHashMatcher;
+import org.apache.nifi.processors.cybersecurity.matchers.SSDeepHashMatcher;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -58,9 +60,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_FOUND).get(0);
 
 
         outFile.assertAttributeEquals(
@@ -89,9 +91,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_FOUND).get(0);
 
 
         outFile.assertAttributeEquals("fuzzyhash.value.0.match",
@@ -123,9 +125,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NON_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NOT_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NON_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NOT_FOUND).get(0);
     }
 
     @Test
@@ -145,9 +147,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NON_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NOT_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NON_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NOT_FOUND).get(0);
 
         outFile.assertAttributeNotExists("fuzzyhash.value.0.match");
     }
@@ -192,9 +194,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_FOUND).get(0);
 
         outFile.assertAttributeEquals(
                 "fuzzyhash.value.0.match",
@@ -222,9 +224,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_FOUND).get(0);
 
         outFile.assertAttributeEquals(
                 "fuzzyhash.value.0.match",
@@ -259,9 +261,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NON_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NOT_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NON_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NOT_FOUND).get(0);
 
         outFile.assertAttributeNotExists("fuzzyhash.value.0.match");
     }
@@ -281,9 +283,9 @@ public class TestCompareFuzzyHash {
         runner.run();
 
         runner.assertQueueEmpty();
-        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NON_MATCH, 1);
+        runner.assertAllFlowFilesTransferred(CompareFuzzyHash.REL_NOT_FOUND, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NON_MATCH).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(CompareFuzzyHash.REL_NOT_FOUND).get(0);
 
         outFile.assertAttributeNotExists("fuzzyhash.value.0.match");
     }
@@ -356,6 +358,7 @@ public class TestCompareFuzzyHash {
 
     @Test
     public void testlooksLikeSpamSum() {
+        FuzzyHashMatcher matcher = new SSDeepHashMatcher();
 
         List<String> invalidPayloads = Arrays.asList(
                 "4AD:c1xs8Z/m6H0eRH31S8p8bHENANkPrNy4tkPytwPyh2jTytxPythPytNdPytDgYyF:OuO/mg3HFSRHEb44RNMi6uHU2hcq3", // invalidFirstField
@@ -367,11 +370,11 @@ public class TestCompareFuzzyHash {
         );
 
         for (String item : invalidPayloads) {
-            Assert.assertTrue("item '" + item + "' should have failed validation",  !proc.looksLikeSpamSum(item));
+            Assert.assertTrue("item '" + item + "' should have failed validation",  !matcher.isValidHash(item));
         }
 
         // Now test with a valid string
-        Assert.assertTrue(proc.looksLikeSpamSum(ssdeepInput));
+        Assert.assertTrue(matcher.isValidHash(ssdeepInput));
 
     }
 }
