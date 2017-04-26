@@ -521,7 +521,7 @@ public class TestPutHiveStreaming {
 
     @Test
     public void cleanup() throws Exception {
-
+        processor.cleanup();
     }
 
     @Test
