@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -31,6 +30,8 @@ import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
+
+import javax.ws.rs.core.Response
 
 class NodeManagerToolSpec extends Specification{
 
@@ -174,7 +175,7 @@ class NodeManagerToolSpec extends Specification{
         def config = new NodeManagerTool()
 
         when:
-        config.deleteNode(url,client)
+        config.deleteNode(url,client,null)
 
         then:
 
@@ -185,6 +186,30 @@ class NodeManagerToolSpec extends Specification{
 
     }
 
+    def "delete secured node successfully"(){
+
+        given:
+        def String url = "https://locahost:8080/nifi-api/controller"
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def config = new NodeManagerTool()
+
+        when:
+        config.deleteNode(url,client,null)
+
+        then:
+
+        1 * client.resource(_ as String) >> resource
+        1 * resource.type(_) >> builder
+        1 * builder.header(_,_) >> builder
+        1 * builder.delete(_) >> response
+        1 * response.getStatus() >> 200
+
+    }
+
+
     def "delete node failed"(){
 
         given:
@@ -193,18 +218,20 @@ class NodeManagerToolSpec extends Specification{
         def WebResource resource = Mock WebResource
         def WebResource.Builder builder = Mock WebResource.Builder
         def ClientResponse response = Mock ClientResponse
+        def Response.StatusType statusType = Mock Response.StatusType
         def config = new NodeManagerTool()
 
         when:
-        config.deleteNode(url,client)
+        config.deleteNode(url,client,null)
 
         then:
         1 * client.resource(_ as String) >> resource
         1 * resource.type(_) >> builder
         1 * builder.delete(_) >> response
         2 * response.getStatus() >> 403
+        1 * response.getEntity(String.class) >> "Unauthorized User"
         def e = thrown(RuntimeException)
-        e.message == "Failed with HTTP error code: 403"
+        e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
 
@@ -221,11 +248,37 @@ class NodeManagerToolSpec extends Specification{
         def config = new NodeManagerTool()
 
         when:
-        def entity = config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING)
+        def entity = config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
 
         then:
         1 * client.resource(_ as String) >> resource
         1 * resource.type(_) >> builder
+        1 * builder.put(_,_) >> response
+        1 * response.getStatus() >> 200
+        1 * response.getEntity(NodeEntity.class) >> nodeEntity
+        entity == nodeEntity
+
+    }
+
+    def "update secured node successfully"(){
+
+        given:
+        def String url = "https://locahost:8080/nifi-api/controller"
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def NodeDTO nodeDTO = new NodeDTO()
+        def NodeEntity nodeEntity = Mock NodeEntity
+        def config = new NodeManagerTool()
+
+        when:
+        def entity = config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
+
+        then:
+        1 * client.resource(_ as String) >> resource
+        1 * resource.type(_) >> builder
+        1 * builder.header(_,_) >> builder
         1 * builder.put(_,_) >> response
         1 * response.getStatus() >> 200
         1 * response.getEntity(NodeEntity.class) >> nodeEntity
@@ -241,19 +294,21 @@ class NodeManagerToolSpec extends Specification{
         def WebResource resource = Mock WebResource
         def WebResource.Builder builder = Mock WebResource.Builder
         def ClientResponse response = Mock ClientResponse
+        def Response.StatusType statusType = Mock Response.StatusType
         def NodeDTO nodeDTO = new NodeDTO()
         def config = new NodeManagerTool()
 
         when:
-        config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING)
+        config.updateNode(url,client,nodeDTO,NodeManagerTool.STATUS.DISCONNECTING,null)
 
         then:
         1 * client.resource(_ as String) >> resource
         1 * resource.type(_) >> builder
         1 * builder.put(_,_) >> response
         2 * response.getStatus() >> 403
+        1 * response.getEntity(String.class) >> "Unauthorized User"
         def e = thrown(RuntimeException)
-        e.message == "Failed with HTTP error code: 403"
+        e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
 
@@ -290,10 +345,48 @@ class NodeManagerToolSpec extends Specification{
         nodeDTO.address >> "localhost"
 
         expect:
-        config.disconnectNode(client, niFiProperties,["http://localhost:8080"])
+        config.disconnectNode(client, niFiProperties,["http://localhost:8080"],null)
 
     }
 
+
+    def "disconnect secured node successfully"(){
+
+        setup:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+        def ClusterDTO clusterDTO = Mock ClusterDTO
+        def NodeDTO nodeDTO = new NodeDTO()
+        nodeDTO.address = "localhost"
+        nodeDTO.nodeId = "1"
+        nodeDTO.status = "CONNECTED"
+        def List<NodeDTO> nodeDTOs = [nodeDTO]
+        def NodeEntity nodeEntity = new NodeEntity()
+        nodeEntity.node = nodeDTO
+        def config = new NodeManagerTool()
+
+
+        niFiProperties.getProperty(_) >> "localhost"
+        client.resource(_ as String) >> resource
+        resource.type(_) >> builder
+        builder.get(ClientResponse.class) >> response
+        builder.header(_,_) >> builder
+        builder.put(_,_) >> response
+        response.getStatus() >> 200
+        response.getEntity(ClusterEntity.class) >> clusterEntity
+        response.getEntity(NodeEntity.class) >> nodeEntity
+        clusterEntity.getCluster() >> clusterDTO
+        clusterDTO.getNodes() >> nodeDTOs
+        nodeDTO.address >> "localhost"
+
+        expect:
+        config.disconnectNode(client, niFiProperties,["https://localhost:8080"],null)
+
+    }
     def "connect node successfully"(){
 
         setup:
@@ -327,7 +420,7 @@ class NodeManagerToolSpec extends Specification{
         nodeDTO.address >> "localhost"
 
         expect:
-        config.connectNode(client, niFiProperties,["http://localhost:8080"])
+        config.connectNode(client, niFiProperties,["http://localhost:8080"],null)
 
     }
 
@@ -365,7 +458,7 @@ class NodeManagerToolSpec extends Specification{
         nodeDTO.address >> "localhost"
 
         expect:
-        config.removeNode(client, niFiProperties,["http://localhost:8080"])
+        config.removeNode(client, niFiProperties,["http://localhost:8080"],null)
 
     }
 
@@ -407,6 +500,173 @@ class NodeManagerToolSpec extends Specification{
 
         expect:
         config.parse(clientFactory,["-b","src/test/resources/notify/conf/bootstrap.conf","-d","/bogus/nifi/dir","-o","remove","-u","http://localhost:8080,http://localhost1:8080"] as String[])
+
+    }
+
+    def "parse args and fail connecting secured node"(){
+
+        setup:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def ClientFactory clientFactory = Mock ClientFactory
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+        def ClusterDTO clusterDTO = Mock ClusterDTO
+        def NodeDTO nodeDTO = new NodeDTO()
+        nodeDTO.address = "localhost"
+        nodeDTO.nodeId = "1"
+        nodeDTO.status = "DISCONNECTED"
+        def List<NodeDTO> nodeDTOs = [nodeDTO]
+        def NodeEntity nodeEntity = new NodeEntity()
+        nodeEntity.node = nodeDTO
+        def config = new NodeManagerTool()
+
+
+        niFiProperties.getProperty(_) >> "localhost"
+        clientFactory.getClient(_,_) >> client
+        client.resource(_ as String) >> resource
+        resource.type(_) >> builder
+        builder.get(ClientResponse.class) >> response
+        builder.header(_,_) >> builder
+        builder.put(_,_) >> response
+        response.getStatus() >> 200
+        response.getEntity(ClusterEntity.class) >> clusterEntity
+        response.getEntity(NodeEntity.class) >> nodeEntity
+        clusterEntity.getCluster() >> clusterDTO
+        clusterDTO.getNodes() >> nodeDTOs
+        nodeDTO.address >> "localhost"
+
+        when:
+        config.parse(clientFactory,["-b","src/test/resources/notify/conf_secure/bootstrap.conf","-d","/bogus/nifi/dir","-o","connect","-u","https://localhost:8080,https://localhost1:8080"] as String[])
+
+        then:
+        def e = thrown(UnsupportedOperationException)
+        e.message == "Proxy DN is required for sending a notification to this node or cluster"
+
+
+    }
+
+    def "parse args and connect secured node"(){
+
+        setup:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def ClientFactory clientFactory = Mock ClientFactory
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+        def ClusterDTO clusterDTO = Mock ClusterDTO
+        def NodeDTO nodeDTO = new NodeDTO()
+        nodeDTO.address = "localhost"
+        nodeDTO.nodeId = "1"
+        nodeDTO.status = "DISCONNECTED"
+        def List<NodeDTO> nodeDTOs = [nodeDTO]
+        def NodeEntity nodeEntity = new NodeEntity()
+        nodeEntity.node = nodeDTO
+        def config = new NodeManagerTool()
+
+
+        niFiProperties.getProperty(_) >> "localhost"
+        clientFactory.getClient(_,_) >> client
+        client.resource(_ as String) >> resource
+        resource.type(_) >> builder
+        builder.get(ClientResponse.class) >> response
+        builder.header(_,_) >> builder
+        builder.put(_,_) >> response
+        response.getStatus() >> 200
+        response.getEntity(ClusterEntity.class) >> clusterEntity
+        response.getEntity(NodeEntity.class) >> nodeEntity
+        clusterEntity.getCluster() >> clusterDTO
+        clusterDTO.getNodes() >> nodeDTOs
+        nodeDTO.address >> "localhost"
+
+        expect:
+        config.parse(clientFactory,["-b","src/test/resources/notify/conf_secure/bootstrap.conf","-d","/bogus/nifi/dir","-o","connect","-u","https://localhost:8080,https://localhost1:8080","-p","ydavis@nifi"] as String[])
+
+    }
+
+    def "parse args and disconnect secured node"(){
+
+        setup:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def ClientFactory clientFactory = Mock ClientFactory
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+        def ClusterDTO clusterDTO = Mock ClusterDTO
+        def NodeDTO nodeDTO = new NodeDTO()
+        nodeDTO.address = "localhost"
+        nodeDTO.nodeId = "1"
+        nodeDTO.status = "CONNECTED"
+        def List<NodeDTO> nodeDTOs = [nodeDTO]
+        def NodeEntity nodeEntity = new NodeEntity()
+        nodeEntity.node = nodeDTO
+        def config = new NodeManagerTool()
+
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        clientFactory.getClient(_,_) >> client
+        client.resource(_ as String) >> resource
+        resource.type(_) >> builder
+        builder.get(ClientResponse.class) >> response
+        builder.header(_,_) >> builder
+        builder.put(_,_) >> response
+        response.getStatus() >> 200
+        response.getEntity(ClusterEntity.class) >> clusterEntity
+        response.getEntity(NodeEntity.class) >> nodeEntity
+        clusterEntity.getCluster() >> clusterDTO
+        clusterDTO.getNodes() >> nodeDTOs
+        nodeDTO.address >> "localhost"
+
+        expect:
+        config.parse(clientFactory,["-b","src/test/resources/notify/conf_secure/bootstrap.conf","-d","/bogus/nifi/dir","-o","disconnect","-u","https://localhost:8080,https://localhost1:8080","-p","ydavis@nifi"] as String[])
+
+    }
+
+    def "parse args and delete secured node"(){
+
+        setup:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def ClientFactory clientFactory = Mock ClientFactory
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+        def ClusterDTO clusterDTO = Mock ClusterDTO
+        def NodeDTO nodeDTO = new NodeDTO()
+        nodeDTO.address = "localhost"
+        nodeDTO.nodeId = "1"
+        nodeDTO.status = "CONNECTED"
+        def List<NodeDTO> nodeDTOs = [nodeDTO]
+        def NodeEntity nodeEntity = new NodeEntity()
+        nodeEntity.node = nodeDTO
+        def config = new NodeManagerTool()
+
+
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        clientFactory.getClient(_,_) >> client
+        client.resource(_ as String) >> resource
+        resource.type(_) >> builder
+        builder.get(ClientResponse.class) >> response
+        builder.header(_,_) >> builder
+        builder.put(_,_) >> response
+        builder.delete(ClientResponse.class,_) >> response
+        response.getStatus() >> 200
+        response.getEntity(ClusterEntity.class) >> clusterEntity
+        response.getEntity(NodeEntity.class) >> nodeEntity
+        clusterEntity.getCluster() >> clusterDTO
+        clusterDTO.getNodes() >> nodeDTOs
+        nodeDTO.address >> "localhost"
+
+        expect:
+        config.parse(clientFactory,["-b","src/test/resources/notify/conf_secure/bootstrap.conf","-d","/bogus/nifi/dir","-o","remove","-u","https://localhost:8080,https://localhost1:8080","-p","ydavis@nifi"] as String[])
 
     }
 

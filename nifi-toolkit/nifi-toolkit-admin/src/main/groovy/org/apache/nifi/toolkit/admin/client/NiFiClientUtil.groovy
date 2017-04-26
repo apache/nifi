@@ -27,6 +27,7 @@ import org.apache.nifi.web.api.dto.NodeDTO
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter
 import org.apache.nifi.web.api.entity.ClusterEntity
 import org.apache.nifi.web.api.entity.NodeEntity
+import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -85,7 +86,7 @@ public class NiFiClientUtil {
         urlBuilder.toString()
     }
 
-    public static ClusterEntity getCluster(final Client client, NiFiProperties niFiProperties, List<String> activeUrls){
+    public static ClusterEntity getCluster(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
 
         if(activeUrls.isEmpty()){
             final String url = getUrl(niFiProperties,null)
@@ -98,15 +99,21 @@ public class NiFiClientUtil {
 
                 String url = activeUrl + GET_CLUSTER_ENDPOINT
                 final WebResource webResource = client.resource(url)
-                final ClientResponse response = webResource.type("application/json").get(ClientResponse.class)
+                ClientResponse response
 
-                Integer status = response.getStatus()
+                if(url.startsWith("https")) {
+                    response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).get(ClientResponse.class)
+                }else{
+                    response = webResource.type("application/json").get(ClientResponse.class)
+                }
+
+                Integer status = response.status
 
                 if (status != 200) {
                     if (status == 404) {
                         logger.warn("This node is not attached to a cluster. Please connect to a node that is attached to the cluster for information")
                     } else {
-                        logger.warn("Failed with HTTP error code: {}, message: {}", status, response.getStatusInfo().getReasonPhrase())
+                        logger.warn("Failed with HTTP error code: {}, message: {}", status, response.getEntity(String.class))
                     }
                 } else if (status == 200) {
                     return response.getEntity(ClusterEntity.class)
@@ -122,9 +129,9 @@ public class NiFiClientUtil {
 
     }
 
-    public static List<String> getActiveClusterUrls(final Client client, NiFiProperties niFiProperties){
+    public static List<String> getActiveClusterUrls(final Client client, NiFiProperties niFiProperties, final String proxyDN){
 
-        final ClusterEntity clusterEntity = getCluster(client, niFiProperties, Lists.newArrayList())
+        final ClusterEntity clusterEntity = getCluster(client, niFiProperties, Lists.newArrayList(),proxyDN)
         final List<NodeDTO> activeNodes = clusterEntity.cluster.nodes.findAll{ it.status == "CONNECTED" }
         final List<String> activeUrls = Lists.newArrayList()
 

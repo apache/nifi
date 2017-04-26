@@ -87,7 +87,7 @@ public abstract class AbstractAdminTool {
         final String versionStr = AdminUtil.getNiFiVersion(nifiConfDir,nifiLibDir)
 
         if(!StringUtils.isEmpty(versionStr)){
-            Version version = new Version(versionStr,".")
+            Version version = new Version(versionStr.replace("-","."),".")
             Version minVersion = new Version(supportedMinimumVersion,".")
             Version.VERSION_COMPARATOR.compare(version,minVersion) >= 0
         }else{

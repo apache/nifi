@@ -34,6 +34,7 @@ import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
+import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -45,6 +46,7 @@ public class NotificationTool extends AbstractAdminTool {
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
     private static final String BOOTSTRAP_CONF = "bootstrapConf"
+    private static final String PROXY_DN = "proxyDn"
     private static final String NIFI_INSTALL_DIR = "nifiInstallDir"
     private static final String NOTIFICATION_MESSAGE = "message"
     private static final String NOTIFICATION_LEVEL = "level"
@@ -70,6 +72,7 @@ public class NotificationTool extends AbstractAdminTool {
         final Options options = new Options()
         options.addOption(Option.builder("h").longOpt(HELP_ARG).desc("Print help info").build())
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).desc("Set mode to verbose (default is false)").build())
+        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification. User must have view and modify privileges to 'access the controller' in NiFi").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
         options.addOption(Option.builder("m").longOpt(NOTIFICATION_MESSAGE).hasArg().desc("Notification message for nifi instance or cluster").build())
@@ -77,7 +80,7 @@ public class NotificationTool extends AbstractAdminTool {
         options
     }
 
-    void notifyCluster(final ClientFactory clientFactory, final String nifiPropertiesFile, final String bootstrapConfFile, final String nifiInstallDir, final String message, final String level){
+    void notifyCluster(final ClientFactory clientFactory, final String nifiPropertiesFile, final String bootstrapConfFile, final String nifiInstallDir, final String message, final String level, final String proxyDN){
 
         if(isVerbose){
             logger.info("Loading nifi properties for host information")
@@ -99,7 +102,19 @@ public class NotificationTool extends AbstractAdminTool {
         bulletinDTO.category = "NOTICE"
         bulletinDTO.level = StringUtils.isEmpty(level) ? "INFO" : level
         bulletinEntity.bulletin = bulletinDTO
-        final ClientResponse response = webResource.type("application/json").post(ClientResponse.class, bulletinEntity)
+
+        ClientResponse response
+        if(!org.apache.nifi.util.StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT))) {
+
+            if(StringUtils.isEmpty(proxyDN)){
+                throw new UnsupportedOperationException("Proxy DN is required for sending a notification to this node or cluster")
+            }
+
+            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).post(ClientResponse.class, bulletinEntity)
+        }
+        else {
+            response = webResource.type("application/json").post(ClientResponse.class, bulletinEntity)
+        }
 
         Integer status = response.getStatus()
 
@@ -107,7 +122,7 @@ public class NotificationTool extends AbstractAdminTool {
             if(status == 404){
                 throw new RuntimeException("The notification feature is not supported by each node in the cluster")
             }else{
-                throw new RuntimeException("Failed with HTTP error code: " + status)
+                throw new RuntimeException("Failed with HTTP error code " + status + " with reason: " +response.getEntity(String.class))
             }
         }
 
@@ -130,6 +145,7 @@ public class NotificationTool extends AbstractAdminTool {
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
                 final File bootstrapConf = new File(bootstrapConfFileName)
                 final Properties bootstrapProperties = getBootstrapConf(Paths.get(bootstrapConfFileName))
+                final String proxyDN = commandLine.getOptionValue(PROXY_DN)
                 final String parentPathName = bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath()
                 final String nifiConfDir = getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"),parentPathName)
                 final String nifiLibDir = getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"),parentPathName)
@@ -143,7 +159,7 @@ public class NotificationTool extends AbstractAdminTool {
                         logger.info("Attempting to connect with nifi using properties:", nifiPropertiesFileName)
                     }
 
-                    notifyCluster(clientFactory, nifiPropertiesFileName, bootstrapConfFileName,nifiInstallDir,notificationMessage,notificationLevel)
+                    notifyCluster(clientFactory, nifiPropertiesFileName, bootstrapConfFileName,nifiInstallDir,notificationMessage,notificationLevel,proxyDN)
 
                     if(isVerbose) {
                         logger.info("Message sent successfully to NiFi.")
@@ -169,7 +185,7 @@ public class NotificationTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | UnsupportedOperationException e) {
+        } catch (ParseException | UnsupportedOperationException | RuntimeException e) {
             tool.printUsage(e.message);
             System.exit(1)
         }

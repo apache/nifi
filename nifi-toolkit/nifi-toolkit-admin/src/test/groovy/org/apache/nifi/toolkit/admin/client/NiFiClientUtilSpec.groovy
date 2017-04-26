@@ -63,7 +63,7 @@ class NiFiClientUtilSpec extends Specification{
         def ClusterEntity clusterEntity = Mock ClusterEntity
 
         when:
-        def entity = NiFiClientUtil.getCluster(client, niFiProperties, [])
+        def entity = NiFiClientUtil.getCluster(client, niFiProperties, [], null)
 
         then:
 
@@ -77,6 +77,35 @@ class NiFiClientUtilSpec extends Specification{
 
     }
 
+    def "get secured cluster info successfully"(){
+
+        given:
+        def Client client = Mock Client
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def WebResource resource = Mock WebResource
+        def WebResource.Builder builder = Mock WebResource.Builder
+        def ClientResponse response = Mock ClientResponse
+        def ClusterEntity clusterEntity = Mock ClusterEntity
+
+        when:
+        def entity = NiFiClientUtil.getCluster(client, niFiProperties, [], "ydavis@nifi")
+
+        then:
+
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+
+        1 * client.resource(_ as String) >> resource
+        1 * resource.type(_) >> builder
+        1 * builder.header(_,_) >> builder
+        1 * builder.get(_) >> response
+        1 * response.getStatus() >> 200
+        1 * response.getEntity(ClusterEntity.class) >> clusterEntity
+        entity == clusterEntity
+
+    }
+
+
     def "get cluster info fails"(){
 
         given:
@@ -89,7 +118,7 @@ class NiFiClientUtilSpec extends Specification{
 
         when:
 
-        NiFiClientUtil.getCluster(client, niFiProperties, [])
+        NiFiClientUtil.getCluster(client, niFiProperties, [],null)
 
         then:
 
@@ -98,8 +127,7 @@ class NiFiClientUtilSpec extends Specification{
         1 * resource.type(_) >> builder
         1 * builder.get(_) >> response
         1 * response.getStatus() >> 500
-        1 * response.getStatusInfo() >> statusType
-        1 * statusType.getReasonPhrase() >> "Only a node connected to a cluster can process the request."
+        1 * response.getEntity(String.class) >> "Only a node connected to a cluster can process the request."
         def e = thrown(RuntimeException)
         e.message == "Unable to obtain cluster information"
 

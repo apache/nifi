@@ -35,6 +35,7 @@ import org.apache.nifi.util.StringUtils
 import org.apache.nifi.web.api.dto.NodeDTO
 import org.apache.nifi.web.api.entity.ClusterEntity
 import org.apache.nifi.web.api.entity.NodeEntity
+import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -45,6 +46,7 @@ public class NodeManagerTool extends AbstractAdminTool {
     private static final String DEFAULT_DESCRIPTION = "This tool is used to manage nodes within a cluster. Supported functionality will remove node from cluster. "
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
+    private static final String PROXY_DN = "proxyDn"
     private static final String BOOTSTRAP_CONF = "bootstrapConf"
     private static final String NIFI_INSTALL_DIR = "nifiInstallDir"
     private static final String CLUSTER_URLS = "clusterUrls"
@@ -75,6 +77,7 @@ public class NodeManagerTool extends AbstractAdminTool {
         final Options options = new Options()
         options.addOption(Option.builder("h").longOpt(HELP_ARG).desc("Print help info").build())
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).desc("Set mode to verbose (default is false)").build())
+        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification. User must have view and modify privileges to 'access the controller' in NiFi").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
         options.addOption(Option.builder("o").longOpt(OPERATION).hasArg().desc("Operation to connect, disconnect or remove node from cluster").build())
@@ -89,7 +92,7 @@ public class NodeManagerTool extends AbstractAdminTool {
         return nodeDTOs.find{ it.address == nodeHost }
     }
 
-    NodeEntity updateNode(final String url, final Client client, final NodeDTO nodeDTO, final STATUS nodeStatus){
+    NodeEntity updateNode(final String url, final Client client, final NodeDTO nodeDTO, final STATUS nodeStatus,final String proxyDN){
         final WebResource webResource = client.resource(url)
         nodeDTO.status = nodeStatus
         String json = NiFiClientUtil.convertToJson(nodeDTO)
@@ -98,36 +101,47 @@ public class NodeManagerTool extends AbstractAdminTool {
             logger.info("Sending node info for update: " + json)
         }
 
-        final ClientResponse response = webResource.type("application/json").put(ClientResponse.class,json)
+        ClientResponse response
 
-        if(response.getStatus() != 200){
-            throw new RuntimeException("Failed with HTTP error code: " + response.getStatus())
+        if(url.startsWith("https")) {
+            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).put(ClientResponse.class, json)
+        }else{
+            response = webResource.type("application/json").put(ClientResponse.class, json)
+        }
+
+        if(response.status != 200){
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.getEntity(String.class))
         }else{
             response.getEntity(NodeEntity.class)
         }
     }
 
-    void deleteNode(final String url, final Client client){
+    void deleteNode(final String url, final Client client, final String proxyDN){
         final WebResource webResource = client.resource(url)
 
         if(isVerbose){
             logger.info("Attempting to delete node" )
         }
+        ClientResponse response
 
-        final ClientResponse response = webResource.type("application/json").delete(ClientResponse.class)
+        if(url.startsWith("https")) {
+            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).delete(ClientResponse.class)
+        }else{
+            response = webResource.type("application/json").delete(ClientResponse.class)
+        }
 
-        if(response.getStatus() != 200){
-            throw new RuntimeException("Failed with HTTP error code: " + response.getStatus())
+        if(response.status != 200){
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.getEntity(String.class))
         }
     }
 
-    void disconnectNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls){
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+    void disconnectNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
         for(String activeUrl: activeUrls) {
             try {
                 final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
-                updateNode(url, client, currentNode, STATUS.DISCONNECTING)
+                updateNode(url, client, currentNode, STATUS.DISCONNECTING,proxyDN)
                 return
             } catch (Exception ex){
                 logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
@@ -136,13 +150,13 @@ public class NodeManagerTool extends AbstractAdminTool {
         throw new RuntimeException("Could not successfully complete request")
     }
 
-    void connectNode(final Client client, NiFiProperties niFiProperties,List<String> activeUrls){
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+    void connectNode(final Client client, NiFiProperties niFiProperties,List<String> activeUrls, final String proxyDN){
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
         for(String activeUrl: activeUrls) {
             try {
                 final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
-                updateNode(url, client, currentNode, STATUS.CONNECTING)
+                updateNode(url, client, currentNode, STATUS.CONNECTING,proxyDN)
                 return
             } catch (Exception ex){
                 logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
@@ -151,9 +165,9 @@ public class NodeManagerTool extends AbstractAdminTool {
         throw new RuntimeException("Could not successfully complete request")
     }
 
-    void removeNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls){
+    void removeNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
 
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
 
         if(currentNode != null) {
@@ -169,11 +183,11 @@ public class NodeManagerTool extends AbstractAdminTool {
                     }
 
                     if(currentNode.status == "CONNECTED") {
-                        currentNode = updateNode(url, client, currentNode, STATUS.DISCONNECTING).node
+                        currentNode = updateNode(url, client, currentNode, STATUS.DISCONNECTING,proxyDN).node
                     }
 
                     if(currentNode.status == "DISCONNECTED") {
-                        deleteNode(url, client)
+                        deleteNode(url, client,proxyDN)
                     }
 
                     if(isVerbose){
@@ -210,6 +224,7 @@ public class NodeManagerTool extends AbstractAdminTool {
                 }
 
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
+                final String proxyDN = commandLine.getOptionValue(PROXY_DN)
                 final File bootstrapConf = new File(bootstrapConfFileName)
                 Properties bootstrapProperties = getBootstrapConf(Paths.get(bootstrapConfFileName))
                 String nifiConfDir = getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
@@ -217,6 +232,10 @@ public class NodeManagerTool extends AbstractAdminTool {
                 String nifiPropertiesFileName = nifiConfDir + File.separator +"nifi.properties"
                 final String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfFileName)
                 final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFileName)
+
+                if(!StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT)) && StringUtils.isEmpty(proxyDN)) {
+                    throw new UnsupportedOperationException("Proxy DN is required for sending a notification to this node or cluster")
+                }
 
                 final String nifiInstallDir = commandLine.getOptionValue(NIFI_INSTALL_DIR)
 
@@ -235,7 +254,7 @@ public class NodeManagerTool extends AbstractAdminTool {
                         final String urlList = commandLine.getOptionValue(CLUSTER_URLS)
                         activeUrls = urlList.tokenize(',')
                     }else{
-                        activeUrls = NiFiClientUtil.getActiveClusterUrls(client,niFiProperties)
+                        activeUrls = NiFiClientUtil.getActiveClusterUrls(client,niFiProperties,proxyDN)
                     }
 
                     if(isVerbose){
@@ -243,13 +262,13 @@ public class NodeManagerTool extends AbstractAdminTool {
                     }
 
                     if(operation.toLowerCase().equals(REMOVE)){
-                        removeNode(client,niFiProperties,activeUrls)
+                        removeNode(client,niFiProperties,activeUrls,proxyDN)
                     }
                     else if(operation.toLowerCase().equals(DISCONNECT)){
-                        disconnectNode(client,niFiProperties,activeUrls)
+                        disconnectNode(client,niFiProperties,activeUrls,proxyDN)
                     }
                     else if(operation.toLowerCase().equals(CONNECT)){
-                        connectNode(client,niFiProperties,activeUrls)
+                        connectNode(client,niFiProperties,activeUrls,proxyDN)
                     }
                     else{
                         throw new ParseException("Invalid operation provided: " + operation)
