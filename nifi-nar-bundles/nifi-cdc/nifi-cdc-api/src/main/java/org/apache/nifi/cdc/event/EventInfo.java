@@ -28,7 +28,7 @@ public interface EventInfo {
     String INSERT_EVENT = "insert";
     String DELETE_EVENT = "delete";
     String UPDATE_EVENT = "update";
-    String SCHEMA_CHANGE = "schema_change";
+    String DDL_EVENT = "ddl";
 
     String getEventType();
 

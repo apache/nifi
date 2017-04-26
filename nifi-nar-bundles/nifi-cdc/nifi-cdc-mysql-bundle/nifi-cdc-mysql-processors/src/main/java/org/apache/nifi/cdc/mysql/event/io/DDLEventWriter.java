@@ -19,15 +19,15 @@ package org.apache.nifi.cdc.mysql.event.io;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.cdc.mysql.event.SchemaChangeEventInfo;
+import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 
 /**
- * A writer class to output MySQL binlog "schema change" (ALTER TABLE, e.g.) events to flow file(s).
+ * A writer class to output MySQL binlog Data Definition Language (DDL) events to flow file(s).
  */
-public class SchemaChangeEventWriter extends AbstractBinlogTableEventWriter<SchemaChangeEventInfo> {
+public class DDLEventWriter extends AbstractBinlogTableEventWriter<DDLEventInfo> {
 
     @Override
-    public long writeEvent(ProcessSession session, String transitUri, SchemaChangeEventInfo eventInfo, long currentSequenceId, Relationship relationship) {
+    public long writeEvent(ProcessSession session, String transitUri, DDLEventInfo eventInfo, long currentSequenceId, Relationship relationship) {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, (outputStream) -> {
             super.startJson(outputStream, eventInfo);

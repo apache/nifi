@@ -21,14 +21,14 @@ import org.apache.nifi.cdc.event.TableInfo;
 
 
 /**
- * An event class corresponding to table schema changes (add/drop column, add/drop table, etc.)
+ * An event class corresponding to Data Definition Language (DDL) events, such as schema changes (add/drop column, add/drop table, etc.) and others (truncate table, e.g.)
  */
-public class SchemaChangeEventInfo extends BaseBinlogTableEventInfo implements TableEventInfo {
+public class DDLEventInfo extends BaseBinlogTableEventInfo implements TableEventInfo {
 
     private String query;
 
-    public SchemaChangeEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, long binlogPosition, String query) {
-        super(tableInfo, SCHEMA_CHANGE, timestamp, binlogFilename, binlogPosition);
+    public DDLEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, long binlogPosition, String query) {
+        super(tableInfo, DDL_EVENT, timestamp, binlogFilename, binlogPosition);
         this.query = query;
     }
 

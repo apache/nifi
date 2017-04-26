@@ -47,13 +47,13 @@ import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
-import org.apache.nifi.cdc.mysql.event.SchemaChangeEventInfo;
+import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
-import org.apache.nifi.cdc.mysql.event.io.SchemaChangeEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -128,7 +128,7 @@ import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
         @WritesAttribute(attribute = EventWriter.SEQUENCE_ID_KEY, description = "A sequence identifier (i.e. strictly increasing integer value) specifying the order "
                 + "of the CDC event flow file relative to the other event flow file(s)."),
         @WritesAttribute(attribute = EventWriter.CDC_EVENT_TYPE_ATTRIBUTE, description = "A string indicating the type of CDC event that occurred, including (but not limited to) "
-                + "'begin', 'insert', 'update', 'delete', 'schema_change' and 'commit'."),
+                + "'begin', 'insert', 'update', 'delete', 'ddl' and 'commit'."),
         @WritesAttribute(attribute = "mime.type", description = "The processor outputs flow file content in JSON format, and sets the mime.type attribute to "
                 + "application/json")
 })
@@ -377,7 +377,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     private final BeginTransactionEventWriter beginEventWriter = new BeginTransactionEventWriter();
     private final CommitTransactionEventWriter commitEventWriter = new CommitTransactionEventWriter();
-    private final SchemaChangeEventWriter schemaChangeEventWriter = new SchemaChangeEventWriter();
+    private final DDLEventWriter ddlEventWriter = new DDLEventWriter();
     private final InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
     private final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
     private final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
@@ -801,8 +801,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 || normalizedQuery.startsWith("drop database")) {
 
                             if (includeDDLEvents) {
-                                SchemaChangeEventInfo schemaChangeEvent = new SchemaChangeEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
-                                currentSequenceId.set(schemaChangeEventWriter.writeEvent(currentSession, transitUri, schemaChangeEvent, currentSequenceId.get(), REL_SUCCESS));
+                                DDLEventInfo ddlEvent = new DDLEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
+                                currentSequenceId.set(ddlEventWriter.writeEvent(currentSession, transitUri, ddlEvent, currentSequenceId.get(), REL_SUCCESS));
                             }
                             // Remove all the keys from the cache that this processor added
                             if (cacheClient != null) {
