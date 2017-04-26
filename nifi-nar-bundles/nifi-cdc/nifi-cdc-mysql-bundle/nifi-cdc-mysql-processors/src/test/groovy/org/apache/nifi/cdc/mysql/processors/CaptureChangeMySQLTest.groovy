@@ -403,7 +403,7 @@ class CaptureChangeMySQLTest {
 
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
         List<String> expectedEventTypes = ([] + 'begin' + Collections.nCopies(3, 'insert') + 'commit' + 'begin' + 'update' + 'commit'
-                + 'begin' + 'schema_change' + Collections.nCopies(2, 'delete') + 'commit')
+                + 'begin' + 'ddl' + Collections.nCopies(2, 'delete') + 'commit')
 
         resultFiles.eachWithIndex {e, i ->
             assertEquals(i, Long.valueOf(e.getAttribute(EventWriter.SEQUENCE_ID_KEY)))
@@ -478,7 +478,7 @@ class CaptureChangeMySQLTest {
         testRunner.run(1, true, false)
 
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
-        // No 'schema_change' events expected
+        // No DDL events expected
         List<String> expectedEventTypes = ([] + 'begin' + Collections.nCopies(3, 'insert') + 'commit')
 
         resultFiles.eachWithIndex {e, i ->
