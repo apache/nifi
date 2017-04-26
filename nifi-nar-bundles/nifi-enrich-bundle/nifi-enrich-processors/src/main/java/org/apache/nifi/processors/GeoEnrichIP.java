@@ -55,7 +55,7 @@ import com.maxmind.geoip2.record.Subdivision;
 @WritesAttributes({
     @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
     @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
-    @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database"),
+    @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database (in Kilometers)"),
     @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
     @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
     @WritesAttribute(attribute = "X.geo.subdivision.N",
@@ -76,11 +76,14 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         final DatabaseReader dbReader = databaseReaderRef.get();
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
-        if (StringUtils.isEmpty(ipAttributeName)) { //TODO need to add additional validation - should look like an IPv4 or IPv6 addr for instance
+
+        if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Unable to find ip address for {}", new Object[]{flowFile});
+            getLogger().warn("FlowFile '{}' aatribute '{}' was empty. Routing to failure",
+                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
             return;
         }
+
         InetAddress inetAddress = null;
         CityResponse response = null;
 
@@ -88,14 +91,21 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             inetAddress = InetAddress.getByName(ipAttributeValue);
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Could not resolve {} to ip address for {}", new Object[]{ipAttributeValue, flowFile}, ioe);
+            getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
+                            "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
+                            "providing the processor with an invalid IP address ",
+                            new Object[]{IP_ADDRESS_ATTRIBUTE.getDisplayName(), ipAttributeValue, flowFile}, ioe);
             return;
         }
+
         final StopWatch stopWatch = new StopWatch(true);
         try {
             response = dbReader.city(inetAddress);
             stopWatch.stop();
         } catch (final IOException | GeoIp2Exception ex) {
+            // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
+            // Most name or IP resolutions failure should have been triggered in the try loop above but
+            // environmental conditions may trigger errors during the second resolution as well.
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
             return;

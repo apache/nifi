@@ -47,9 +47,10 @@ import java.util.concurrent.TimeUnit;
 @Tags({"ISP", "enrich", "ip", "maxmind"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Looks up ISP information for an IP address and adds the information to FlowFile attributes. The "
-        + "ISP data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
-        + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
-        + "will take the form X.isp.<fieldName>")
+        + "ISP data is provided as a MaxMind ISP database (Note that this is NOT the same as the GeoLite database utilized" +
+        "by some geo enrichment tools). The attribute that contains the IP address to lookup is provided by the " +
+        "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by" +
+        " enrichment will take the form X.isp.<fieldName>")
 @WritesAttributes({
     @WritesAttribute(attribute = "X.isp.lookup.micros", description = "The number of microseconds that the geo lookup took"),
     @WritesAttribute(attribute = "X.isp.asn", description = "The Autonomous System Number (ASN) identified for the IP address"),
@@ -68,11 +69,14 @@ public class ISPEnrichIP extends AbstractEnrichIP {
         final DatabaseReader dbReader = databaseReaderRef.get();
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
-        if (StringUtils.isEmpty(ipAttributeName)) { //TODO need to add additional validation - should look like an IPv4 or IPv6 addr for instance
+
+        if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Unable to find ip address for {}", new Object[]{flowFile});
+            getLogger().warn("FlowFile '{}' aatribute '{}' was empty. Routing to failure",
+                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
             return;
         }
+
         InetAddress inetAddress = null;
         IspResponse response = null;
 
@@ -80,7 +84,10 @@ public class ISPEnrichIP extends AbstractEnrichIP {
             inetAddress = InetAddress.getByName(ipAttributeValue);
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Could not resolve {} to ip address for {}", new Object[]{ipAttributeValue, flowFile}, ioe);
+            getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
+                            "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
+                            "providing the processor with an invalid IP address ",
+                    new Object[]{IP_ADDRESS_ATTRIBUTE.getDisplayName(), ipAttributeValue, flowFile}, ioe);
             return;
         }
         final StopWatch stopWatch = new StopWatch(true);
@@ -88,6 +95,9 @@ public class ISPEnrichIP extends AbstractEnrichIP {
             response = dbReader.isp(inetAddress);
             stopWatch.stop();
         } catch (final IOException | GeoIp2Exception ex) {
+            // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
+            // Most name or IP resolutions failure should have been triggered in the try loop above but
+            // environmental conditions may trigger errors during the second resolution as well.
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
             return;
