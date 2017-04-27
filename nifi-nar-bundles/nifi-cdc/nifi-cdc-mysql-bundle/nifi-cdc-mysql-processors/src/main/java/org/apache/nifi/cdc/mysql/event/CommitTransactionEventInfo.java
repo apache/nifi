@@ -22,7 +22,14 @@ package org.apache.nifi.cdc.mysql.event;
  */
 public class CommitTransactionEventInfo extends BaseBinlogEventInfo {
 
-    public CommitTransactionEventInfo(Long timestamp, String binlogFilename, long binlogPosition) {
+    private String databaseName;
+
+    public CommitTransactionEventInfo(String databaseName, Long timestamp, String binlogFilename, long binlogPosition) {
         super(COMMIT_EVENT, timestamp, binlogFilename, binlogPosition);
+        this.databaseName = databaseName;
+    }
+
+    public String getDatabaseName() {
+        return databaseName;
     }
 }

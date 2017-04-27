@@ -19,9 +19,18 @@ package org.apache.nifi.cdc.mysql.event.io;
 
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 
+import java.io.IOException;
+
 /**
  * A writer for events corresponding to the end (i.e. commit) of a MySQL transaction
  */
 public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<CommitTransactionEventInfo> {
-
+    protected void writeJson(CommitTransactionEventInfo event) throws IOException {
+        super.writeJson(event);
+        if (event.getDatabaseName() != null) {
+            jsonGenerator.writeStringField("database", event.getDatabaseName());
+        } else {
+            jsonGenerator.writeNullField("database");
+        }
+    }
 }
