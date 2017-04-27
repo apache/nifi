@@ -64,11 +64,17 @@ class Version {
             String[] o2V = o2.versionNumber
 
             for(int i = 0; i < o1V.length; i++) {
-                Integer val1 = Integer.parseInt(o1V[i])
-                Integer val2 = Integer.parseInt(o2V[i])
-                if (val1.compareTo(val2) != 0) {
-                    return val1.compareTo(val2)
+
+                if(o2V.length == i ){
+                    return 1
+                }else {
+                    Integer val1 = Integer.parseInt(o1V[i])
+                    Integer val2 = Integer.parseInt(o2V[i])
+                    if (val1.compareTo(val2) != 0) {
+                        return val1.compareTo(val2)
+                    }
                 }
+
             }
             return 0
         }
