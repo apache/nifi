@@ -2102,28 +2102,29 @@ this property specifies the maximum amount of time to keep the archived data. It
 
 === Provenance Repository
 
-The Provenance Repository contains the information related to Data Provenance. The next three sections are for Provenance Repository properties.
+The Provenance Repository contains the information related to Data Provenance. The next four sections are for Provenance Repository properties.
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository.
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.PersistentProvenanceRepository`.
 Two additional repositories are available as well.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
-set this property to org.apache.nifi.provenance.VolatileProvenanceRepository. This leaves a configurable number of Provenance Events in the Java heap, so the number
+set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
-As of Apache NiFi 1.2.0, a third option is available: org.apache.nifi.provenance.WriteAheadProvenanceRepository.
-This implementation was created to replace the PersistentProvenanceRepository. The PersistentProvenanceRepository was originally written with the simple goal of persisting
+As of Apache NiFi 1.2.0, a third and fourth option are available: `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
+This implementation was created to replace the `PersistentProvenanceRepository`. The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
 Provenance Events as they are generated and providing the ability to iterate over those events sequentially. Later, it was desired to be able to compress the data so that
 more data could be stored. After that, the ability to index and query the data was added. As requirements evolved over time, the repository kept changing without any major
-redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the PersistentProvenanceRepository can quickly become a bottleneck.
-The WriteAheadProvenanceRepository was then written to provide the same capabilities as the PersistentProvenanceRepository while providing far better performance.
-Changing to the WriteAheadProvenanceRepository is easy to accomplish, as the two repositories support most of the same properties.
-*Note Well*, however, the follow caveat: The WriteAheadProvenanceRepository will make use of the Provenance data stored by the PersistentProvenanceRepository. However, the
-PersistentProvenanceRepository may not be able to read the data written by the WriteAheadProvenanceRepository. Therefore, once the Provenance Repository is changed to use
-the WriteAheadProvenanceRepository, it cannot be changed back to the PersistentProvenanceRepository without deleting the data in the Provenance Repository. It is therefore
+redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the `PersistentProvenanceRepository` can quickly become a bottleneck.
+The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
+Changing to the `WriteAheadProvenanceRepository` is easy to accomplish, as the two repositories support most of the same properties.
+
+*Note Well*, however, the following caveat: The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
+`PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
+the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository. It is therefore
 recommended that before changing the implementation, users ensure that their version of NiFi is stable, in case any issue arises that causes the user to need to roll back to
-a previous version of NiFi that did not support the WriteAheadProvenanceRepository. It is for this reason that the default is still set to the PersistentProvenanceRepository
+a previous version of NiFi that did not support the `WriteAheadProvenanceRepository`. It is for this reason that the default is still set to the `PersistentProvenanceRepository`
 at this time.
 |====
 
@@ -2228,6 +2229,32 @@ Providing three total locations, including  _nifi.provenance.repository.director
 	will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
 	are not fully utilized, this feature can result in far faster Provenance queries.
 |====
+
+[[encrypted-write-ahead-provenance-repository-properties]]
+=== Encrypted Write Ahead Provenance Repository Properties
+
+All of the properties defined above (see <<write-ahead-provenance-repository-properties,Write Ahead Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-provenance,Encrypted Provenance Repository in the User Guide>> for more information.
+
+|====
+|*Property*|*Description*
+|nifi.provenance.repository.debug.frequency|Controls the number of events processed between DEBUG statements documenting the performance metrics of the repository. This value is only used when DEBUG level statements are enabled in the log configuration.
+ |nifi.provenance.repository.encryption.key.provider.implementation|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from `nifi.properties`, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |nifi.provenance.repository.encryption.key.provider.location|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |nifi.provenance.repository.encryption.key.id|The active key ID to use for encryption (e.g. `Key1`).
+ |nifi.provenance.repository.encryption.key|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the <<encrypt-config_tool,`./encrypt-config.sh`>> tool in NiFi Toolkit.
+ |nifi.provenance.repository.encryption.key.id.*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+The simplest configuration is below:
+
+....
+nifi.provenance.repository.implementation=org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository
+nifi.provenance.repository.debug.frequency=100
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.provenance.StaticKeyProvider
+nifi.provenance.repository.encryption.key.provider.location=
+nifi.provenance.repository.encryption.key.id=Key1
+nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+....
 
 
 === Component Status Repository
