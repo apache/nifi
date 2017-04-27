@@ -19,6 +19,7 @@
 package org.apache.nifi.util.hive;
 
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -83,7 +84,16 @@ public class HiveWriter {
         if (ugi == null) {
             return new StrictJsonWriter(endPoint, hiveConf);
         } else {
-            return ugi.doAs((PrivilegedExceptionAction<StrictJsonWriter>) () -> new StrictJsonWriter(endPoint, hiveConf));
+            try {
+                return ugi.doAs((PrivilegedExceptionAction<StrictJsonWriter>) () -> new StrictJsonWriter(endPoint, hiveConf));
+            } catch (UndeclaredThrowableException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof StreamingException) {
+                    throw (StreamingException) cause;
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -354,7 +364,16 @@ public class HiveWriter {
             if (ugi == null) {
                 return callRunner.call();
             }
-            return ugi.doAs((PrivilegedExceptionAction<T>) () -> callRunner.call());
+            try {
+                return ugi.doAs((PrivilegedExceptionAction<T>) () -> callRunner.call());
+            } catch (UndeclaredThrowableException e) {
+                Throwable cause = e.getCause();
+                // Unwrap exception so it is thrown the same way as without ugi
+                if (!(cause instanceof Exception)) {
+                    throw e;
+                }
+                throw (Exception)cause;
+            }
         });
         try {
             if (callTimeout > 0) {

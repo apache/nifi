@@ -44,6 +44,7 @@ import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.ValidationResources;
 
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -278,13 +279,16 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     public Connection getConnection() throws ProcessException {
         try {
             if (ugi != null) {
-                return ugi.doAs(new PrivilegedExceptionAction<Connection>() {
-                    @Override
-                    public Connection run() throws Exception {
-                        return dataSource.getConnection();
+                try {
+                    return ugi.doAs((PrivilegedExceptionAction<Connection>) () -> dataSource.getConnection());
+                } catch (UndeclaredThrowableException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof SQLException) {
+                        throw (SQLException) cause;
+                    } else {
+                        throw e;
                     }
-                });
-
+                }
             } else {
                 getLogger().info("Simple Authentication");
                 return dataSource.getConnection();
