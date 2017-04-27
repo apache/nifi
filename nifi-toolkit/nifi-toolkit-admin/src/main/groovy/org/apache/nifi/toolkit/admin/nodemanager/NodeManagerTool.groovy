@@ -77,7 +77,7 @@ public class NodeManagerTool extends AbstractAdminTool {
         final Options options = new Options()
         options.addOption(Option.builder("h").longOpt(HELP_ARG).desc("Print help info").build())
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).desc("Set mode to verbose (default is false)").build())
-        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification").build())
+        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification. User must have view and modify privileges to 'access the controller' in NiFi").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
         options.addOption(Option.builder("o").longOpt(OPERATION).hasArg().desc("Operation to connect, disconnect or remove node from cluster").build())
@@ -109,8 +109,8 @@ public class NodeManagerTool extends AbstractAdminTool {
             response = webResource.type("application/json").put(ClientResponse.class, json)
         }
 
-        if(response.getStatus() != 200){
-            throw new RuntimeException("Failed with HTTP error code: " + response.getStatus())
+        if(response.status != 200){
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.statusInfo.reasonPhrase)
         }else{
             response.getEntity(NodeEntity.class)
         }
@@ -130,13 +130,13 @@ public class NodeManagerTool extends AbstractAdminTool {
             response = webResource.type("application/json").delete(ClientResponse.class)
         }
 
-        if(response.getStatus() != 200){
-            throw new RuntimeException("Failed with HTTP error code: " + response.getStatus())
+        if(response.status != 200){
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.statusInfo.reasonPhrase)
         }
     }
 
     void disconnectNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
         for(String activeUrl: activeUrls) {
             try {
@@ -151,7 +151,7 @@ public class NodeManagerTool extends AbstractAdminTool {
     }
 
     void connectNode(final Client client, NiFiProperties niFiProperties,List<String> activeUrls, final String proxyDN){
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
         for(String activeUrl: activeUrls) {
             try {
@@ -167,7 +167,7 @@ public class NodeManagerTool extends AbstractAdminTool {
 
     void removeNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
 
-        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls)
+        final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
 
         if(currentNode != null) {
@@ -254,7 +254,7 @@ public class NodeManagerTool extends AbstractAdminTool {
                         final String urlList = commandLine.getOptionValue(CLUSTER_URLS)
                         activeUrls = urlList.tokenize(',')
                     }else{
-                        activeUrls = NiFiClientUtil.getActiveClusterUrls(client,niFiProperties)
+                        activeUrls = NiFiClientUtil.getActiveClusterUrls(client,niFiProperties,proxyDN)
                     }
 
                     if(isVerbose){

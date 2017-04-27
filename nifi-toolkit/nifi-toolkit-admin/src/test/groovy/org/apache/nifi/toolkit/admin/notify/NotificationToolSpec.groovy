@@ -30,6 +30,7 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
 
+import javax.ws.rs.core.Response
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 
@@ -172,11 +173,12 @@ class NotificationToolSpec extends Specification{
         def WebResource resource = Mock WebResource
         def WebResource.Builder builder = Mock WebResource.Builder
         def ClientResponse response = Mock ClientResponse
+        def Response.StatusType statusType = Mock Response.StatusType
 
         def config = new NotificationTool()
 
         when:
-        config.notifyCluster(clientFactory,"src/test/resources/notify/conf/nifi.properties","src/test/resources/notify/conf/bootstrap.conf","/bogus/nifi/dir","shutting down in 30 seconds","WARN",null)
+        config.notifyCluster(clientFactory,"src/test/resources/notify/conf/nifi.properties","src/test/resources/notify/conf/bootstrap.conf","/bogus/nifi/dir","shutting down in 30 seconds","WARN","ydavis@nifi")
 
         then:
 
@@ -185,8 +187,10 @@ class NotificationToolSpec extends Specification{
         1 * resource.type(_) >> builder
         1 * builder.post(_,_) >> response
         1 * response.getStatus() >> 403
+        1 * response.statusInfo >> statusType
+        1 * statusType.reasonPhrase >> "Unauthorized User"
         def e = thrown(RuntimeException)
-        e.message == "Failed with HTTP error code: 403"
+        e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
 

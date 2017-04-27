@@ -31,6 +31,8 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
 
+import javax.ws.rs.core.Response
+
 class NodeManagerToolSpec extends Specification{
 
     @Rule
@@ -216,6 +218,7 @@ class NodeManagerToolSpec extends Specification{
         def WebResource resource = Mock WebResource
         def WebResource.Builder builder = Mock WebResource.Builder
         def ClientResponse response = Mock ClientResponse
+        def Response.StatusType statusType = Mock Response.StatusType
         def config = new NodeManagerTool()
 
         when:
@@ -226,8 +229,10 @@ class NodeManagerToolSpec extends Specification{
         1 * resource.type(_) >> builder
         1 * builder.delete(_) >> response
         2 * response.getStatus() >> 403
+        1 * response.statusInfo >> statusType
+        1 * statusType.reasonPhrase >> "Unauthorized User"
         def e = thrown(RuntimeException)
-        e.message == "Failed with HTTP error code: 403"
+        e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
 
@@ -290,6 +295,7 @@ class NodeManagerToolSpec extends Specification{
         def WebResource resource = Mock WebResource
         def WebResource.Builder builder = Mock WebResource.Builder
         def ClientResponse response = Mock ClientResponse
+        def Response.StatusType statusType = Mock Response.StatusType
         def NodeDTO nodeDTO = new NodeDTO()
         def config = new NodeManagerTool()
 
@@ -301,8 +307,10 @@ class NodeManagerToolSpec extends Specification{
         1 * resource.type(_) >> builder
         1 * builder.put(_,_) >> response
         2 * response.getStatus() >> 403
+        1 * response.statusInfo >> statusType
+        1 * statusType.reasonPhrase >> "Unauthorized User"
         def e = thrown(RuntimeException)
-        e.message == "Failed with HTTP error code: 403"
+        e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
 
@@ -602,8 +610,8 @@ class NodeManagerToolSpec extends Specification{
         nodeEntity.node = nodeDTO
         def config = new NodeManagerTool()
 
-
-        niFiProperties.getProperty(_) >> "localhost"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
         clientFactory.getClient(_,_) >> client
         client.resource(_ as String) >> resource
         resource.type(_) >> builder
@@ -643,7 +651,8 @@ class NodeManagerToolSpec extends Specification{
         def config = new NodeManagerTool()
 
 
-        niFiProperties.getProperty(_) >> "localhost"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
         clientFactory.getClient(_,_) >> client
         client.resource(_ as String) >> resource
         resource.type(_) >> builder

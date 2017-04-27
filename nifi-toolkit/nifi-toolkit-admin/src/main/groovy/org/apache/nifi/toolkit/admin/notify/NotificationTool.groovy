@@ -72,7 +72,7 @@ public class NotificationTool extends AbstractAdminTool {
         final Options options = new Options()
         options.addOption(Option.builder("h").longOpt(HELP_ARG).desc("Print help info").build())
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).desc("Set mode to verbose (default is false)").build())
-        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification").build())
+        options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification. User must have view and modify privileges to 'access the controller' in NiFi").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
         options.addOption(Option.builder("m").longOpt(NOTIFICATION_MESSAGE).hasArg().desc("Notification message for nifi instance or cluster").build())
@@ -122,7 +122,7 @@ public class NotificationTool extends AbstractAdminTool {
             if(status == 404){
                 throw new RuntimeException("The notification feature is not supported by each node in the cluster")
             }else{
-                throw new RuntimeException("Failed with HTTP error code: " + status)
+                throw new RuntimeException("Failed with HTTP error code " + status + " with reason: " +response.statusInfo.reasonPhrase)
             }
         }
 
@@ -185,7 +185,7 @@ public class NotificationTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | UnsupportedOperationException e) {
+        } catch (ParseException | UnsupportedOperationException | RuntimeException e) {
             tool.printUsage(e.message);
             System.exit(1)
         }
