@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -35,6 +36,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
@@ -82,7 +84,8 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             values.put(fieldName, value);
         }
 
-        return new MapRecord(schema, values);
+        final Supplier<String> supplier = () -> jsonNode.toString();
+        return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"));
     }
 
     private JsonNode getJsonNode(final JsonNode parent, final RecordField field) {

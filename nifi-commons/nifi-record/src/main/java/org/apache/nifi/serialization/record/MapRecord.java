@@ -27,10 +27,18 @@ import java.util.Optional;
 public class MapRecord implements Record {
     private final RecordSchema schema;
     private final Map<String, Object> values;
+    private final Optional<SerializedForm> serializedForm;
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values) {
         this.schema = Objects.requireNonNull(schema);
         this.values = Objects.requireNonNull(values);
+        this.serializedForm = Optional.empty();
+    }
+
+    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm) {
+        this.schema = Objects.requireNonNull(schema);
+        this.values = Objects.requireNonNull(values);
+        this.serializedForm = Optional.ofNullable(serializedForm);
     }
 
     @Override
@@ -191,7 +199,7 @@ public class MapRecord implements Record {
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return DataTypeUtils.toDate(getValue(fieldName), format, fieldName);
+        return DataTypeUtils.toDate(getValue(fieldName), DataTypeUtils.getDateFormat(format), fieldName);
     }
 
     @Override
@@ -223,5 +231,10 @@ public class MapRecord implements Record {
     @Override
     public String toString() {
         return "MapRecord[values=" + values + "]";
+    }
+
+    @Override
+    public Optional<SerializedForm> getSerializedForm() {
+        return serializedForm;
     }
 }

@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -34,6 +35,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -114,6 +116,18 @@ public class WriteJsonResult implements RecordSetWriter {
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)
         throws JsonGenerationException, IOException, SQLException {
 
+        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
+        if (serializedForm.isPresent()) {
+            final SerializedForm form = serializedForm.get();
+            if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
+                final Object serialized = form.getSerialized();
+                if (serialized instanceof String) {
+                    generator.writeRawValue((String) serialized);
+                    return;
+                }
+            }
+        }
+
         try {
             startTask.apply(generator);
             for (int i = 0; i < writeSchema.getFieldCount(); i++) {
@@ -148,7 +162,7 @@ public class WriteJsonResult implements RecordSetWriter {
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, dateFormat, timeFormat, timestampFormat, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
             return;
