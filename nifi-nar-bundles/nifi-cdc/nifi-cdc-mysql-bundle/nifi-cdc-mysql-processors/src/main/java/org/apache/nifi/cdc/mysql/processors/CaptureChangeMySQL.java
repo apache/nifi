@@ -149,8 +149,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-db-name-pattern")
             .displayName("Database/Schema Name Pattern")
-            .description("A regular expression (regex) for matching databases or schemas (depending on your RDBMS' terminology) against the list of CDC events. The regex must match "
-                    + "the schema name as it is stored in the database. If the property is not set, the schema name will not be used to filter the CDC events.")
+            .description("A regular expression (regex) for matching databases (or schemas, depending on your RDBMS' terminology) against the list of CDC events. The regex must match "
+                    + "the database name as it is stored in the RDBMS. If the property is not set, the database name will not be used to filter the CDC events. "
+                    + "NOTE: DDL events, even if they affect different databases, are associated with the database used by the session to execute the DDL. "
+                    + "This means if a connection is made to one database, but the DDL is issued against another, then the connected database will be the one matched against "
+                    + "the specified pattern.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -351,6 +354,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private volatile long xactSequenceId = 0;
 
     private volatile TableInfo currentTable = null;
+    private volatile String currentDatabase = null;
     private volatile Pattern databaseNamePattern;
     private volatile Pattern tableNamePattern;
     private volatile boolean includeBeginCommit = false;
@@ -759,9 +763,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     }
                     break;
                 case QUERY:
-                    // Is this the start of a transaction?
                     QueryEventData queryEventData = event.getData();
+                    currentDatabase = queryEventData.getDatabase();
+
                     String sql = queryEventData.getSql();
+
+                    // Is this the start of a transaction?
                     if ("BEGIN".equals(sql)) {
                         // If we're already in a transaction, something bad happened, alert the user
                         if (inTransaction) {
@@ -772,8 +779,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         xactBinlogPosition = currentBinlogPosition;
                         xactSequenceId = currentSequenceId.get();
 
-                        if (includeBeginCommit) {
-                            BeginTransactionEventInfo beginEvent = new BeginTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
+                        if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
+                            BeginTransactionEventInfo beginEvent = new BeginTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
                         inTransaction = true;
@@ -783,8 +790,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     + "This could indicate that your binlog position is invalid.");
                         }
                         // InnoDB generates XID events for "commit", but MyISAM generates Query events with "COMMIT", so handle that here
-                        if (includeBeginCommit) {
-                            CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
+                        if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
+                            CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
                         // Commit the NiFi session
@@ -803,8 +810,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 || normalizedQuery.startsWith("drop table")
                                 || normalizedQuery.startsWith("drop database")) {
 
-                            if (includeDDLEvents) {
-                                DDLEventInfo ddlEvent = new DDLEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
+                            if (includeDDLEvents && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
+                                // If we don't have table information, we can still use the database name
+                                TableInfo ddlTableInfo = (currentTable != null) ? currentTable : new TableInfo(currentDatabase, null, null, null);
+                                DDLEventInfo ddlEvent = new DDLEventInfo(ddlTableInfo, timestamp, currentBinlogFile, currentBinlogPosition, normalizedQuery);
                                 currentSequenceId.set(ddlEventWriter.writeEvent(currentSession, transitUri, ddlEvent, currentSequenceId.get(), REL_SUCCESS));
                             }
                             // Remove all the keys from the cache that this processor added
@@ -824,14 +833,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         throw new IOException("COMMIT event received while not processing a transaction (i.e. no corresponding BEGIN event). "
                                 + "This could indicate that your binlog position is invalid.");
                     }
-                    if (includeBeginCommit) {
-                        CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(timestamp, currentBinlogFile, currentBinlogPosition);
+                    if (includeBeginCommit && (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches())) {
+                        CommitTransactionEventInfo commitTransactionEvent = new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                         currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                     }
                     // Commit the NiFi session
                     session.commit();
                     inTransaction = false;
                     currentTable = null;
+                    currentDatabase = null;
                     break;
 
                 case WRITE_ROWS:

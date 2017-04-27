@@ -27,6 +27,7 @@ import com.github.shyiko.mysql.binlog.event.RotateEventData
 import com.github.shyiko.mysql.binlog.event.TableMapEventData
 import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData
 import com.github.shyiko.mysql.binlog.event.WriteRowsEventData
+import groovy.json.JsonSlurper
 import org.apache.commons.io.output.WriterOutputStream
 import org.apache.nifi.cdc.mysql.MockBinlogClient
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo
@@ -666,6 +667,76 @@ class CaptureChangeMySQLTest {
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
         // BEGIN + WRITE + COMMIT from table matching, BEGIN + COMMIT for database matching
         assertEquals(5, resultFiles.size())
+    }
+
+    @Test
+    void testFilterDatabase() throws Exception {
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
+        testRunner.setProperty(CaptureChangeMySQL.DATABASE_NAME_PATTERN, "myDB")
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
+        testRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, 'true')
+
+        testRunner.run(1, false, true)
+
+        // ROTATE
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.ROTATE, nextPosition: 2] as EventHeaderV4,
+                [binlogFilename: 'master.000001', binlogPosition: 4L] as RotateEventData
+        ))
+
+        // BEGIN
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.QUERY, nextPosition: 4] as EventHeaderV4,
+                [database: 'myDB', sql: 'BEGIN'] as QueryEventData
+        ))
+
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.QUERY, nextPosition: 32] as EventHeaderV4,
+                [database: 'myDB', sql: 'ALTER TABLE myTable add column col1 int'] as QueryEventData
+        ))
+
+        // COMMIT
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.XID, nextPosition: 14] as EventHeaderV4,
+                {} as EventData
+        ))
+
+        ////////////////////////
+        // Test database filter
+        ////////////////////////
+
+        // BEGIN
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.QUERY, nextPosition: 4] as EventHeaderV4,
+                [database: 'NotMyDB', sql: 'BEGIN'] as QueryEventData
+        ))
+
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.QUERY, nextPosition: 32] as EventHeaderV4,
+                [database: 'NotMyDB', sql: 'ALTER TABLE myTable add column col1 int'] as QueryEventData
+        ))
+
+        // COMMIT
+        client.sendEvent(new Event(
+                [timestamp: new Date().time, eventType: EventType.XID, nextPosition: 14] as EventHeaderV4,
+                {} as EventData
+        ))
+
+        testRunner.run(1, true, false)
+
+        def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
+        // First BEGIN + DDL + COMMIT only
+        assertEquals(3, resultFiles.size())
+
+        // Check that the database name is set on the objects
+        resultFiles.each {f ->
+            def json = new JsonSlurper().parseText(new String(f.toByteArray()))
+            assertEquals('myDB', json.database)
+        }
     }
 
     @Test
