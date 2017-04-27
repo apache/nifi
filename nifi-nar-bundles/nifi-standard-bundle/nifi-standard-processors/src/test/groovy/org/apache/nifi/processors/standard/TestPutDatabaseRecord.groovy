@@ -144,7 +144,7 @@ class TestPutDatabaseRecord {
             assertEquals('INSERT INTO PERSONS (id, name, code) VALUES (?,?,?)',
                     generateInsert(schema, 'PERSONS', tableSchema, settings).sql)
 
-            assertEquals('DELETE FROM PERSONS WHERE id = ? AND name = ? AND code = ?',
+            assertEquals('DELETE FROM PERSONS WHERE (id = ? OR (id is null AND ? is null)) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
                     generateDelete(schema, 'PERSONS', tableSchema, settings).sql)
         }
     }
@@ -607,6 +607,51 @@ class TestPutDatabaseRecord {
         stmt.close()
         conn.close()
     }
+
+    @Test
+    void testDeleteWithNulls() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute("INSERT INTO PERSONS VALUES (1,'rec1', 101)")
+        stmt.execute("INSERT INTO PERSONS VALUES (2,'rec2', null)")
+        stmt.execute("INSERT INTO PERSONS VALUES (3,'rec3', 103)")
+        stmt.close()
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(2, 'rec2', null)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.DELETE_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(101, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(3, rs.getInt(1))
+        assertEquals('rec3', rs.getString(2))
+        assertEquals(103, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
 
     private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         final Connection conn = dbcp.getConnection()
