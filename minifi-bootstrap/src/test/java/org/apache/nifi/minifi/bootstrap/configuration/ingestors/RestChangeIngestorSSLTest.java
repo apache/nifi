@@ -23,7 +23,7 @@ import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.TestRestChangeIngestorCommon;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
@@ -48,7 +48,7 @@ import java.util.Properties;
 import static org.mockito.Mockito.when;
 
 
-public class TestRestChangeIngestorSSL extends TestRestChangeIngestorCommon {
+public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
 
 
     @BeforeClass

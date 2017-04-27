@@ -39,7 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-public class TestFileChangeIngestor {
+public class FileChangeIngestorTest {
 
     private static final String CONFIG_FILENAME = "config.yml";
     private static final String TEST_CONFIG_PATH = "src/test/resources/config.yml";

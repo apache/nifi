@@ -32,7 +32,7 @@ import java.util.Properties;
 
 import static org.mockito.Mockito.verify;
 
-public class TestConfigurationChangeCoordinator {
+public class ConfigurationChangeCoordinatorTest {
 
     private ConfigurationChangeCoordinator coordinatorSpy;
     private Properties properties = new Properties();

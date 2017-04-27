@@ -21,7 +21,7 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.TestRestChangeIngestorCommon;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
@@ -30,7 +30,7 @@ import java.net.MalformedURLException;
 import java.util.Properties;
 
 
-public class TestRestChangeIngestor extends TestRestChangeIngestorCommon {
+public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 
     @BeforeClass
     public static void setUp() throws InterruptedException, MalformedURLException {

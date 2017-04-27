@@ -47,7 +47,7 @@ import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpC
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public abstract class TestPullHttpChangeIngestorCommon {
+public abstract class PullHttpChangeIngestorCommonTest {
 
     public static volatile Server jetty;
     public static volatile int port;

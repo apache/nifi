@@ -35,7 +35,7 @@ import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.a
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addSystemDiagnosticStatus;
 import static org.junit.Assert.assertEquals;
 
-public class TestStatusReport {
+public class StatusReportTest {
 
     @Test
     public void verifySerializableFullyPopulated() throws IOException, ClassNotFoundException {

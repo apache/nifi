@@ -41,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public abstract class TestRestChangeIngestorCommon {
+public abstract class RestChangeIngestorCommonTest {
 
     private static String testString = "This is a test string.";
 

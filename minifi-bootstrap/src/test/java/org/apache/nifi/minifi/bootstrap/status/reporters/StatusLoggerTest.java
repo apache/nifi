@@ -36,7 +36,7 @@ import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.QUE
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.REPORT_PERIOD_KEY;
 import static org.mockito.Mockito.verify;
 
-public class TestStatusLogger {
+public class StatusLoggerTest {
 
     private static final String MOCK_STATUS = "FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, " +
             "validationErrorList=[]}, processorStats=null, bulletinList=null}], connectionStatusList=null, remoteProcessingGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null," +

@@ -56,7 +56,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class TestMiNiFiPersistentProvenanceRepository {
+public class MiNiFiPersistentProvenanceRepositoryTest {
 
     @Rule
     public TestName name = new TestName();

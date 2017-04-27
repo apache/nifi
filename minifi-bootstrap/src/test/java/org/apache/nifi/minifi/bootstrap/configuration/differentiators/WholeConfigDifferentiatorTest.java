@@ -39,7 +39,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-public class TestWholeConfigDifferentiator {
+public class WholeConfigDifferentiatorTest {
 
     public static final Path newConfigPath = Paths.get("./src/test/resources/config.yml");
     public static final Path defaultConfigPath = Paths.get("./src/test/resources/default.yml");

@@ -18,18 +18,18 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.TestPullHttpChangeIngestorCommon;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.PullHttpChangeIngestorCommonTest;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
 
 import java.util.Properties;
 
-public class TestPullHttpChangeIngestor extends TestPullHttpChangeIngestorCommon {
+public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        TestPullHttpChangeIngestorCommon.init();
+        PullHttpChangeIngestorCommonTest.init();
 
         final ServerConnector http = new ServerConnector(jetty);
 

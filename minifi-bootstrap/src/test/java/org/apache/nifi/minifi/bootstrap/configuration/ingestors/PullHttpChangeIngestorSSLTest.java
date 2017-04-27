@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.TestPullHttpChangeIngestorCommon;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.PullHttpChangeIngestorCommonTest;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.BeforeClass;
@@ -26,11 +26,11 @@ import org.mockito.Mockito;
 
 import java.util.Properties;
 
-public class TestPullHttpChangeIngestorSSL extends TestPullHttpChangeIngestorCommon {
+public class PullHttpChangeIngestorSSLTest extends PullHttpChangeIngestorCommonTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        TestPullHttpChangeIngestorCommon.init();
+        PullHttpChangeIngestorCommonTest.init();
 
         SslContextFactory ssl = new SslContextFactory();
 
