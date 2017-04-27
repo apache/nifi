@@ -384,7 +384,7 @@ While the options available from the context menu vary, the following options ar
 
 - *Configure*: This option allows the user to establish or change the configuration of the Remote Process Group.
 - *Remote Ports*: This option allows the user to see input ports and/or output ports that exist on the remote instance of NiFi that the Remote Process Group is connected to. Note that if the Site-to-Site configuration is secure, only the ports that the connecting NiFi has been given accessed to will be visible.
-- *Enable transmission*: Makes the transmission of data between NiFi instances active. (See <<Remote_Group_Transmission>> )
+- *Enable transmission*: Makes the transmission of data between NiFi instances active (see <<Remote_Group_Transmission>>).
 - *Disable transmission*: Disables the transmission of data between NiFi instances.
 - *Status History*: This option opens a graphical representation of the Remote Process Group's statistical information over time.
 - *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Remote Process Group.
@@ -621,7 +621,7 @@ image:iconDelete.png["Delete Icon"]
 
 Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
 
-Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services_and_Reporting_Tasks>> section.
+Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
 image:create-service-ssl-context.png["Create Service", width=700]
 
@@ -1111,7 +1111,7 @@ image:iconStop.png["Stop"]
 ).
 
 Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
-be performed. The number of active tasks is shown in the top-right corner of the Processor (see <<processor_anatomy>>
+be performed. The number of active tasks is shown in the top-right corner of the Processor (See <<processor_anatomy>>
 for more information).
 
 === Enabling/Disabling a Component
@@ -1201,20 +1201,19 @@ or not compression should be used when transmitting data to or from this Port.
 [[navigating]]
 == Navigating within a DataFlow
 
-NiFi provides various mechanisms for getting around a dataflow. The <<User_Interface>> section discussed various ways to navigate around
-the NiFi canvas; however, once a flow exists on the canvas, there are additional ways to get from one component to another. The <<User Interface>> section showed that when multiple Process Groups exist in a flow, breadcrumbs appear under the toolbar, providing a way to navigate between them. In addition, to enter a Process Group that is currently visible on the canvas, simply double-click it, thereby "drilling down" into it. Connections also provide a way to jump from one location to another within the flow. Right-click on a connection and select "Go to source" or "Go to destination" in order to jump to one end of the connection or another. This can be very useful in large, complex dataflows, where the connection lines may be long and span large areas of the canvas. Finally, all components provide the ability to jump forward or backward within the flow. Right-click any component (e.g., a processor, process group, port, etc.) and select either "Upstream connections" or "Downstream connections". A dialog window will open, showing the available upstream or downstream connections that the user may jump to. This can be especially useful when trying to follow a dataflow in a backward direction. It is typically easy to follow the path of a dataflow from start to finish, drilling down into nested process groups; however, it can be more difficult to follow the dataflow in the other direction.
+NiFi provides various mechanisms for getting around a dataflow. The <<User_Interface>> section describes various ways to navigate around the NiFi canvas; however, once a flow exists on the canvas, there are additional ways to get from one component to another. When multiple Process Groups exist in a flow, breadcrumbs appear at the bottom of the screen, providing a way to navigate between them. In addition, to enter a Process Group that is currently visible on the canvas, simply double-click it, thereby "drilling down" into it. Connections also provide a way to jump from one location to another within the flow. Right-click on a connection and select "Go to source" or "Go to destination" in order to jump to one end of the connection or another. This can be very useful in large, complex dataflows, where the connection lines may be long and span large areas of the canvas. Finally, all components provide the ability to jump forward or backward within the flow. Right-click any component (e.g., a processor, process group, port, etc.) and select either "Upstream connections" or "Downstream connections". A dialog window will open, showing the available upstream or downstream connections that the user may jump to. This can be especially useful when trying to follow a dataflow in a backward direction. It is typically easy to follow the path of a dataflow from start to finish, drilling down into nested process groups; however, it can be more difficult to follow the dataflow in the other direction.
 
 
 
 [[monitoring]]
 == Monitoring of DataFlow
 
-NiFi provides a great deal of information about the status of the DataFlow in order to monitor the
+NiFi provides a great deal of information about the DataFlow in order to monitor its
 health and status. The Status bar provides information about the overall system health
-(See <<status_bar>> above for more information). Processors, Process Groups, and Remote Process Groups
+(see <<User_Interface>>). Processors, Process Groups, and Remote Process Groups
 provide fine-grained details about their operations. Connections and Process Groups provide information
 about the amount of data in their queues. The Summary Page provides information about all of the components
-on the canvas in a tabular format and also provides System Diagnostics information that includes disk usage,
+on the canvas in a tabular format and also provides System Diagnostics that include disk usage,
 CPU utilization, and Java Heap and Garbage Collection information. In a clustered environment, this
 information is available per-node or as aggregates across the entire cluster. We will explore each of these
 monitoring artifacts below.
@@ -1773,7 +1772,7 @@ It is often useful to see a graphical representation of the lineage or path a Fl
 click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
 of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the
 various processing events that have occurred. The selected event will be highlighted in red. It is possible to right-click on any
-event to see that event's details (See <<event_details>>).
+event to see that event's details (see <<event_details>>).
 To see how the lineage evolved over time, click the slider at the bottom-left of the window and move it to the left to see the state of the lineage at earlier stages in the dataflow.
 
 image:lineage-graph-annotated.png["Lineage Graph", width=900]
@@ -1805,14 +1804,13 @@ Other Management Features
 -------------------------
 
 In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are
-other tools in the Global Menu (See <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
+other tools in the Global Menu (see <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
 all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a
 recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and
 adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the
 dataflow that will fix the problem.
 
-Two other tools in the Global Menu are Controller Settings and  Users. The Controller Settings page provides the ability to change
-the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available
-to the application. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks
-(see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in
+Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to change
+the name of the NiFi instance, add comments describing the NiFi instance, and set the maximum number of threads that are available
+to the application. It also provides tabs where DFMs may add and configure <<Controller_Services>> and <<Reporting_Tasks>>. The Users page is used to manage user access, which is described in
 the link:administration-guide.html[System Administrator's Guide].
