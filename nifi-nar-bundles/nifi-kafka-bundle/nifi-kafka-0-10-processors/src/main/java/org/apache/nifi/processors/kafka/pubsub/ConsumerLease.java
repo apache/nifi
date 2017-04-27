@@ -86,7 +86,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     //used for tracking demarcated flowfiles to their TopicPartition so we can append
     //to them on subsequent poll calls
     private final Map<TopicPartition, BundleTracker> bundleMap = new HashMap<>();
-    private Map<TopicPartition, OffsetAndMetadata> uncommittedOffsetsMap = new HashMap<>();
+    private final Map<TopicPartition, OffsetAndMetadata> uncommittedOffsetsMap = new HashMap<>();
     private long leaseStartNanos = -1;
     private boolean lastPollEmpty = false;
     private int totalFlowFiles = 0;
@@ -118,7 +118,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     private void resetInternalState() {
         bundleMap.clear();
-        uncommittedOffsetsMap = new HashMap<>();
+        uncommittedOffsetsMap.clear();
         leaseStartNanos = -1;
         lastPollEmpty = false;
         totalFlowFiles = 0;
@@ -207,7 +207,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             getProcessSession().commit();
 
             final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
-            kafkaConsumer.commitAsync(offsetsMap, (a, b) -> {});
+            kafkaConsumer.commitSync(offsetsMap);
             resetInternalState();
             return true;
         } catch (final KafkaException kex) {

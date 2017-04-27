@@ -125,6 +125,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicLong schedulingNanos;
     private final ProcessScheduler processScheduler;
     private long runNanos = 0L;
+    private volatile long yieldNanos;
     private final NiFiProperties nifiProperties;
 
     private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
@@ -518,7 +519,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public long getYieldPeriod(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(getYieldPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
+        final TimeUnit unit = (timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
+        return unit.convert(yieldNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -531,11 +533,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
-        final long yieldMillis = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.MILLISECONDS);
-        if (yieldMillis < 0) {
+        final long yieldNanos = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.NANOSECONDS);
+        if (yieldNanos < 0) {
             throw new IllegalArgumentException("Yield duration must be positive");
         }
         this.yieldPeriod.set(yieldPeriod);
+        this.yieldNanos = yieldNanos;
     }
 
     /**

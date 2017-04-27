@@ -43,10 +43,12 @@ public class DataTypeUtils {
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
-        return convertType(value, dataType, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), fieldName);
+        return convertType(value, dataType, getDateFormat(RecordFieldType.DATE.getDefaultFormat()), getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
+            getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final String dateFormat, final String timeFormat, final String timestampFormat, final String fieldName) {
+    public static Object convertType(final Object value, final DataType dataType, final DateFormat dateFormat, final DateFormat timeFormat,
+        final DateFormat timestampFormat, final String fieldName) {
         switch (dataType.getFieldType()) {
             case BIGINT:
                 return toBigInt(value, fieldName);
@@ -273,6 +275,31 @@ public class DataTypeUtils {
     }
 
 
+    public static String toString(final Object value, final DateFormat dateFormat, final DateFormat timeFormat, final DateFormat timestampFormat) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof String) {
+            return (String) value;
+        }
+
+        if (value instanceof java.sql.Date) {
+            return dateFormat.format((java.util.Date) value);
+        }
+        if (value instanceof java.sql.Time) {
+            return timeFormat.format((java.util.Date) value);
+        }
+        if (value instanceof java.sql.Timestamp) {
+            return timestampFormat.format((java.util.Date) value);
+        }
+        if (value instanceof java.util.Date) {
+            return timestampFormat.format((java.util.Date) value);
+        }
+
+        return value.toString();
+    }
+
     public static String toString(final Object value, final String dateFormat, final String timeFormat, final String timestampFormat) {
         if (value == null) {
             return null;
@@ -302,7 +329,7 @@ public class DataTypeUtils {
         return value != null;
     }
 
-    public static java.sql.Date toDate(final Object value, final String format, final String fieldName) {
+    public static java.sql.Date toDate(final Object value, final DateFormat format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -318,7 +345,7 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = getDateFormat(format).parse((String) value);
+                final java.util.Date utilDate = format.parse((String) value);
                 return new Date(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -350,7 +377,7 @@ public class DataTypeUtils {
         return false;
     }
 
-    public static Time toTime(final Object value, final String format, final String fieldName) {
+    public static Time toTime(final Object value, final DateFormat format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -366,7 +393,7 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = getDateFormat(format).parse((String) value);
+                final java.util.Date utilDate = format.parse((String) value);
                 return new Time(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -377,7 +404,7 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time for field " + fieldName);
     }
 
-    private static DateFormat getDateFormat(final String format) {
+    public static DateFormat getDateFormat(final String format) {
         final DateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(gmt);
         return df;
@@ -387,7 +414,7 @@ public class DataTypeUtils {
         return isDateTypeCompatible(value, format);
     }
 
-    public static Timestamp toTimestamp(final Object value, final String format, final String fieldName) {
+    public static Timestamp toTimestamp(final Object value, final DateFormat format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -403,7 +430,7 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = getDateFormat(format).parse((String) value);
+                final java.util.Date utilDate = format.parse((String) value);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value

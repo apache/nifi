@@ -323,7 +323,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void enableControllerService(final ControllerServiceNode serviceNode) {
-        serviceNode.verifyCanEnable();
         processScheduler.enableControllerService(serviceNode);
     }
 
@@ -349,7 +348,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         this.enableControllerServiceDependenciesFirst(controllerServiceNode);
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
+                    logger.error("Failed to enable " + controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
                         this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
                                 Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));

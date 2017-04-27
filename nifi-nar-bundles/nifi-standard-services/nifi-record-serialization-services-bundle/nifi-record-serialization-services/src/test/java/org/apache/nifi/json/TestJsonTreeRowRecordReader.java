@@ -77,7 +77,7 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    //    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    @Ignore("Intended only for manual testing to determine performance before/after modifications")
     public void testPerformanceOnLocalFile() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
@@ -106,7 +106,7 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    //    @Ignore("Intended only for manual testing to determine performance before/after modifications")
+    @Ignore("Intended only for manual testing to determine performance before/after modifications")
     public void testPerformanceOnIndividualMessages() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 

@@ -393,6 +393,10 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 @Override
                 public void run() {
                     try {
+                        if (!isValid()) {
+                            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
+                        }
+
                         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }

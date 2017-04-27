@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,18 +53,18 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private final LinkedHashMap<String, JsonPath> jsonPaths;
     private final InputStream in;
     private RecordSchema schema;
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
         final String dateFormat, final String timeFormat, final String timestampFormat)
         throws MalformedRecordException, IOException {
         super(in, logger);
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
 
         this.schema = schema;
         this.jsonPaths = jsonPaths;

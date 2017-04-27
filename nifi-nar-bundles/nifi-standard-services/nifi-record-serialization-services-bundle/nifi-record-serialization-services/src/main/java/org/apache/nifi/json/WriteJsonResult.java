@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
@@ -49,9 +50,9 @@ public class WriteJsonResult implements RecordSetWriter {
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final boolean prettyPrint,
         final String dateFormat, final String timeFormat, final String timestampFormat) {
@@ -61,9 +62,9 @@ public class WriteJsonResult implements RecordSetWriter {
         this.prettyPrint = prettyPrint;
         this.schemaAccess = schemaAccess;
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
     }
 
     @Override

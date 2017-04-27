@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,18 +45,18 @@ import org.codehaus.jackson.node.ArrayNode;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final RecordSchema schema;
-    private final String dateFormat;
-    private final String timeFormat;
-    private final String timestampFormat;
+    private final DateFormat dateFormat;
+    private final DateFormat timeFormat;
+    private final DateFormat timestampFormat;
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
         super(in, logger);
         this.schema = schema;
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
+        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
     }
 
 
