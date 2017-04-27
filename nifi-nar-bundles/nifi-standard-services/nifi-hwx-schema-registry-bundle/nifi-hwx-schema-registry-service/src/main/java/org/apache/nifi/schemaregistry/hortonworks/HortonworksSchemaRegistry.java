@@ -59,7 +59,7 @@ import com.hortonworks.registries.schemaregistry.client.SchemaRegistryClient;
 import com.hortonworks.registries.schemaregistry.errors.SchemaNotFoundException;
 
 @Tags({"schema", "registry", "avro", "hortonworks", "hwx"})
-@CapabilityDescription("Provides a Schema Registry Service that interacts with a Hortonworks Schema Registry")
+@CapabilityDescription("Provides a Schema Registry Service that interacts with a Hortonworks Schema Registry, available at https://github.com/hortonworks/registry")
 public class HortonworksSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,
         SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
@@ -100,7 +100,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         // can satisfy NiFi requirements
         String urlValue = context.getProperty(URL).evaluateAttributeExpressions().getValue();
         if (urlValue == null || urlValue.trim().length() == 0){
-        	throw new IllegalArgumentException("'Schema Registry URL' must not  be nul or empty.");
+            throw new IllegalArgumentException("'Schema Registry URL' must not  be nul or empty.");
         }
 
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_REGISTRY_URL.name(), urlValue);
@@ -142,6 +142,10 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     public String retrieveSchemaText(final String schemaName) throws org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
             final SchemaVersionInfo latest = getClient().getLatestSchemaVersionInfo(schemaName);
+            if (latest == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            }
+
             return latest.getSchemaText();
         } catch (final SchemaNotFoundException e) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException(e);
@@ -154,12 +158,27 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         try {
             final SchemaRegistryClient client = getClient();
             final SchemaMetadataInfo metadataInfo = client.getSchemaMetadataInfo(schemaName);
+            if (metadataInfo == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            }
+
             final Long schemaId = metadataInfo.getId();
+            if (schemaId == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            }
+
 
             final SchemaVersionInfo versionInfo = client.getLatestSchemaVersionInfo(schemaName);
-            final Integer version = versionInfo.getVersion();
-            final String schemaText = versionInfo.getSchemaText();
+            if (versionInfo == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            }
 
+            final Integer version = versionInfo.getVersion();
+            if (version == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
+            }
+
+            final String schemaText = versionInfo.getSchemaText();
             final SchemaIdentifier schemaIdentifier = (schemaId == null || version == null) ? SchemaIdentifier.ofName(schemaName) : SchemaIdentifier.of(schemaName, schemaId, version);
 
             final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(schemaIdentifier, schemaText);
@@ -177,10 +196,20 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     public String retrieveSchemaText(final long schemaId, final int version) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
             final SchemaRegistryClient client = getClient();
-            final SchemaMetadata metadata = client.getSchemaMetadataInfo(schemaId).getSchemaMetadata();
+            final SchemaMetadataInfo info = client.getSchemaMetadataInfo(schemaId);
+            if (info == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
+            }
+
+            final SchemaMetadata metadata = info.getSchemaMetadata();
             final String schemaName = metadata.getName();
+
             final SchemaVersionKey schemaVersionKey = new SchemaVersionKey(schemaName, version);
             final SchemaVersionInfo versionInfo = client.getSchemaVersionInfo(schemaVersionKey);
+            if (versionInfo == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
+            }
+
             return versionInfo.getSchemaText();
         } catch (final SchemaNotFoundException e) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException(e);
@@ -191,10 +220,20 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     public RecordSchema retrieveSchema(final long schemaId, final int version) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
             final SchemaRegistryClient client = getClient();
-            final SchemaMetadata metadata = client.getSchemaMetadataInfo(schemaId).getSchemaMetadata();
+            final SchemaMetadataInfo info = client.getSchemaMetadataInfo(schemaId);
+            if (info == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
+            }
+
+            final SchemaMetadata metadata = info.getSchemaMetadata();
             final String schemaName = metadata.getName();
+
             final SchemaVersionKey schemaVersionKey = new SchemaVersionKey(schemaName, version);
             final SchemaVersionInfo versionInfo = client.getSchemaVersionInfo(schemaVersionKey);
+            if (versionInfo == null) {
+                throw new org.apache.nifi.schema.access.SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
+            }
+
             final String schemaText = versionInfo.getSchemaText();
 
             final SchemaIdentifier schemaIdentifier = SchemaIdentifier.of(schemaName, schemaId, version);
@@ -214,7 +253,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
      *
      * @param avroSchema the Avro Schema to convert
      * @param text the textual representation of the schema
-     * @param schemaName the name of the schema
+     * @param schemaId the id of the schema
      * @return the Corresponding Record Schema
      */
     private RecordSchema createRecordSchema(final Schema avroSchema, final String text, final SchemaIdentifier schemaId) {
