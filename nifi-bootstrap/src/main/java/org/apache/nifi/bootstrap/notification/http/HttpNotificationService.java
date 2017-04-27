@@ -226,12 +226,13 @@ public class HttpNotificationService extends AbstractNotificationService {
             final OkHttpClient httpClient = httpClientReference.get();
 
             final Call call = httpClient.newCall(request);
-            final Response response = call.execute();
+             try (final Response response = call.execute()) {
 
-            if (!response.isSuccessful()) {
-                throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() +"'. The message was '" +
-                        response.message() + "'");
-            }
+                 if (!response.isSuccessful()) {
+                     throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() + "'. The message was '" +
+                             response.message() + "'");
+                 }
+             }
         } catch (NotificationFailedException e){
             throw e;
         } catch (Exception e) {
