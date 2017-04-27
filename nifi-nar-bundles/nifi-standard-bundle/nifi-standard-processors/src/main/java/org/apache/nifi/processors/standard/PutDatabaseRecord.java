@@ -646,12 +646,24 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 if (values != null) {
                     if (fieldIndexes != null) {
                         for (int i = 0; i < fieldIndexes.size(); i++) {
-                            ps.setObject(i + 1, values[fieldIndexes.get(i)]);
+                            // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
+                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
+                                ps.setObject(i * 2 + 1, values[fieldIndexes.get(i)]);
+                                ps.setObject(i * 2 + 2, values[fieldIndexes.get(i)]);
+                            } else {
+                                ps.setObject(i + 1, values[fieldIndexes.get(i)]);
+                            }
                         }
                     } else {
                         // If there's no index map, assume all values are included and set them in order
                         for (int i = 0; i < values.length; i++) {
-                            ps.setObject(i + 1, values[i]);
+                            // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
+                            if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
+                                ps.setObject(i * 2 + 1, values[i]);
+                                ps.setObject(i * 2 + 2, values[i]);
+                            } else {
+                                ps.setObject(i + 1, values[i]);
+                            }
                         }
                     }
                     ps.addBatch();
@@ -935,14 +947,20 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                         sqlBuilder.append(" AND ");
                     }
 
+                    String columnName;
                     if (settings.escapeColumnNames) {
-                        sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                .append(desc.getColumnName())
-                                .append(tableSchema.getQuotedIdentifierString());
+                        columnName = tableSchema.getQuotedIdentifierString() + desc.getColumnName() + tableSchema.getQuotedIdentifierString();
                     } else {
-                        sqlBuilder.append(desc.getColumnName());
+                        columnName = desc.getColumnName();
                     }
-                    sqlBuilder.append(" = ?");
+                    // Need to build a null-safe construct for the WHERE clause, since we are using PreparedStatement and won't know if the values are null. If they are null,
+                    // then the filter should be "column IS null" vs "column = null". Since we don't know whether the value is null, we can use the following construct (from NIFI-3742):
+                    //   (column = ? OR (column is null AND ? is null))
+                    sqlBuilder.append("(");
+                    sqlBuilder.append(columnName);
+                    sqlBuilder.append(" = ? OR (");
+                    sqlBuilder.append(columnName);
+                    sqlBuilder.append(" is null AND ? is null))");
                     includedColumns.add(i);
 
                 }
