@@ -302,7 +302,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     public abstract ProcessSession getProcessSession();
 
     private void processRecords(final ConsumerRecords<byte[], byte[]> records) {
-
         records.partitions().stream().forEach(partition -> {
             List<ConsumerRecord<byte[], byte[]>> messages = records.records(partition);
             if (!messages.isEmpty()) {

@@ -68,7 +68,8 @@ import org.apache.nifi.serialization.RecordWriter;
     + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on. The complementary NiFi "
     + "processor for fetching messages is ConsumeKafka_0_10_Record.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.", description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+    description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
     + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
     + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ")
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "

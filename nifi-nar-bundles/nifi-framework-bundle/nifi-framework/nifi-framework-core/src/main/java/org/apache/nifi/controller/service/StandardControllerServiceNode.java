@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -382,7 +383,9 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
      * as it reached ENABLED state.
      */
     @Override
-    public void enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis) {
+    public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+
         if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)) {
             synchronized (active) {
                 this.active.set(true);
@@ -393,13 +396,12 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 @Override
                 public void run() {
                     try {
-                        if (!isValid()) {
-                            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
-                        }
-
                         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
+
+                        future.complete(null);
+
                         boolean shouldEnable = false;
                         synchronized (active) {
                             shouldEnable = active.get() && stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED);
@@ -430,6 +432,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 }
             });
         }
+
+        return future;
     }
 
     /**

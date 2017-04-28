@@ -236,6 +236,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -3235,8 +3236,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public void enableControllerService(final ControllerServiceNode serviceNode) {
-        controllerServiceProvider.enableControllerService(serviceNode);
+    public Future<Void> enableControllerService(final ControllerServiceNode serviceNode) {
+        return controllerServiceProvider.enableControllerService(serviceNode);
     }
 
     @Override

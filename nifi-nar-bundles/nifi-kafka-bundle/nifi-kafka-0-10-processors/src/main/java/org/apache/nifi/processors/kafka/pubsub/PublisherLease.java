@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
@@ -44,6 +45,7 @@ public class PublisherLease implements Closeable {
     private final int maxMessageSize;
     private final long maxAckWaitMillis;
     private volatile boolean poisoned = false;
+    private final AtomicLong messagesSent = new AtomicLong(0L);
 
     private InFlightMessageTracker tracker;
 
@@ -126,7 +128,7 @@ public class PublisherLease implements Closeable {
         }
     }
 
-    private void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
+    protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
         final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, messageKey, messageContent);
         producer.send(record, new Callback() {
             @Override
@@ -140,12 +142,17 @@ public class PublisherLease implements Closeable {
             }
         });
 
+        messagesSent.incrementAndGet();
         tracker.incrementSentCount(flowFile);
     }
 
 
     public PublishResult complete() {
         if (tracker == null) {
+            if (messagesSent.get() == 0L) {
+                return PublishResult.EMPTY;
+            }
+
             throw new IllegalStateException("Cannot complete publishing to Kafka because Publisher Lease was already closed");
         }
 
