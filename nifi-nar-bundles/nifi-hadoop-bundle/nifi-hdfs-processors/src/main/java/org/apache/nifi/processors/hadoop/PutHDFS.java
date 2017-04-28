@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.mapred.FsInput;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,7 +54,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
@@ -83,6 +88,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
     public static final String IGNORE_RESOLUTION = "ignore";
     public static final String FAIL_RESOLUTION = "fail";
     public static final String APPEND_RESOLUTION = "append";
+
+    private static String AVRO_FILE_TYPE = "AVRO";
 
     public static final AllowableValue REPLACE_RESOLUTION_AV = new AllowableValue(REPLACE_RESOLUTION,
             REPLACE_RESOLUTION, "Replaces the existing file if any.");
@@ -159,6 +166,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor FILE_FORMAT = new PropertyDescriptor.Builder()
+            .name("File format")
+            .description("Format of the file interesting with append")
+            .allowableValues(AVRO_FILE_TYPE)
+            .build();
+
     private static final Set<Relationship> relationships;
 
     static {
@@ -188,6 +201,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
+        props.add(FILE_FORMAT);
         return props;
     }
 
@@ -235,6 +249,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final Path configuredRootDirPath = new Path(dirValue);
 
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
+                    final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
 
                     final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
                     final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
@@ -303,18 +318,33 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             Path createdFile = null;
                             try {
                                 if (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && destinationExists) {
-                                    fos = hdfs.append(copyFile, bufferSize);
+                                    if (fileFormat.equals(AVRO_FILE_TYPE)) {
+                                        try (final DataFileStream<GenericRecord> reader = new DataFileStream<>(in,
+                                                new GenericDatumReader<GenericRecord>())) {
+                                            final DataFileWriter<GenericRecord> writer = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+
+                                            fos = hdfs.append(copyFile, bufferSize);
+                                            writer.appendTo(new FsInput(copyFile, configuration), fos);
+                                            writer.appendAllFrom(reader, false);
+                                            writer.flush();
+                                        }
+                                    } else {
+                                        fos = hdfs.append(copyFile, bufferSize);
+                                    }
                                 } else {
                                     fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                                    java.io.BufferedInputStream bis = new java.io.BufferedInputStream(in);
+                                    StreamUtils.copy(bis, fos);
+                                    bis = null;
                                 }
                                 if (codec != null) {
                                     fos = codec.createOutputStream(fos);
+                                    java.io.BufferedInputStream bis = new java.io.BufferedInputStream(in);
+                                    StreamUtils.copy(bis, fos);
+                                    bis = null;
                                 }
-                                createdFile = tempCopyFile;
-                                BufferedInputStream bis = new BufferedInputStream(in);
-                                StreamUtils.copy(bis, fos);
-                                bis = null;
                                 fos.flush();
+                                createdFile = tempCopyFile;
                             } finally {
                                 try {
                                     if (fos != null) {
