@@ -70,7 +70,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Converts an Avro record into ORC file format. This processor provides a direct mapping of an Avro record to an ORC record, such "
         + "that the resulting ORC file will have the same hierarchical structure as the Avro document. If an incoming FlowFile contains a stream of "
         + "multiple Avro records, the resultant FlowFile will contain a ORC file containing all of the Avro records.  If an incoming FlowFile does "
-        + "not contain any records, an empty ORC file is the output.")
+        + "not contain any records, an empty ORC file is the output. NOTE: Many Avro datatypes (collections, primitives, and unions of primitives, e.g.) can "
+        + "be converted to ORC, but unions of collections and other complex datatypes may not be able to be converted to ORC.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/octet-stream"),
         @WritesAttribute(attribute = "filename", description = "Sets the filename to the existing filename with the extension replaced by / added to by .orc"),
