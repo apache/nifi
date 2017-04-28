@@ -42,11 +42,7 @@ import org.apache.nifi.processors.cybersecurity.matchers.SSDeepHashMatcher;
 import org.apache.nifi.processors.cybersecurity.matchers.TLSHHashMatcher;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -108,7 +104,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             .name("MATCHING_MODE")
             .displayName("Matching mode")
             .description("Defines if the Processor should try to match as many entries as possible (" + multiMatch.getDisplayName() +
-                    ") or if it should stio after the first match (" + singleMatch.getDisplayName() + ")")
+                    ") or if it should stop after the first match (" + singleMatch.getDisplayName() + ")")
             .required(true)
             .allowableValues(singleMatch,multiMatch)
             .defaultValue(singleMatch.getValue())
@@ -120,7 +116,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             .build();
 
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
+            .name("not-found")
             .description("Any FlowFile that cannot be matched to an existing hash will be sent to this Relationship.")
             .build();
 
@@ -172,11 +168,12 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         final ComponentLog logger = getLogger();
         String algorithm = context.getProperty(HASH_ALGORITHM).getValue();
 
-        String inputHash = flowFile.getAttribute(context.getProperty(ATTRIBUTE_NAME).getValue());
+        final String attributeName = context.getProperty(ATTRIBUTE_NAME).getValue();
+        String inputHash = flowFile.getAttribute(attributeName);
 
         if (inputHash == null) {
             getLogger().info("FlowFile {} lacks the required '{}' attribute, routing to failure.",
-                    new Object[]{flowFile, context.getProperty(ATTRIBUTE_NAME).getValue() });
+                    new Object[]{flowFile, attributeName});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -190,6 +187,11 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             case ssdeep:
                 fuzzyHashMatcher = new SSDeepHashMatcher(getLogger());
                 break;
+            default:
+                getLogger().error("Seems like the processor is configured to use unsupported algorithm '{}' ? Yielding.",
+                        new Object[]{algorithm});
+                context.yield();
+                return;
         }
 
         if (fuzzyHashMatcher.isValidHash(inputHash) == false) {
@@ -201,41 +203,23 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             return;
         }
 
-        File file = new File(context.getProperty(HASH_LIST_FILE).getValue());
-
         double similarity = 0;
         double matchThreshold = context.getProperty(MATCH_THRESHOLD).asDouble();
 
         try {
             Map<String, Double> matched = new ConcurrentHashMap<String, Double>();
-            FileInputStream fileInputStream = new FileInputStream(file);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream));
 
-            // If SSdeep skip the first line (as the usual format used by other tools add a header line
-            // to a file list
-            if (algorithm == ssdeep) {
-                reader.readLine();
-            }
+            BufferedReader reader = fuzzyHashMatcher.getReader(context.getProperty(HASH_LIST_FILE).getValue());
 
             String line = null;
-            String[] hashToCompare = null;
 
             iterateFile: while ((line = reader.readLine()) != null) {
-                switch (context.getProperty(HASH_ALGORITHM).getValue()) {
-                    case tlsh:
-                        hashToCompare = line.split("\t", 2);
-                        break;
-                    case ssdeep:
-                        hashToCompare = line.split(",", 2);
-                        break;
-                }
-
-                if (hashToCompare != null) {
-                    similarity = fuzzyHashMatcher.getSimilarity(inputHash, hashToCompare[0]);
+                if (line != null) {
+                    similarity = fuzzyHashMatcher.getSimilarity(inputHash, line);
 
                     if (fuzzyHashMatcher.matchExceedsThreshold(similarity, matchThreshold)) {
                         //
-                        matched.put(hashToCompare[1], similarity);
+                        matched.put(fuzzyHashMatcher.getMatch(line), similarity);
                     }
                 }
 
@@ -255,10 +239,10 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 for (Map.Entry<String, Double> entry : matched.entrySet()) {
                     // defining attributes accordingly
                     attributes.put(
-                            context.getProperty(ATTRIBUTE_NAME).getValue() + "." + x + ".match",
+                            attributeName + "." + x + ".match",
                             entry.getKey());
                     attributes.put(
-                            context.getProperty(ATTRIBUTE_NAME).getValue() + "." + x + ".similarity",
+                            attributeName + "." + x + ".similarity",
                             String.valueOf(entry.getValue()));
                     x++;
                 }
@@ -273,13 +257,8 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 session.commit();
                 return;
             }
-
-
-        } catch (FileNotFoundException e) {
-            logger.error("Could not open the hash input file. Please check " + HASH_LIST_FILE.getDisplayName() + " setting." );
-            context.yield();
         } catch (IOException e) {
-            logger.error("Error while reading the hash input file" );
+            logger.error("Error while reading the hash input source" );
             context.yield();
         }
     }

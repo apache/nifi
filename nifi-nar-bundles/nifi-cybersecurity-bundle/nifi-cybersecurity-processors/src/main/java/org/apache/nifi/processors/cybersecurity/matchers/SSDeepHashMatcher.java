@@ -19,6 +19,11 @@ package org.apache.nifi.processors.cybersecurity.matchers;
 import info.debatty.java.spamsum.SpamSum;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Scanner;
 
 public class SSDeepHashMatcher implements FuzzyHashMatcher {
@@ -31,6 +36,21 @@ public class SSDeepHashMatcher implements FuzzyHashMatcher {
 
     public SSDeepHashMatcher(ComponentLog logger) {
         this.logger = logger;
+    }
+
+    @Override
+    public BufferedReader getReader(String source) throws IOException {
+
+        File file = new File(source);
+
+        FileInputStream fileInputStream = new FileInputStream(file);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream));
+
+        // If SSdeep skip the first line (as the usual format used by other tools add a header line
+        // to a file list
+        reader.readLine();
+
+        return reader;
     }
 
     @Override
@@ -78,5 +98,24 @@ public class SSDeepHashMatcher implements FuzzyHashMatcher {
             }
         }
         return false;
+    }
+
+    @Override
+    public String getHash(String line) {
+        if (isValidHash(line)) {
+            return line.split(",", 2)[0];
+        }
+        else {
+            return null;
+        }
+    }
+
+    @Override
+    public String getMatch(String line) {
+        if (isValidHash(line)) {
+            return line.split(",", 2)[1];
+        } else {
+            return null;
+        }
     }
 }

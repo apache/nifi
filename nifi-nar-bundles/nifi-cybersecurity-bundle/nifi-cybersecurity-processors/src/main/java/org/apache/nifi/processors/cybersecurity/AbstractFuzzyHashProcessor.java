@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.cybersecurity;
 
 
+import com.idealista.tlsh.TLSH;
+import info.debatty.java.spamsum.SpamSum;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -69,6 +71,18 @@ abstract class AbstractFuzzyHashProcessor extends AbstractProcessor {
             return false;
         } else {
             return true;
+        }
+    }
+
+
+    protected String generateHash(String algorithm, String content) {
+        switch (algorithm) {
+            case tlsh:
+                return new TLSH(content).hash();
+            case ssdeep:
+                return new SpamSum().HashString(content);
+            default:
+                return null;
         }
     }
 }

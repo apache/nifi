@@ -16,11 +16,20 @@
  */
 package org.apache.nifi.processors.cybersecurity.matchers;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+
 public interface FuzzyHashMatcher {
 
-    boolean matchExceedsThreshold(double similarity, double matchThreshold);
+    BufferedReader getReader(String source) throws IOException;
+
+    boolean matchExceedsThreshold(double similarity, double matchThreshold) ;
 
     double getSimilarity(String inputHash, String existingHash);
 
     boolean isValidHash(String inputHash);
+
+    String getHash(String line);
+
+    String getMatch(String line);
 }

@@ -46,6 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.HashContent;
 
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -143,14 +144,11 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
         // Check if content matches minimum length requirement
 
         if (checkMinimumAlgorithmRequirements(algorithm, flowFile) == false) {
-            logger.info("The content of {} is smaller than the minimum required by TLSH, routing to failure", new Object[]{flowFile});
+            logger.info("The content of '{}' is smaller than the minimum required by {}, routing to failure",
+                    new Object[]{flowFile, algorithm});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
-
-
-
 
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
@@ -161,13 +159,12 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
                     try (ByteArrayOutputStream holder = new ByteArrayOutputStream()) {
                         StreamUtils.copy(in,holder);
 
-                        if (algorithm.equals(allowableValueSSDEEP.getValue())) {
-                            hashValueHolder.set(new SpamSum().HashString(holder.toString()));
+                        String hashValue = generateHash(algorithm, holder.toString());
+                        if (StringUtils.isBlank(hashValue) == false) {
+                            hashValueHolder.set(hashValue);
                         }
 
-                        if (algorithm.equals(allowableValueTLSH.getValue())) {
-                            hashValueHolder.set(new TLSH(holder.toString()).hash());
-                        }
+
                     }
                 }
             });
@@ -182,4 +179,5 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
             session.transfer(flowFile, REL_FAILURE);
         }
     }
+
 }
