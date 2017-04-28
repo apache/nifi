@@ -23,6 +23,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -69,6 +71,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
@@ -98,6 +101,7 @@ public class TestStandardProcessSession {
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
     private ProcessContext context;
+    private Connectable connectable;
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
@@ -138,7 +142,6 @@ public class TestStandardProcessSession {
     }
 
     @Before
-    @SuppressWarnings("unchecked")
     public void setup() throws IOException {
         resourceClaimManager = new StandardResourceClaimManager();
 
@@ -147,33 +150,7 @@ public class TestStandardProcessSession {
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
         provenanceRepo = new MockProvenanceRepository();
 
-        final Connection connection = Mockito.mock(Connection.class);
-        final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
-
-        final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
-        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
-        flowFileQueue = Mockito.spy(actualQueue);
-        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
-
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                flowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
-                return null;
-            }
-        }).when(connection).enqueue(Mockito.any(FlowFileRecord.class));
-
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                flowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
-                return null;
-            }
-        }).when(connection).enqueue(Mockito.any(Collection.class));
-
-        final Connectable dest = Mockito.mock(Connectable.class);
-        when(connection.getDestination()).thenReturn(dest);
-        when(connection.getSource()).thenReturn(dest);
+        final Connection connection = createConnection();
 
         final List<Connection> connList = new ArrayList<>();
         connList.add(connection);
@@ -181,7 +158,7 @@ public class TestStandardProcessSession {
         final ProcessGroup procGroup = Mockito.mock(ProcessGroup.class);
         when(procGroup.getIdentifier()).thenReturn("proc-group-identifier-1");
 
-        final Connectable connectable = Mockito.mock(Connectable.class);
+        connectable = Mockito.mock(Connectable.class);
         when(connectable.hasIncomingConnection()).thenReturn(true);
         when(connectable.getIncomingConnections()).thenReturn(connList);
         when(connectable.getProcessGroup()).thenReturn(procGroup);
@@ -212,6 +189,141 @@ public class TestStandardProcessSession {
 
         context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
         session = new StandardProcessSession(context);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Connection createConnection() {
+        final Connection connection = Mockito.mock(Connection.class);
+
+        if (flowFileQueue == null) {
+            final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
+            final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
+
+            final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null,
+                processScheduler, swapManager, null, 10000);
+            flowFileQueue = Mockito.spy(actualQueue);
+        }
+
+        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                flowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
+                return null;
+            }
+        }).when(connection).enqueue(Mockito.any(FlowFileRecord.class));
+
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                flowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
+                return null;
+            }
+        }).when(connection).enqueue(Mockito.any(Collection.class));
+
+        final Connectable dest = Mockito.mock(Connectable.class);
+        when(connection.getDestination()).thenReturn(dest);
+        when(connection.getSource()).thenReturn(dest);
+
+        Mockito.doAnswer(new Answer<FlowFile>() {
+            @Override
+            public FlowFile answer(InvocationOnMock invocation) throws Throwable {
+                return flowFileQueue.poll(invocation.getArgumentAt(0, Set.class));
+            }
+        }).when(connection).poll(any(Set.class));
+
+        Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
+            @Override
+            public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
+                return flowFileQueue.poll(invocation.getArgumentAt(0, FlowFileFilter.class), invocation.getArgumentAt(1, Set.class));
+            }
+        }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
+
+        return connection;
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRoundRobinOnSessionGetNoArgs() {
+        final List<Connection> connList = new ArrayList<>();
+        final Connection conn1 = createConnection();
+        final Connection conn2 = createConnection();
+        connList.add(conn1);
+        connList.add(conn2);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+        flowFileQueue.put(flowFileRecord);
+
+        when(connectable.getIncomingConnections()).thenReturn(connList);
+
+        session.get();
+        session.get();
+
+        verify(conn1, times(1)).poll(any(Set.class));
+        verify(conn2, times(1)).poll(any(Set.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRoundRobinOnSessionGetWithCount() {
+        final List<Connection> connList = new ArrayList<>();
+        final Connection conn1 = createConnection();
+        final Connection conn2 = createConnection();
+        connList.add(conn1);
+        connList.add(conn2);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+        flowFileQueue.put(flowFileRecord);
+
+        when(connectable.getIncomingConnections()).thenReturn(connList);
+
+        session.get(1);
+        session.get(1);
+
+        verify(conn1, times(1)).poll(any(FlowFileFilter.class), any(Set.class));
+        verify(conn2, times(1)).poll(any(FlowFileFilter.class), any(Set.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRoundRobinOnSessionGetWithFilter() {
+        final List<Connection> connList = new ArrayList<>();
+        final Connection conn1 = createConnection();
+        final Connection conn2 = createConnection();
+        connList.add(conn1);
+        connList.add(conn2);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+        flowFileQueue.put(flowFileRecord);
+
+        when(connectable.getIncomingConnections()).thenReturn(connList);
+
+        final FlowFileFilter filter = ff -> FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+
+        session.get(filter);
+        session.get(filter);
+
+        verify(conn1, times(1)).poll(any(FlowFileFilter.class), any(Set.class));
+        verify(conn2, times(1)).poll(any(FlowFileFilter.class), any(Set.class));
     }
 
     @Test

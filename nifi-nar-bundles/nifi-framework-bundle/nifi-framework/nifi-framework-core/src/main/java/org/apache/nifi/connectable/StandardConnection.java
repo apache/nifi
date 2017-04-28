@@ -325,6 +325,11 @@ public final class StandardConnection implements Connection {
     }
 
     @Override
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
+        return flowFileQueue.poll(expiredRecords);
+    }
+
+    @Override
     public boolean equals(final Object other) {
         if (!(other instanceof Connection)) {
             return false;
