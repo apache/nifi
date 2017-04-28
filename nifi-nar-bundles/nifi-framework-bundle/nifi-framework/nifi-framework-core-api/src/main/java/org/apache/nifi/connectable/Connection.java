@@ -77,6 +77,8 @@ public interface Connection extends Authorizable {
 
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 
+    FlowFileRecord poll(Set<FlowFileRecord> expiredRecords);
+
     void verifyCanUpdate() throws IllegalStateException;
 
     void verifyCanDelete() throws IllegalStateException;
