@@ -98,4 +98,16 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
     public String getTransportProtocol() {
         return transportProtocol;
     }
+
+    public String getName() {
+        return idAndName.getName();
+    }
+
+    public String getId() {
+        return idAndName.getId();
+    }
+
+    public List<RemotePortSchema> getInputPorts() {
+        return inputPorts;
+    }
 }

@@ -67,7 +67,7 @@ public class ParentGroupIdResolverTest {
     @Test
     public void testRemoteOutputPortParentId() throws IOException, SchemaLoaderException {
         List<String> configLines = new ArrayList<>();
-        configLines.add("MiNiFi Config Version: 2");
+        configLines.add("MiNiFi Config Version: 3");
         configLines.add("Remote Process Groups:");
         configLines.add("- name: rpgOne");
         configLines.add("  id: rpgOneId");
