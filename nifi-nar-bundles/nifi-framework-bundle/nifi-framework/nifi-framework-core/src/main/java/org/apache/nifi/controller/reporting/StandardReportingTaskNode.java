@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -64,6 +65,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     @Override
     public boolean isRestricted() {
         return getReportingTask().getClass().isAnnotationPresent(Restricted.class);
+    }
+
+    @Override
+    public boolean isDeprecated() {
+        return getReportingTask().getClass().isAnnotationPresent(DeprecationNotice.class);
     }
 
     @Override

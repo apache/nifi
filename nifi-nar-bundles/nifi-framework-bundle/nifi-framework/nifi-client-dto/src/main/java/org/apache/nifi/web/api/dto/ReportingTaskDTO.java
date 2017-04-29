@@ -35,6 +35,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String comments;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
 
@@ -151,6 +152,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the reporting task has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated= deprecated;
     }
 
     /**

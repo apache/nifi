@@ -41,6 +41,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsBatching;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
     private String inputRequirement;
@@ -198,6 +199,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the processor has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the processor has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated = deprecated;
     }
 
     /**

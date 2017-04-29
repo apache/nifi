@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -238,6 +239,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public boolean isRestricted() {
         return getProcessor().getClass().isAnnotationPresent(Restricted.class);
     }
+
+    @Override
+    public boolean isDeprecated() {
+        return getProcessor().getClass().isAnnotationPresent(DeprecationNotice.class);
+    }
+
 
     /**
      * Provides and opportunity to retain information about this particular

@@ -1254,6 +1254,7 @@ public final class DtoFactory {
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(reportingTaskNode.isRestricted());
+        dto.setDeprecated(reportingTaskNode.isDeprecated());
         dto.setExtensionMissing(reportingTaskNode.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
@@ -1334,6 +1335,7 @@ public final class DtoFactory {
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(controllerServiceNode.isRestricted());
+        dto.setDeprecated(controllerServiceNode.isDeprecated());
         dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
@@ -2213,6 +2215,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
+        dto.setDeprecated(node.isDeprecated());
         dto.setExtensionMissing(node.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
