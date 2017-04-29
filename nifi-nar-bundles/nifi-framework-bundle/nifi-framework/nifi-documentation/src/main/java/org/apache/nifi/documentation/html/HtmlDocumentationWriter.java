@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.bundle.Bundle;
@@ -31,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +138,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             throws XMLStreamException {
         xmlStreamWriter.writeStartElement("body");
         writeHeader(configurableComponent, xmlStreamWriter);
+        writeDeprecationWarning(configurableComponent, xmlStreamWriter);
         writeDescription(configurableComponent, xmlStreamWriter, hasAdditionalDetails);
         writeTags(configurableComponent, xmlStreamWriter);
         writeProperties(configurableComponent, xmlStreamWriter);
@@ -217,6 +220,50 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     }
 
     /**
+     * Writes a warning about the deprecation of a component.
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML stream
+     */
+    private void writeDeprecationWarning(final ConfigurableComponent configurableComponent,
+                                         final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        final DeprecationNotice deprecationNotice = configurableComponent.getClass().getAnnotation(DeprecationNotice.class);
+        if (deprecationNotice != null) {
+            xmlStreamWriter.writeStartElement("h2");
+            xmlStreamWriter.writeCharacters("Deprecation notice: ");
+            xmlStreamWriter.writeEndElement();
+            xmlStreamWriter.writeStartElement("p");
+
+            xmlStreamWriter.writeCharacters("");
+            if (!StringUtils.isEmpty(deprecationNotice.reason())) {
+                xmlStreamWriter.writeCharacters(deprecationNotice.reason());
+            } else {
+                // Write a default note
+                xmlStreamWriter.writeCharacters("Please be aware this processor is deprecated and may be removed in " +
+                        "the near future.");
+            }
+            xmlStreamWriter.writeEndElement();
+            xmlStreamWriter.writeStartElement("p");
+            xmlStreamWriter.writeCharacters("Please consider using one the following alternatives: ");
+
+
+            Class<? extends ConfigurableComponent>[] componentNames = deprecationNotice.value();
+            String[] classNames = deprecationNotice.classNames();
+
+            if (componentNames.length > 0 || classNames.length > 0) {
+                // Write alternatives
+                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ",");
+            } else {
+                xmlStreamWriter.writeCharacters("No alternative components suggested.");
+            }
+
+            xmlStreamWriter.writeEndElement();
+        }
+    }
+
+    /**
      * Writes the list of components that may be linked from this component.
      *
      * @param configurableComponent the component to describe
@@ -229,43 +276,16 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         if (seeAlso != null) {
             writeSimpleElement(xmlStreamWriter, "h3", "See Also:");
             xmlStreamWriter.writeStartElement("p");
-            int index = 0;
-            for (final Class<? extends ConfigurableComponent> linkedComponent : seeAlso.value()) {
-                if (index != 0) {
-                    xmlStreamWriter.writeCharacters(", ");
-                }
 
-                writeLinkForComponent(xmlStreamWriter, linkedComponent);
-
-                ++index;
+            Class<? extends ConfigurableComponent>[] componentNames = seeAlso.value();
+            String[] classNames = seeAlso.classNames();
+            if (componentNames.length > 0 || classNames.length > 0) {
+                // Write alternatives
+                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ", ");
+            } else {
+                xmlStreamWriter.writeCharacters("No tags provided.");
             }
 
-            for (final String linkedComponent : seeAlso.classNames()) {
-                if (index != 0) {
-                    xmlStreamWriter.writeCharacters(", ");
-                }
-
-                final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(linkedComponent);
-
-                if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
-                    final Bundle firstBundle = linkedComponentBundles.get(0);
-                    final BundleCoordinate firstCoordinate = firstBundle.getBundleDetails().getCoordinate();
-
-                    final String group = firstCoordinate.getGroup();
-                    final String id = firstCoordinate.getId();
-                    final String version = firstCoordinate.getVersion();
-
-                    final String link = "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + linkedComponent + "/index.html";
-
-                    final int indexOfLastPeriod = linkedComponent.lastIndexOf(".") + 1;
-
-                    writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
-
-                    ++index;
-                } else {
-                    LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {linkedComponent});
-                }
-            }
             xmlStreamWriter.writeEndElement();
         }
     }
@@ -295,7 +315,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             final String tagString = join(tags.value(), ", ");
             xmlStreamWriter.writeCharacters(tagString);
         } else {
-            xmlStreamWriter.writeCharacters("None.");
+            xmlStreamWriter.writeCharacters("No tags provided.");
         }
         xmlStreamWriter.writeEndElement();
     }
@@ -581,15 +601,16 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEmptyElement("br");
             xmlStreamWriter.writeCharacters(controllerServiceClass.getSimpleName());
 
-            final List<Class<? extends ControllerService>> implementations = lookupControllerServiceImpls(controllerServiceClass);
+            final List<Class<? extends ControllerService>> implementationList = lookupControllerServiceImpls(controllerServiceClass);
+
+            // Convert it into an array before proceeding
+            Class<? extends ControllerService>[] implementations = implementationList.stream().toArray(Class[]::new);
+
             xmlStreamWriter.writeEmptyElement("br");
-            if (implementations.size() > 0) {
-                final String title = implementations.size() > 1 ? "Implementations: " : "Implementation:";
+            if (implementations.length > 0) {
+                final String title = implementations.length > 1 ? "Implementations: " : "Implementation:";
                 writeSimpleElement(xmlStreamWriter, "strong", title);
-                for (int i = 0; i < implementations.size(); i++) {
-                    xmlStreamWriter.writeEmptyElement("br");
-                    writeLinkForComponent(xmlStreamWriter, implementations.get(i));
-                }
+                iterateAndLinkComponents(xmlStreamWriter, implementations, null,  "<br>");
             } else {
                 xmlStreamWriter.writeCharacters("No implementations found.");
             }
@@ -674,32 +695,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     }
 
     /**
-     * Writes a link to another configurable component
-     *
-     * @param xmlStreamWriter the xml stream writer
-     * @param clazz the configurable component to link to
-     * @throws XMLStreamException thrown if there is a problem writing the XML
-     */
-    protected void writeLinkForComponent(final XMLStreamWriter xmlStreamWriter, final Class<?> clazz)
-            throws XMLStreamException {
-        final String linkedComponentName = clazz.getName();
-        final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(linkedComponentName);
-
-        if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
-            final Bundle firstLinkedComponentBundle = linkedComponentBundles.get(0);
-            final BundleCoordinate coordinate = firstLinkedComponentBundle.getBundleDetails().getCoordinate();
-
-            final String group = coordinate.getGroup();
-            final String id = coordinate.getId();
-            final String version = coordinate.getVersion();
-
-            writeLink(xmlStreamWriter, clazz.getSimpleName(), "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + clazz.getCanonicalName() + "/index.html");
-        } else {
-            LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {linkedComponentName});
-        }
-    }
-
-    /**
      * Uses the {@link ExtensionManager} to discover any {@link ControllerService} implementations that implement a specific
      * ControllerService API.
      *
@@ -724,4 +719,94 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         return implementations;
     }
+
+    /**
+     * Writes a link to another configurable component
+     *
+     * @param xmlStreamWriter the xml stream writer
+     * @param linkedComponents the array of configurable component to link to
+     * @param classNames the array of class names in string format to link to
+     * @param separator a separator used to split the values (in case more than 1. If the separator is enclosed in
+     *                  between "<" and ">" (.e.g "<br>" it is treated as a tag and written to the xmlStreamWriter as an
+     *                  empty tag
+     * @throws XMLStreamException thrown if there is a problem writing the XML
+     */
+    protected void iterateAndLinkComponents(final XMLStreamWriter xmlStreamWriter, final Class<? extends ConfigurableComponent>[] linkedComponents, String[] classNames, String separator)
+            throws XMLStreamException {
+
+        // Treat the the possible separators
+        boolean separatorIsElement;
+
+        if (separator.startsWith("<") && separator.endsWith(">")) {
+            separatorIsElement = true;
+        } else {
+            separatorIsElement = false;
+        }
+        // Whatever the result, strip the possible < and > characters
+        separator = separator.replaceAll("\\<([^>]*)>","$1");
+
+        int index = 0;
+        for (final Class<? extends ConfigurableComponent> linkedComponent : linkedComponents ) {
+            final String linkedComponentName = linkedComponent.getName();
+            final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(linkedComponentName);
+            if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
+                final Bundle firstLinkedComponentBundle = linkedComponentBundles.get(0);
+                final BundleCoordinate coordinate = firstLinkedComponentBundle.getBundleDetails().getCoordinate();
+
+                final String group = coordinate.getGroup();
+                final String id = coordinate.getId();
+                final String version = coordinate.getVersion();
+
+
+
+                if (index != 0) {
+                    if (separatorIsElement) {
+                        xmlStreamWriter.writeEmptyElement(separator);
+                    } else {
+                        xmlStreamWriter.writeCharacters(separator);
+                    }
+                }
+                writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + linkedComponent.getCanonicalName() + "/index.html");
+
+                ++index;
+            } else {
+                LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {linkedComponentName});
+            }
+        }
+
+        if (classNames!= null) {
+            for (final String className : classNames) {
+                if (index != 0) {
+                    if (separatorIsElement) {
+                        xmlStreamWriter.writeEmptyElement(separator);
+                    } else {
+                        xmlStreamWriter.writeCharacters(separator);
+                    }
+                }
+
+                final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(className);
+
+                if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
+                    final Bundle firstBundle = linkedComponentBundles.get(0);
+                    final BundleCoordinate firstCoordinate = firstBundle.getBundleDetails().getCoordinate();
+
+                    final String group = firstCoordinate.getGroup();
+                    final String id = firstCoordinate.getId();
+                    final String version = firstCoordinate.getVersion();
+
+                    final String link = "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + className + "/index.html";
+
+                    final int indexOfLastPeriod = className.lastIndexOf(".") + 1;
+
+                    writeLink(xmlStreamWriter, className.substring(indexOfLastPeriod), link);
+
+                    ++index;
+                } else {
+                    LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {className});
+                }
+            }
+        }
+
+    }
+
 }

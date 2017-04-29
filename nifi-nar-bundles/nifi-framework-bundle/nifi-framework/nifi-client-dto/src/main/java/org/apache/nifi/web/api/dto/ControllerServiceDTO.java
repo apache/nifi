@@ -39,6 +39,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String state;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
 
@@ -152,6 +153,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the controller service has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the ontroller service has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated= deprecated;
     }
 
     /**

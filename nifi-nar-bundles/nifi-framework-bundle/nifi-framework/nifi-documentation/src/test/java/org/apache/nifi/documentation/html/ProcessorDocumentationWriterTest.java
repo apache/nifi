@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.documentation.DocumentationWriter;
+import org.apache.nifi.documentation.example.DeprecatedProcessor;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
@@ -76,7 +77,8 @@ public class ProcessorDocumentationWriterTest {
                 .value());
         assertNotContains(results, "This component has no required or optional properties.");
         assertNotContains(results, "No description provided.");
-        assertNotContains(results, "No Tags provided.");
+
+        assertNotContains(results, "No tags provided.");
         assertNotContains(results, "Additional Details...");
 
         // verify the right OnRemoved and OnShutdown methods were called
@@ -107,7 +109,7 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "No description provided.");
 
         // no tags
-        assertContains(results, "None.");
+        assertContains(results, "No tags provided.");
 
         // properties
         assertContains(results, "This component has no required or optional properties.");
@@ -138,5 +140,64 @@ public class ProcessorDocumentationWriterTest {
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
 
+    }
+
+    @Test
+    public void testDeprecatedProcessor() throws IOException {
+        DeprecatedProcessor processor = new DeprecatedProcessor();
+        ProcessorInitializer initializer = new ProcessorInitializer();
+        initializer.initialize(processor);
+
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        writer.write(processor, baos, false);
+        initializer.teardown(processor);
+
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
+
+        assertContains(results, DeprecatedProcessor.DIRECTORY.getDisplayName());
+        assertContains(results, DeprecatedProcessor.DIRECTORY.getDescription());
+        assertContains(results, DeprecatedProcessor.OPTIONAL_PROPERTY.getDisplayName());
+        assertContains(results, DeprecatedProcessor.OPTIONAL_PROPERTY.getDescription());
+        assertContains(results, DeprecatedProcessor.POLLING_INTERVAL.getDisplayName());
+        assertContains(results, DeprecatedProcessor.POLLING_INTERVAL.getDescription());
+        assertContains(results, DeprecatedProcessor.POLLING_INTERVAL.getDefaultValue());
+        assertContains(results, DeprecatedProcessor.RECURSE.getDisplayName());
+        assertContains(results, DeprecatedProcessor.RECURSE.getDescription());
+
+        assertContains(results, DeprecatedProcessor.REL_SUCCESS.getName());
+        assertContains(results, DeprecatedProcessor.REL_SUCCESS.getDescription());
+        assertContains(results, DeprecatedProcessor.REL_FAILURE.getName());
+        assertContains(results, DeprecatedProcessor.REL_FAILURE.getDescription());
+        assertContains(results, "Controller Service API: ");
+        assertContains(results, "SampleService");
+
+        assertContains(results, "CLUSTER, LOCAL");
+        assertContains(results, "state management description");
+
+        assertContains(results, "processor restriction description");
+
+        assertNotContains(results, "iconSecure.png");
+        assertContains(results, DeprecatedProcessor.class.getAnnotation(CapabilityDescription.class)
+                .value());
+
+        // Check for the existence of deprecation notice
+        assertContains(results, "Deprecation notice: ");
+        // assertContains(results, DeprecatedProcessor.class.getAnnotation(DeprecationNotice.class.));
+
+        assertNotContains(results, "This component has no required or optional properties.");
+        assertNotContains(results, "No description provided.");
+        assertNotContains(results, "No tags provided.");
+        assertNotContains(results, "Additional Details...");
+
+        // verify the right OnRemoved and OnShutdown methods were called
+        Assert.assertEquals(0, processor.getOnRemovedArgs());
+        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
+
+        Assert.assertEquals(1, processor.getOnShutdownArgs());
+        Assert.assertEquals(1, processor.getOnShutdownNoArgs());
     }
 }
