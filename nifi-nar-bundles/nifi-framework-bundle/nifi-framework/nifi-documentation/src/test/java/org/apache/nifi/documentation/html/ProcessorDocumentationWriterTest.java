@@ -76,7 +76,8 @@ public class ProcessorDocumentationWriterTest {
                 .value());
         assertNotContains(results, "This component has no required or optional properties.");
         assertNotContains(results, "No description provided.");
-        assertNotContains(results, "No Tags provided.");
+
+        assertNotContains(results, "No tags provided.");
         assertNotContains(results, "Additional Details...");
 
         // verify the right OnRemoved and OnShutdown methods were called
@@ -107,7 +108,7 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "No description provided.");
 
         // no tags
-        assertContains(results, "None.");
+        assertContains(results, "No tags provided.");
 
         // properties
         assertContains(results, "This component has no required or optional properties.");

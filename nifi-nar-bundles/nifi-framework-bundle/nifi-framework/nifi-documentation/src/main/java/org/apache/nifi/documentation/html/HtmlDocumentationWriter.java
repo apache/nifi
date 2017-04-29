@@ -295,7 +295,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             final String tagString = join(tags.value(), ", ");
             xmlStreamWriter.writeCharacters(tagString);
         } else {
-            xmlStreamWriter.writeCharacters("None.");
+            xmlStreamWriter.writeCharacters("No tags provided.");
         }
         xmlStreamWriter.writeEndElement();
     }
