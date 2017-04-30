@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.list;
 
 import static org.junit.Assert.assertEquals;
 
@@ -41,7 +41,8 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.standard.util.ListableEntity;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
@@ -474,7 +475,7 @@ public class TestAbstractListProcessor {
         public File persistenceFile = new File(persistenceFolder + persistenceFilename);
 
         @Override
-        protected File getPersistenceFile() {
+        public File getPersistenceFile() {
             return persistenceFile;
         }
 

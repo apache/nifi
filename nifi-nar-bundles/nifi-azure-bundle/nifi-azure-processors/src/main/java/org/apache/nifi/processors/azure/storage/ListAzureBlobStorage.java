@@ -40,10 +40,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.AzureConstants;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
-import org.apache.nifi.processors.standard.AbstractListProcessor;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
@@ -59,7 +59,9 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 @TriggerSerially
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @SeeAlso({ FetchAzureBlobStorage.class, PutAzureBlobStorage.class })
-@CapabilityDescription("Lists blobs in an Azure Storage container. Listing details are attached to an empty FlowFile for use with FetchAzureBlobStorage")
+@CapabilityDescription("Lists blobs in an Azure Storage container. Listing details are attached to an empty FlowFile for use with FetchAzureBlobStorage.  " +
+        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
+        "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
         @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
@@ -71,12 +73,14 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
         @WritesAttribute(attribute = "lang", description = "Language code for the content"),
         @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
-@Stateful(scopes = { Scope.LOCAL, Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. "
-        + "This allows the Processor to list only blobs that have been added or modified after " + "this date the next time that the Processor is run.")
+@Stateful(scopes = { Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. " +
+        "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
+        "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
+        "where the previous node left off, without duplicating the data.")
 public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
-    private static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder().name("Prefix").description("Search prefix for listing").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true).required(false).build();
+    private static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder().name("prefix").displayName("Prefix").description("Search prefix for listing")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(false).build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, PREFIX));
 
@@ -155,7 +159,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         return listing;
     }
 
-    protected CloudStorageAccount createStorageConnection(ProcessContext context) {
+    private CloudStorageAccount createStorageConnection(ProcessContext context) {
         final String accountName = context.getProperty(AzureConstants.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);

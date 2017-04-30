@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.nifi.processors.azure.AbstractAzureProcessor;
 import org.apache.nifi.processors.azure.AzureConstants;
@@ -31,32 +34,47 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
-public class ITFetchAzureBlobStorage extends AbstractAzureIT {
+public class ITFetchAzureBlobStorage {
 
     @Test
     public void testFetchingBlob() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
+        String containerName = String.format("%s-%s", AzureTestUtil.TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
+        CloudBlobContainer container = AzureTestUtil.getContainer(containerName);
+        container.createIfNotExists();
+
+        CloudBlob blob = container.getBlockBlobReference(AzureTestUtil.TEST_BLOB_NAME);
+        byte[] buf = "0123456789".getBytes();
+        InputStream in = new ByteArrayInputStream(buf);
+        blob.upload(in, 10);
+
         final TestRunner runner = TestRunners.newTestRunner(new FetchAzureBlobStorage());
 
-        runner.setValidateExpressionUsage(true);
+        try {
+            runner.setValidateExpressionUsage(true);
 
-        runner.setProperty(AzureConstants.ACCOUNT_NAME, getAccountName());
-        runner.setProperty(AzureConstants.ACCOUNT_KEY, getAccountKey());
-        runner.setProperty(AzureConstants.CONTAINER, TEST_CONTAINER_NAME);
-        runner.setProperty(FetchAzureBlobStorage.BLOB, "${azure.blobname}");
+            runner.setProperty(AzureConstants.ACCOUNT_NAME, AzureTestUtil.getAccountName());
+            runner.setProperty(AzureConstants.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
+            runner.setProperty(AzureConstants.CONTAINER, containerName);
+            runner.setProperty(FetchAzureBlobStorage.BLOB, "${azure.blobname}");
 
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("azure.primaryUri", "http://" + getAccountName() + ".blob.core.windows.net/" + TEST_CONTAINER_NAME + "/" + TEST_BLOB_NAME);
-        attributes.put("azure.blobname", TEST_BLOB_NAME);
-        attributes.put("azure.blobtype", AzureConstants.BLOCK);
-        runner.enqueue(new byte[0], attributes);
-        runner.run();
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("azure.primaryUri", "https://" + AzureTestUtil.getAccountName() + ".blob.core.windows.net/" + containerName + "/" + AzureTestUtil.TEST_BLOB_NAME);
+            attributes.put("azure.blobname", AzureTestUtil.TEST_BLOB_NAME);
+            attributes.put("azure.blobtype", AzureConstants.BLOCK);
+            runner.enqueue(new byte[0], attributes);
+            runner.run();
 
-        runner.assertAllFlowFilesTransferred(AbstractAzureProcessor.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
-        for (MockFlowFile flowFile : flowFilesForRelationship) {
-            flowFile.assertContentEquals("0123456789".getBytes());
-            flowFile.assertAttributeEquals("azure.length", "10");
+            runner.assertAllFlowFilesTransferred(AbstractAzureProcessor.REL_SUCCESS, 1);
+            List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
+            for (MockFlowFile flowFile : flowFilesForRelationship) {
+                flowFile.assertContentEquals("0123456789".getBytes());
+                flowFile.assertAttributeEquals("azure.length", "10");
+            }
+        } finally {
+            container.deleteIfExists();
         }
     }
 }

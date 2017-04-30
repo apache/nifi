@@ -23,11 +23,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -75,6 +77,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
         String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
         String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
 
+        AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
             CloudStorageAccount storageAccount = createStorageConnection(context, flowFile);
             CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
@@ -89,6 +92,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
                 try {
                     blob.download(os);
                 } catch (StorageException e) {
+                    storedException.set(e);
                     throw new IOException(e);
                 }
             });
@@ -103,10 +107,15 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
-
-        } catch (IllegalArgumentException | URISyntaxException | StorageException e1) {
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException e) {
+            if (e instanceof ProcessException && storedException.get() == null) {
+                throw (ProcessException) e;
+            } else {
+                Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
+                getLogger().error("Failure to fetch Azure blob {}",  new Object[]{blobPath}, failureException);
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
         }
     }
 }

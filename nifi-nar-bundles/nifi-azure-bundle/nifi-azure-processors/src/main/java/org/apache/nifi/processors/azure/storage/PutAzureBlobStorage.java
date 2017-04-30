@@ -22,7 +22,9 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -69,6 +71,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
 
+        AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
             CloudStorageAccount storageAccount = createStorageConnection(context, flowFile);
             CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
@@ -94,6 +97,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                     attributes.put("azure.length", String.valueOf(length));
                     attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
                 } catch (StorageException | URISyntaxException e) {
+                    storedException.set(e);
                     throw new IOException(e);
                 }
             });
@@ -106,10 +110,15 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
 
-        } catch (IllegalArgumentException | URISyntaxException | StorageException e) {
-            getLogger().error("Failed to put Azure blob {}", new Object[]{blobPath}, e);
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException e) {
+            if (e instanceof ProcessException && storedException.get() == null) {
+                throw (ProcessException) e;
+            } else {
+                Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
+                getLogger().error("Failed to put Azure blob {}", new Object[]{blobPath}, failureException);
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
         }
 
     }
