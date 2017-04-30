@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processor.util.list;
 
 public interface ListableEntity {
 

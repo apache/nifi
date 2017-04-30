@@ -43,7 +43,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AzureConstants;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
-import org.apache.nifi.processors.standard.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
@@ -155,7 +155,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         return listing;
     }
 
-    protected CloudStorageAccount createStorageConnection(ProcessContext context) {
+    private CloudStorageAccount createStorageConnection(ProcessContext context) {
         final String accountName = context.getProperty(AzureConstants.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);

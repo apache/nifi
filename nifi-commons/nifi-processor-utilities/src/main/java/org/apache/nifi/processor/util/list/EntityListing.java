@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processor.util.list;
 
 import java.util.Collection;
 import java.util.Date;

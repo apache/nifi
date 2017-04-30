@@ -16,17 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
-import com.microsoft.azure.storage.blob.ListBlobItem;
-import org.apache.nifi.processors.azure.AzureConstants;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import static org.junit.Assert.fail;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,15 +25,20 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
-import static org.junit.Assert.fail;
+import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.util.file.FileUtils;
 
-public abstract class AbstractAzureIT {
-    protected static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
-    public static final String TEST_CONTAINER_NAME = "nifitest";
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+class AzureTestUtil {
+    private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
+    static final String TEST_CONTAINER_NAME_PREFIX = "nifitest";
 
     private static final Properties CONFIG;
-    protected static final String TEST_BLOB_NAME = "testing";
-    protected static final String TEST_TABLE_NAME = "testing";
+    static final String TEST_BLOB_NAME = "testing";
 
     static {
         final FileInputStream fis;
@@ -63,35 +58,19 @@ public abstract class AbstractAzureIT {
 
     }
 
-    @BeforeClass
-    public static void oneTimeSetup() throws StorageException, InvalidKeyException, URISyntaxException {
-        CloudBlobContainer container = getContainer();
-        container.createIfNotExists();
-    }
-
-    @AfterClass
-    public static void tearDown() throws InvalidKeyException, URISyntaxException, StorageException {
-        CloudBlobContainer container = getContainer();
-        for (ListBlobItem blob : container.listBlobs()) {
-            if (blob instanceof CloudBlob) {
-                ((CloudBlob) blob).delete(DeleteSnapshotsOption.INCLUDE_SNAPSHOTS, null, null, null);
-            }
-        }
-    }
-
-    public static String getAccountName() {
+    static String getAccountName() {
         return CONFIG.getProperty("accountName");
     }
 
-    public static String getAccountKey() {
+    static String getAccountKey() {
         return CONFIG.getProperty("accountKey");
     }
 
-    protected static CloudBlobContainer getContainer() throws InvalidKeyException, URISyntaxException, StorageException {
+    static CloudBlobContainer getContainer(String containerName) throws InvalidKeyException, URISyntaxException, StorageException {
         String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, getAccountName(), getAccountKey());
         CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
         CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
-        return blobClient.getContainerReference(TEST_CONTAINER_NAME);
+        return blobClient.getContainerReference(containerName);
     }
 
 }

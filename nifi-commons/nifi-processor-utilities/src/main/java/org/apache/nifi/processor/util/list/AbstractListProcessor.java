@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.list;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,8 +52,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.util.EntityListing;
-import org.apache.nifi.processors.standard.util.ListableEntity;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -156,11 +154,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * files according to timestamp, it is ensured that at least the specified millis has been eclipsed to avoid getting scheduled
      * near instantaneously after the prior iteration effectively voiding the built in buffer
      */
-    static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
+    public static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
     static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
     static final String PROCESSED_TIMESTAMP_KEY = "processed.timestamp";
 
-    protected File getPersistenceFile() {
+    public File getPersistenceFile() {
         return new File("conf/state/" + getIdentifier());
     }
 
