@@ -395,7 +395,11 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     }
 
     private void rollback(final TopicPartition topicPartition) {
-        final OffsetAndMetadata offsetAndMetadata = kafkaConsumer.committed(topicPartition);
+        OffsetAndMetadata offsetAndMetadata = uncommittedOffsetsMap.get(topicPartition);
+        if (offsetAndMetadata == null) {
+            offsetAndMetadata = kafkaConsumer.committed(topicPartition);
+        }
+
         final long offset = offsetAndMetadata.offset();
         kafkaConsumer.seek(topicPartition, offset);
     }
@@ -411,9 +415,14 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     "Failed to obtain a Record Writer for serializing Kafka messages. This generally happens because the "
                         + "Record Writer cannot obtain the appropriate Schema, due to failure to connect to a remote Schema Registry "
                         + "or due to the Schema Access Strategy being dependent upon FlowFile Attributes that are not available. "
-                        + "Will roll back the Kafka session.", e);
+                        + "Will roll back the Kafka message offsets.", e);
 
-                rollback(topicPartition);
+                try {
+                    rollback(topicPartition);
+                } catch (final Exception rollbackException) {
+                    logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+                }
+
                 yield();
                 throw new ProcessException(e);
             }
@@ -442,8 +451,15 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                 final Record record = reader.nextRecord();
                                 return record;
                             } catch (final Exception e) {
+                                final Map<String, String> attributes = new HashMap<>();
+                                attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
+                                attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
+                                attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
+
                                 FlowFile failureFlowFile = session.create();
                                 failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+                                failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
+
                                 session.transfer(failureFlowFile, REL_PARSE_FAILURE);
                                 logger.error("Failed to parse message from Kafka using the configured Record Reader. "
                                     + "Will route message as its own FlowFile to the 'parse.failure' relationship", e);
