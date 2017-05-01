@@ -82,7 +82,7 @@ public class WriteAvroResultWithExternalSchema extends WriteAvroResult {
         schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
 
         final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
-        final GenericRecord rec = createAvroRecord(record, schema);
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
 
         datumWriter.write(rec, encoder);
         encoder.flush();

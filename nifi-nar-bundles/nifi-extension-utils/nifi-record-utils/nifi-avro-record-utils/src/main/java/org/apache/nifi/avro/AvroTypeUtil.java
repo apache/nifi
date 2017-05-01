@@ -360,7 +360,7 @@ public class AvroTypeUtil {
             case ENUM:
                 return new GenericData.EnumSymbol(fieldSchema, rawValue);
             case STRING:
-                return DataTypeUtils.toString(rawValue, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+                return DataTypeUtils.toString(rawValue, (String) null);
         }
 
         return rawValue;
