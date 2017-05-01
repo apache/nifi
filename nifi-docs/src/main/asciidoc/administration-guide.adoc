@@ -2104,10 +2104,10 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository.
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.PersistentProvenanceRepository`.
 Two additional repositories are available as well.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
-set this property to org.apache.nifi.provenance.VolatileProvenanceRepository. This leaves a configurable number of Provenance Events in the Java heap, so the number
+set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
 As of Apache NiFi 1.2.0, a third and fourth option are available: `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
@@ -2118,7 +2118,7 @@ redesigns. When used in a NiFi instance that is responsible for processing large
 The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
 Changing to the `WriteAheadProvenanceRepository` is easy to accomplish, as the two repositories support most of the same properties.
 
-*Note Well*, however, the follow caveat: The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
+*Note Well*, however, the following caveat: The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
 `PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
 the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository. It is therefore
 recommended that before changing the implementation, users ensure that their version of NiFi is stable, in case any issue arises that causes the user to need to roll back to
