@@ -30,6 +30,7 @@
         <module>nifi-toolkit-zookeeper-migrator</module>
         <module>nifi-toolkit-flowfile-repo</module>
         <module>nifi-toolkit-assembly</module>
+        <module>nifi-toolkit-flowanalyzer</module>
     </modules>
     <dependencyManagement>
         <dependencies>
