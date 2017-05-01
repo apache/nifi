@@ -57,7 +57,9 @@ import java.util.List;
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
         "to a Parquet file. The schema for the Parquet file must be provided in the processor properties. This processor will " +
         "first write a temporary dot file and upon successfully writing every record to the dot file, it will rename the " +
-        "dot file to it's final name. If any error occurs while reading records from the input, or writing records to the output, " +
+        "dot file to it's final name. If the dot file cannot be renamed, the rename operation will be attempted up to 10 times, and " +
+        "if still not successful, the dot file will be deleted and the flow file will be routed to failure. " +
+        " If any error occurs while reading records from the input, or writing records to the output, " +
         "the entire dot file will be removed and the flow file will be routed to failure or retry, depending on the error.")
 @ReadsAttribute(attribute = "filename", description = "The name of the file to write comes from the value of this attribute.")
 @WritesAttributes({

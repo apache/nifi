@@ -68,7 +68,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
-            .addValidator(HadoopValidators.MULTIPLE_FILE_EXISTS_VALIDATOR)
+            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()

@@ -55,6 +55,10 @@ public class AvroTypeUtil {
     public static final String AVRO_SCHEMA_FORMAT = "avro";
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
+        if (recordSchema == null) {
+            throw new IllegalArgumentException("RecordSchema cannot be null");
+        }
+
         final Optional<String> schemaFormatOption = recordSchema.getSchemaFormat();
         if (!schemaFormatOption.isPresent()) {
             throw new SchemaNotFoundException("No Schema Format was present in the RecordSchema");
@@ -166,6 +170,10 @@ public class AvroTypeUtil {
     }
 
     public static RecordSchema createSchema(final Schema avroSchema) {
+        if (avroSchema == null) {
+            throw new IllegalArgumentException("Avro Schema cannot be null");
+        }
+
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();

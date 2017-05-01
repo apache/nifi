@@ -369,7 +369,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                         recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, destRecordSchema);
 
                         // if we fail to create the RecordReader then we want to route to failure, so we need to
-                        // handle this separately from the other IOExceptions which normally rout to retry
+                        // handle this separately from the other IOExceptions which normally route to retry
                         try {
                             recordReader = recordReaderFactory.createRecordReader(flowFileIn, in, getLogger());
                         } catch (Exception e) {
@@ -453,6 +453,18 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         return flowFile;
     }
 
+    /**
+     * Attempts to rename srcFile to destFile up to 10 times, with a 200ms sleep in between each attempt.
+     *
+     * If the file has not been renamed after 10 attempts, a FailureException is thrown.
+     *
+     * @param fileSystem the file system where the files are located
+     * @param srcFile the source file
+     * @param destFile the destination file to rename the source to
+     * @throws IOException if IOException happens while attempting to rename
+     * @throws InterruptedException if renaming is interrupted
+     * @throws FailureException if the file couldn't be renamed after 10 attempts
+     */
     protected void rename(final FileSystem fileSystem, final Path srcFile, final Path destFile) throws IOException, InterruptedException, FailureException {
         boolean renamed = false;
         for (int i = 0; i < 10; i++) { // try to rename multiple times.
@@ -468,6 +480,12 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         }
     }
 
+    /**
+     * Deletes the given file from the given filesystem. Any exceptions that are encountered will be caught and logged, but not thrown.
+     *
+     * @param fileSystem the filesystem where the file exists
+     * @param file the file to delete
+     */
     protected void deleteQuietly(final FileSystem fileSystem, final Path file) {
         if (file != null) {
             try {
@@ -478,6 +496,14 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         }
     }
 
+    /**
+     * Changes the ownership of the given file.
+     *
+     * @param fileSystem the filesystem where the file exists
+     * @param path the file to change ownership on
+     * @param remoteOwner the new owner for the file
+     * @param remoteGroup the new group for the file
+     */
     protected void changeOwner(final FileSystem fileSystem, final Path path, final String remoteOwner, final String remoteGroup) {
         try {
             // Change owner and group of file if configured to do so
@@ -489,6 +515,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         }
     }
 
+    /**
+     * Creates the given directory and changes the ownership to the specified owner/group.
+     *
+     * @param fileSystem the filesystem to create the directory on
+     * @param directory the directory to create
+     * @param remoteOwner the owner for changing ownership of the directory
+     * @param remoteGroup the group for changing ownership of the directory
+     * @throws IOException if an error occurs obtaining the file status or issuing the mkdir command
+     * @throws FailureException if the directory could not be created
+     */
     protected void createDirectory(final FileSystem fileSystem, final Path directory, final String remoteOwner, final String remoteGroup) throws IOException, FailureException {
         try {
             if (!fileSystem.getFileStatus(directory).isDirectory()) {

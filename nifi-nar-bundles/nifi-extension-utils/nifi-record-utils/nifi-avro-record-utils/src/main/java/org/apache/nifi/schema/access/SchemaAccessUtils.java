@@ -45,14 +45,16 @@ public class SchemaAccessUtils {
             "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
 
     public  static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-            .name("Schema Registry")
+            .name("schema-registry")
+            .displayName("Schema Registry")
             .description("Specifies the Controller Service to use for the Schema Registry")
             .identifiesControllerService(SchemaRegistry.class)
             .required(false)
             .build();
 
     public  static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Schema Access Strategy")
+            .name("schema-access-strategy")
+            .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
             .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
             .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
@@ -60,7 +62,8 @@ public class SchemaAccessUtils {
             .build();
 
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("Schema Name")
+            .name("schema-name")
+            .displayName("Schema Name")
             .description("Specifies the name of the schema to lookup in the Schema Registry property")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)

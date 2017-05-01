@@ -233,7 +233,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 successFlowFile = session.putAllAttributes(successFlowFile, attributes);
 
                 final URI uri = path.toUri();
-                getLogger().info("Successfully received content from {} for {} in {}", new Object[] {uri, successFlowFile, stopWatch.getDuration()});
+                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {uri, successFlowFile, stopWatch.getDuration()});
                 session.getProvenanceReporter().fetch(successFlowFile, uri.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(successFlowFile, REL_SUCCESS);
                 session.remove(originalFlowFile);

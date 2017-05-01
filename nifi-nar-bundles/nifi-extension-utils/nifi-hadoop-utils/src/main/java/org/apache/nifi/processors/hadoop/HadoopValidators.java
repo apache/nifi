@@ -30,7 +30,7 @@ public interface HadoopValidators {
     /*
     * Validates that one or more files exist, as specified in a single property.
     */
-    Validator MULTIPLE_FILE_EXISTS_VALIDATOR = new Validator() {
+    Validator ONE_OR_MORE_FILE_EXISTS_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
             final String[] files = input.split(",");
