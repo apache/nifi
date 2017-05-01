@@ -82,7 +82,7 @@ public class NodeManagerTool extends AbstractAdminTool {
         options.addOption(Option.builder("p").longOpt(PROXY_DN).hasArg().desc("User or Proxy DN that has permission to send a notification. User must have view and modify privileges to 'access the controller' in NiFi").build())
         options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF).hasArg().desc("Existing Bootstrap Configuration file").build())
         options.addOption(Option.builder("d").longOpt(NIFI_INSTALL_DIR).hasArg().desc("NiFi Installation Directory").build())
-        options.addOption(Option.builder("o").longOpt(OPERATION).hasArg().desc("Operation to connect, disconnect or remove node from cluster").build())
+        options.addOption(Option.builder("o").longOpt(OPERATION).hasArg().desc("Operations supported: status, connect (cluster), disconnect(cluster), remove (cluster)").build())
         options.addOption(Option.builder("u").longOpt(CLUSTER_URLS).hasArg().desc("List of active urls for the cluster").build())
         options
     }
