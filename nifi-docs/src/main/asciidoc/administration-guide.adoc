@@ -155,10 +155,10 @@ properties can be specified.
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
 
 Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
-the User Interface. In order to do this it must be configured to not support username/password authentication (see below). Either of these options
+the User Interface. In order to do this it must be configured to not support username/password authentication using  <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>>. Either of these options
 will configure the web server to WANT certificate based client authentication. This will allow it to support users with certificates and those without
 that may be logging in with their credentials or those accessing anonymously. If username/password authentication and anonymous access are not configured,
-the web server will REQUIRE certificate based client authentication.
+the web server will REQUIRE certificate based client authentication. See <<user_authentication>> for more details.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
@@ -242,7 +242,7 @@ After running the client you will have the CA’s certificate, a keystore, a tru
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
 
-
+[[user_authentication]]
 User Authentication
 -------------------
 
@@ -253,11 +253,13 @@ to use is configured in two properties in the _nifi.properties_ file.
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
 used. If this property is not configured, NiFi will not support username/password authentication and will require client
-certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be
-explicitly enabled.
+certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be explicitly enabled.
 
-NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
+A secured instance of NiFi cannot be accessed anonymously unless configured to use an LDAP or Kerberos Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730]).
 
+NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
+
+[[ldap_login_identity_provider]]
 Lightweight Directory Access Protocol (LDAP)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
