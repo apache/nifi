@@ -141,6 +141,7 @@ class NodeManagerToolSpec extends Specification{
         e.message == "Invalid operation provided: fake"
     }
 
+
     def "get node info successfully"(){
 
         given:
@@ -163,6 +164,7 @@ class NodeManagerToolSpec extends Specification{
         entity == nodeDTO
 
     }
+
 
     def "delete node successfully"(){
 
@@ -311,6 +313,69 @@ class NodeManagerToolSpec extends Specification{
         e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
+
+    def "get node status successfully"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def ClientResponse response = Mock ClientResponse
+        def config = new NodeManagerTool()
+
+        when:
+        config.getStatus(client,niFiProperties,null)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        1 * client.resource(_ as String) >> resource
+        1 * resource.get(ClientResponse.class) >> response
+        1 * response.getStatus() >> 200
+    }
+
+    def "get node status when unavailable"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def ClientResponse response = Mock ClientResponse
+        def config = new NodeManagerTool()
+
+        when:
+        config.getStatus(client,niFiProperties,null)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        1 * client.resource(_ as String) >> resource
+        1 * resource.get(ClientResponse.class) >> response
+        2 * response.getStatus() >> 403
+        1 * response.getEntity(String.class) >> "Unauthorized User"
+    }
+
+    def "get multiple node status successfully"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def ClientResponse response = Mock ClientResponse
+        def config = new NodeManagerTool()
+        def activeUrls = ["https://localhost:8080","https://localhost1:8080"]
+
+        when:
+        config.getStatus(client,niFiProperties,activeUrls)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        2 * client.resource(_ as String) >> resource
+        2 * resource.get(ClientResponse.class) >> response
+        2 * response.getStatus() >> 200
+    }
+
 
     def "disconnect node successfully"(){
 
