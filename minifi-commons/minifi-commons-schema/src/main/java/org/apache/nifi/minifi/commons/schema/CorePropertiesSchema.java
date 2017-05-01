@@ -34,18 +34,21 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
     public static final String FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY = "flow service write delay interval";
     public static final String ADMINISTRATIVE_YIELD_DURATION_KEY = "administrative yield duration";
     public static final String BORED_YIELD_DURATION_KEY = "bored yield duration";
+    public static final String VARIABLE_REGISTRY_PROPERTIES_KEY = "variable registry properties";
 
     public static final String DEFAULT_FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD = "10 sec";
     public static final String DEFAULT_FLOW_SERVICE_WRITE_DELAY_INTERVAL = "500 ms";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
     public static final int DEFAULT_MAX_CONCURRENT_THREADS = 1;
+    public static final String DEFAULT_VARIABLE_REGISTRY_PROPERTIES = "";
 
     private String flowControllerGracefulShutdownPeriod = DEFAULT_FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD;
     private String flowServiceWriteDelayInterval = DEFAULT_FLOW_SERVICE_WRITE_DELAY_INTERVAL;
     private String administrativeYieldDuration = DEFAULT_ADMINISTRATIVE_YIELD_DURATION;
     private String boredYieldDuration = DEFAULT_BORED_YIELD_DURATION;
     private Number maxConcurrentThreads = DEFAULT_MAX_CONCURRENT_THREADS;
+    private String variableRegistryProperties = DEFAULT_VARIABLE_REGISTRY_PROPERTIES;
 
     public CorePropertiesSchema() {
     }
@@ -60,6 +63,8 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
         boredYieldDuration = getOptionalKeyAsType(map, BORED_YIELD_DURATION_KEY, String.class, CORE_PROPS_KEY, DEFAULT_BORED_YIELD_DURATION);
         maxConcurrentThreads = getOptionalKeyAsType(map, MAX_CONCURRENT_THREADS_KEY, Number.class,
                 CORE_PROPS_KEY, DEFAULT_MAX_CONCURRENT_THREADS);
+        variableRegistryProperties = getOptionalKeyAsType(map, VARIABLE_REGISTRY_PROPERTIES_KEY, String.class,
+                CORE_PROPS_KEY, DEFAULT_VARIABLE_REGISTRY_PROPERTIES);
     }
 
     @Override
@@ -70,6 +75,7 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
         result.put(ADMINISTRATIVE_YIELD_DURATION_KEY, administrativeYieldDuration);
         result.put(BORED_YIELD_DURATION_KEY, boredYieldDuration);
         result.put(MAX_CONCURRENT_THREADS_KEY, maxConcurrentThreads);
+        result.put(VARIABLE_REGISTRY_PROPERTIES_KEY, variableRegistryProperties);
         return result;
     }
 
@@ -92,4 +98,9 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
     public Number getMaxConcurrentThreads() {
         return maxConcurrentThreads;
     }
+
+    public String getVariableRegistryProperties() {
+        return variableRegistryProperties;
+    }
+
 }

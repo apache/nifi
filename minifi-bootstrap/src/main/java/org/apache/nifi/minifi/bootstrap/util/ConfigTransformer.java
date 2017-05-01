@@ -168,6 +168,7 @@ public final class ConfigTransformer {
             orderedProperties.setProperty("nifi.flowcontroller.graceful.shutdown.period", coreProperties.getFlowControllerGracefulShutdownPeriod());
             orderedProperties.setProperty("nifi.flowservice.writedelay.interval", coreProperties.getFlowServiceWriteDelayInterval());
             orderedProperties.setProperty("nifi.administrative.yield.duration", coreProperties.getAdministrativeYieldDuration());
+            orderedProperties.setProperty("nifi.variable.registry.properties", coreProperties.getVariableRegistryProperties());
 
             orderedProperties.setProperty("nifi.bored.yield.duration", coreProperties.getBoredYieldDuration(),
                     "# If a component has no work to do (is \"bored\"), how long should we wait before checking again for work?");

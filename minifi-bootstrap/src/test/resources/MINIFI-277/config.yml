@@ -15,7 +15,7 @@
 
 MiNiFi Config Version: 3
 Flow Controller:
-  name: Simple TailFile To RPG
+  name: MiNiFi Flow
   comment: ''
 Core Properties:
   flow controller graceful shutdown period: 10 sec
@@ -23,7 +23,7 @@ Core Properties:
   administrative yield duration: 30 sec
   bored yield duration: 10 millis
   max concurrent threads: 1
-  variable registry properties: ''
+  variable registry properties: additional.properties
 FlowFile Repository:
   partitions: 256
   checkpoint interval: 2 mins
@@ -44,20 +44,20 @@ Component Status Repository:
   buffer size: 1440
   snapshot frequency: 1 min
 Security Properties:
-  keystore: ''
-  keystore type: ''
-  keystore password: ''
-  key password: ''
-  truststore: ''
-  truststore type: ''
-  truststore password: ''
-  ssl protocol: ''
+  keystore: /tmp/ssl/localhost-ks.jks
+  keystore type: JKS
+  keystore password: localtest
+  key password: localtest
+  truststore: /tmp/ssl/localhost-ts.jks
+  truststore type: JKS
+  truststore password: localtest
+  ssl protocol: TLS
   Sensitive Props:
-    key:
+    key: ''
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
     provider: BC
 Processors:
-- id: b0c04f28-0158-1000-0000-000000000000
+- id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e2
   name: TailFile
   class: org.apache.nifi.processors.standard.TailFile
   max concurrent tasks: 1
@@ -68,54 +68,40 @@ Processors:
   run duration nanos: 0
   auto-terminated relationships list: []
   Properties:
-    File Location: Local
-    File to Tail: ./logs/minifi-app.log
+    File to Tail: logs/minifi-app.log
     Initial Start Position: Beginning of File
-    Rolling Filename Pattern:
-    tail-base-directory:
-    tail-mode: Single file
-    tailfile-lookup-frequency: 10 minutes
-    tailfile-maximum-age: 24 hours
-    tailfile-recursive-lookup: 'false'
-    tailfile-rolling-strategy: Fixed name
-Controller Services: []
-Process Groups: []
-Input Ports: []
-Output Ports: []
-Funnels: []
+    Rolling Filename Pattern: minifi-app*
 Connections:
-- id: b0c0c3cc-0158-1000-0000-000000000000
-  name: TailFile/success/ac0e798c-0158-1000-0588-cda9b944e011
-  source id: b0c04f28-0158-1000-0000-000000000000
+- id: f6cef9b0-8982-391c-8d70-76f33917ac12
+  name: TailToS2S
+  source id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e2
   source relationship names:
   - success
-  destination id: ac0e798c-0158-1000-0588-cda9b944e011
-  max work queue size: 10000
-  max work queue data size: 1 GB
-  flowfile expiration: 0 sec
-  queue prioritizer class: ''
+  destination id: 8644cbcc-a45c-40e0-964d-5e536e2ada61
+  max work queue size: 0
+  max work queue data size: 1 MB
+  flowfile expiration: 60 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
 Remote Process Groups:
-- id: b0c09ff0-0158-1000-0000-000000000000
-  name: ''
-  url: http://localhost:8080/nifi
+- id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e3
+  name: NiFi Flow
+  url: https://localhost:8090/nifi
   comment: ''
-  timeout: 30 sec
+  timeout: 30 secs
   yield period: 10 sec
-  transport protocol: RAW
-  proxy host: ''
-  proxy port: ''
-  proxy user: ''
-  proxy password: ''
   Input Ports:
-  - id: aca664f8-0158-1000-a139-92485891d349
-    name: test2
+  - id: 8644cbcc-a45c-40e0-964d-5e536e2ada61
+    name: tailed log
     comment: ''
     max concurrent tasks: 1
     use compression: false
-  - id: ac0e798c-0158-1000-0588-cda9b944e011
-    name: test
-    comment: ''
-    max concurrent tasks: 1
-    use compression: false
-  Output Ports: []
-NiFi Properties Overrides: {}
+Provenance Reporting:
+  comment: ''
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 30 sec
+  destination url: https://localhost:8090/
+  port name: provenance
+  originating url: http://${hostname(true)}:8081/nifi
+  use compression: true
+  timeout: 30 secs
+  batch size: 1000

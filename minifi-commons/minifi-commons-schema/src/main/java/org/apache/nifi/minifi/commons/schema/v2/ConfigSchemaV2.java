@@ -17,11 +17,26 @@
 
 package org.apache.nifi.minifi.commons.schema.v2;
 
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMPONENT_STATUS_REPO_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONTENT_REPO_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CORE_PROPS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOWFILE_REPO_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOW_CONTROLLER_PROPS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPORTING_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.ContentRepositorySchema;
-import org.apache.nifi.minifi.commons.schema.CorePropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
 import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.FunnelSchema;
@@ -36,22 +51,6 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.CollectionOverlap;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMPONENT_STATUS_REPO_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONTENT_REPO_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CORE_PROPS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOWFILE_REPO_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOW_CONTROLLER_PROPS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPORTING_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
 
 public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<ConfigSchema> {
     public static final int CONFIG_VERSION = 2;
@@ -70,7 +69,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
     public static String TOP_LEVEL_NAME = "top level";
 
     private FlowControllerSchema flowControllerProperties;
-    private CorePropertiesSchema coreProperties;
+    private CorePropertiesSchemaV2 coreProperties;
     private FlowFileRepositorySchema flowfileRepositoryProperties;
     private ContentRepositorySchema contentRepositoryProperties;
     private ComponentStatusRepositorySchema componentStatusRepositoryProperties;
@@ -87,7 +86,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
         validationIssues.stream().forEach(this::addValidationIssue);
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
-        coreProperties = getMapAsType(map, CORE_PROPS_KEY, CorePropertiesSchema.class, TOP_LEVEL_NAME, false);
+        coreProperties = getMapAsType(map, CORE_PROPS_KEY, CorePropertiesSchemaV2.class, TOP_LEVEL_NAME, false);
         flowfileRepositoryProperties = getMapAsType(map, FLOWFILE_REPO_KEY, FlowFileRepositorySchema.class, TOP_LEVEL_NAME, false);
         contentRepositoryProperties = getMapAsType(map, CONTENT_REPO_KEY, ContentRepositorySchema.class, TOP_LEVEL_NAME, false);
         provenanceRepositorySchema = getMapAsType(map, PROVENANCE_REPO_KEY, ProvenanceRepositorySchema.class, TOP_LEVEL_NAME, false);
@@ -169,7 +168,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
         Map<String, Object> result = mapSupplier.get();
         result.put(VERSION, getVersion());
         putIfNotNull(result, FLOW_CONTROLLER_PROPS_KEY, flowControllerProperties);
-        putIfNotNull(result, CORE_PROPS_KEY, coreProperties);
+        putIfNotNull(result, CORE_PROPS_KEY, coreProperties.convert());
         putIfNotNull(result, FLOWFILE_REPO_KEY, flowfileRepositoryProperties);
         putIfNotNull(result, CONTENT_REPO_KEY, contentRepositoryProperties);
         putIfNotNull(result, PROVENANCE_REPO_KEY, provenanceRepositorySchema);

@@ -194,6 +194,27 @@ public class ConfigTransformerTest {
     }
 
     @Test
+    public void testNifiPropertiesVariableRegistry() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        Properties initialProperties = new Properties();
+        try (InputStream pre216PropertiesStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-277/nifi.properties")) {
+            initialProperties.load(pre216PropertiesStream);
+        }
+        initialProperties.setProperty(ConfigTransformer.NIFI_VERSION_KEY, ConfigTransformer.NIFI_VERSION);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-277/config.yml")) {
+            ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(configStream);
+            ConfigTransformer.writeNiFiProperties(configSchema, outputStream);
+        }
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+
+        for (String name : initialProperties.stringPropertyNames()) {
+            assertEquals("Property key " + name + " doesn't match.", initialProperties.getProperty(name), properties.getProperty(name));
+        }
+    }
+
+    @Test
     public void doesTransformFile() throws Exception {
         ConfigTransformer.transformConfigFile("./src/test/resources/config.yml", "./target/");
         File nifiPropertiesFile = new File("./target/nifi.properties");
