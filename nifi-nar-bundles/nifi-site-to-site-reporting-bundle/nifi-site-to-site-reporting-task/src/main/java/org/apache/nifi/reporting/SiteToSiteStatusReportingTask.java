@@ -77,7 +77,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue("(Processor|ProcessGroup|RemoteProcessGroup|RootProcessGroup|Connection|InputPort|OutputPort)")
-        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
     static final PropertyDescriptor COMPONENT_NAME_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Component Name Filter Regex")
@@ -85,7 +85,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue(".*")
-        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
 
     private volatile Pattern componentTypeFilter;
@@ -110,8 +110,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             return;
         }
 
-        componentTypeFilter = Pattern.compile(context.getProperty(COMPONENT_TYPE_FILTER_REGEX).getValue());
-        componentNameFilter = Pattern.compile(context.getProperty(COMPONENT_NAME_FILTER_REGEX).getValue());
+        componentTypeFilter = Pattern.compile(context.getProperty(COMPONENT_TYPE_FILTER_REGEX).evaluateAttributeExpressions().getValue());
+        componentNameFilter = Pattern.compile(context.getProperty(COMPONENT_NAME_FILTER_REGEX).evaluateAttributeExpressions().getValue());
 
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();

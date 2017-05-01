@@ -44,7 +44,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
 
     static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
-            .description("The URL of the destination NiFi instance to send the Provenance Events to, " +
+            .description("The URL of the destination NiFi instance to send data to, " +
                     "should be in the format http(s)://host:port/nifi.")
             .required(true)
             .expressionLanguageSupported(true)
@@ -52,7 +52,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .build();
     static final PropertyDescriptor PORT_NAME = new PropertyDescriptor.Builder()
             .name("Input Port Name")
-            .description("The name of the Input Port to delivery Provenance Events to.")
+            .description("The name of the Input Port to deliver data to.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -73,7 +73,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .build();
     static final PropertyDescriptor COMPRESS = new PropertyDescriptor.Builder()
             .name("Compress Events")
-            .description("Indicates whether or not to compress the events when being sent.")
+            .description("Indicates whether or not to compress the data being sent.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
