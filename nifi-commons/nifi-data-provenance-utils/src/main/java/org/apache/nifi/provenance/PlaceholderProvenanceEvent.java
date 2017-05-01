@@ -187,4 +187,14 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     public Long getPreviousContentClaimOffset() {
         return null;
     }
+
+    /**
+     * Returns the best event identifier for this event (eventId if available, descriptive identifier if not yet persisted to allow for traceability).
+     *
+     * @return a descriptive event ID to allow tracing
+     */
+    @Override
+    public String getBestEventIdentifier() {
+        return Long.toString(getEventId());
+    }
 }

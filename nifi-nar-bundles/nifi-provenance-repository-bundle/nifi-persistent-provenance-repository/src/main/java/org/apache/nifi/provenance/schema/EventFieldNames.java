@@ -56,4 +56,12 @@ public class EventFieldNames {
     public static final String EXPLICIT_VALUE = "Explicit Value";
     public static final String LOOKUP_VALUE = "Lookup Value";
     public static final String UNCHANGED_VALUE = "Unchanged";
+
+    // For encrypted records
+    public static final String IS_ENCRYPTED = "Encrypted Record";
+    public static final String KEY_ID = "Encryption Key ID";
+    public static final String VERSION = "Encryption Version";
+    public static final String ALGORITHM = "Encryption Algorithm";
+    public static final String IV = "Initialization Vector";
+    public static final String ENCRYPTION_DETAILS = "Encryption Details";
 }

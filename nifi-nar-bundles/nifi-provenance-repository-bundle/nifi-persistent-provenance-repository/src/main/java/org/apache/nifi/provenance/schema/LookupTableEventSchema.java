@@ -45,7 +45,6 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UPD
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 
@@ -90,5 +89,4 @@ public class LookupTableEventSchema {
         final RecordSchema schema = new RecordSchema(fields);
         return schema;
     }
-
 }
