@@ -52,8 +52,8 @@ import org.apache.tika.mime.MimeTypeException;
 
 /**
  * <p>
- * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added to an attribute with the name mime.type. In addition, mime.extension is set if
- * a common file extension is known.
+ * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added
+ * to an attribute with the name mime.type. In addition, mime.extension is set if a common file extension is known.
  * </p>
  *
  * <p>
@@ -82,9 +82,6 @@ public class IdentifyMimeType extends AbstractProcessor {
             .name("success")
             .description("All FlowFiles are routed to success")
             .build();
-
-    public static final MediaType FLOWFILE_V1 = new MediaType("application", "flowfile-v1");
-    public static final MediaType FLOWFILE_V3 = new MediaType("application", "flowfile-v3");
 
     private Set<Relationship> relationships;
 
