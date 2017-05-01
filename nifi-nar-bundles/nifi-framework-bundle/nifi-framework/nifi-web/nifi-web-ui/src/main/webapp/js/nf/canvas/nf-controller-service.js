@@ -507,13 +507,19 @@
                     var referencingServiceReferencesContainer = $('<div class="referencing-component-references hidden"></div>');
                     var serviceTwist = $('<div class="service expansion-button collapsed pointer"></div>').on('click', function () {
                         if (serviceTwist.hasClass('collapsed')) {
-                            var controllerServiceGrid = serviceTable.data('gridInstance');
-                            var controllerServiceData = controllerServiceGrid.getData();
-                            var referencingServiceEntity = controllerServiceData.getItemById(referencingComponent.id);
-                            var referencingService = referencingServiceEntity.component;
-
                             // create the markup for the references
-                            createReferencingComponents(serviceTable, referencingServiceReferencesContainer, referencingService.referencingComponents);
+                            if (referencingComponent.referenceCycle === true) {
+                                referencingServiceReferencesContainer.append('<div class="unset">Reference cycle detected.</div>');
+                            } else {
+                                var controllerServiceGrid = serviceTable.data('gridInstance');
+                                var controllerServiceData = controllerServiceGrid.getData();
+
+                                // get the controller service and expand its referencing services
+                                getControllerService(referencingComponent.id, controllerServiceData).done(function (controllerServiceEntity) {
+                                    var cs = controllerServiceEntity.component;
+                                    createReferencingComponents(serviceTable, referencingServiceReferencesContainer, cs.referencingComponents);
+                                });
+                            }
                         } else {
                             referencingServiceReferencesContainer.empty();
                         }
@@ -783,7 +789,7 @@
 
         // Note: updated revisions will be retrieved after updateReferencingSchedulableComponents is invoked
 
-        // wait unil the polling of each service finished
+        // wait until the polling of each service finished
         return $.Deferred(function (deferred) {
             updated.done(function (response) {
                 // update the controller service
@@ -803,8 +809,9 @@
                     // start polling for each controller service
                     var polling = [];
                     services.forEach(function (controllerServiceId) {
-                        var referencingService = controllerServiceData.getItemById(controllerServiceId);
-                        polling.push(stopReferencingSchedulableComponents(referencingService, pollCondition));
+                        getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
+                            polling.push(stopReferencingSchedulableComponents(controllerServiceEntity, pollCondition));
+                        });
                     });
 
                     // wait until polling has finished
@@ -818,6 +825,29 @@
                 deferred.reject();
             });
         }).promise();
+    };
+
+    /**
+     * Gets the controller service with the specified id. If the service is present in the specified
+     * controllerServiceData it will be used. Otherwise it will query for it.
+     *
+     * @param controllerServiceId   service id
+     * @param controllerServiceData service table data
+     * @returns {deferred} the controller service entity
+     */
+    var getControllerService = function (controllerServiceId, controllerServiceData) {
+        var controllerServiceEntity = controllerServiceData.getItemById(controllerServiceId);
+        if (nfCommon.isDefinedAndNotNull(controllerServiceEntity)) {
+            return $.Deferred(function (deferred) {
+                deferred.resolve(controllerServiceEntity);
+            });
+        } else {
+            return $.ajax({
+                type: 'GET',
+                url: '../nifi-api/controller-services/' + encodeURIComponent(controllerServiceId),
+                dataType: 'json'
+            }).fail(nfErrorHandler.handleAjaxError);
+        }
     };
 
     /**
@@ -890,12 +920,12 @@
      * Continues to poll the specified controller service until all referencing schedulable
      * components are stopped (not scheduled and 0 active threads).
      *
-     * @param {object} controllerService
+     * @param {object} controllerServiceEntity
      * @param {function} pollCondition
      */
-    var stopReferencingSchedulableComponents = function (controllerService, pollCondition) {
+    var stopReferencingSchedulableComponents = function (controllerServiceEntity, pollCondition) {
         // continue to poll the service until all schedulable components have stopped
-        return pollService(controllerService, function (service, bulletins) {
+        return pollService(controllerServiceEntity, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
 
             var stillRunning = false;
@@ -938,12 +968,12 @@
     /**
      * Continues to poll until all referencing services are enabled.
      *
-     * @param {object} controllerService
+     * @param {object} controllerServiceEntity
      * @param {function} pollCondition
      */
-    var enableReferencingServices = function (controllerService, pollCondition) {
+    var enableReferencingServices = function (controllerServiceEntity, pollCondition) {
         // continue to poll the service until all referencing services are enabled
-        return pollService(controllerService, function (service, bulletins) {
+        return pollService(controllerServiceEntity, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
 
             var notEnabled = false;
@@ -983,12 +1013,12 @@
     /**
      * Continues to poll until all referencing services are disabled.
      *
-     * @param {object} controllerService
+     * @param {object} controllerServiceEntity
      * @param {function} pollCondition
      */
-    var disableReferencingServices = function (controllerService, pollCondition) {
+    var disableReferencingServices = function (controllerServiceEntity, pollCondition) {
         // continue to poll the service until all referencing services are disabled
-        return pollService(controllerService, function (service, bulletins) {
+        return pollService(controllerServiceEntity, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
 
             var notDisabled = false;
@@ -1071,13 +1101,13 @@
                 // start polling for each controller service
                 var polling = [];
                 services.forEach(function (controllerServiceId) {
-                    var referencingService = controllerServiceData.getItemById(controllerServiceId);
-
-                    if (enabled) {
-                        polling.push(enableReferencingServices(referencingService, pollCondition));
-                    } else {
-                        polling.push(disableReferencingServices(referencingService, pollCondition));
-                    }
+                    getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
+                        if (enabled) {
+                            polling.push(enableReferencingServices(controllerServiceEntity, pollCondition));
+                        } else {
+                            polling.push(disableReferencingServices(controllerServiceEntity, pollCondition));
+                        }
+                    });
                 });
 
                 $.when.apply(window, polling).done(function () {
