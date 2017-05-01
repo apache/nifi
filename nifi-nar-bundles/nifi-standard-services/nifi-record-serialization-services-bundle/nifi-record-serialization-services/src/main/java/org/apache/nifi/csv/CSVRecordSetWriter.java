@@ -70,6 +70,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws SchemaNotFoundException, IOException {
         final RecordSchema schema = getSchema(flowFile, in);
-        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema), getDateFormat(), getTimeFormat(), getTimestampFormat(), includeHeader);
+        return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema),
+            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader);
     }
 }

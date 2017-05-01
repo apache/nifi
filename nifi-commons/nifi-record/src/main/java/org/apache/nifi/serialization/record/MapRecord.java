@@ -152,19 +152,12 @@ public class MapRecord implements Record {
         return convertToString(getValue(field), format);
     }
 
-    private String getFormat(final String optionalFormat, final RecordFieldType fieldType) {
-        return (optionalFormat == null) ? fieldType.getDefaultFormat() : optionalFormat;
-    }
-
     private String convertToString(final Object value, final String format) {
         if (value == null) {
             return null;
         }
 
-        final String dateFormat = getFormat(format, RecordFieldType.DATE);
-        final String timestampFormat = getFormat(format, RecordFieldType.TIMESTAMP);
-        final String timeFormat = getFormat(format, RecordFieldType.TIME);
-        return DataTypeUtils.toString(value, dateFormat, timeFormat, timestampFormat);
+        return DataTypeUtils.toString(value, format);
     }
 
     @Override

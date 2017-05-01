@@ -64,9 +64,9 @@ public class WriteJsonResult implements RecordSetWriter {
         this.prettyPrint = prettyPrint;
         this.schemaAccess = schemaAccess;
 
-        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
     }
 
     @Override
@@ -169,11 +169,33 @@ public class WriteJsonResult implements RecordSetWriter {
         }
 
         switch (chosenDataType.getFieldType()) {
-            case DATE:
-            case TIME:
-            case TIMESTAMP:
-                generator.writeString(DataTypeUtils.toString(coercedValue, dateFormat, timeFormat, timestampFormat));
+            case DATE: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, dateFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
                 break;
+            }
+            case TIME: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, timeFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
+                break;
+            }
+            case TIMESTAMP: {
+                final String stringValue = DataTypeUtils.toString(coercedValue, timestampFormat);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
+                break;
+            }
             case DOUBLE:
                 generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
                 break;

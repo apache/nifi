@@ -51,9 +51,9 @@ public class CSVRecordReader implements RecordReader {
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         this.schema = schema;
-        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
         final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));

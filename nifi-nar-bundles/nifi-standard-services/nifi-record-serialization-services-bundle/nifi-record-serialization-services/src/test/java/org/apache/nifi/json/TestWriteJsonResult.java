@@ -153,4 +153,35 @@ public class TestWriteJsonResult {
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
+
+    @Test
+    public void testTimestampWithNullFormat() throws IOException {
+        final Map<String, Object> values = new HashMap<>();
+        values.put("timestamp", new java.sql.Timestamp(37293723L));
+        values.put("time", new java.sql.Time(37293723L));
+        values.put("date", new java.sql.Date(37293723L));
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Record record = new MapRecord(schema, values);
+        final RecordSet rs = RecordSet.of(schema, record);
+
+        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), false, null, null, null);
+
+        final byte[] data;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            writer.write(rs, baos);
+            data = baos.toByteArray();
+        }
+
+        final String expected = "[{\"timestamp\":37293723,\"time\":37293723,\"date\":37293723}]";
+
+        final String output = new String(data, StandardCharsets.UTF_8);
+        assertEquals(expected, output);
+    }
 }

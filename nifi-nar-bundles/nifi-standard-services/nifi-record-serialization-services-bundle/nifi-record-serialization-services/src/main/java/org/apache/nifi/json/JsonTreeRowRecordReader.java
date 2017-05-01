@@ -127,7 +127,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case SHORT:
                 return DataTypeUtils.toShort(getRawNodeValue(fieldNode), fieldName);
             case STRING:
-                return DataTypeUtils.toString(getRawNodeValue(fieldNode), dateFormat, timeFormat, timestampFormat);
+                return DataTypeUtils.toString(getRawNodeValue(fieldNode), DataTypeUtils.getDateFormat(desiredType.getFieldType(), dateFormat, timeFormat, timestampFormat));
             case DATE:
                 return DataTypeUtils.toDate(getRawNodeValue(fieldNode), dateFormat, fieldName);
             case TIME:

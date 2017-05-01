@@ -47,6 +47,19 @@ public class DataTypeUtils {
             getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
     }
 
+    public static DateFormat getDateFormat(final RecordFieldType fieldType, final DateFormat dateFormat, final DateFormat timeFormat, final DateFormat timestampFormat) {
+        switch (fieldType) {
+            case DATE:
+                return dateFormat;
+            case TIME:
+                return timeFormat;
+            case TIMESTAMP:
+                return timestampFormat;
+        }
+
+        return null;
+    }
+
     public static Object convertType(final Object value, final DataType dataType, final DateFormat dateFormat, final DateFormat timeFormat,
         final DateFormat timestampFormat, final String fieldName) {
         switch (dataType.getFieldType()) {
@@ -71,7 +84,7 @@ public class DataTypeUtils {
             case SHORT:
                 return toShort(value, fieldName);
             case STRING:
-                return toString(value, dateFormat, timeFormat, timestampFormat);
+                return toString(value, getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
             case TIME:
                 return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
@@ -275,7 +288,7 @@ public class DataTypeUtils {
     }
 
 
-    public static String toString(final Object value, final DateFormat dateFormat, final DateFormat timeFormat, final DateFormat timestampFormat) {
+    public static String toString(final Object value, final DateFormat format) {
         if (value == null) {
             return null;
         }
@@ -284,23 +297,27 @@ public class DataTypeUtils {
             return (String) value;
         }
 
+        if (format == null && value instanceof java.util.Date) {
+            return String.valueOf(((java.util.Date) value).getTime());
+        }
+
         if (value instanceof java.sql.Date) {
-            return dateFormat.format((java.util.Date) value);
+            return format.format((java.util.Date) value);
         }
         if (value instanceof java.sql.Time) {
-            return timeFormat.format((java.util.Date) value);
+            return format.format((java.util.Date) value);
         }
         if (value instanceof java.sql.Timestamp) {
-            return timestampFormat.format((java.util.Date) value);
+            return format.format((java.util.Date) value);
         }
         if (value instanceof java.util.Date) {
-            return timestampFormat.format((java.util.Date) value);
+            return format.format((java.util.Date) value);
         }
 
         return value.toString();
     }
 
-    public static String toString(final Object value, final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public static String toString(final Object value, final String format) {
         if (value == null) {
             return null;
         }
@@ -309,17 +326,21 @@ public class DataTypeUtils {
             return (String) value;
         }
 
+        if (format == null && value instanceof java.util.Date) {
+            return String.valueOf(((java.util.Date) value).getTime());
+        }
+
         if (value instanceof java.sql.Date) {
-            return getDateFormat(dateFormat).format((java.util.Date) value);
+            return getDateFormat(format).format((java.util.Date) value);
         }
         if (value instanceof java.sql.Time) {
-            return getDateFormat(timeFormat).format((java.util.Date) value);
+            return getDateFormat(format).format((java.util.Date) value);
         }
         if (value instanceof java.sql.Timestamp) {
-            return getDateFormat(timestampFormat).format((java.util.Date) value);
+            return getDateFormat(format).format((java.util.Date) value);
         }
         if (value instanceof java.util.Date) {
-            return getDateFormat(timestampFormat).format((java.util.Date) value);
+            return getDateFormat(format).format((java.util.Date) value);
         }
 
         return value.toString();
@@ -345,9 +366,18 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = format.parse((String) value);
+                final String string = ((String) value).trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
+
+                if (format == null) {
+                    return new Date(Long.parseLong(string));
+                }
+
+                final java.util.Date utilDate = format.parse(string);
                 return new Date(utilDate.getTime());
-            } catch (final ParseException e) {
+            } catch (final ParseException | NumberFormatException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
                     + "] of type java.lang.String to Date because the value is not in the expected date format: " + format + " for field " + fieldName);
             }
@@ -393,7 +423,16 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = format.parse((String) value);
+                final String string = ((String) value).trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
+
+                if (format == null) {
+                    return new Time(Long.parseLong(string));
+                }
+
+                final java.util.Date utilDate = format.parse(string);
                 return new Time(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
@@ -430,7 +469,16 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                final java.util.Date utilDate = format.parse((String) value);
+                final String string = ((String) value).trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
+
+                if (format == null) {
+                    return new Timestamp(Long.parseLong(string));
+                }
+
+                final java.util.Date utilDate = format.parse(string);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
                 throw new IllegalTypeConversionException("Could not convert value [" + value
