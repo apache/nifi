@@ -141,6 +141,7 @@ class NodeManagerToolSpec extends Specification{
         e.message == "Invalid operation provided: fake"
     }
 
+
     def "get node info successfully"(){
 
         given:
@@ -163,6 +164,7 @@ class NodeManagerToolSpec extends Specification{
         entity == nodeDTO
 
     }
+
 
     def "delete node successfully"(){
 
@@ -311,6 +313,27 @@ class NodeManagerToolSpec extends Specification{
         e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
     }
+
+    def "get node status successfully"(){
+
+        given:
+        def NiFiProperties niFiProperties = Mock NiFiProperties
+        def Client client = Mock Client
+        def WebResource resource = Mock WebResource
+        def ClientResponse response = Mock ClientResponse
+        def config = new NodeManagerTool()
+
+        when:
+        config.getStatus(client,niFiProperties)
+
+        then:
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8080"
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
+        1 * client.resource(_ as String) >> resource
+        1 * resource.get(ClientResponse.class) >> response
+        1 * response.getStatus() >> 200
+    }
+
 
     def "disconnect node successfully"(){
 
