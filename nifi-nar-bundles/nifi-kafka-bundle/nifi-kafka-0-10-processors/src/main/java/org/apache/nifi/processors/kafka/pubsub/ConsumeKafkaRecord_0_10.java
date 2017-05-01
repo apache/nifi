@@ -56,7 +56,10 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 0.10.x Consumer API. "
     + "The complementary NiFi processor for sending messages is PublishKafka_0_10. Please note that, at this time, the Processor assumes that "
-    + "all records that are retrieved from a given partition have the same schema.")
+    + "all records that are retrieved from a given partition have the same schema. If any of the Kafka messages are pulled but cannot be parsed or written with the "
+    + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
+    + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
+    + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile.")
 @Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.10.x"})
 @WritesAttributes({
     @WritesAttribute(attribute = "record.count", description = "The number of records received"),
@@ -160,6 +163,11 @@ public class ConsumeKafkaRecord_0_10 extends AbstractProcessor {
             .name("success")
             .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
             .build();
+    static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
+            .name("parse.failure")
+            .description("If a message from Kafka cannot be parsed using the configured Record Reader, the contents of the "
+                + "message will be routed to this Relationship as its own individual FlowFile.")
+            .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<Relationship> RELATIONSHIPS;
@@ -184,7 +192,11 @@ public class ConsumeKafkaRecord_0_10 extends AbstractProcessor {
         descriptors.add(MAX_POLL_RECORDS);
         descriptors.add(MAX_UNCOMMITTED_TIME);
         DESCRIPTORS = Collections.unmodifiableList(descriptors);
-        RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+
+        final Set<Relationship> rels = new HashSet<>();
+        rels.add(REL_SUCCESS);
+        rels.add(REL_PARSE_FAILURE);
+        RELATIONSHIPS = Collections.unmodifiableSet(rels);
     }
 
     @Override
@@ -303,7 +315,7 @@ public class ConsumeKafkaRecord_0_10 extends AbstractProcessor {
             return;
         }
 
-        try (final ConsumerLease lease = pool.obtainConsumer(session)) {
+        try (final ConsumerLease lease = pool.obtainConsumer(session, context)) {
             if (lease == null) {
                 context.yield();
                 return;

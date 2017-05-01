@@ -296,7 +296,7 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 500));
+        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 500));
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -345,8 +345,8 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                         }
                     });
                 } catch (final Exception e) {
-                    getLogger().error("Failed to send contents of {} to Kafka; routing to failure", new Object[] {flowFile, e});
-                    session.transfer(flowFile, REL_FAILURE);
+                    // The FlowFile will be obtained and the error logged below, when calling publishResult.getFailedFlowFiles()
+                    lease.getTracker().fail(flowFile, e);
                     continue;
                 }
             }

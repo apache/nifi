@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import static org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10.REL_PARSE_FAILURE;
+import static org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10.REL_SUCCESS;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -48,8 +53,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -59,10 +62,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-
-import static org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_0_10.REL_SUCCESS;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 
 /**
  * This class represents a lease to access a Kafka Consumer object. The lease is
@@ -301,6 +300,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
     public abstract ProcessSession getProcessSession();
 
+    public abstract void yield();
+
     private void processRecords(final ConsumerRecords<byte[], byte[]> records) {
         records.partitions().stream().forEach(partition -> {
             List<ConsumerRecord<byte[], byte[]>> messages = records.records(partition);
@@ -310,7 +311,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         .mapToLong(record -> record.offset())
                         .max()
                         .getAsLong();
-                uncommittedOffsetsMap.put(partition, new OffsetAndMetadata(maxOffset + 1L));
 
                 //write records to content repository and session
                 if (demarcatorBytes != null) {
@@ -323,6 +323,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         writeData(getProcessSession(), message, partition);
                     });
                 }
+
+                uncommittedOffsetsMap.put(partition, new OffsetAndMetadata(maxOffset + 1L));
             }
         });
     }
@@ -392,6 +394,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         bundleMap.put(topicPartition, tracker);
     }
 
+    private void rollback(final TopicPartition topicPartition) {
+        final OffsetAndMetadata offsetAndMetadata = kafkaConsumer.committed(topicPartition);
+        final long offset = offsetAndMetadata.offset();
+        kafkaConsumer.seek(topicPartition, offset);
+    }
+
     private void writeRecordData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
         FlowFile flowFile = session.create();
         try {
@@ -399,6 +407,14 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             try {
                 writer = writerFactory.createWriter(logger, flowFile, new ByteArrayInputStream(new byte[0]));
             } catch (final Exception e) {
+                logger.error(
+                    "Failed to obtain a Record Writer for serializing Kafka messages. This generally happens because the "
+                        + "Record Writer cannot obtain the appropriate Schema, due to failure to connect to a remote Schema Registry "
+                        + "or due to the Schema Access Strategy being dependent upon FlowFile Attributes that are not available. "
+                        + "Will roll back the Kafka session.", e);
+
+                rollback(topicPartition);
+                yield();
                 throw new ProcessException(e);
             }
 
@@ -408,20 +424,16 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             flowFile = session.write(flowFile, rawOut -> {
                 final Iterator<ConsumerRecord<byte[], byte[]>> itr = records.iterator();
 
-                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                    final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
-                    final RecordSet recordSet = new RecordSet() {
-                        @Override
-                        public RecordSchema getSchema() throws IOException {
-                            return emptySchema;
-                        }
+                final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
+                final RecordSet recordSet = new RecordSet() {
+                    @Override
+                    public RecordSchema getSchema() throws IOException {
+                        return emptySchema;
+                    }
 
-                        @Override
-                        public Record next() throws IOException {
-                            if (!itr.hasNext()) {
-                                return null;
-                            }
-
+                    @Override
+                    public Record next() throws IOException {
+                        while (itr.hasNext()) {
                             final ConsumerRecord<byte[], byte[]> consumerRecord = itr.next();
 
                             final InputStream in = new ByteArrayInputStream(consumerRecord.value());
@@ -429,32 +441,46 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                 final RecordReader reader = readerFactory.createRecordReader(ff, in, logger);
                                 final Record record = reader.nextRecord();
                                 return record;
-                            } catch (final SchemaNotFoundException | MalformedRecordException e) {
-                                throw new IOException(e);
+                            } catch (final Exception e) {
+                                FlowFile failureFlowFile = session.create();
+                                failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+                                session.transfer(failureFlowFile, REL_PARSE_FAILURE);
+                                logger.error("Failed to parse message from Kafka using the configured Record Reader. "
+                                    + "Will route message as its own FlowFile to the 'parse.failure' relationship", e);
+
+                                session.adjustCounter("Parse Failures", 1, false);
                             }
                         }
 
-                    };
+                        return null;
+                    }
+                };
 
+                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                     writeResult.set(writer.write(recordSet, out));
                 }
             });
 
-            final Map<String, String> attributes = new HashMap<>(writeResult.get().getAttributes());
-            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-            attributes.put("record.count", String.valueOf(writeResult.get().getRecordCount()));
+            final WriteResult result = writeResult.get();
+            if (result.getRecordCount() > 0) {
+                final Map<String, String> attributes = new HashMap<>(result.getAttributes());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                attributes.put("record.count", String.valueOf(result.getRecordCount()));
 
-            attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
-            attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
+                attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
+                attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
 
-            flowFile = session.putAllAttributes(flowFile, attributes);
+                flowFile = session.putAllAttributes(flowFile, attributes);
 
-            final long executionDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
-            final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
-            session.getProvenanceReporter().receive(flowFile, transitUri, executionDurationMillis);
+                final long executionDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
+                final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
+                session.getProvenanceReporter().receive(flowFile, transitUri, executionDurationMillis);
 
-            session.adjustCounter("Records Received", writeResult.get().getRecordCount(), false);
-            session.transfer(flowFile, REL_SUCCESS);
+                session.adjustCounter("Records Received", result.getRecordCount(), false);
+                session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                session.remove(flowFile);
+            }
         } catch (final Exception e) {
             session.remove(flowFile);
             throw e;

@@ -166,9 +166,9 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
-            .build();
+        .name("success")
+        .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
+        .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<Relationship> RELATIONSHIPS;
@@ -305,7 +305,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             return;
         }
 
-        try (final ConsumerLease lease = pool.obtainConsumer(session)) {
+        try (final ConsumerLease lease = pool.obtainConsumer(session, context)) {
             if (lease == null) {
                 context.yield();
                 return;

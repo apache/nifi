@@ -30,6 +30,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -178,10 +179,12 @@ public class ConsumerPool implements Closeable {
      * initializes a new one if deemed necessary.
      *
      * @param session the session for which the consumer lease will be
-     * associated
+     *            associated
+     * @param processContext the ProcessContext for which the consumer
+     *            lease will be associated
      * @return consumer to use or null if not available or necessary
      */
-    public ConsumerLease obtainConsumer(final ProcessSession session) {
+    public ConsumerLease obtainConsumer(final ProcessSession session, final ProcessContext processContext) {
         SimpleConsumerLease lease = pooledLeases.poll();
         if (lease == null) {
             final Consumer<byte[], byte[]> consumer = createKafkaConsumer();
@@ -206,7 +209,7 @@ public class ConsumerPool implements Closeable {
               consumer.subscribe(topicPattern, lease);
             }
         }
-        lease.setProcessSession(session);
+        lease.setProcessSession(session, processContext);
 
         leasesObtainedCountRef.incrementAndGet();
         return lease;
@@ -257,6 +260,7 @@ public class ConsumerPool implements Closeable {
 
         private final Consumer<byte[], byte[]> consumer;
         private volatile ProcessSession session;
+        private volatile ProcessContext processContext;
         private volatile boolean closedConsumer;
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer) {
@@ -264,8 +268,16 @@ public class ConsumerPool implements Closeable {
             this.consumer = consumer;
         }
 
-        void setProcessSession(final ProcessSession session) {
+        void setProcessSession(final ProcessSession session, final ProcessContext context) {
             this.session = session;
+            this.processContext = context;
+        }
+
+        @Override
+        public void yield() {
+            if (processContext != null) {
+                processContext.yield();
+            }
         }
 
         @Override
@@ -286,7 +298,7 @@ public class ConsumerPool implements Closeable {
             super.close();
             if (session != null) {
                 session.rollback();
-                setProcessSession(null);
+                setProcessSession(null, null);
             }
             if (forceClose || isPoisoned() || !pooledLeases.offer(this)) {
                 closedConsumer = true;

@@ -103,7 +103,7 @@ public class ConsumeKafkaTest {
     public void validateGetAllMessages() throws Exception {
         String groupName = "validateGetAllMessages";
 
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
+        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
@@ -121,7 +121,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
+        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
         verify(mockLease, times(3)).continuePolling();
         verify(mockLease, times(2)).poll();
         verify(mockLease, times(1)).commit();
@@ -134,7 +134,7 @@ public class ConsumeKafkaTest {
     public void validateGetAllMessagesPattern() throws Exception {
         String groupName = "validateGetAllMessagesPattern";
 
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
+        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
@@ -153,7 +153,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
+        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
         verify(mockLease, times(3)).continuePolling();
         verify(mockLease, times(2)).poll();
         verify(mockLease, times(1)).commit();
@@ -166,7 +166,7 @@ public class ConsumeKafkaTest {
     public void validateGetErrorMessages() throws Exception {
         String groupName = "validateGetErrorMessages";
 
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
+        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
@@ -184,7 +184,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
         runner.run(1, false);
 
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
+        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
         verify(mockLease, times(2)).continuePolling();
         verify(mockLease, times(1)).poll();
         verify(mockLease, times(1)).commit();

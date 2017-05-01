@@ -178,4 +178,8 @@ public class PublisherLease implements Closeable {
         producer.close(maxAckWaitMillis, TimeUnit.MILLISECONDS);
         tracker = null;
     }
+
+    public InFlightMessageTracker getTracker() {
+        return tracker;
+    }
 }

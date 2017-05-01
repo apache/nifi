@@ -29,6 +29,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.processors.kafka.pubsub.ConsumerPool.PoolStats;
@@ -36,6 +37,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -44,14 +47,16 @@ import static org.mockito.Mockito.when;
 
 public class ConsumerPoolTest {
 
-    Consumer<byte[], byte[]> consumer = null;
-    ProcessSession mockSession = null;
-    ProvenanceReporter mockReporter = null;
-    ConsumerPool testPool = null;
-    ConsumerPool testDemarcatedPool = null;
-    ComponentLog logger = null;
+    private Consumer<byte[], byte[]> consumer = null;
+    private ProcessSession mockSession = null;
+    private ProcessContext mockContext = Mockito.mock(ProcessContext.class);
+    private ProvenanceReporter mockReporter = null;
+    private ConsumerPool testPool = null;
+    private ConsumerPool testDemarcatedPool = null;
+    private ComponentLog logger = null;
 
     @Before
+    @SuppressWarnings("unchecked")
     public void setup() {
         consumer = mock(Consumer.class);
         logger = mock(ComponentLog.class);
@@ -94,16 +99,16 @@ public class ConsumerPoolTest {
     public void validatePoolSimpleCreateClose() throws Exception {
 
         when(consumer.poll(anyLong())).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
         }
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
         }
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
         }
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
         }
         testPool.close();
@@ -125,7 +130,7 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(anyLong())).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
@@ -142,7 +147,7 @@ public class ConsumerPoolTest {
     public void validatePoolSimpleBatchCreateClose() throws Exception {
         when(consumer.poll(anyLong())).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
         for (int i = 0; i < 100; i++) {
-            try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+            try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
                 for (int j = 0; j < 100; j++) {
                     lease.poll();
                 }
@@ -167,7 +172,7 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(anyLong())).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
-        try (final ConsumerLease lease = testDemarcatedPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testDemarcatedPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
@@ -184,7 +189,7 @@ public class ConsumerPoolTest {
     public void validatePoolConsumerFails() throws Exception {
 
         when(consumer.poll(anyLong())).thenThrow(new KafkaException("oops"));
-        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession)) {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             try {
                 lease.poll();
                 fail();
