@@ -12,7 +12,9 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-# Apache NiFi [![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
+[<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" height="126" alt="Apache NiFi"/>][nifi]
+
+#  [![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
 
 [Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and 
 reliable system to process and distribute data.
@@ -174,3 +176,6 @@ http://www.jasypt.org/faq.html
 http://jcraft.com/c-info.html
 http://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.
+
+[nifi]: https://nifi.apache.org/
+[logo]: https://nifi.apache.org/assets/images/apache-nifi-logo.svg
