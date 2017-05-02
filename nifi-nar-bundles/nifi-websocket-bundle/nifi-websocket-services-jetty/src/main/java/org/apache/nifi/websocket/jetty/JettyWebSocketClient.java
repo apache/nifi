@@ -90,7 +90,12 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
             .name("session-maintenance-interval")
             .displayName("Session Maintenance Interval")
-            .description("The interval between session maintenance activities.")
+            .description("The interval between session maintenance activities." +
+                    " A WebSocket session established with a WebSocket server can be terminated due to different reasons" +
+                    " including restarting the WebSocket server or timing out inactive sessions." +
+                    " This session maintenance activity is periodically executed in order to reconnect those lost sessions," +
+                    " so that a WebSocket client can reuse the same session id transparently after it reconnects successfully. " +
+                    " The maintenance activity is executed until corresponding processors or this controller service is stopped.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -238,10 +243,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 }
 
                 final String sessionId = activeSessions.get(clientId);
-                // If this session is stil alive, do nothing.
+                // If this session is still alive, do nothing.
                 if (!router.containsSession(sessionId)) {
                     // This session is no longer active, reconnect it.
                     // If it fails, the sessionId will remain in activeSessions, and retries later.
+                    // This reconnect attempt is continued until user explicitly stops a processor or this controller service.
                     connect(clientId, sessionId);
                 }
             }
