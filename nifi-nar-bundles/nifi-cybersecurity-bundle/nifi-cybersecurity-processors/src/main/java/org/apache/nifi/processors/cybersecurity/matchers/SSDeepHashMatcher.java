@@ -104,8 +104,7 @@ public class SSDeepHashMatcher implements FuzzyHashMatcher {
     public String getHash(String line) {
         if (isValidHash(line)) {
             return line.split(",", 2)[0];
-        }
-        else {
+        } else {
             return null;
         }
     }

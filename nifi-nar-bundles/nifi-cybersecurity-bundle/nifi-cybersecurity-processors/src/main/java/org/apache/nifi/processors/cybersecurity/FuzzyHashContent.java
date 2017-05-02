@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.cybersecurity;
 
-import com.idealista.tlsh.TLSH;
 import com.idealista.tlsh.exceptions.InsufficientComplexityException;
-import info.debatty.java.spamsum.SpamSum;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
