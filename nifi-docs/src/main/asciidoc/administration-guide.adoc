@@ -1210,13 +1210,13 @@ To show help:
 
 The following are available options:
 
-* -b  | --bootstrapConf – Existing Bootstrap Configuration file (required)
-* -d  | --nifiInstallDir – NiFi Root Folder (required)
-* -p  | --proxyDN – Proxy or User DN (required for secured nodes)
-* -m  | --message – Bulletin message (required)
-* -l  | --level – Status level of bulletin – INFO, WARN, ERROR
-* -v  | --verbose – Verbose messaging (optional)
-* -h  | --help – Help Text (optional)
+* `-b,--bootstrapConf <arg>` The _bootstrap.conf_ file to persist master key
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
+* `-m,--message <arg>` Bulletin message (required)
+* `-l,--level <arg>` Status level of bulletin – INFO, WARN, ERROR
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
 
 Example usage on Linux:
 
@@ -1250,13 +1250,13 @@ To show help:
 
 The following are available options:
 
-* -b  | --bootstrapConf – Existing Bootstrap Configuration file (required)
-* -d  | --nifiInstallDir – NiFi Root Folder (required)
-* -p  | --proxyDN – Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
-* -o  | --operation – Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
-* -u  | --clusterUrls – Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
-* -v  | --verbose – Verbose messaging (optional)
-* -h  | --help – Help Text (optional)
+* `-b,--bootstrapConf <arg>` The _bootstrap.conf_ file to persist master key
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
+* `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
+* `-u,--clusterUrls <arg>` Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
 
 Example usage on Linux:
 
