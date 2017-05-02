@@ -1176,6 +1176,148 @@ Secure Prompt
 
 If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
 
+[[admin-toolkit]]
+Administrative Tools
+--------------------
+The admin toolkit contains command line utilities for administrators to support NiFi maintenance in standalone
+and clustered environments. These utilities include:
+
+* Notify -- The notification tool allows administrators to send bulletins to the NiFi UI using the command line.
+* Node Manager -- The node manager tool allows administrators to perform a status check on a node as well as to connect, disconnect, or remove nodes that are part of a cluster.
+
+The admin toolkit is bundled with the nifi-toolkit and can be executed with scripts found in the _bin_ folder.
+
+=== Prerequisites for Running Admin Toolkit in a Secure Environment
+For secured nodes and clusters, two policies should be configured in advance:
+
+* Access the controller – A user that will have access to these utilities should be authorized in NiFi by creating an “access
+the controller” policy (`/controller`) with both view and modify rights.
+* Proxy user request – If not previously set node’s identity (the DN value of the node’s certificate) should be authorized to proxy requests on behalf of a user
+
+When executing either the notify or node manager tools in a secured environment the `proxyDN` flag option should be used in
+order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running
+the status operation on the Node Manager tool, the flag is ignored.
+
+=== Notify
+Notify allows administrators to send messages as bulletins to NiFi.  Notify is supported on NiFi version 1.2.0 and higher.
+The notification tool is also available in a _notify.bat_ file for use on Windows machines.
+
+To send notifications:
+
+ notify.sh -d {$NIFI_HOME} –b {nifi bootstrap file path} -m {message} [-l {level}] [-v]
+
+To show help:
+
+ notify.sh -h
+
+The following are available options:
+
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
+* `-m,--message <arg>` Bulletin message (required)
+* `-l,--level <arg>` Status level of bulletin – INFO, WARN, ERROR
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
+
+Example usage on Linux:
+
+ ./notify.sh -d /usr/nifi/nifi_current -b /usr/nifi/nifi_current/conf/bootstrap.conf -m "Test Message Server 1" -l "WARN" –p “ydavis@nifi” -v
+
+Example usage on Windows:
+
+  notify.bat -v -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT" -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf" -m "Test Message Server 1" -v
+
+Executing the above command line should result in a bulletin appearing in NiFi:
+
+image::nifi-notifications.png["NiFi Notifications"]
+
+=== Node Manager
+
+Node manager supports connecting, disconnecting and removing a node when in a cluster (an error message
+displays if the node is not part of a cluster) as well as obtaining the status of a node.  When nodes are disconnected
+from a cluster and need to be
+connected or removed, a list of urls of connected nodes should be provided to send the required command to
+the active cluster.  Node Manager supports NiFi version 1.0.0 and higher. Node Manager is also available in
+'node-manager.bat' file for use on Windows machines.
+
+To connect, disconnect, or remove a node from a cluster:
+
+ node-manager.sh -d {$NIFI_HOME} –b { nifi bootstrap file path}
+ -o {remove|disconnect|connect|status} [-u {url list}] [-p {proxy name}] [-v]
+
+To show help:
+
+  node-manager.sh -h
+
+The following are available options:
+
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
+* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
+* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
+* `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
+* `-u,--clusterUrls <arg>` Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Help Text (optional)
+
+Example usage on Linux:
+
+ # disconnect without cluster url list
+ ./node-manager.sh
+ -d /usr/nifi/nifi_current
+ -b /usr/nifi/nifi_current/conf/bootstrap.conf
+ -o disconnect
+ –p ydavis@nifi
+ -v
+
+ #with url list
+ ./node-manager.sh
+ -d /usr/nifi/nifi_current
+ -b /usr/nifi/nifi_current/conf/bootstrap.conf
+ -o connect
+ -u 'http://nifi-server-1:8080,http://nifi-server-2:8080'
+ -v
+
+Example usage on Windows:
+
+ node-manager.bat
+ -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT"
+ -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf"
+ -o disconnect
+ –v
+
+==== Expected behavior
+
+Status:
+
+To obtain information on UI availability of a node, the status operation can be used to determine if the node is running.
+If the `–u (clusterUrls)` option is not provided the current node url is checked otherwise the urls provided will be checked.
+
+Disconnect:
+
+When a node is disconnected from the cluster, the node itself should appear as disconnected and the cluster
+should have a bulletin indicating the disconnect request was received. The cluster should also show _n-1/n_
+nodes available in the cluster. For example, if 1 node is disconnected from a 3-node cluster, then 2 of 3 nodes
+should show on the remaining nodes in the cluster.  Changes to the flow should not be allowed on the cluster
+with a disconnected node.
+
+Connect:
+
+When the connect command is executed to reconnect a node to a cluster, upon completion the node itself
+should show that it has rejoined the cluster by showing _n/n_ nodes. Previously it would have shown Disconnected.
+Other nodes in the cluster should receive a bulletin of the connect request and also show _n/n_ nodes allowing
+for changes to be allowed to the flow.
+
+Remove:
+
+When the remove command is executed the node should show as disconnected from a cluster.  The nodes remaining
+in the cluster should show _n-1/n-1_ nodes. For example, if 1 node is removed from a 3-node cluster, then the remaining 2 nodes
+should show 2 of 2 nodes).  The cluster should allow a flow to be adjusted.  The removed node can rejoin the
+cluster if restarted and the flow for the cluster has not changed. If the flow was changed, the flow template of
+the removed node should be deleted before restarting the node to allow it to obtain the cluster flow (otherwise
+an uninheritable flow file exception may occur).
+
+
 [[clustering]]
 Clustering Configuration
 ------------------------
