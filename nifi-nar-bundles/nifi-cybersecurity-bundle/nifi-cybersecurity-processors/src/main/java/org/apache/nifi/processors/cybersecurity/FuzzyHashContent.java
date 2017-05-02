@@ -138,7 +138,7 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
         // Check if content matches minimum length requirement
 
         if (checkMinimumAlgorithmRequirements(algorithm, flowFile) == false) {
-            logger.info("The content of '{}' is smaller than the minimum required by {}, routing to failure",
+            logger.error("The content of '{}' is smaller than the minimum required by {}, routing to failure",
                     new Object[]{flowFile, algorithm});
             session.transfer(flowFile, REL_FAILURE);
             return;
