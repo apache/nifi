@@ -45,22 +45,12 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/hypoglycemia</exclude>
-                        <exclude>src/test/resources/hyperglycemia</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <excludes>**/HL7QueryParser.java,**/HL7QueryLexer.java</excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
 
@@ -69,7 +59,7 @@
             <groupId>org.antlr</groupId>
             <artifactId>antlr-runtime</artifactId>
         </dependency>
-	
+
         <!-- HAPI to parse v2 messages -->
         <dependency>
             <groupId>ca.uhn.hapi</groupId>
