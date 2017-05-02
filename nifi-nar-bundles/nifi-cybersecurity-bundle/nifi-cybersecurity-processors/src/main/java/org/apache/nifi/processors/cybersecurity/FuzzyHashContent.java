@@ -22,8 +22,6 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,10 +39,9 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.HashContent;
+import org.apache.nifi.util.StringUtils;
 
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -70,8 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
         "evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being " +
         "evaluated by this processor and the hardware supporting it especially when working against large files.")
 
-@SeeAlso({HashContent.class, CompareFuzzyHash.class})
-@ReadsAttributes({@ReadsAttribute(attribute="", description="")})
+@SeeAlso(classNames = {"org.apache.nifi.processors.standard.HashContent"}, value = {CompareFuzzyHash.class})
 @WritesAttributes({@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
         + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")})
 
