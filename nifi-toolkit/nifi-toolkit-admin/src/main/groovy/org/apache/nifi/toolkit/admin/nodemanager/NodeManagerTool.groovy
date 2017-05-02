@@ -137,23 +137,30 @@ public class NodeManagerTool extends AbstractAdminTool {
         }
     }
 
-    void getStatus(final Client client,NiFiProperties niFiProperties){
-        final String url =  NiFiClientUtil.getUrl(niFiProperties,NIFI_ENDPOINT)
-        final WebResource webResource = client.resource(url)
-
-        if(isVerbose){
-            logger.info("Checking if node is available" )
+    void getStatus(final Client client,NiFiProperties niFiProperties,List<String> activeUrls){
+        if(activeUrls == null || activeUrls.empty) {
+            final String nodeUrl = NiFiClientUtil.getUrl(niFiProperties, null)
+            activeUrls = [nodeUrl]
         }
 
-        try {
-            final ClientResponse response = webResource.get(ClientResponse.class)
-            if (response.status == 200) {
-                System.out.println("NiFi Node is running and available.")
-            } else {
-                System.out.println("NiFi Node returned Response Code: " + response.status + " with reason: " + response.getEntity(String.class))
+        for(String activeUrl: activeUrls) {
+            final String url = activeUrl + NIFI_ENDPOINT
+            final WebResource webResource = client.resource(url)
+
+            if (isVerbose) {
+                logger.info("Checking if node is available")
             }
-        }catch(Exception ex){
-            System.out.println("NiFi Node could not be reached due to exception: " + ex.localizedMessage)
+
+            try {
+                final ClientResponse response = webResource.get(ClientResponse.class)
+                if (response.status == 200) {
+                    System.out.println("NiFi Node is running and available at "+url)
+                } else {
+                    System.out.println("Attempt to contact NiFi Node at "+url+" returned Response Code: " + response.status + " with reason: " + response.getEntity(String.class))
+                }
+            } catch (Exception ex) {
+                System.out.println("Attempt to contact NiFi Node "+url+" did not complete due to exception: " + ex.localizedMessage)
+            }
         }
 
     }
@@ -271,17 +278,19 @@ public class NodeManagerTool extends AbstractAdminTool {
                         logger.info("Starting {} request",operation)
                     }
 
+                    List<String> activeUrls = null
+                    if (commandLine.hasOption(CLUSTER_URLS)) {
+                        final String urlList = commandLine.getOptionValue(CLUSTER_URLS)
+                        activeUrls = urlList.tokenize(',')
+                    }
+
                     if(operation.equalsIgnoreCase(NODE_STATUS)){
-                        getStatus(client,niFiProperties)
+                        getStatus(client,niFiProperties,activeUrls)
                     }else{
 
                         if(NiFiClientUtil.isCluster(niFiProperties)) {
-                            List<String> activeUrls
 
-                            if (commandLine.hasOption(CLUSTER_URLS)) {
-                                final String urlList = commandLine.getOptionValue(CLUSTER_URLS)
-                                activeUrls = urlList.tokenize(',')
-                            } else {
+                            if (activeUrls == null) {
                                 activeUrls = NiFiClientUtil.getActiveClusterUrls(client, niFiProperties, proxyDN)
                             }
 
