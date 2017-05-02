@@ -430,6 +430,41 @@ The Label has no text when initially created. The text of the Label can be added
 choosing `Configure`
 
 
+[[component-versioning]]
+=== Component Versions
+You have access to information about the version of your Processors, Controller Services, and Reporting Tasks.
+This is especially useful when you are working within a clustered environment with multiple NiFi instances running
+different versions of a component or if you have upgraded to a newer version of a processor. The Add Processor,
+Add Controller Service, and Add Reporting Task dialogs include a column identifying the component version, as well
+as the name of the component, the organization or group that created the component, and the NAR bundle that contains
+the processor. Each component displayed on the canvas also contains this information.
+
+==== Sorting and Filtering Components
+When you are adding a component, you can filter based on originating source or version number.
+
+To sort based on version, click the version column to display in ascending or descending version order.
+
+To filter based on source group, click the source drop-down in the upper left of your Add Component dialog,
+and select the source group you want to view.
+
+==== Changing Component Versions
+To change a component version, perform the following steps.
+
+. Right-click the component on the canvas to display configuration options.
+. Select Change version.
+. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
+
+image::component-version-dialog.png["Component Version"]
+
+==== Understanding Version Dependencies
+When you are configuring a component, you can also view information about version dependencies.
+
+. Right-click your component and select Configure to display the Configure dialog for your component.
+. Click the Properties tab.
+. Click the information icon to view any version dependency information.
+
+image::configure-processor-with-version-information.png["Configuration Version Requirements"]
+
 
 [[Configuring_a_Processor]]
 === Configuring a Processor
