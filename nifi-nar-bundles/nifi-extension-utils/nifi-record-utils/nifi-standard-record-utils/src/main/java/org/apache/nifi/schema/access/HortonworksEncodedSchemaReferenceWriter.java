@@ -43,10 +43,11 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
         // This decoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
         // as it is provided at:
         // https://github.com/hortonworks/registry/blob/master/schema-registry/serdes/src/main/java/com/hortonworks/registries/schemaregistry/serdes/avro/AvroSnapshotSerializer.java
-        final ByteBuffer bb = ByteBuffer.allocate(13);
+        final ByteBuffer bb = ByteBuffer.allocate(14);
         bb.put((byte) LATEST_PROTOCOL_VERSION);
         bb.putLong(id);
         bb.putInt(version);
+        bb.put((byte) 0); // We always use generic records
 
         out.write(bb.array());
     }
