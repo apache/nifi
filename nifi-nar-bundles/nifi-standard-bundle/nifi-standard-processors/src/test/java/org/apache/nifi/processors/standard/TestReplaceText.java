@@ -30,9 +30,14 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class TestReplaceText {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     @Test
     public void testConfigurationCornerCase() throws IOException {
@@ -64,7 +69,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testWithEscaped$InReplacemenmt() throws IOException {
+    public void testWithEscaped$InReplacement() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
@@ -1106,7 +1111,60 @@ public class TestReplaceText {
         out.assertContentEquals("abc.txt\nabc.txt\r\nabc.txt\n");
     }
 
+    @Test
+    public void testRegexWithBadCaptureGroup() throws IOException {
+        // Test the old Default Regex and with a custom Replacement Value that should fail because the
+        // Perl regex "(?s:^.*$)" must be written "(?s)(^.*$)" in Java for there to be a capture group.
+        //      private static final String DEFAULT_REGEX = "(?s:^.*$)";
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${'$1':toUpper()}"); // should uppercase group but there is none
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
+        runner.enqueue("testing\n123".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("");
+    }
+
+    @Test
+    public void testRegexWithGoodCaptureGroup() throws IOException {
+        // Test the new Default Regex and with a custom Replacement Values that should succeed.
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${'$1':toUpper()}"); // will uppercase group with good Java regex
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+
+        runner.enqueue("testing\n123".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("TESTING\n123");
+    }
+
+    @Test
+    public void testRegexNoCaptureDefaultReplacement() throws IOException {
+        // Test the old Default Regex and new Default Regex with the default replacement.  This should fail
+        // because the regex does not create a capture group.
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1");
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+
+        exception.expect(AssertionError.class);
+        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
+        runner.enqueue("testing\n123".getBytes());
+        runner.run();
+    }
 
     private String translateNewLines(final File file) throws IOException {
         return translateNewLines(file.toPath());
