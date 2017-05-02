@@ -2227,7 +2227,7 @@ Providing three total locations, including  _nifi.provenance.repository.director
 	NiFi will periodically open each Lucene index and then close it, in order to "warm" the cache. This will result in far faster queries when the Provenance Repository is large. As with
 	all great things, though, it comes with a cost. Warming the cache does take some CPU resources, but more importantly it will evict other data from the Operating System disk cache and
 	will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
-	are not fully utilized, this feature can result in far faster Provenance queries.
+	are not fully utilized, this feature can result in far faster Provenance queries. The default value for this property is blank (i.e. disabled).
 |====
 
 [[encrypted-write-ahead-provenance-repository-properties]]
