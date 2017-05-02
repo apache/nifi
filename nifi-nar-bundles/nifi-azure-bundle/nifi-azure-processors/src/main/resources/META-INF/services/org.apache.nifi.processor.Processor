@@ -14,3 +14,6 @@
 # limitations under the License.
 org.apache.nifi.processors.azure.eventhub.PutAzureEventHub
 org.apache.nifi.processors.azure.eventhub.GetAzureEventHub
+org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage
+org.apache.nifi.processors.azure.storage.ListAzureBlobStorage
+org.apache.nifi.processors.azure.storage.PutAzureBlobStorage
