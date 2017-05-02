@@ -114,7 +114,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             if (e instanceof ProcessException && storedException.get() == null) {
                 throw (ProcessException) e;
             } else {
-                Exception failureException = Optional.ofNullable(storedException.get()).map(x -> x).orElse(e);
+                Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
                 getLogger().error("Failed to put Azure blob {}", new Object[]{blobPath}, failureException);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
