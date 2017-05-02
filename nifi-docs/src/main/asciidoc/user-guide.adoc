@@ -834,7 +834,8 @@ image:connection-settings.png["Connection Settings"]
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships
 that are active for the Connection.
 
-File expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
+===== FlowFile Expiration
+FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
 This is useful, for example, when the volume of data is expected to exceed the volume that can be sent to a remote site.
 In this case, the expiration can be used in conjunction with Prioritizers to ensure that the highest priority data is
 processed first and then anything that cannot be processed within a certain time period (one hour, for example) can be dropped. The expiration period is based on the time that the data entered the NiFi instance. In other words, if the file expiration on a given connection is set to '1 hour', and a file that has been in the NiFi instance for one hour reaches that connection, it will expire. The default
@@ -842,13 +843,18 @@ value of `0 sec` indicates that the data will never expire. When a file expirati
 
 image:file_expiration_clock.png["File Expiration Indicator"]
 
+===== Back Pressure
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
 This allows the system to avoid being overrun with data. The first option provided is the ``Back pressure object threshold.''
 This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
 is the ``Back pressure data size threshold.'' This specifies the maximum amount of data (in size) that should be queued up before
 applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
-kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).  When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
+kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
+
+NOTE: By default each new connection added will have a default Back Pressure Object Threshold of 10,000 objects and Back Pressure Data Size Threshold of 1 GB.
+
+When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
 
 image:back_pressure_indicators.png["Back Pressure Indicator Bars"]
 
@@ -860,6 +866,7 @@ When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
 
+===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
 processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
 Multiple prioritizers can be selected. The prioritizer that is at the top of the `Selected prioritizers' list is the highest
@@ -874,6 +881,7 @@ The following prioritizers are available:
 - *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected.'
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
+===== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 image:nifi-connection.png["Connection"]
@@ -1007,33 +1015,24 @@ value entered is not valid, the Remote Process Group will not be valid and will 
 
 ==== Configure Site-to-Site server NiFi instance
 
-[[Site-to-Site_Input_Port]]
-*Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group
-of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order
-to adjust the name and the number of concurrent tasks that are used for the port. If Site-to-Site is configured to run securely, you will also be given
-the ability to adjust who has access to the port. If secure, only those who have been granted access to communicate with the port will be able to see
-that the port exists.
+*Retrieve Site-to-Site Details*:  If your NiFi is running securely, in order for another NiFi instance to retrieve information from your instance, it needs to be added to the Global Access "retrieve site-to-site details" policy.  This will allow the other instance to query your instance for details such as name, description, available peers (nodes when clustered), statistics, OS port information and available Input and Output ports. Utilizing Input and Output ports in a secured instance requires additional policy configuration as described below.
 
-After being given access to a particular port, in order to see that port, the operator of a remote NiFi instance may need to right-click on their Remote
-Process Group and choose to "Refresh" the flow.
+[[Site-to-Site_Input_Port]]
+*Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order to adjust the name and the number of concurrent tasks that are used for the port.
+
+If Site-to-Site is configured to run securely, you will need to manage the port's "receive data via site-to-site" component access policy. Only those users who have been added to the policy will be able to communicate with the port.
 
 [[Site-to-Site_Output_Port]]
-*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an
-authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port will again allow the
-DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured.
+*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port and managing the port's access policies will again allow the DFM to control how many concurrent tasks are allowed, as well as which users are authorized to pull data from the instance being configured.
 
-In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
-For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
-
-[[Site-to-Site_Access_Control]]
-*Access Control*: If your instance of NiFi is running securely, the first time that a client establishes a connection to your instance, the client will be forbidden and
-a request for an account for that client will automatically be generated. The client will need to be granted the 'NiFi' role in order to communicate
-via Site-to-Site. For more information on managing user accounts, see the
-link:administration-guide.html#controlling-levels-of-access[Controlling Levels of Access]
-section of the link:administration-guide.html[Admin Guide].
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
 
 For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
+link:administration-guide.html[System Administrator’s Guide].
+
+For information on how to configure access policies, see the
+link:administration-guide.html#access-policies[Access Properties] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
 

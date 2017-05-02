@@ -462,30 +462,39 @@ Here is an example entry:
 
 After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'users.xml' and 'authorizations.xml' files.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
 
-Here is a summary of policies assigned to each legacy role if the NiFi instance has an existing flow.xml.gz:
+The following tables summarize the global and component policies assigned to each legacy role if the NiFi instance has an existing 'flow.xml.gz':
 
+===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
-|                              | Admin | DFM | Monitor | Provenance | NiFi | Proxy
-|view the UI                   |*      |*    |*        |            |      |
-|view the controller           |*      |*    |*        |            |*     |
-|modify the controller         |       |*    |         |            |      |
-|view system diagnostics       |       |*    |*        |            |      |
-|view the dataflow             |*      |*    |*        |            |      |
-|modify the dataflow           |       |*    |         |            |      |
-|view the users/groups         |*      |     |         |            |      |
-|modify the users/groups       |*      |     |         |            |      |
-|view policies                 |*      |     |         |            |      |
-|modify policies               |*      |     |         |            |      |
-|query provenance              |       |     |         |*           |      |
-|access restricted components  |       |*    |         |            |      |
-|view the data                 |       |*    |         |*           |      |*
-|modify the data               |       |*    |         |            |      |*
-|retrieve site-to-site details |       |     |         |            |*     |
-|send proxy user requests      |       |     |         |            |      |*
+|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the UI                       |*      |*    |*        |            |      |
+|access the controller - view      |*      |*    |*        |            |*     |
+|access the controller - modify    |       |*    |         |            |      |
+|query provenance                  |       |     |         |*           |      |
+|access restricted components      |       |*    |         |            |      |
+|access all policies - view        |*      |     |         |            |      |
+|access all policies - modify      |*      |     |         |            |      |
+|access users/user groups - view   |*      |     |         |            |      |
+|access users/user groups - modify |*      |     |         |            |      |
+|retrieve site-to-site details     |       |     |         |            |*     |
+|view system diagnostics           |       |*    |*        |            |      |
+|proxy user requests               |       |     |         |            |      |*
+|access counters                   |       |     |         |            |      |
 |==========================
 
-For details on the policies in the table, see <<access-policies>>.
+===== Component Access Policies on the Root Process Group
+[cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
+|==========================
+|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the component                |*      |*    |*        |            |      |
+|modify the component              |       |*    |         |            |      |
+|view the data                     |       |*    |         |*           |      |*
+|modify the data                   |       |*    |         |            |      |*
+|==========================
+
+
+For details on the individual policies in the table, see <<access-policies>>.
 
 NOTE: NiFi fails to restart if values exist for both the “Initial Admin Identity” and “Legacy Authorized Users File” properties.  You can specify only one of these values to initialize authorizations.
 
@@ -518,7 +527,7 @@ cn=nifi-2,ou=people,dc=example,dc=com
 </authorizers>
 ----
 
-NOTE: In a cluster, all nodes must have the same 'authorizations.xml'.  If a node has a different 'authorizations.xml', it cannot join the cluster.   The only exception is if a node has an empty 'authorizations.xml'.  In this scenario, the node inherits the 'authorizations.xml' from the cluster.
+NOTE: In a cluster, all nodes must have the same 'authorizations.xml' and 'users.xml'.   The only exception is if a node has empty 'authorizations.xml' and 'user.xml' files prior to joining the cluster.  In this scenario, the node inherits them from the cluster during startup.
 
 Now that initial authorizations have been created, additional users, groups and authorizations can be created and managed in the NiFi UI.
 
@@ -638,7 +647,7 @@ Component level access policies govern the following component level authorizati
 |modify the policies
 |Allows users to modify the list of users who can view/modify a component
 
-|retrieve data via site-to-site
+|receive data via site-to-site
 |Allows a port to receive data from NiFi instances
 
 |send data via site-to-site
@@ -646,6 +655,8 @@ Component level access policies govern the following component level authorizati
 |===
 
 NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
+
+NOTE: In order to access List Queue or Delete Queue for a connection, a user requires permission to the "view the data" and "modify the data" policies on the component. In a clustered environment, all nodes must be be added to these policies as well, as a user request could be replicated through any node in the cluster.
 
 [[access-policy-inheritance]]
 ===== Access Policy Inheritance
@@ -1977,7 +1988,7 @@ This cleanup mechanism takes into account only automatically created archived fl
 |nifi.authorizer.configuration.file*|This is the location of the file that specifies how authorizers are defined.  The default value is ./conf/authorizers.xml.
 |nifi.login.identity.provider.configuration.file*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only consider if `nifi.security.user.login.identity.provider` configured with a provider identifier. The default value is ./conf/login-identity-providers.xml.
-|nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.l
+|nifi.templates.directory*|This is the location of the directory where flow templates are saved (for backward compatibility only).  Templates are stored in the flow.xml.gz starting with NiFi 1.0. The template directory can be used to (bulk) import templates into the flow.xml.gz automatically on NiFi startup.  The default value is ./conf/templates.
 |nifi.ui.banner.text|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
 |nifi.ui.autorefresh.interval|The interval at which the User Interface auto-refreshes. The default value is 30 sec.
 |nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is. +
