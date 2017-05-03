@@ -32,6 +32,7 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -343,6 +344,10 @@ public class DataTypeUtils {
             return getDateFormat(format).format((java.util.Date) value);
         }
 
+        if (value instanceof Object[]) {
+            return Arrays.toString((Object[]) value);
+        }
+
         return value.toString();
     }
 
@@ -396,6 +401,10 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
+            if (format == null) {
+                return isInteger((String) value);
+            }
+
             try {
                 getDateFormat(format).parse((String) value);
                 return true;
@@ -405,6 +414,20 @@ public class DataTypeUtils {
         }
 
         return false;
+    }
+
+    private static boolean isInteger(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        for (int i = 0; i < value.length(); i++) {
+            if (!Character.isDigit(value.charAt(i))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static Time toTime(final Object value, final DateFormat format, final String fieldName) {

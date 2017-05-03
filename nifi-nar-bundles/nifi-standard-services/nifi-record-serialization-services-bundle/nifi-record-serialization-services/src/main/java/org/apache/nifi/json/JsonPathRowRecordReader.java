@@ -62,9 +62,9 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         throws MalformedRecordException, IOException {
         super(in, logger);
 
-        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
         this.schema = schema;
         this.jsonPaths = jsonPaths;

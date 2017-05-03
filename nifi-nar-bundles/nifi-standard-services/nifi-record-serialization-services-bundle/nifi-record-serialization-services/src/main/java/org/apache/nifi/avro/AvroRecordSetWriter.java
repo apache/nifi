@@ -65,8 +65,6 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         try {
             final RecordSchema recordSchema = getSchema(flowFile, in);
 
-
-
             final Schema avroSchema;
             try {
                 if (recordSchema.getSchemaFormat().isPresent() & recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {

@@ -23,7 +23,9 @@ public class DateTimeUtils {
     public static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
         .name("Date Format")
         .description("Specifies the format to use when reading/writing Date fields. "
-            + "If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
+            + "If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). "
+            + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
+            + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
         .expressionLanguageSupported(false)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
@@ -32,7 +34,9 @@ public class DateTimeUtils {
     public static final PropertyDescriptor TIME_FORMAT = new PropertyDescriptor.Builder()
         .name("Time Format")
         .description("Specifies the format to use when reading/writing Time fields. "
-            + "If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
+            + "If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). "
+            + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
+            + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
         .expressionLanguageSupported(false)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)
@@ -41,7 +45,10 @@ public class DateTimeUtils {
     public static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
         .name("Timestamp Format")
         .description("Specifies the format to use when reading/writing Timestamp fields. "
-            + "If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT).")
+            + "If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). "
+            + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
+            + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
+            + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
         .expressionLanguageSupported(false)
         .addValidator(new SimpleDateFormatValidator())
         .required(false)

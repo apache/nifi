@@ -30,6 +30,8 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
 
     private final String id;
     private final ValidationContextFactory validationContextFactory;
@@ -463,6 +466,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 }
             }
         } catch (final Throwable t) {
+            logger.error("Failed to perform validation of " + this, t);
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString()).valid(false).build());
         } finally {
             lock.unlock();
