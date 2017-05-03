@@ -109,7 +109,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
             final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
             noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
-            assertEquals(new java.sql.Date(timeLong).toString(), noTimeOfDayDateFormat.format(record.getValue("date")));
+            assertEquals(noTimeOfDayDateFormat.format(new java.sql.Date(timeLong)), noTimeOfDayDateFormat.format(record.getValue("date")));
         }
     }
 
