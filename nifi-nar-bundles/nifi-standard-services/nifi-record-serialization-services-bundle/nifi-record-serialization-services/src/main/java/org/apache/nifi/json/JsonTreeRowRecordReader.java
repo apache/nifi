@@ -56,9 +56,9 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         super(in, logger);
         this.schema = schema;
 
-        this.dateFormat = DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = DataTypeUtils.getDateFormat(timestampFormat);
+        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
     }
 
 

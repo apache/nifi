@@ -29,10 +29,14 @@ import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -60,6 +64,24 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
         allowableValues.add(EMBEDDED_AVRO_SCHEMA);
         return allowableValues;
+    }
+
+    @Override
+    protected SchemaAccessStrategy getSchemaAccessStrategy(String allowableValue, SchemaRegistry schemaRegistry, ConfigurationContext context) {
+        if (EMBEDDED_AVRO_SCHEMA.getValue().equals(allowableValue)) {
+            return new EmbeddedAvroSchemaAccessStrategy();
+        } else {
+            return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
+        }
+    }
+
+    @Override
+    protected SchemaAccessStrategy getSchemaAccessStrategy(String allowableValue, SchemaRegistry schemaRegistry, ValidationContext context) {
+        if (EMBEDDED_AVRO_SCHEMA.getValue().equals(allowableValue)) {
+            return new EmbeddedAvroSchemaAccessStrategy();
+        } else {
+            return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
+        }
     }
 
     @Override

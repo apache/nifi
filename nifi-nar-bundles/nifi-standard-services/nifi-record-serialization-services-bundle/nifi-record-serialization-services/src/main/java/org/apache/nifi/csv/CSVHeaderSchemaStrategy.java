@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.input.BOMInputStream;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
@@ -47,8 +48,16 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
         this.context = context;
     }
 
+    public CSVHeaderSchemaStrategy(final ValidationContext context) {
+        this.context = null;
+    }
+
     @Override
     public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
+        if (this.context == null) {
+            throw new SchemaNotFoundException("Schema Access Strategy intended only for validation purposes and cannot obtain schema");
+        }
+
         try {
             final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader();
             try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));

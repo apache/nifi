@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -180,24 +181,36 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
         if (allowableValue.equalsIgnoreCase(STRING_FIELDS_FROM_GROK_EXPRESSION.getValue())) {
-            return new SchemaAccessStrategy() {
-                private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
-
-                @Override
-                public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
-                    return recordSchema;
-                }
-
-                @Override
-                public Set<SchemaField> getSuppliedSchemaFields() {
-                    return schemaFields;
-                }
-            };
+            return createAccessStrategy();
         } else {
             return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
         }
     }
 
+    @Override
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
+        if (allowableValue.equalsIgnoreCase(STRING_FIELDS_FROM_GROK_EXPRESSION.getValue())) {
+            return createAccessStrategy();
+        } else {
+            return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
+        }
+    }
+
+    private SchemaAccessStrategy createAccessStrategy() {
+        return new SchemaAccessStrategy() {
+            private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
+
+            @Override
+            public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
+                return recordSchema;
+            }
+
+            @Override
+            public Set<SchemaField> getSuppliedSchemaFields() {
+                return schemaFields;
+            }
+        };
+    }
 
     @Override
     public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {

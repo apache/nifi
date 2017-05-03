@@ -38,7 +38,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"csv", "result", "set", "recordset", "record", "writer", "serializer", "row", "tsv", "tab", "separated", "delimited"})
 @CapabilityDescription("Writes the contents of a RecordSet as CSV data. The first line written "
-    + "will be the column names. All subsequent lines will be the values corresponding to those columns.")
+    + "will be the column names (unless the 'Include Header Line' property is false). All subsequent lines will be the values "
+    + "corresponding to the record fields.")
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
     private volatile CSVFormat csvFormat;
