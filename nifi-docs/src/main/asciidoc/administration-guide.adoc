@@ -1194,7 +1194,9 @@ For secured nodes and clusters, two policies should be configured in advance:
 the controller” policy ('/controller') with both view and modify rights.
 * Proxy user request – If not previously set node’s identity (the DN value of the node’s certificate) should be authorized to proxy requests on behalf of a user
 
-When executing either the notify or node manager tools in a secured environment the `proxyDN` flag option should be used in order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running the status operation on the Node Manager tool, the flag is ignored.
+When executing either the notify or node manager tools in a secured environment the `proxyDN` flag option should be used in
+order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running
+the status operation on the Node Manager tool, the flag is ignored.
 
 === Notify
 Notify allows administrators to send messages as bulletins to NiFi.  Notify is supported on NiFi version 1.2.0 and higher.
@@ -1202,7 +1204,7 @@ The notification tool is also available in a _notify.bat_ file for use on Window
 
 To send notifications:
 
- notify.sh -d {$NIFI_HOME} –b {nifi bootstrap file path} -m {message} [-l {level}][-v]
+ notify.sh -d {$NIFI_HOME} –b {nifi bootstrap file path} -m {message} [-l {level}] [-v]
 
 To show help:
 
@@ -1210,7 +1212,7 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` The _bootstrap.conf_ file to persist master key
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
 * `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
 * `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
 * `-m,--message <arg>` Bulletin message (required)
@@ -1250,7 +1252,7 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` The _bootstrap.conf_ file to persist master key
+* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
 * `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
 * `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
 * `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
@@ -1303,7 +1305,7 @@ Connect:
 
 When the connect command is executed to reconnect a node to a cluster, upon completion the node itself
 should show that it has rejoined the cluster by showing _n/n_ nodes. Previously it would have shown Disconnected.
-Other nodes in the cluster should receive a bulletin of the connect request and also show n/n nodes allowing
+Other nodes in the cluster should receive a bulletin of the connect request and also show _n/n_ nodes allowing
 for changes to be allowed to the flow.
 
 Remove:
