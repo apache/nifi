@@ -40,6 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.cybersecurity.matchers.FuzzyHashMatcher;
 import org.apache.nifi.processors.cybersecurity.matchers.SSDeepHashMatcher;
 import org.apache.nifi.processors.cybersecurity.matchers.TLSHHashMatcher;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -218,8 +219,16 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                     similarity = fuzzyHashMatcher.getSimilarity(inputHash, line);
 
                     if (fuzzyHashMatcher.matchExceedsThreshold(similarity, matchThreshold)) {
-                        //
-                        matched.put(fuzzyHashMatcher.getMatch(line), similarity);
+                        String match = fuzzyHashMatcher.getMatch(line);
+                        // A malformed file may cause a match with no filename
+                        // Because this would simply look odd, we ignore such entry and log
+                        if (!StringUtils.isEmpty(match)) {
+                            matched.put(match, similarity);
+                        } else {
+                            logger.error("Found a match against a malformed entry '{}'. Please inspect the contents of" +
+                                    "the {} file and ensure they are properly formatted",
+                                    new Object[]{line, HASH_LIST_FILE.getDisplayName()});
+                        }
                     }
                 }
 

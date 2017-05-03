@@ -85,12 +85,12 @@ public class FuzzyHashContent extends AbstractFuzzyHashProcessor {
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("Success")
+            .name("success")
             .description("Any FlowFile that is successfully hashed will be sent to this Relationship.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("Failure")
+            .name("failure")
             .description("Any FlowFile that is successfully hashed will be sent to this Relationship.")
             .build();
 

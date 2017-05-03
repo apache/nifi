@@ -103,9 +103,15 @@ public class TLSHHashMatcher implements FuzzyHashMatcher {
     @Override
     public String getMatch(String line) {
         if (isValidHash(line)) {
-            return line.split("\t", 2)[1];
-        } else {
-            return null;
+            String[] match = line.split("\t", 2);
+            // Because the file can be malformed and contain an unammed match,
+            // if match has a filename...
+            if (match.length == 2) {
+                // Return it.
+                return match[1];
+            }
         }
+        // Or return null
+        return null;
     }
 }
