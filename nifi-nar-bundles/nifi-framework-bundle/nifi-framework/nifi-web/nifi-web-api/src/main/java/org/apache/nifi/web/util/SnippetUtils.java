@@ -18,21 +18,6 @@ package org.apache.nifi.web.util;
 
 
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.RequestAction;
@@ -76,6 +61,21 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Template utilities.
@@ -247,7 +247,12 @@ public final class SnippetUtils {
                 final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
                 processGroups.add(childGroupDto);
 
-                addControllerServices(childGroup, childGroupDto, allServicesReferenced, contentsByGroup, processGroup.getIdentifier());
+                // maintain a listing of visited groups starting with each group in the snippet. this is used to determine
+                // whether a referenced controller service should be included in the resulting snippet. if the service is
+                // defined at groupId or one of it's ancestors, its considered outside of this snippet and will only be included
+                // when the includeControllerServices is set to true. this happens above when considering the processors in this snippet
+                final Set<String> visitedGroupIds = new HashSet<>();
+                addControllerServices(childGroup, childGroupDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, processGroup.getIdentifier());
             }
         }
 
@@ -306,7 +311,7 @@ public final class SnippetUtils {
      * @param highestGroupId the UUID of the 'highest' process group in the snippet
      */
     private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto, final Set<ControllerServiceDTO> allServicesReferenced,
-        final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
+        final boolean includeControllerServices, final Set<String> visitedGroupIds, final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
 
         final FlowSnippetDTO contents = dto.getContents();
         contentsByGroup.put(dto.getId(), contents);
@@ -314,11 +319,15 @@ public final class SnippetUtils {
             return;
         }
 
+        // include this group in the ancestry for this snippet, services only get included if the includeControllerServices
+        // flag is set or if the service is defined within this groups hierarchy within the snippet
+        visitedGroupIds.add(group.getIdentifier());
 
         for (final ProcessorNode procNode : group.getProcessors()) {
             // Include all referenced services that are not already included in this snippet.
             getControllerServices(procNode.getProperties()).stream()
                 .filter(svc -> allServicesReferenced.add(svc))
+                .filter(svc -> includeControllerServices || visitedGroupIds.contains(svc.getParentGroupId()))
                 .forEach(svc -> {
                     final String svcGroupId = svc.getParentGroupId();
                     final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : highestGroupId;
@@ -346,7 +355,7 @@ public final class SnippetUtils {
                 continue;
             }
 
-            addControllerServices(childGroup, childDto, allServicesReferenced, contentsByGroup, highestGroupId);
+            addControllerServices(childGroup, childDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, highestGroupId);
         }
     }
 
