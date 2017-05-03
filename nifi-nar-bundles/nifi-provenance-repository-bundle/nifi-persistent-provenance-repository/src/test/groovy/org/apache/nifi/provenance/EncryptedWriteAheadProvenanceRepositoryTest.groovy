@@ -201,51 +201,6 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     }
 
     /**
-     * This test operates on {@link PersistentProvenanceRepository} to verify the normal operations of existing implementations.
-     *
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    @Test
-    void testPersistentProvenanceRepositoryShouldRegisterAndRetrieveEvents() throws IOException, InterruptedException {
-        // Arrange
-        config = createConfiguration()
-        config.setMaxEventFileCapacity(1L)
-        config.setMaxEventFileLife(1, TimeUnit.SECONDS)
-        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS)
-        repo.initialize(eventReporter, null, null, IdentifierLookup.EMPTY)
-
-        Map attributes = ["abc": "xyz",
-                          "123": "456"]
-        final ProvenanceEventRecord record = buildEventRecord(buildFlowFile(attributes))
-
-        final int RECORD_COUNT = 10
-
-        // Act
-        RECORD_COUNT.times {
-            repo.registerEvent(record)
-        }
-
-        // Sleep to let the journal merge occur
-        Thread.sleep(1000L)
-
-        final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
-
-        logger.info("Recovered ${recoveredRecords.size()} events: ")
-        recoveredRecords.each { logger.info("\t${it}") }
-
-        // Assert
-        assert recoveredRecords.size() == RECORD_COUNT
-        recoveredRecords.eachWithIndex { ProvenanceEventRecord recovered, int i ->
-            assert recovered.getEventId() == (i as Long)
-            assert recovered.getTransitUri() == TRANSIT_URI
-            assert recovered.getEventType() == ProvenanceEventType.RECEIVE
-            // The UUID was added later but we care that all attributes we provided are still there
-            assert recovered.getAttributes().entrySet().containsAll(attributes.entrySet())
-        }
-    }
-
-    /**
      * This test operates on {@link WriteAheadProvenanceRepository} to verify the normal operations of existing implementations.
      *
      * @throws IOException
