@@ -269,8 +269,11 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
-            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
-            st.setQueryTimeout(queryTimeout); // timeout in seconds
+            if(dbAdapter.getSupportsStatementTimeout()){
+                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+                st.setQueryTimeout(queryTimeout); // timeout in seconds
+            }
+
             try {
                 logger.debug("Executing query {}", new Object[]{selectQuery});
                 final ResultSet resultSet = st.executeQuery(selectQuery);
@@ -284,7 +287,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                             // Max values will be updated in the state property map by the callback
                             final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
                             try {
-                                nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile, convertNamesForAvro));
+                                nrOfRows.set(JdbcCommon.convertToAvroStream(dbAdapter, resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile, convertNamesForAvro));
                             } catch (SQLException | RuntimeException e) {
                                 throw new ProcessException("Error during database query or conversion of records to Avro.", e);
                             }

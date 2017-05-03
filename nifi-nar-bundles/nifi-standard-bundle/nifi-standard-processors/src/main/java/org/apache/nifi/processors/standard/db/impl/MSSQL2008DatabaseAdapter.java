@@ -34,6 +34,21 @@ public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
+    public boolean getSupportsStatementTimeout() {
+        return true;
+    }
+
+    @Override
+    public boolean getSupportsGetTableName() {
+        return true;
+    }
+
+    @Override
+    public boolean getSupportsMetaDataColumnIsSigned() {
+        return true;
+    }
+
+    @Override
     public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");

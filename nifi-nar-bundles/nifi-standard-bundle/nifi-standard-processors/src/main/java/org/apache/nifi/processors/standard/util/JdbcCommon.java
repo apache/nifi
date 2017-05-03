@@ -65,6 +65,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * JDBC / SQL common functions.
@@ -87,10 +88,14 @@ public class JdbcCommon {
             throws IOException, SQLException {
         return convertToAvroStream(rs, outStream, recordName, callback, 0, convertNames);
     }
-
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows, boolean convertNames)
             throws SQLException, IOException {
-        final Schema schema = createSchema(rs, recordName, convertNames);
+        return convertToAvroStream(null, rs, outStream, recordName, callback, maxRows, convertNames);
+    }
+
+    public static long convertToAvroStream(final DatabaseAdapter dbAdapter, ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows, boolean convertNames)
+            throws SQLException, IOException {
+        final Schema schema = createSchema(dbAdapter, rs, recordName, convertNames);
         final GenericRecord rec = new GenericData.Record(schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -228,24 +233,25 @@ public class JdbcCommon {
     }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
-        return createSchema(rs, null, false);
+        return createSchema(null, rs, null, false);
     }
 
     /**
      * Creates an Avro schema from a result set. If the table/record name is known a priori and provided, use that as a
      * fallback for the record name if it cannot be retrieved from the result set, and finally fall back to a default value.
      *
+     * @param dbAdapter  The Database Adapter to use for guidance on reading schema details
      * @param rs         The result set to convert to Avro
      * @param recordName The a priori record name to use if it cannot be determined from the result set.
      * @return A Schema object representing the result set converted to an Avro record
      * @throws SQLException if any error occurs during conversion
      */
-    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
+    public static Schema createSchema(DatabaseAdapter dbAdapter, final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(recordName) ? "NiFi_ExecuteSQL_Record" : recordName;
         if (nrOfColumns > 0) {
-            String tableNameFromMeta = meta.getTableName(1);
+            String tableNameFromMeta = dbAdapter!=null && dbAdapter.getSupportsGetTableName()? meta.getTableName(1):"";
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }
@@ -285,7 +291,7 @@ public class JdbcCommon {
                     break;
 
                 case INTEGER:
-                    if (meta.isSigned(i) || (meta.getPrecision(i) > 0 && meta.getPrecision(i) <= MAX_DIGITS_IN_INT)) {
+                    if (!dbAdapter.getSupportsMetaDataColumnIsSigned() || meta.isSigned(i) || (meta.getPrecision(i) > 0 && meta.getPrecision(i) <= MAX_DIGITS_IN_INT)) {
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     } else {
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();

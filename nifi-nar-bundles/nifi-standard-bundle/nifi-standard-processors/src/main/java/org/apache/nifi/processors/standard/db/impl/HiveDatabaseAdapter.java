@@ -20,33 +20,33 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
- * An implementation of DatabaseAdapter for Derby (used for testing).
+ * A DatabaseAdapter that generates HIVE QL.
  */
-public class DerbyDatabaseAdapter implements DatabaseAdapter {
-
+public class HiveDatabaseAdapter implements DatabaseAdapter {
     @Override
     public String getName() {
-        return "Derby";
+        return "Hive";
     }
 
     @Override
     public String getDescription() {
-        return "Generates Derby compatible SQL (used for testing)";
+        return "Generates HIVE QL";
     }
+
 
     @Override
     public boolean getSupportsStatementTimeout() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean getSupportsGetTableName() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean getSupportsMetaDataColumnIsSigned() {
-        return true;
+        return false;
     }
 
     @Override
@@ -54,12 +54,28 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
-        final StringBuilder query = new StringBuilder("SELECT ");
-        if (StringUtils.isEmpty(columnNames) || columnNames.trim().equals("*")) {
-            query.append("*");
-        } else {
-            query.append(columnNames);
+
+        if (StringUtils.isEmpty(columnNames)) {
+            columnNames = "*";
         }
+
+        final StringBuilder query = new StringBuilder("SELECT ");
+
+        if (limit != null) {
+            if (offset != null) {
+                query.append("* FROM (SELECT ");
+            }
+
+        }
+
+        query.append(columnNames);
+
+        if (limit != null && offset != null && orderByClause != null) {
+            query.append(", ROW_NUMBER() OVER(ORDER BY ");
+            query.append(orderByClause);
+            query.append(" ASC) rnum");
+        }
+
         query.append(" FROM ");
         query.append(tableName);
 
@@ -67,20 +83,17 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
             query.append(" WHERE ");
             query.append(whereClause);
         }
+
         if (!StringUtils.isEmpty(orderByClause)) {
             query.append(" ORDER BY ");
             query.append(orderByClause);
         }
-        if (offset != null && offset > 0) {
-            query.append(" OFFSET ");
-            query.append(offset);
-            query.append(" ROWS");
-        }
 
-        if (limit != null) {
-            query.append(" FETCH NEXT ");
-            query.append(limit);
-            query.append(" ROWS ONLY");
+        if (limit != null && offset != null) {
+            query.append(") A WHERE rnum > ");
+            query.append(offset);
+            query.append(" AND rnum <= ");
+            query.append(offset + limit);
         }
 
         return query.toString();
