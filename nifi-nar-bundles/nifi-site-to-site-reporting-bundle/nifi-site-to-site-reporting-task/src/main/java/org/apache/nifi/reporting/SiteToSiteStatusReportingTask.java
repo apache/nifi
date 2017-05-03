@@ -64,7 +64,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
-        .description("The value to use for the platform field in each provenance event.")
+        .description("The value to use for the platform field in each status record.")
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue("nifi")
@@ -179,7 +179,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 toIndex = Math.min(fromIndex + batchSize, jsonArray.size());
                 jsonBatch = jsonArray.subList(fromIndex, toIndex);
             } catch (final IOException e) {
-                throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
+                throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
             }
         }
     }
@@ -343,6 +343,10 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "inputCount", status.getInputCount());
             addField(builder, "outputBytes", status.getOutputBytes());
             addField(builder, "outputCount", status.getOutputCount());
+            addField(builder, "backPressureBytesThreshold", status.getBackPressureBytesThreshold());
+            addField(builder, "backPressureObjectThreshold", status.getBackPressureObjectThreshold());
+            addField(builder, "isBackPressureEnabled", Boolean.toString((status.getBackPressureObjectThreshold() > 0 && status.getBackPressureObjectThreshold() <= status.getQueuedCount())
+                    || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getMaxQueuedBytes())));
 
             arrayBuilder.add(builder.build());
         }
