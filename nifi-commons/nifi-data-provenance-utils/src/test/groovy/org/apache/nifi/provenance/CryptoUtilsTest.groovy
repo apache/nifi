@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.provenance
 
+import org.apache.commons.lang3.SystemUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.AfterClass
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
@@ -175,32 +177,60 @@ class CryptoUtilsTest {
     }
 
     @Test
-    void testShouldNotValidateUnreadableOrMissingFileBasedKeyProvider() {
+    void testShouldNotValidateMissingFileBasedKeyProvider() {
         // Arrange
+        String fileBasedProvider = FileBasedKeyProvider.class.name
+        File fileBasedProviderFile = new File(tempFolder.root, "filebased_missing.kp")
+        String providerLocation = fileBasedProviderFile.path
+        logger.info("Created (no actual file) temporary file based key provider: ${providerLocation}")
+
+        // Act
+        String missingLocation = providerLocation
+        boolean missingKeyProviderIsValid = CryptoUtils.isValidKeyProvider(fileBasedProvider, missingLocation, KEY_ID, null)
+        logger.info("Key Provider ${fileBasedProvider} with location ${missingLocation} and keyId ${KEY_ID} / ${null} is ${missingKeyProviderIsValid ? "valid" : "invalid"}")
+
+        // Assert
+        assert !missingKeyProviderIsValid
+    }
+
+    @Test
+    void testShouldNotValidateUnreadableFileBasedKeyProvider() {
+        // Arrange
+        Assume.assumeFalse("This test does not run on Windows", SystemUtils.IS_OS_WINDOWS)
+
         String fileBasedProvider = FileBasedKeyProvider.class.name
         File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
         String providerLocation = fileBasedProviderFile.path
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Make it unreadable
-        fileBasedProviderFile.setReadable(false, false)
-        Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), [] as Set<PosixFilePermission>)
+        markFileUnreadable(fileBasedProviderFile)
 
         // Act
         boolean unreadableKeyProviderIsValid = CryptoUtils.isValidKeyProvider(fileBasedProvider, providerLocation, KEY_ID, null)
         logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${null} is ${unreadableKeyProviderIsValid ? "valid" : "invalid"}")
 
-        String missingLocation = providerLocation + "_missing"
-        boolean missingKeyProviderIsValid = CryptoUtils.isValidKeyProvider(fileBasedProvider, missingLocation, KEY_ID, null)
-        logger.info("Key Provider ${fileBasedProvider} with location ${missingLocation} and keyId ${KEY_ID} / ${null} is ${missingKeyProviderIsValid ? "valid" : "invalid"}")
-
         // Assert
         assert !unreadableKeyProviderIsValid
-        assert !missingKeyProviderIsValid
 
         // Make the file deletable so cleanup can occur
-        fileBasedProviderFile.setReadable(true, false)
-        Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), ALL_POSIX_ATTRS)
+        markFileReadable(fileBasedProviderFile)
+    }
+
+    private static void markFileReadable(File fileBasedProviderFile) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            fileBasedProviderFile.setReadable(true, false)
+        } else {
+            Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), ALL_POSIX_ATTRS)
+        }
+    }
+
+    private static void markFileUnreadable(File fileBasedProviderFile) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            fileBasedProviderFile.setReadable(false, false)
+        } else {
+            Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), [] as Set<PosixFilePermission>)
+        }
     }
 
     @Test
@@ -433,4 +463,5 @@ class CryptoUtilsTest {
 
         Base64.encoder.encodeToString(CryptoUtils.concatByteArrays(ivBytes, cipherBytes))
     }
+
 }
