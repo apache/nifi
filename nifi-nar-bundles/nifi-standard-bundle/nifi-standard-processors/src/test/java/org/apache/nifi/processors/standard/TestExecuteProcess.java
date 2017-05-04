@@ -295,6 +295,25 @@ public class TestExecuteProcess {
         assertEquals(succeeded.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND_ARGS), "DOES-NOT-EXIST");
     }
 
+    @Test
+    public void testProcessTimeout(){
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "ping");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "-t 127.0.0.1");
+        runner.setProperty(ExecuteProcess.PROCESS_TIMEOUT, "5 secs");
+        
+        ProcessContext processContext = runner.getProcessContext();
+        
+        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        processor.updateScheduledTrue();
+        processor.setupExecutor(processContext);
+        
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        
+        final List<MockFlowFile> timeout = runner.getFlowFilesForRelationship(ExecuteProcess.REL_TIMEOUT);
+        assertEquals(1, timeout.size());
+        assertEquals(timeout.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_TIMEOUT), "true");
+    }
     /**
      * On some environment, the test command immediately fail with an IOException
      * because of the native UnixProcess.init method implementation difference.
