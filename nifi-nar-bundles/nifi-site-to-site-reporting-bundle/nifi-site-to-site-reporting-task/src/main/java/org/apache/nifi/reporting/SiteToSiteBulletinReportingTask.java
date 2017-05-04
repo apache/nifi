@@ -74,20 +74,12 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
     private volatile long lastSentBulletinId = -1L;
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-    static {
-        descriptors.add(DESTINATION_URL);
-        descriptors.add(PORT_NAME);
-        descriptors.add(SSL_CONTEXT);
-        descriptors.add(COMPRESS);
-        descriptors.add(TIMEOUT);
-        descriptors.add(PLATFORM);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(PLATFORM);
+        properties.remove(BATCH_SIZE);
+        return properties;
     }
 
     @Override
