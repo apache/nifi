@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.provenance
 
+import org.apache.commons.lang3.SystemUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
@@ -183,8 +184,7 @@ class CryptoUtilsTest {
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Make it unreadable
-        fileBasedProviderFile.setReadable(false, false)
-        Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), [] as Set<PosixFilePermission>)
+        markFileUnreadable(fileBasedProviderFile)
 
         // Act
         boolean unreadableKeyProviderIsValid = CryptoUtils.isValidKeyProvider(fileBasedProvider, providerLocation, KEY_ID, null)
@@ -199,8 +199,23 @@ class CryptoUtilsTest {
         assert !missingKeyProviderIsValid
 
         // Make the file deletable so cleanup can occur
-        fileBasedProviderFile.setReadable(true, false)
-        Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), ALL_POSIX_ATTRS)
+        markFileReadable(fileBasedProviderFile)
+    }
+
+    private static void markFileReadable(File fileBasedProviderFile) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            fileBasedProviderFile.setReadable(true, false)
+        } else {
+            Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), ALL_POSIX_ATTRS)
+        }
+    }
+
+    private static void markFileUnreadable(File fileBasedProviderFile) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            fileBasedProviderFile.setReadable(false, false)
+        } else {
+            Files.setPosixFilePermissions(fileBasedProviderFile.toPath(), [] as Set<PosixFilePermission>)
+        }
     }
 
     @Test
