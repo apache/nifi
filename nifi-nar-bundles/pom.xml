@@ -113,6 +113,23 @@
         </plugins>
     </build>
 
+    <profiles>
+        <!-- Specifies an empty buildRevision and buildBranch when building outside of a git repo -->
+        <profile>
+            <id>build-info-no-git</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <file>
+                    <missing>../.git/HEAD</missing>
+                </file>
+            </activation>
+            <properties>
+                <buildRevision />
+                <buildBranch />
+            </properties>
+        </profile>
+    </profiles>
+
   <dependencyManagement>
         <dependencies>
             <dependency>

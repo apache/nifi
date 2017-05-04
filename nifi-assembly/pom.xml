@@ -49,28 +49,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <inherited>false</inherited>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                    <shortRevisionLength>7</shortRevisionLength>
-                    <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
-                    <revisionOnScmFailure />
-                    <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
-                    <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -854,19 +832,6 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>build-info-no-git</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <file>
-                    <missing>../.git/HEAD</missing>
-                </file>
-            </activation>
-            <properties>
-                <buildRevision />
-                <buildBranch />
-            </properties>
         </profile>
     </profiles>
 </project>
