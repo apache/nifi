@@ -345,10 +345,18 @@ public abstract class ApplicationResource {
             }
         }
 
-        // set the proxy scheme to request scheme if not already set client
+        // set the proxy details to request details if not already set client
         final String proxyScheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
         if (proxyScheme == null) {
             result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
+        }
+        final String proxyHost = httpServletRequest.getHeader(PROXY_HOST_HTTP_HEADER);
+        if (proxyHost == null) {
+            result.put(PROXY_HOST_HTTP_HEADER, httpServletRequest.getServerName());
+        }
+        final String proxyPort = httpServletRequest.getHeader(PROXY_PORT_HTTP_HEADER);
+        if (proxyPort == null) {
+            result.put(PROXY_PORT_HTTP_HEADER, String.valueOf(httpServletRequest.getServerPort()));
         }
 
         return result;
