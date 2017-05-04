@@ -795,6 +795,10 @@
             <id>generateArchives</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
+                <!-- Activate profile for source builds along with build-info-no-git (below) -->
+                <file>
+                    <missing>../.git/HEAD</missing>
+                </file>
             </activation>
             <build>
                 <plugins>
