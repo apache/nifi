@@ -13,7 +13,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Avro
     The following NOTICE information applies:
       Apache Avro
-      Copyright 2009-2012 The Apache Software Foundation
+      Copyright 2009-2017 The Apache Software Foundation
 
   (ASLv2) Apache Commons JEXL
     The following NOTICE information applies:
@@ -173,7 +173,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Jetty
     The following NOTICE information applies:
        Jetty Web Container
-       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
 
   (ASLv2) Apache Velocity
     The following NOTICE information applies:
