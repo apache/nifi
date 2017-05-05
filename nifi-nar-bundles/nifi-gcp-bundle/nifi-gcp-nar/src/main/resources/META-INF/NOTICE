@@ -123,6 +123,10 @@ The following binary components are provided under the Apache Software License v
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
 
+  (ASLv2) Android JSON library
+    The following NOTICE information applies:
+      Copyright (C) 2010 The Android Open Source Project
+
 ************************
 Common Development and Distribution License 1.1
 ************************
