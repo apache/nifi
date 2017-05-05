@@ -23,6 +23,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -163,9 +164,13 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
                 return;
             }
 
+            final Map<String, String> attributes = new HashMap<>();
             final String transactionId = UUID.randomUUID().toString();
+            attributes.put("reporting.task.transaction.id", transactionId);
+            attributes.put("mime.type", "application/json");
+
             final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-            transaction.send(data, Collections.singletonMap("reporting.task.transaction.id", transactionId));
+            transaction.send(data, attributes);
             transaction.confirm();
             transaction.complete();
 
