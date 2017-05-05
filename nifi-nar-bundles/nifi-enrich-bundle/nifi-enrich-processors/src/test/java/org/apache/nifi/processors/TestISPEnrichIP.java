@@ -270,7 +270,6 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponse() throws Exception {
-        // Taken from MaxMind unit tests.
         final String maxMindIspResponse = "{\n" +
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
@@ -286,7 +285,6 @@ public class TestISPEnrichIP {
         return new ObjectMapper().reader(IspResponse.class).with(inject).readValue(maxMindIspResponse);
 
     }    private IspResponse getIspResponseWithoutASNDetail() throws Exception {
-        // Taken from MaxMind unit tests.
         final String maxMindIspResponse = "{\n" +
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
@@ -309,6 +307,5 @@ public class TestISPEnrichIP {
             databaseReaderRef.set(databaseReader);
         }
     }
-
 
 }
