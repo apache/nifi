@@ -484,7 +484,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             throw new ProcessException("Failed to initialize the server",e);
         }
 
-        final HttpRequestContainer container = containerQueue.poll();
+        HttpRequestContainer container;
+        try {
+            container = containerQueue.poll(2, TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException e1) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
         if (container == null) {
             return;
         }
