@@ -47,7 +47,7 @@ The following binary components are provided under the Apache Software License v
     (ASLV2) Apache Commons Compress
       The following NOTICE information applies:
         Apache Commons Compress
-        Copyright 2002-2016 The Apache Software Foundation
+        Copyright 2002-2017 The Apache Software Foundation
 
         The files in the package org.apache.commons.compress.archivers.sevenz
         were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),

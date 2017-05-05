@@ -32,7 +32,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Compress
     The following NOTICE information applies:
       Apache Commons Compress
-      Copyright 2002-2014 The Apache Software Foundation
+      Copyright 2002-2017 The Apache Software Foundation
 
       The files in the package org.apache.commons.compress.archivers.sevenz
       were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
@@ -442,6 +442,16 @@ The following binary components are provided under the Apache Software License v
 
       IPTC Photo Metadata descriptions Copyright 2010 International Press Telecommunications Council.
 
+  (ASLv2) Apache Calcite
+    The following NOTICE information applies:
+		Apache Calcite
+		Copyright 2012-2017 The Apache Software Foundation
+		
+		This product is based on source code originally developed
+		by DynamoBI Corporation, LucidEra Inc., SQLstream Inc. and others
+		under the auspices of the Eigenbase Foundation
+		and released as the LucidDB project.
+
   (ASLv2) Apache Jakarta Commons Digester
     The following NOTICE information applies:
       Apache Jakarta Commons Digester
@@ -455,7 +465,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Avro
     The following NOTICE information applies:
       Apache Avro
-      Copyright 2009-2013 The Apache Software Foundation
+      Copyright 2009-2017 The Apache Software Foundation
 
   (ASLv2) Snappy Java
     The following NOTICE information applies:
@@ -496,7 +506,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Jetty
     The following NOTICE information applies:
        Jetty Web Container
-       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
 
   (ASLv2) Apache Tomcat
     The following NOTICE information applies:
