@@ -46,7 +46,7 @@
             <div id="component-list-toggle-link">-</div>
             <div id="header-contents">
                 <div id="nf-title">NiFi Documentation</div>
-                <div id="nf-version"></div>
+                <div id="nf-version" class="version"></div>
                 <div id="selected-component"></div>
             </div>
         </div>
@@ -85,7 +85,7 @@
                                                             ${entry.key}
                                                         </c:when>
                                                         <c:otherwise>
-                                                            ${entry.key} ${bundleEntry.version}
+                                                            ${entry.key} <span class="version">${bundleEntry.version}</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </a>
@@ -121,7 +121,7 @@
                                                             ${entry.key}
                                                         </c:when>
                                                         <c:otherwise>
-                                                            ${entry.key} ${bundleEntry.version}
+                                                            ${entry.key} <span class="version">${bundleEntry.version}</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </a>
@@ -156,7 +156,7 @@
                                                             ${entry.key}
                                                         </c:when>
                                                         <c:otherwise>
-                                                            ${entry.key} ${bundleEntry.version}
+                                                            ${entry.key} <span class="version">${bundleEntry.version}</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </a>
