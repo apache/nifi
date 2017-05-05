@@ -177,8 +177,9 @@
                 // store the process group
                 $('#process-group-configuration').data('process-group', response);
 
+                var processGroup = response.component;
+
                 if (response.permissions.canWrite) {
-                    var processGroup = response.component;
 
                     // populate the process group settings
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
