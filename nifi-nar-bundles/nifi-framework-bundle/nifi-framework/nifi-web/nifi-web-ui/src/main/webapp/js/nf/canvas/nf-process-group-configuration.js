@@ -177,8 +177,9 @@
                 // store the process group
                 $('#process-group-configuration').data('process-group', response);
 
+                var processGroup = response.component;
+
                 if (response.permissions.canWrite) {
-                    var processGroup = response.component;
 
                     // populate the process group settings
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
@@ -196,8 +197,8 @@
                 } else {
                     if (response.permissions.canRead) {
                         // populate the process group settings
-                        $('#read-only-process-group-name').removeClass('unset').text(response.component.name);
-                        $('#read-only-process-group-comments').removeClass('unset').text(response.component.comments);
+                        $('#read-only-process-group-name').removeClass('unset').text(processGroup.name);
+                        $('#read-only-process-group-comments').removeClass('unset').text(processGroup.comments);
 
                         // populate the header
                         $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
