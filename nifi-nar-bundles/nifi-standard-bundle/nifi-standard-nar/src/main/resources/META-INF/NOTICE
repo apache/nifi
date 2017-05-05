@@ -12,6 +12,14 @@ This includes derived works from the Apache Software License V2 library Jolt (ht
   The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
   com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
 
+This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
+  and 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java
+  Copyright 2012-2017 The Apache Software Foundation
+  The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
+  and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
+
 ******************
 Apache Software License v2
 ******************

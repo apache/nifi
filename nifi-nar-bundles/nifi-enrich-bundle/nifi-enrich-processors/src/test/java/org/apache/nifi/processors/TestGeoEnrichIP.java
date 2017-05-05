@@ -286,12 +286,12 @@ public class TestGeoEnrichIP {
 
     private CityResponse getFullCityResponse() throws Exception {
         // Taken from MaxMind unit tests.
-        final String maxMindCityResponse = "{" + "\"city\":{" + "\"confidence\":76,"
-            + "\"geoname_id\":9876," + "\"names\":{" + "\"en\":\"Minneapolis\""
-            + "}" + "}," + "\"continent\":{" + "\"code\":\"NA\","
-            + "\"geoname_id\":42," + "\"names\":{" + "\"en\":\"North America\""
-            + "}" + "}," + "\"country\":{" + "\"confidence\":99,"
-            + "\"iso_code\":\"US\"," + "\"geoname_id\":1," + "\"names\":{"
+        final String maxMindCityResponse = "{\"city\":{\"confidence\":76,"
+            + "\"geoname_id\":9876,\"names\":{\"en\":\"Minneapolis\""
+            + "}},\"continent\":{\"code\":\"NA\","
+            + "\"geoname_id\":42,\"names\":{" + "\"en\":\"North America\""
+            + "}},\"country\":{\"confidence\":99,"
+            + "\"iso_code\":\"US\",\"geoname_id\":1,\"names\":{"
             + "\"en\":\"United States of America\"" + "}" + "},"
             + "\"location\":{" + "\"accuracy_radius\":1500,"
             + "\"latitude\":44.98," + "\"longitude\":93.2636,"
