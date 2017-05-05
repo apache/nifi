@@ -15,13 +15,6 @@ The following binary components are provided under the Apache Software License v
       Apache NiFi
       Copyright 2014-2016 The Apache Software Foundation
 
-      This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
-
-      This product includes the following work from the Apache Hadoop project:
-
-      BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
-
   (ASLv2) Apache Commons CLI
     The following NOTICE information applies:
       Apache Commons CLI
