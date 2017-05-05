@@ -79,6 +79,16 @@ ul.referencing-component-listing li {
     white-space: nowrap;
 }
 
+div.referencing-component-state.disabled:before {
+    content: '\e802';
+    font-family: flowfont;
+}
+
+div.referencing-component-state.enabled:before {
+    content: '\f0e7';
+    font-family: FontAwesome;
+}
+
 div.referencing-component-bulletins {
     float: left;
     margin-left: 5px;
