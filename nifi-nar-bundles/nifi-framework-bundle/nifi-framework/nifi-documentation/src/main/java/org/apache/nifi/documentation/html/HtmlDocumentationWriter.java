@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -146,6 +147,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeAdditionalBodyInfo(configurableComponent, xmlStreamWriter);
         writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeRestrictedInfo(configurableComponent, xmlStreamWriter);
+        writeInputRequirementInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
         xmlStreamWriter.writeEndElement();
     }
@@ -165,6 +167,37 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeAttribute("style", "display: none;");
         xmlStreamWriter.writeCharacters(getTitle(configurableComponent));
         xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Add in the documentation information regarding the component whether it accepts an
+     * incoming relationship or not.
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
+     */
+    private void writeInputRequirementInfo(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+        final InputRequirement inputRequirement = configurableComponent.getClass().getAnnotation(InputRequirement.class);
+
+        if(inputRequirement != null) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Input requirement: ");
+            switch (inputRequirement.value()) {
+                case INPUT_FORBIDDEN:
+                    xmlStreamWriter.writeCharacters("This component does not allow an incoming relationship.");
+                    break;
+                case INPUT_ALLOWED:
+                    xmlStreamWriter.writeCharacters("This component allows an incoming relationship.");
+                    break;
+                case INPUT_REQUIRED:
+                    xmlStreamWriter.writeCharacters("This component requires an incoming relationship.");
+                    break;
+                default:
+                    xmlStreamWriter.writeCharacters("This component does not have input requirement.");
+                    break;
+            }
+        }
     }
 
     /**
