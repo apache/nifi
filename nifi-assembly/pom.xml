@@ -522,17 +522,13 @@
                         <configuration>
                             <name>nifi</name>
                             <summary>Apache NiFi</summary>
-                            <description>Apache NiFi is dataflow system
-                                based on the Flow-Based Programming
-                                concepts.</description>
-                            <license>Apache License, Version 2.0 and
-                                others (see included LICENSE file)</license>
+                            <description>Apache NiFi is dataflow system based on the Flow-Based Programming concepts.</description>
+                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
                             <url>http://nifi.apache.org</url>
                             <group>Utilities</group>
                             <prefix>/opt/nifi</prefix>
                             <defineStatements>
-                                <defineStatement>_use_internal_dependency_generator
-                                    0</defineStatement>
+                                <defineStatement>_use_internal_dependency_generator 0</defineStatement>
                             </defineStatements>
                             <defaultDirmode>750</defaultDirmode>
                             <defaultFilemode>640</defaultFilemode>
@@ -548,15 +544,7 @@
                                 <script>sed -i s/^run\.as=$/run\.as=${nifi.run.as}/ $RPM_BUILD_ROOT/opt/nifi/nifi-${project.version}/conf/bootstrap.conf</script>
                             </installScriptlet>
                             <preinstallScriptlet>
-                                <script>
-                                    /usr/bin/getent group nifi
-                                    &gt;/dev/null || /usr/sbin/groupadd
-                                    -r nifi; /usr/bin/getent passwd nifi
-                                    &gt;/dev/null || /usr/sbin/useradd
-                                    -r -g nifi -d /opt/nifi -s
-                                    /sbin/nologin -c "NiFi System User"
-                                    nifi
-                                </script>
+                                <script>/usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi</script>
                             </preinstallScriptlet>
                         </configuration>
                         <executions>
