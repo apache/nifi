@@ -18,11 +18,13 @@ package org.apache.nifi.documentation.example;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -56,6 +58,7 @@ import java.util.Set;
 @DynamicRelationship(name = "name from dynamic property", description = "all files that match the properties XPath")
 @Stateful(scopes = {Scope.CLUSTER, Scope.LOCAL}, description = "state management description")
 @Restricted("processor restriction description")
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
