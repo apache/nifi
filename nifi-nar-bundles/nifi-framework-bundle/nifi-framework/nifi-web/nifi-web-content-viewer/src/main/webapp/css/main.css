@@ -29,7 +29,7 @@
 
 #view-as-label {
     position: absolute;
-    top: 72px;
+    top: 67px;
     left: 100px;
     line-height: 30px;
     font-size: 12px;
@@ -40,7 +40,7 @@
 
 #view-as {
     position: relative;
-    top: 72px;
+    top: 67px;
     left: 150px;
     width: 148px;
 }
