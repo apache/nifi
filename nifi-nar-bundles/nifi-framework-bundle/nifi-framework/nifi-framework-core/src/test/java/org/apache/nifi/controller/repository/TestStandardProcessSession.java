@@ -83,6 +83,7 @@ import org.apache.nifi.util.ObjectHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -887,6 +888,7 @@ public class TestStandardProcessSession {
         assertEquals("Hello, World", new String(buff));
     }
 
+    @Ignore
     @Test
     public void testAppendDoesNotDecrementContentClaimIfNotNeeded() {
         FlowFile flowFile = session.create();
