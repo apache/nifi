@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * A request for provenance.
@@ -63,6 +64,7 @@ public class ProvenanceRequestDTO {
             value = "The earliest event time to include in the query.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getStartDate() {
         return startDate;
     }
@@ -79,6 +81,7 @@ public class ProvenanceRequestDTO {
             value = "The latest event time to include in the query.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getEndDate() {
         return endDate;
     }

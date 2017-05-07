@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Details of a node within this NiFi.
@@ -52,6 +53,7 @@ public class NodeDTO {
             readOnly = true,
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getHeartbeat() {
         return heartbeat;
     }
@@ -69,6 +71,7 @@ public class NodeDTO {
             readOnly = true,
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getConnectionRequested() {
         return connectionRequested;
     }
@@ -207,6 +210,7 @@ public class NodeDTO {
             readOnly = true,
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getNodeStartTime() {
         return nodeStartTime;
     }

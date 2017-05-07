@@ -21,6 +21,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * A event for a node within this NiFi cluster.
@@ -68,6 +69,7 @@ public class NodeEventDTO {
             value = "The timestamp of the node event.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getTimestamp() {
         return timestamp;
     }

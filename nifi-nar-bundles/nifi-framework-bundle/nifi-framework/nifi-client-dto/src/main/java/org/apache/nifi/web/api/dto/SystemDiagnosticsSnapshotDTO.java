@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * The diagnostics of the system this NiFi is running on.
@@ -674,6 +675,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
         @XmlJavaTypeAdapter(DateTimeAdapter.class)
         @ApiModelProperty("Build timestamp")
+        @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
         public Date getBuildTimestamp() {
             return buildTimestamp;
         }

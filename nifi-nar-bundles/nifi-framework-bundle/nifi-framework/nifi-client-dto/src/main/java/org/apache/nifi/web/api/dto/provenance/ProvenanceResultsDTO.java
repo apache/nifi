@@ -25,6 +25,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Results of a provenance request.
@@ -121,6 +122,7 @@ public class ProvenanceResultsDTO {
             value = "The oldest event available in the provenance repository.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getOldestEvent() {
         return oldestEvent;
     }

@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Defines a template.
@@ -114,6 +115,7 @@ public class TemplateDTO {
             value = "The timestamp when this template was created.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getTimestamp() {
         return timestamp;
     }

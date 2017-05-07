@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.dto.util.TimezoneAdapter;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Contains details about this NiFi including the title and version.
@@ -158,6 +159,7 @@ public class AboutDTO {
             value = "Build timestamp",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getBuildTimestamp() {
         return buildTimestamp;
     }

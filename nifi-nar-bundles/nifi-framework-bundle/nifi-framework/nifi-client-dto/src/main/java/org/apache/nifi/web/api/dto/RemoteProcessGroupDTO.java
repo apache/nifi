@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Collection;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Details of a remote process group in this NiFi.
@@ -335,6 +336,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
             value = "The timestamp when this remote process group was last refreshed.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getFlowRefreshed() {
         return flowRefreshed;
     }
