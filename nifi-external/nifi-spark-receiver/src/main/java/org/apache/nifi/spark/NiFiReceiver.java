@@ -162,10 +162,11 @@ public class NiFiReceiver extends Receiver<NiFiDataPacket> {
                         }
 
                         final List<NiFiDataPacket> dataPackets = new ArrayList<>();
+                        InputStream inStream =null;
                         do {
                             // Read the data into a byte array and wrap it along with the attributes
                             // into a NiFiDataPacket.
-                            final InputStream inStream = dataPacket.getData();
+                            inStream = dataPacket.getData();
                             final byte[] data = new byte[(int) dataPacket.getSize()];
                             StreamUtils.fillBuffer(inStream, data);
 
@@ -173,6 +174,7 @@ public class NiFiReceiver extends Receiver<NiFiDataPacket> {
                             final NiFiDataPacket NiFiDataPacket = new StandardNiFiDataPacket(data, attributes);
                             dataPackets.add(NiFiDataPacket);
                             dataPacket = transaction.receive();
+                            inStream.close();
                         } while (dataPacket != null);
 
                         // Confirm transaction to verify the data
