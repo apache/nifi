@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
@@ -68,7 +69,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.LongHolder;
 
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
 @TriggerSerially
@@ -139,7 +139,7 @@ public class TailFile extends AbstractProcessor {
         .description("All FlowFiles are routed to this Relationship.")
         .build();
 
-    private volatile TailFileState state = new TailFileState(null, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
+    private volatile TailFileState state = new TailFileState(null, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(65536));
     private volatile Long expectedRecoveryChecksum;
     private volatile boolean tailFileChanged = false;
 
@@ -162,7 +162,7 @@ public class TailFile extends AbstractProcessor {
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (isConfigurationRestored() && FILENAME.equals(descriptor)) {
-            state = new TailFileState(newValue, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
+            state = new TailFileState(newValue, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(65536));
             tailFileChanged = true;
         }
     }
@@ -270,6 +270,7 @@ public class TailFile extends AbstractProcessor {
         final String storedStateFilename = stateValues.get(TailFileState.StateKeys.FILENAME);
         final long position = Long.parseLong(stateValues.get(TailFileState.StateKeys.POSITION));
         final long timestamp = Long.parseLong(stateValues.get(TailFileState.StateKeys.TIMESTAMP));
+        final long length = Long.parseLong(stateValues.get(TailFileState.StateKeys.LENGTH));
 
         FileChannel reader = null;
         File tailFile = null;
@@ -311,13 +312,13 @@ public class TailFile extends AbstractProcessor {
                     + "this indicates that the file has rotated. Will begin tailing current file from beginning.", new Object[] {existingTailFile.length(), position});
             }
 
-            state = new TailFileState(currentFilename, tailFile, reader, position, timestamp, checksum, ByteBuffer.allocate(65536));
+            state = new TailFileState(currentFilename, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(65536));
         } else {
             // If filename changed or there is no checksum present, then we have no expected checksum to use for recovery.
             expectedRecoveryChecksum = null;
 
             // tailing a new file since the state file was written out. We will reset state.
-            state = new TailFileState(currentFilename, null, null, 0L, 0L, null, ByteBuffer.allocate(65536));
+            state = new TailFileState(currentFilename, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(65536));
         }
 
         getLogger().debug("Recovered state {}", new Object[] {state});
@@ -344,7 +345,7 @@ public class TailFile extends AbstractProcessor {
 
         getLogger().debug("Closed FileChannel {}", new Object[] {reader});
 
-        this.state = new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition(), state.getTimestamp(), state.getChecksum(), state.getBuffer());
+        this.state = new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition(), state.getTimestamp(), state.getLength(), state.getChecksum(), state.getBuffer());
     }
 
 
@@ -362,7 +363,7 @@ public class TailFile extends AbstractProcessor {
                 recoverRolledFiles(context, session, this.expectedRecoveryChecksum, state.getTimestamp(), state.getPosition());
             } else if (START_CURRENT_FILE.getValue().equals(recoverPosition)) {
                 cleanup();
-                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, 0L, null, state.getBuffer());
+                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, 0L, 0L, null, state.getBuffer());
             } else {
                 final String filename = context.getProperty(FILENAME).getValue();
                 final File file = new File(filename);
@@ -382,7 +383,7 @@ public class TailFile extends AbstractProcessor {
 
                     fileChannel.position(position);
                     cleanup();
-                    state = new TailFileState(filename, file, fileChannel, position, timestamp, checksum, state.getBuffer());
+                    state = new TailFileState(filename, file, fileChannel, position, timestamp, file.length(), checksum, state.getBuffer());
                 } catch (final IOException ioe) {
                     getLogger().error("Attempted to position Reader at current position in file {} but failed to do so due to {}", new Object[] {file, ioe.toString()}, ioe);
                     context.yield();
@@ -417,6 +418,7 @@ public class TailFile extends AbstractProcessor {
         }
         long position = state.getPosition();
         long timestamp = state.getTimestamp();
+        long length = state.getLength();
 
         // Create a reader if necessary.
         if (file == null || reader == null) {
@@ -431,7 +433,7 @@ public class TailFile extends AbstractProcessor {
         final long startNanos = System.nanoTime();
 
         // Check if file has rotated
-        if (rolloverOccurred) {
+        if (rolloverOccurred || (timestamp <= file.lastModified() && length > file.length()) || (timestamp < file.lastModified() && length >= file.length())) {
             // Since file has rotated, we close the reader, create a new one, and then reset our state.
             try {
                 reader.close();
@@ -445,12 +447,12 @@ public class TailFile extends AbstractProcessor {
             checksum.reset();
         }
 
-        if (file.length() == position) {
+        if (file.length() == position || !file.exists()) {
             // no data to consume so rather than continually running, yield to allow other processors to use the thread.
             // In this case, the state should not have changed, and we will have created no FlowFiles, so we don't have to
             // persist the state or commit the session; instead, just return here.
             getLogger().debug("No data to consume; created no FlowFiles");
-            state = this.state = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, checksum, state.getBuffer());
+            state = this.state = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, length, checksum, state.getBuffer());
             persistState(state, context);
             context.yield();
             return;
@@ -463,7 +465,7 @@ public class TailFile extends AbstractProcessor {
         FlowFile flowFile = session.create();
 
         final FileChannel fileReader = reader;
-        final LongHolder positionHolder = new LongHolder(position);
+        final AtomicLong positionHolder = new AtomicLong(position);
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream rawOut) throws IOException {
@@ -504,11 +506,12 @@ public class TailFile extends AbstractProcessor {
             // operating system file last mod precision), then we could set the timestamp to a smaller value, which could result in reading in the
             // rotated file a second time.
             timestamp = Math.max(state.getTimestamp(), file.lastModified());
+            length = file.length();
             getLogger().debug("Created {} and routed to success", new Object[] {flowFile});
         }
 
         // Create a new state object to represent our current position, timestamp, etc.
-        final TailFileState updatedState = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, checksum, state.getBuffer());
+        final TailFileState updatedState = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, length, checksum, state.getBuffer());
         this.state = updatedState;
 
         // We must commit session before persisting state in order to avoid data loss on restart
@@ -795,7 +798,7 @@ public class TailFile extends AbstractProcessor {
                                 session.remove(flowFile);
                                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                                 cleanup();
-                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
+                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, firstFile.length(), null, state.getBuffer());
                             } else {
                                 flowFile = session.putAttribute(flowFile, "filename", firstFile.getName());
 
@@ -806,7 +809,7 @@ public class TailFile extends AbstractProcessor {
 
                                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                                 cleanup();
-                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
+                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, firstFile.length(), null, state.getBuffer());
 
                                 // must ensure that we do session.commit() before persisting state in order to avoid data loss.
                                 session.commit();
@@ -860,7 +863,7 @@ public class TailFile extends AbstractProcessor {
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
             cleanup();
-            state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, file.lastModified() + 1L, null, state.getBuffer());
+            state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, file.lastModified() + 1L, file.length(), null, state.getBuffer());
 
             // must ensure that we do session.commit() before persisting state in order to avoid data loss.
             session.commit();
@@ -879,6 +882,7 @@ public class TailFile extends AbstractProcessor {
         private final FileChannel reader;
         private final long position;
         private final long timestamp;
+        private final long length;
         private final Checksum checksum;
         private final ByteBuffer buffer;
 
@@ -887,13 +891,16 @@ public class TailFile extends AbstractProcessor {
             public static final String POSITION = "position";
             public static final String TIMESTAMP = "timestamp";
             public static final String CHECKSUM = "checksum";
+            public static final String LENGTH = "length";
         }
 
-        public TailFileState(final String filename, final File file, final FileChannel reader, final long position, final long timestamp, final Checksum checksum, final ByteBuffer buffer) {
+        public TailFileState(final String filename, final File file, final FileChannel reader,
+                final long position, final long timestamp, final long length, final Checksum checksum, final ByteBuffer buffer) {
             this.filename = filename;
             this.file = file;
             this.reader = reader;
             this.position = position;
+            this.length = length;
             this.timestamp = timestamp; // many operating systems will use only second-level precision for last-modified times so cut off milliseconds
             this.checksum = checksum;
             this.buffer = buffer;
@@ -919,6 +926,10 @@ public class TailFile extends AbstractProcessor {
             return timestamp;
         }
 
+        public long getLength() {
+            return length;
+        }
+
         public Checksum getChecksum() {
             return checksum;
         }
@@ -936,6 +947,7 @@ public class TailFile extends AbstractProcessor {
             final Map<String, String> map = new HashMap<>(4);
             map.put(StateKeys.FILENAME, filename);
             map.put(StateKeys.POSITION, String.valueOf(position));
+            map.put(StateKeys.LENGTH, String.valueOf(length));
             map.put(StateKeys.TIMESTAMP, String.valueOf(timestamp));
             map.put(StateKeys.CHECKSUM, checksum == null ? null : String.valueOf(checksum.getValue()));
             return map;

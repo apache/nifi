@@ -513,4 +513,41 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
     }
 
+    @Test
+    public void testRolloverWhenNoRollingPattern() throws IOException {
+        // write out some data and ingest it.
+        raf.write("hello there\n".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        // move the file and write data to the new log.txt file.
+        raf.write("another".getBytes());
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("new file\n".getBytes());
+
+        // because the roll over pattern has not been set we are not able to get
+        // data before the file has been moved, but we still want to ingest data
+        // from the tailed file
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("new file\n");
+        runner.clearTransferState();
+
+        // in the unlikely case where more data is written after the file is moved
+        // we are not able to detect it is a completely new file, then we continue
+        // on the tailed file as it never changed
+        raf.close();
+        file.renameTo(new File("target/log.2"));
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("new file with longer data in the new file\n".getBytes());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("with longer data in the new file\n");
+        runner.clearTransferState();
+    }
+
 }
