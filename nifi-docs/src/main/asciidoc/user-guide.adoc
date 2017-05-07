@@ -1677,6 +1677,21 @@ Clicking the ``Upload'' button will attempt to import the Template into this ins
 The Upload Template dialog will update to show ``Success'' or an error message if there was a problem importing the template.
 
 
+[[Import_Template]]
+=== Importing a Template
+After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
+the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
+authorization.
+
+From the Operate Palette, click the ``Upload Template'' (
+image:iconUploadTemplate.png["Upload Template"]
+)  button (See <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
+dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
+Select the file and click Open.
+Clicking the ``Upload'' button will attempt to import the Template into this instance of NiFi.
+The Upload Template dialog will update to show ``Success'' or an error message if there was a problem importing the template.
+
+
 === Instantiating a Template
 
 Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
