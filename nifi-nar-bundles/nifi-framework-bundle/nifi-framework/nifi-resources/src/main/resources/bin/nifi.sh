@@ -325,11 +325,13 @@ case "$1" in
         ;;
     start|stop|run|status|dump|env)
         main "$@"
+        exit $EXIT_STATUS
         ;;
     restart)
         init
         run "stop"
         run "start"
+        exit $EXIT_STATUS
         ;;
     *)
         echo "Usage nifi {start|stop|run|restart|status|dump|install}"
