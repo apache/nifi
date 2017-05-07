@@ -1,0 +1,27 @@
+description = 'NiFi Server'
+
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceCompatibility=1.7
+targetCompatibility=1.7
+
+repositories {
+    mavenCentral()
+	mavenLocal()
+}
+
+dependencies {
+    compile "org.apache.nifi:nifi-api:0.3.1-SNAPSHOT" 
+    compile "org.apache.nifi:nifi-runtime:0.3.1-SNAPSHOT"  
+    compile "org.apache.logging.log4j:log4j-core:2.4"
+    compile "org.slf4j:slf4j-api:1.7.12"
+    compile "org.slf4j:slf4j-log4j12:1.7.12"
+    compile "org.slf4j:jul-to-slf4j:1.7.12"
+}
+
+task wrapper(type: Wrapper) {
+    description = 'Generates gradlew[.bat] scripts'
+}
