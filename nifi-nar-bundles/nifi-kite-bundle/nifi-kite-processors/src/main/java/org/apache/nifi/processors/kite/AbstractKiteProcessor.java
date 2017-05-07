@@ -44,7 +44,30 @@ import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.URIBuilder;
 import org.kitesdk.data.spi.DefaultConfiguration;
 
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.security.PrivilegedExceptionAction;
+import java.util.concurrent.atomic.AtomicReference;
+
 abstract class AbstractKiteProcessor extends AbstractProcessor {
+
+    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
+        return new KerberosProperties(kerberosConfigFile);
+    }
+
+    protected KerberosProperties kerberosProperties;
+    private volatile File kerberosConfigFile = null;
+    private String kerberosPrincipal;
+    private String kerberosKeytab;
+    private Configuration configuration;
+    private static UserGroupInformation ugi;
+    private final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
 
     private static final Splitter COMMA = Splitter.on(',').trimResults();
     protected static final Validator FILES_EXIST = new Validator() {
@@ -128,7 +151,8 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             } else {
                 // try to open the file
                 Path schemaPath = new Path(uri);
-                FileSystem fs = schemaPath.getFileSystem(conf);
+                FileSystem fs;
+                fs = getFileSystemAsUser(conf, ugi);
                 try (InputStream in = fs.open(schemaPath)) {
                     return parseSchema(uri, in);
                 }
@@ -183,11 +207,9 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         }
     };
 
-    protected static final List<PropertyDescriptor> ABSTRACT_KITE_PROPS = ImmutableList.<PropertyDescriptor>builder()
-            .add(CONF_XML_FILES)
-            .build();
+    protected List<PropertyDescriptor> ABSTRACT_KITE_PROPS;
 
-    static List<PropertyDescriptor> getProperties() {
+    protected List<PropertyDescriptor> getProperties() {
         return ABSTRACT_KITE_PROPS;
     }
 
@@ -196,6 +218,79 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             throws IOException {
         DefaultConfiguration.set(getConfiguration(
                 context.getProperty(CONF_XML_FILES).getValue()));
+    }
+
+
+    @Override
+    protected void init(ProcessorInitializationContext context) {
+        hdfsResources.set(new HdfsResources(null, null));
+
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosProperties = getKerberosProperties(kerberosConfigFile);
+
+        List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(CONF_XML_FILES);
+        props.add(kerberosProperties.getKerberosPrincipal());
+        props.add(kerberosProperties.getKerberosKeytab());
+        ABSTRACT_KITE_PROPS = Collections.unmodifiableList(props);
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return ABSTRACT_KITE_PROPS;
+    }
+
+    @OnScheduled
+    public void onScheduled(ProcessContext context) throws Exception {
+        configuration = getConfiguration(context.getProperty(CONF_XML_FILES).getValue());
+        if (SecurityUtil.isSecurityEnabled(configuration)) {
+            kerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+            kerberosKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            ugi = SecurityUtil.loginKerberos(configuration, kerberosPrincipal, kerberosKeytab);
+        } else {
+            configuration.set("ipc.client.fallback-to-simple-auth-allowed", "true");
+            configuration.set("hadoop.security.authentication", "simple");
+            ugi = SecurityUtil.loginSimple(configuration);
+        }
+        hdfsResources.set(new HdfsResources(configuration, ugi));
+    }
+
+
+    protected static FileSystem getFileSystemAsUser(final Configuration config, UserGroupInformation ugi) throws IOException {
+        try {
+            return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
+                @Override
+                public FileSystem run() throws Exception {
+                    return FileSystem.get(config);
+                }
+            });
+        } catch (InterruptedException e) {
+            throw new IOException("Unable to create file system: " + e.getMessage());
+        }
+    }
+
+    static protected class HdfsResources {
+        private final Configuration configuration;
+        private final UserGroupInformation userGroupInformation;
+
+        public HdfsResources(Configuration configuration, UserGroupInformation userGroupInformation) {
+            this.configuration = configuration;
+            this.userGroupInformation = ugi;
+        }
+
+        public Configuration getConfiguration() {
+            return configuration;
+        }
+
+        public UserGroupInformation getUserGroupInformation() {
+            return userGroupInformation;
+        }
+    }
+
+    protected UserGroupInformation getUserGroupInformation() {
+        UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
+
+        return userGroupInformation;
     }
 
     protected static Configuration getConfiguration(String configFiles) {
@@ -214,10 +309,5 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         }
 
         return conf;
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ABSTRACT_KITE_PROPS;
     }
 }

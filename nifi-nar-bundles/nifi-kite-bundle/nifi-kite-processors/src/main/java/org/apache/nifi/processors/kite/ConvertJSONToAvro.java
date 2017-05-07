@@ -80,13 +80,6 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES
-            = ImmutableList.<PropertyDescriptor>builder()
-            .addAll(AbstractKiteProcessor.getProperties())
-            .add(SCHEMA)
-            .add(COMPRESSION_TYPE)
-            .build();
-
     private static final Set<Relationship> RELATIONSHIPS
             = ImmutableSet.<Relationship>builder()
             .add(SUCCESS)
@@ -99,7 +92,10 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        List<PropertyDescriptor> props = new ArrayList<>(ABSTRACT_KITE_PROPS);
+        props.add(SCHEMA);
+        props.add(COMPRESSION_TYPE);
+        return props;
     }
 
     @Override
@@ -107,6 +103,11 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
         return RELATIONSHIPS;
     }
 
+    @OnScheduled
+    public void OnScheduled(ProcessContext context) throws IOException {
+        super.setDefaultConfiguration(context);
+    }
+    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session)
             throws ProcessException {

@@ -160,18 +160,6 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .defaultValue(String.valueOf(DEFAULTS.linesToSkip))
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = ImmutableList.<PropertyDescriptor> builder()
-        .addAll(AbstractKiteProcessor.getProperties())
-        .add(SCHEMA)
-        .add(CHARSET)
-        .add(DELIMITER)
-        .add(QUOTE)
-        .add(ESCAPE)
-        .add(HAS_HEADER)
-        .add(LINES_TO_SKIP)
-        .add(COMPRESSION_TYPE)
-        .build();
-
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet.<Relationship> builder()
         .add(SUCCESS)
         .add(FAILURE)
@@ -180,7 +168,16 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        List<PropertyDescriptor> props = new ArrayList<>(ABSTRACT_KITE_PROPS);
+        props.add(SCHEMA);
+        props.add(CHARSET);
+        props.add(DELIMITER);
+        props.add(QUOTE);
+        props.add(ESCAPE);
+        props.add(HAS_HEADER);
+        props.add(LINES_TO_SKIP);
+        props.add(COMPRESSION_TYPE);
+        return props;
     }
 
     @Override
