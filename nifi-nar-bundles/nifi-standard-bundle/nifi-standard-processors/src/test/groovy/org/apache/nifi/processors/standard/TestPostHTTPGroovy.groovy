@@ -34,13 +34,11 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
 import javax.crypto.Cipher
 import javax.net.SocketFactory
@@ -50,8 +48,6 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-import java.nio.charset.StandardCharsets
-import java.security.KeyStore
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -71,11 +67,11 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
     private static final String POST_URL = "${HTTPS_URL}/PostHandler.groovy"
 
-    private static String keystorePath = "src/test/resources/localhost-ks.jks"
-    private static String truststorePath = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
 
-    private static String keystorePassword = "localtest"
-    private static String truststorePassword = "localtest"
+    private static final String KEYSTORE_PASSWORD = "localtest"
+    private static final String TRUSTSTORE_PASSWORD = "localtest"
 
     private static Server server
     private static X509TrustManager nullTrustManager
@@ -130,9 +126,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         contextFactory.needClientAuth = false
         contextFactory.wantClientAuth = false
 
-        contextFactory.setKeyStorePath(keystorePath)
+        contextFactory.setKeyStorePath(KEYSTORE_PATH)
         contextFactory.setKeyStoreType(KEYSTORE_TYPE)
-        contextFactory.setKeyStorePassword(keystorePassword)
+        contextFactory.setKeyStorePassword(KEYSTORE_PASSWORD)
 
         contextFactory.setIncludeProtocols(supportedProtocols as String[])
         contextFactory
@@ -167,8 +163,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner = TestRunners.newTestRunner(PostHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -315,8 +311,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static void enableContextServiceProtocol(TestRunner runner, String protocol) {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
