@@ -126,7 +126,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     public static final List<PropertyDescriptor> properties =
             Collections.unmodifiableList(
                     Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, TIMESTAMP, UNIT, REGION, ACCESS_KEY, SECRET_KEY,
-                            CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE,
+                            CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, ALLOW_ANONYMOUS_CREDENTIALS, TIMEOUT, SSL_CONTEXT_SERVICE,
                             ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT)
             );
 

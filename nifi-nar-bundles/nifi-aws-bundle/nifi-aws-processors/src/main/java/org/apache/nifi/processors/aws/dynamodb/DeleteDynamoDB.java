@@ -74,7 +74,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(TABLE, HASH_KEY_NAME, RANGE_KEY_NAME, HASH_KEY_VALUE, RANGE_KEY_VALUE,
                 HASH_KEY_VALUE_TYPE, RANGE_KEY_VALUE_TYPE, BATCH_SIZE, REGION, ACCESS_KEY, SECRET_KEY,
-                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE));
+                CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, ALLOW_ANONYMOUS_CREDENTIALS, TIMEOUT, SSL_CONTEXT_SERVICE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -51,6 +51,17 @@ public class TestPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
     }
+    @Test
+    public void testDefaultProvider() {
+        runner.setProperty(PutKinesisStream.ALLOW_ANONYMOUS_CREDENTIALS, "false");
+        runner.assertValid();
+        byte [] bytes = new byte[10];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = 'a';
+        }
+        runner.enqueue(bytes);
+        runner.run(1);
+    }
 
     @Test
     public void testCustomValidateBatchSize500Valid() {
