@@ -2977,7 +2977,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws IllegalStateException if not configured for clustering
      */
     public void startHeartbeating() throws IllegalStateException {
-        if (!configuredForClustering) {
+        if (!isConfiguredForClustering()) {
             throw new IllegalStateException("Unable to start heartbeating because heartbeating is not configured.");
         }
 
@@ -3020,8 +3020,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws IllegalStateException if not clustered
      */
     public void stopHeartbeating() throws IllegalStateException {
-
-        if (!configuredForClustering) {
+        if (!isConfiguredForClustering()) {
             throw new IllegalStateException("Unable to stop heartbeating because heartbeating is not configured.");
         }
 
@@ -3111,6 +3110,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         } finally {
             readLock.unlock();
         }
+    }
+
+    public boolean isConfiguredForClustering() {
+        return configuredForClustering;
     }
 
     /**

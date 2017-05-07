@@ -70,8 +70,8 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         this.processContext = processContext;
     }
 
-    static boolean isRunOnCluster(final ProcessorNode procNode, final boolean isClustered, final boolean isPrimary) {
-        return !procNode.isIsolated() || !isClustered || isPrimary;
+    static boolean isRunOnCluster(final ProcessorNode procNode, FlowController flowController) {
+        return !procNode.isIsolated() || !flowController.isConfiguredForClustering() || flowController.isPrimary();
     }
 
     static boolean isYielded(final ProcessorNode procNode) {
@@ -90,7 +90,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
-        if (!isRunOnCluster(procNode, flowController.isClustered(), flowController.isPrimary())) {
+        if (!isRunOnCluster(procNode, flowController)) {
             return false;
         }
 
