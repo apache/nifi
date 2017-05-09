@@ -16,12 +16,16 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
+import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import org.junit.Test;
@@ -67,6 +71,63 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
+    public void testMissingBothValueAndStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testContainsBothValueAndStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
+        runner.setProperty(PutCloudWatchMetric.MAXIMUM, "2.0");
+        runner.setProperty(PutCloudWatchMetric.SUM, "3.0");
+        runner.setProperty(PutCloudWatchMetric.SAMPLECOUNT, "2");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testContainsIncompleteStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
+        runner.setProperty(PutCloudWatchMetric.MAXIMUM, "2.0");
+        runner.setProperty(PutCloudWatchMetric.SUM, "3.0");
+        // missing sample count
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testContainsBothValueAndIncompleteStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testMetricExpressionValid() throws Exception {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
@@ -87,6 +148,105 @@ public class TestPutCloudWatchMetric {
         MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
         Assert.assertEquals("TestMetric", datum.getMetricName());
         Assert.assertEquals(1.23d, datum.getValue(), 0.0001d);
+    }
+
+    @Test
+    public void testStatisticSet() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "${metric.min}");
+        runner.setProperty(PutCloudWatchMetric.MAXIMUM, "${metric.max}");
+        runner.setProperty(PutCloudWatchMetric.SUM, "${metric.sum}");
+        runner.setProperty(PutCloudWatchMetric.SAMPLECOUNT, "${metric.count}");
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("metric.min", "1");
+        attributes.put("metric.max", "2");
+        attributes.put("metric.sum", "3");
+        attributes.put("metric.count", "2");
+        runner.enqueue(new byte[] {}, attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        Assert.assertEquals("TestMetric", datum.getMetricName());
+        Assert.assertEquals(1.0d, datum.getStatisticValues().getMinimum(), 0.0001d);
+        Assert.assertEquals(2.0d, datum.getStatisticValues().getMaximum(), 0.0001d);
+        Assert.assertEquals(3.0d, datum.getStatisticValues().getSum(), 0.0001d);
+        Assert.assertEquals(2.0d, datum.getStatisticValues().getSampleCount(), 0.0001d);
+    }
+
+    @Test
+    public void testDimensions() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim1").build(), "${metric.dim1}");
+        runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim2").build(), "val2");
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("metric.dim1", "1");
+        runner.enqueue(new byte[] {}, attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        Assert.assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        Assert.assertEquals("TestMetric", datum.getMetricName());
+        Assert.assertEquals(1d, datum.getValue(), 0.0001d);
+
+        List<Dimension> dimensions = datum.getDimensions();
+        Collections.sort(dimensions, (d1, d2) -> d1.getName().compareTo(d2.getName()));
+        Assert.assertEquals(2, dimensions.size());
+        Assert.assertEquals("dim1", dimensions.get(0).getName());
+        Assert.assertEquals("1", dimensions.get(0).getValue());
+        Assert.assertEquals("dim2", dimensions.get(1).getName());
+        Assert.assertEquals("val2", dimensions.get(1).getValue());
+    }
+
+    @Test
+    public void testMaximumDimensions() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        for (int i=0; i < 10; i++) {
+            runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim" + i).build(), "0");
+        }
+        runner.assertValid();
+    }
+
+    @Test
+    public void testTooManyDimensions() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        for (int i=0; i < 11; i++) {
+            runner.setProperty(new PropertyDescriptor.Builder().dynamic(true).name("dim" + i).build(), "0");
+        }
+        runner.assertNotValid();
     }
 
     @Test
