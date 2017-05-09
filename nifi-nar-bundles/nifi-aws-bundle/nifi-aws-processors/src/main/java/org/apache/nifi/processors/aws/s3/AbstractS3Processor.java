@@ -143,7 +143,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
     private void initalizeEndpointOverride(final ProcessContext context, final AmazonS3Client s3) {
         // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
-        if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).getValue()).isEmpty() == false){
+        if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty() == false){
             final S3ClientOptions s3Options = new S3ClientOptions();
             s3Options.setPathStyleAccess(true);
             s3.setS3ClientOptions(s3Options);

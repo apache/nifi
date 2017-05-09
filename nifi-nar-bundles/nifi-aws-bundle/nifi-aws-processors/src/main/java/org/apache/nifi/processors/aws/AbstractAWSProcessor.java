@@ -117,6 +117,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
                     "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
                     "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
+            .expressionLanguageSupported(true)
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
@@ -220,11 +221,12 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).getValue());
-        if (!urlstr.isEmpty()) {
-            this.client.setEndpoint(urlstr);
+        if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
+            if (!urlstr.isEmpty()) {
+                this.client.setEndpoint(urlstr);
+            }
         }
-
     }
 
     /**
