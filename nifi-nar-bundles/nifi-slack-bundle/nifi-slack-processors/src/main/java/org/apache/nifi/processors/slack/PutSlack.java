@@ -32,7 +32,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.DataOutputStream;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -41,6 +40,8 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonParsingException;
+
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
