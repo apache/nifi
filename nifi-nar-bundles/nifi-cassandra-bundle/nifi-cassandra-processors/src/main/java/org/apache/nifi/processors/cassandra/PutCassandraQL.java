@@ -95,6 +95,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
             .defaultValue("0 seconds")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -177,8 +178,8 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final long statementTimeout = context.getProperty(STATEMENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final long statementTimeout = context.getProperty(STATEMENT_TIMEOUT).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         // The documentation for the driver recommends the session remain open the entire time the processor is running
         // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
