@@ -33,8 +33,6 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     private static FieldValue validateParent(final FieldValue parent) {
         Objects.requireNonNull(parent, "Cannot create an ArrayIndexFieldValue without a parent");
         if (RecordFieldType.ARRAY != parent.getField().getDataType().getFieldType()) {
-            // TODO: Add Unit test that does something like //myArray[../name = 'myName'][0] and ensure that
-            // we can handle this properly!!
             throw new IllegalArgumentException("Cannot create an ArrayIndexFieldValue with a parent of type " + parent.getField().getDataType().getFieldType());
         }
 
