@@ -47,7 +47,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -66,7 +65,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                     + "comma-separated and in hostname:port format. Example node1:port,node2:port,...."
                     + " The default client port for Cassandra is 9042, but the port(s) must be explicitly specified.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
@@ -75,6 +74,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .description("The Cassandra Keyspace to connect to. If no keyspace is specified, the query will need to "
                     + "include the keyspace name before any table reference.")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -100,6 +100,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .name("Username")
             .description("Username to access the Cassandra cluster")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -108,6 +109,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .description("Password to access the Cassandra cluster")
             .required(false)
             .sensitive(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -123,6 +125,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .name("Character Set")
             .description("Specifies the character set of the record data.")
             .required(true)
+            .expressionLanguageSupported(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
@@ -150,8 +153,9 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         Set<ValidationResult> results = new HashSet<>();
 
         // Ensure that if username or password is set, then the other is too
-        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(USERNAME)) != StringUtils.isEmpty(propertyMap.get(PASSWORD))) {
+        String userName = validationContext.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        String password = validationContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        if (StringUtils.isEmpty(userName) != StringUtils.isEmpty(password)) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "If username or password is specified, then the other must be specified as well").build());
         }
@@ -162,7 +166,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     protected void connectToCassandra(ProcessContext context) {
         if (cluster.get() == null) {
             ComponentLog log = getLogger();
-            final String contactPointList = context.getProperty(CONTACT_POINTS).getValue();
+            final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
@@ -190,8 +194,8 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             }
 
             final String username, password;
-            PropertyValue usernameProperty = context.getProperty(USERNAME);
-            PropertyValue passwordProperty = context.getProperty(PASSWORD);
+            PropertyValue usernameProperty = context.getProperty(USERNAME).evaluateAttributeExpressions();
+            PropertyValue passwordProperty = context.getProperty(PASSWORD).evaluateAttributeExpressions();
 
             if (usernameProperty != null && passwordProperty != null) {
                 username = usernameProperty.getValue();
@@ -203,7 +207,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
             // Create the cluster and connect to it
             Cluster newCluster = createCluster(contactPoints, sslContext, username, password);
-            PropertyValue keyspaceProperty = context.getProperty(KEYSPACE);
+            PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
             final Session newSession;
             if (keyspaceProperty != null) {
                 newSession = newCluster.connect(keyspaceProperty.getValue());

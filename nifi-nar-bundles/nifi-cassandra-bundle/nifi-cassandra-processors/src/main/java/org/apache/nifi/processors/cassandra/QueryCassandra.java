@@ -103,6 +103,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
             .defaultValue("0 seconds")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -112,6 +113,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "and means there is no limit.")
             .defaultValue("0")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -178,7 +180,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         ComponentLog log = getLogger();
         try {
             connectToCassandra(context);
-            final int fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+            final int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
             if (fetchSize > 0) {
                 synchronized (cluster.get()) {
                     cluster.get().getConfiguration().getQueryOptions().setFetchSize(fetchSize);
@@ -214,9 +216,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
-        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
 
         if (fileToProcess == null) {
