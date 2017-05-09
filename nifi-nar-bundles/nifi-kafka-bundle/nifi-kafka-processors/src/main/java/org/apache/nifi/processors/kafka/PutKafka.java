@@ -16,11 +16,27 @@
  */
 package org.apache.nifi.processors.kafka;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,29 +49,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
-
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub", "0.8.x"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka, , specifically for 0.8.x versions. " +
-        "The messages to send may be individual FlowFiles or may be delimited, using a "
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka, specifically for 0.8.x versions. The messages to send may be individual FlowFiles or may be delimited, using a "
         + "user-specified delimiter, such as a new-line. The complementary NiFi processor for fetching messages is GetKafka.")
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
                  description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
@@ -98,11 +94,20 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
     public static final AllowableValue COMPRESSION_CODEC_SNAPPY = new AllowableValue("snappy", "Snappy",
             "Compress messages using Snappy");
 
+    /**
+     * @deprecated Kafka 0.8.x producer doesn't use 'partitioner.class' property.
+     */
     static final AllowableValue ROUND_ROBIN_PARTITIONING = new AllowableValue("Round Robin", "Round Robin",
             "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
                     + "the next Partition to Partition 2, and so on, wrapping as necessary.");
+    /**
+     * @deprecated Kafka 0.8.x producer doesn't use 'partitioner.class' property.
+     */
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("Random Robin", "Random",
             "Messages will be assigned to random partitions.");
+    /**
+     * @deprecated Kafka 0.8.x producer doesn't use 'partitioner.class' property. To specify partition, simply configure the 'partition' property.
+     */
     static final AllowableValue USER_DEFINED_PARTITIONING = new AllowableValue("User-Defined", "User-Defined",
             "The <Partition> property will be used to determine the partition. All messages within the same FlowFile will be "
                     + "assigned to the same partition.");
@@ -121,19 +126,22 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
+    /**
+     * @deprecated Kafka 0.8.x producer doesn't use 'partitioner.class' property.
+     * This property is still valid as a dynamic property, so that existing processor configuration can stay valid.
+     */
     static final PropertyDescriptor PARTITION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Partition Strategy")
-            .description("Specifies how messages should be partitioned when sent to Kafka")
+            .description("Deprecated. Used to specify how messages should be partitioned when sent to Kafka, but it's no longer used.")
             .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, USER_DEFINED_PARTITIONING)
-            .defaultValue(ROUND_ROBIN_PARTITIONING.getValue())
-            .required(true)
+            .dynamic(true)
             .build();
     public static final PropertyDescriptor PARTITION = new PropertyDescriptor.Builder()
             .name("Partition")
             .description("Specifies which Kafka Partition to add the message to. If using a message delimiter, all messages "
                             + "in the same FlowFile will be sent to the same partition. If a partition is specified but is not valid, "
-                            + "then all messages within the same FlowFile will use the same partition but it remains undefined which partition is used.")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+                            + "then the FlowFile will be routed to failure relationship.")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(true)
             .required(false)
             .build();
@@ -250,7 +258,6 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(SEED_BROKERS);
         _propertyDescriptors.add(TOPIC);
-        _propertyDescriptors.add(PARTITION_STRATEGY);
         _propertyDescriptors.add(PARTITION);
         _propertyDescriptors.add(KEY);
         _propertyDescriptors.add(DELIVERY_GUARANTEE);
@@ -313,7 +320,14 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             @Override
             public void process(InputStream contentStream) throws IOException {
                 PublishingContext publishingContext = PutKafka.this.buildPublishingContext(flowFile, context, contentStream);
-                KafkaPublisherResult result = PutKafka.this.kafkaResource.publish(publishingContext);
+                KafkaPublisherResult result = null;
+                try {
+                    result = PutKafka.this.kafkaResource.publish(publishingContext);
+                } catch (final IllegalArgumentException e) {
+                    getLogger().error("Failed to publish {}, due to {}", new Object[]{flowFile, e}, e);
+                    result = new KafkaPublisherResult(0, -1);
+
+                }
                 publishResultRef.set(result);
             }
         });
@@ -402,24 +416,14 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (PARTITION_STRATEGY.getName().equals(propertyDescriptorName)) {
+            return PARTITION_STRATEGY;
+        }
+
         return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
                 .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
                 .build();
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
-
-        final String partitionStrategy = validationContext.getProperty(PARTITION_STRATEGY).getValue();
-        if (partitionStrategy.equalsIgnoreCase(USER_DEFINED_PARTITIONING.getValue())
-                && !validationContext.getProperty(PARTITION).isSet()) {
-            results.add(new ValidationResult.Builder().subject("Partition").valid(false)
-                    .explanation("The <Partition> property must be set when configured to use the User-Defined Partitioning Strategy")
-                    .build());
-        }
-        return results;
     }
 
     /**
@@ -442,15 +446,11 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
      *
      */
     private Integer determinePartition(ProcessContext context, FlowFile flowFile) {
-        String partitionStrategy = context.getProperty(PARTITION_STRATEGY).getValue();
-        Integer partitionValue = null;
-        if (partitionStrategy.equalsIgnoreCase(USER_DEFINED_PARTITIONING.getValue())) {
-            String pv = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
-            if (pv != null){
-                partitionValue = Integer.parseInt(context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue());
-            }
+        String pv = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
+        if (pv != null){
+            return Integer.parseInt(context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue());
         }
-        return partitionValue;
+        return null;
     }
 
     /**
@@ -496,19 +496,13 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
         properties.setProperty("timeout.ms", timeout);
         properties.setProperty("metadata.fetch.timeout.ms", timeout);
 
-        String partitionStrategy = context.getProperty(PARTITION_STRATEGY).getValue();
-        String partitionerClass = null;
-        if (partitionStrategy.equalsIgnoreCase(ROUND_ROBIN_PARTITIONING.getValue())) {
-            partitionerClass = Partitioners.RoundRobinPartitioner.class.getName();
-        } else if (partitionStrategy.equalsIgnoreCase(RANDOM_PARTITIONING.getValue())) {
-            partitionerClass = Partitioners.RandomPartitioner.class.getName();
-        }
-        properties.setProperty("partitioner.class", partitionerClass);
-
         // Set Dynamic Properties
         for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.isDynamic()) {
+                if (PARTITION_STRATEGY.equals(descriptor)) {
+                    continue;
+                }
                 if (properties.containsKey(descriptor.getName())) {
                     this.getLogger().warn("Overriding existing property '" + descriptor.getName() + "' which had value of '"
                                     + properties.getProperty(descriptor.getName()) + "' with dynamically set value '"

@@ -460,7 +460,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         } else {
             // compile the attributes-to-send filter pattern
             if (PROP_ATTRIBUTES_TO_SEND.getName().equalsIgnoreCase(descriptor.getName())) {
-                if (newValue.isEmpty()) {
+                if (newValue == null || newValue.isEmpty()) {
                     regexAttributesToSend = null;
                 } else {
                     final String trimmedValue = StringUtils.trimToEmpty(newValue);
@@ -855,7 +855,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         // iterate through the flowfile attributes, adding any attribute that
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
-        if (regexAttributesToSend != null) {
+        if (regexAttributesToSend != null && requestFlowFile != null) {
             Map<String, String> attributes = requestFlowFile.getAttributes();
             Matcher m = regexAttributesToSend.matcher("");
             for (Map.Entry<String, String> entry : attributes.entrySet()) {

@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.reporting;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -258,5 +259,14 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     @Override
     public String toString() {
         return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";
+    }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
+        Collection<ValidationResult> results = null;
+        if (getScheduledState() == ScheduledState.STOPPED) {
+            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
+        }
+        return results != null ? results : Collections.<ValidationResult>emptySet();
     }
 }

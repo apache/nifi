@@ -52,7 +52,7 @@ public class TestStandardResourceClaimManager {
             }
         };
 
-        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id", false);
+        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id", false, false);
         assertEquals(1, manager.incrementClaimantCount(resourceClaim)); // increment claimant count to 1.
 
         assertEquals(1, manager.getClaimantCount(resourceClaim));

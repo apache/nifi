@@ -2551,16 +2551,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setBytesSent(entry.getBytesSent());
         }
 
-        // determine the run status and get any validation errors... must check
-        // is valid when not disabled since a processors validity could change due
-        // to environmental conditions (property configured with a file path and
-        // the file being externally removed)
+        // Determine the run status and get any validation errors... only validating while STOPPED
+        // is a trade-off we are willing to make, even though processor validity could change due to
+        // environmental conditions (property configured with a file path and the file being externally
+        // removed). This saves on validation costs that would be unnecessary most of the time.
         if (ScheduledState.DISABLED.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Disabled);
-        } else if (!procNode.isValid()) {
-            status.setRunStatus(RunStatus.Invalid);
         } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Running);
+        } else if (!procNode.isValid()) {
+            status.setRunStatus(RunStatus.Invalid);
         } else {
             status.setRunStatus(RunStatus.Stopped);
         }
@@ -3349,7 +3349,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     return null;
                 }
 
-                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, false);
+                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, false, false);
                 return new StandardContentClaim(resourceClaim, offset == null ? 0L : offset.longValue());
             }
 
@@ -3375,7 +3375,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(),
-                provEvent.getPreviousContentClaimIdentifier(), false);
+                provEvent.getPreviousContentClaimIdentifier(), false, false);
+
             claim = new StandardContentClaim(resourceClaim, provEvent.getPreviousContentClaimOffset());
             offset = provEvent.getPreviousContentClaimOffset() == null ? 0L : provEvent.getPreviousContentClaimOffset();
             size = provEvent.getPreviousFileSize();
@@ -3385,7 +3386,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(),
-                provEvent.getContentClaimIdentifier(), false);
+                provEvent.getContentClaimIdentifier(), false, false);
 
             claim = new StandardContentClaim(resourceClaim, provEvent.getContentClaimOffset());
             offset = provEvent.getContentClaimOffset() == null ? 0L : provEvent.getContentClaimOffset();
@@ -3478,7 +3479,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false);
+            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false, false);
             final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
 
             if (!contentRepository.isAccessible(contentClaim)) {
@@ -3559,7 +3560,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // Create the ContentClaim
         final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
-            event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false);
+            event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
 
         // Increment Claimant Count, since we will now be referencing the Content Claim
         resourceClaimManager.incrementClaimantCount(resourceClaim);
@@ -3627,7 +3628,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         provenanceEventRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue, flowFileRecord);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+        record.setWorking(flowFileRecord);
         record.setDestination(queue);
         flowFileRepository.updateRepository(Collections.<RepositoryRecord> singleton(record));
 

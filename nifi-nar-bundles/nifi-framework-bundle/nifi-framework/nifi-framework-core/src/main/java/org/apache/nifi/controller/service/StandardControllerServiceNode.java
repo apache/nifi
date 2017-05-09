@@ -395,4 +395,13 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
         }
     }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
+        Collection<ValidationResult> results = null;
+        if (stateRef.get() == ControllerServiceState.DISABLED) {
+            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
+        }
+        return results != null ? results : Collections.<ValidationResult>emptySet();
+    }
 }

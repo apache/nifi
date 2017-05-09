@@ -20,7 +20,10 @@ import static org.apache.nifi.provenance.TestUtil.createFlowFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -28,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -186,4 +190,44 @@ public class TestStandardRecordReaderWriter {
 
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
+
+    @Test
+    public void testWriteUtfLargerThan64k() throws IOException, InterruptedException {
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "1.txt");
+        attributes.put("uuid", UUID.randomUUID().toString());
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+        final String seventyK = StringUtils.repeat("X", 70000);
+        assertTrue(seventyK.length() > 65535);
+        assertTrue(seventyK.getBytes("UTF-8").length > 65535);
+        builder.setDetails(seventyK);
+        final ProvenanceEventRecord record = builder.build();
+
+        try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
+             final DataOutputStream out = new DataOutputStream(headerOut)) {
+            out.writeUTF(PersistentProvenanceRepository.class.getName());
+            out.writeInt(9);
+        }
+
+        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File tocFile = TocUtil.getTocFile(journalFile);
+        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
+        try (final ByteArrayOutputStream recordOut = new ByteArrayOutputStream();
+             final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, false, 0)) {
+
+             writer.writeHeader(1L);
+             recordOut.reset();
+
+             writer.writeRecord(record, 1L);
+        }
+    }
+
 }
