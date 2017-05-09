@@ -248,7 +248,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
         final List<String> topics = new ArrayList<>();
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).getValue();
+        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         if (topicType.equals(TOPIC_NAME.getValue())) {
           for (final String topic : topicListing.split(",", 100)) {
               final String trimmedName = topic.trim();

@@ -69,6 +69,7 @@ public class PutKafkaTest {
         String topicName = "validateSingleCharacterDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.KEY, "key1");
@@ -96,6 +97,7 @@ public class PutKafkaTest {
         String topicName = "validateMultiCharacterDemarcatedMessagesAndCustomPartitioner";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.KEY, "key1");
@@ -123,6 +125,7 @@ public class PutKafkaTest {
         String topicName = "validateDemarcationIntoEmptyMessages";
         PutKafka putKafka = new PutKafka();
         final TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
@@ -154,6 +157,7 @@ public class PutKafkaTest {
         String topicName = "validateComplexRightPartialDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
@@ -175,6 +179,7 @@ public class PutKafkaTest {
         String topicName = "validateComplexLeftPartialDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
@@ -198,6 +203,7 @@ public class PutKafkaTest {
         String topicName = "validateComplexPartialMatchDemarcatedMessages";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutKafka.TOPIC, topicName);
         runner.setProperty(PutKafka.CLIENT_NAME, "foo");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
