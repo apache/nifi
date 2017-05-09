@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.slack;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -24,7 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -99,6 +103,81 @@ public class PutSlackTest {
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
+    }
+
+    @Test
+    public void testInvalidDynamicProperties() {
+        testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
+        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
+        PropertyDescriptor dynamicProp = new PropertyDescriptor.Builder()
+                .dynamic(true)
+                .name("foo")
+                .build();
+        testRunner.setProperty(dynamicProp, "{\"a\": a}");
+
+        testRunner.enqueue("{}".getBytes());
+        testRunner.run(1);
+        testRunner.assertTransferCount(PutSlack.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testValidDynamicProperties() {
+        testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
+        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
+        PropertyDescriptor dynamicProp = new PropertyDescriptor.Builder()
+                .dynamic(true)
+                .name("foo")
+                .build();
+        testRunner.setProperty(dynamicProp, "{\"a\": \"a\"}");
+
+        testRunner.enqueue("{}".getBytes());
+        testRunner.run(1);
+        testRunner.assertTransferCount(PutSlack.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testValidDynamicPropertiesWithExpressionLanguage() {
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        Map<String, String> props = new HashMap<>();
+        props.put("foo", "\"bar\"");
+        props.put("ping", "pong");
+        ff = session.putAllAttributes(ff, props);
+
+        testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
+        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
+        PropertyDescriptor dynamicProp = new PropertyDescriptor.Builder()
+                .dynamic(true)
+                .name("foo")
+                .build();
+        testRunner.setProperty(dynamicProp, "{\"foo\": ${foo}, \"ping\":\"${ping}\"}");
+
+        testRunner.enqueue(ff);
+        testRunner.run(1);
+        testRunner.assertTransferCount(PutSlack.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testInvalidDynamicPropertiesWithExpressionLanguage() {
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        Map<String, String> props = new HashMap<>();
+        props.put("foo", "\"\"bar\"");
+        props.put("ping", "\"pong");
+        ff = session.putAllAttributes(ff, props);
+
+        testRunner.setProperty(PutSlack.WEBHOOK_URL, server.getUrl());
+        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, WEBHOOK_TEST_TEXT);
+        PropertyDescriptor dynamicProp = new PropertyDescriptor.Builder()
+                .dynamic(true)
+                .name("foo")
+                .build();
+        testRunner.setProperty(dynamicProp, "{\"foo\": ${foo}, \"ping\":\"${ping}\"}");
+
+        testRunner.enqueue(ff);
+        testRunner.run(1);
+        testRunner.assertTransferCount(PutSlack.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutSlack.REL_FAILURE, 1);
     }
 
     @Test
