@@ -17,13 +17,16 @@
 
 package org.apache.nifi.reporting;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -31,6 +34,7 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 
@@ -47,6 +51,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +60,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Tags({"provenance", "lineage", "tracking", "site", "site to site", "restricted"})
 @CapabilityDescription("Publishes Provenance events using the Site To Site protocol.")
@@ -67,6 +73,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
+        .displayName("Platform")
         .description("The value to use for the platform field in each provenance event.")
         .required(true)
         .expressionLanguageSupported(true)
@@ -74,12 +81,73 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
+        .name("s2s-prov-task-event-filter")
+        .displayName("Event type")
+        .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
+                + "Available event types are " + ProvenanceEventType.values() + ". If no filter is set, all the events are sent. If "
+                        + "multiple filters are set, the filters are cumulative.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor FILTER_COMPONENT_TYPE = new PropertyDescriptor.Builder()
+        .name("s2s-prov-task-type-filter")
+        .displayName("Component type")
+        .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
+                + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+        .required(false)
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor FILTER_COMPONENT_ID = new PropertyDescriptor.Builder()
+        .name("s2s-prov-task-id-filter")
+        .displayName("Component ID")
+        .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
+                + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     private volatile long firstEventId = -1L;
+    private volatile boolean isFilteringEnabled = false;
+    private volatile Pattern componentTypeRegex;
+    private volatile List<ProvenanceEventType> eventTypes = new ArrayList<ProvenanceEventType>();
+    private volatile List<String> componentIds = new ArrayList<String>();
+
+    @OnScheduled
+    public void onScheduled(final ConfigurationContext context) throws IOException {
+        // initialize component type filtering
+        componentTypeRegex = StringUtils.isBlank(context.getProperty(FILTER_COMPONENT_TYPE).getValue()) ? null : Pattern.compile(context.getProperty(FILTER_COMPONENT_TYPE).getValue());
+
+        final String[] eventList = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).getValue(), ','));
+        if(eventList != null) {
+            for(String type : eventList) {
+                try {
+                    eventTypes.add(ProvenanceEventType.valueOf(type));
+                } catch (Exception e) {
+                    getLogger().warn(type + " is not a correct event type, removed from the filtering.");
+                }
+            }
+        }
+
+        // initialize component ID filtering
+        final String[] componentIdList = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).getValue(), ','));
+        if(componentIdList != null) {
+            componentIds.addAll(Arrays.asList(componentIdList));
+        }
+
+        // set a boolean whether filtering will be applied or not
+        isFilteringEnabled = componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty();
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PLATFORM);
+        properties.add(FILTER_EVENT_TYPE);
+        properties.add(FILTER_COMPONENT_TYPE);
+        properties.add(FILTER_COMPONENT_ID);
         return properties;
     }
 
@@ -160,7 +228,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         List<ProvenanceEventRecord> events;
         try {
-            events = context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger());
+            events = filterEvents(context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger()));
         } catch (final IOException ioe) {
             getLogger().error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
             return;
@@ -243,13 +311,36 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
             // Retrieve the next batch
             try {
-                events = context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger());
+                events = filterEvents(context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger()));
             } catch (final IOException ioe) {
                 getLogger().error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
                 return;
             }
         }
 
+    }
+
+    private List<ProvenanceEventRecord> filterEvents(List<ProvenanceEventRecord> provenanceEvents) {
+        if(isFilteringEnabled) {
+            List<ProvenanceEventRecord> filteredEvents = new ArrayList<ProvenanceEventRecord>();
+
+            for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
+                if(!componentIds.isEmpty() && !componentIds.contains(provenanceEventRecord.getComponentId())) {
+                    continue;
+                }
+                if(!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
+                    continue;
+                }
+                if(componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
+                    continue;
+                }
+                filteredEvents.add(provenanceEventRecord);
+            }
+
+            return filteredEvents;
+        } else {
+            return provenanceEvents;
+        }
     }
 
     static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
