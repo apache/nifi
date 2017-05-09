@@ -60,7 +60,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws IOException {
-        final String strategyValue = getConfigurationContext().getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
 
         try {
             final RecordSchema recordSchema = getSchema(flowFile, in);
@@ -130,7 +130,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
 
     @Override
     protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
-        final String writeStrategyValue = validationContext.getProperty(SCHEMA_WRITE_STRATEGY).getValue();
+        final String writeStrategyValue = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         if (writeStrategyValue.equalsIgnoreCase(AVRO_EMBEDDED.getValue())) {
             return requiredSchemaFields;
         }

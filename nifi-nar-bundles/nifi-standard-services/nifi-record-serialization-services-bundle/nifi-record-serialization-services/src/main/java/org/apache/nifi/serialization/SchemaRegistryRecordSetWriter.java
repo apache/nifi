@@ -58,7 +58,12 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         "The FlowFile will be given a set of 3 attributes to describe the schema: 'schema.identifier', 'schema.version', and 'schema.protocol.version'. Note that if "
             + "the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
 
-    protected static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
+    /**
+     * This constant is just a base spec for the actual PropertyDescriptor.
+     * As it can be overridden by subclasses with different AllowableValues and default value,
+     * {@link #getSchemaWriteStrategyDescriptor()} should be used to get the actual descriptor, instead of using this constant directly.
+     */
+    private static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
         .name("Schema Write Strategy")
         .description("Specifies how the schema for a Record should be added to the data.")
         .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
