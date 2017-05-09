@@ -91,6 +91,36 @@ public class TestPostHTTP {
     }
 
     @Test
+    public void testDynamicProperty() throws Exception {
+        final Map<String, String> sslProps = new HashMap<>();
+        sslProps.put(TestServer.NEED_CLIENT_AUTH, "false");
+        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        setup(sslProps);
+
+        final SSLContextService sslContextService = new StandardSSLContextService();
+        runner.addControllerService("ssl-context", sslContextService);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(PostHTTP.URL, server.getSecureUrl());
+        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty("Authorization", "Basic 1234567890");
+
+        runner.enqueue("Hello world".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1);
+
+        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        assertTrue(lastPostHeaders.containsKey("Authorization"));
+    }
+
+    @Test
     public void testTwoWaySSL() throws Exception {
         final Map<String, String> sslProps = new HashMap<>();
         sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
