@@ -680,6 +680,31 @@ public interface ProcessSession {
     FlowFile write(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 
     /**
+     * Provides an OutputStream that can be used to write to the contents of the
+     * given FlowFile.
+     *
+     * @param source to write to
+     *
+     * @return an OutputStream that can be used to write to the contents of the FlowFile
+     *
+     * @throws IllegalStateException if detected that this method is being
+     * called from within a callback of another method in this session and for
+     * the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already
+     * transferred or removed or doesn't belong to this session. Automatic
+     * rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be
+     * found. The FlowFile should no longer be referenced, will be internally
+     * destroyed, and the session is automatically rolled back and what is left
+     * of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing
+     * FlowFile content; if an attempt is made to access the OutputStream
+     * provided to the given OutputStreamCallaback after this method completed
+     * its execution
+     */
+    OutputStream write(FlowFile source);
+
+    /**
      * Executes the given callback against the content corresponding to the
      * given flow file.
      *
