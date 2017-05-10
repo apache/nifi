@@ -189,6 +189,7 @@ Process Groups:
       proxy port: ''
       proxy user: ''
       proxy password: ''
+      local network interface: 'en0'
       Input Ports:
       - id: 21a39aba-0158-1000-a1a0-1b55bcddcd72
         name: input2
@@ -254,6 +255,7 @@ Process Groups:
     proxy port: ''
     proxy user: ''
     proxy password: ''
+    local network interface: 'en1'
     Input Ports:
     - id: 21a2fb5e-0158-1000-3b5e-5a7d3aaee01b
       name: input

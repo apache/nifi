@@ -36,9 +36,9 @@
             <!-- Provide a cap of 10 MB across all archive files -->
             <totalSizeCap>10MB</totalSizeCap>
         </rollingPolicy>
+        <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
         </encoder>
     </appender>
 

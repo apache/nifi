@@ -106,6 +106,7 @@ Remote Process Groups:
   proxy port: ''
   proxy user: ''
   proxy password: ''
+  local network interface: ''
   Input Ports:
   - id: aca664f8-0158-1000-a139-92485891d349
     name: test2

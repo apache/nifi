@@ -101,6 +101,7 @@ Remote Process Groups:
   proxy port: ''
   proxy user: ''
   proxy password: ''
+  local network interface: ''
   Input Ports: []
   Output Ports:
   - id: 6b965db7-015a-1000-4c43-9d20931a1b9c

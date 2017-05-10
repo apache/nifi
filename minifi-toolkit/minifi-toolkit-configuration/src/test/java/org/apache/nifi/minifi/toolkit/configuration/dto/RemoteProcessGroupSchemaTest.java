@@ -45,6 +45,7 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
     private String testTimeout = "11 s";
     private String testYieldPeriod = "22 s";
     private String transportProtocol = "HTTP";
+    private String localNetworkInterface = "eth0";
 
     public RemoteProcessGroupSchemaTest() {
         super(new RemoteProcessGroupSchemaFunction(new RemotePortSchemaFunction()), RemoteProcessGroupSchema::new);
@@ -137,6 +138,20 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
         assertDtoAndMapConstructorAreSame(0);
     }
 
+    @Test
+    public void testNoLocalNetworkInterface() {
+        dto.setLocalNetworkInterface(null);
+        map.remove(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY);
+        assertDtoAndMapConstructorAreSame(0);
+    }
+
+    @Test
+    public void testLocalNetworkInterface() {
+        dto.setLocalNetworkInterface(localNetworkInterface);
+        map.put(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY, localNetworkInterface);
+        assertDtoAndMapConstructorAreSame(0);
+    }
+
     @Override
     public void assertSchemaEquals(RemoteProcessGroupSchema one, RemoteProcessGroupSchema two) {
         assertEquals(one.getName(), two.getName());
@@ -157,5 +172,6 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
         assertEquals(one.getComment(), two.getComment());
         assertEquals(one.getTimeout(), two.getTimeout());
         assertEquals(one.getYieldPeriod(), two.getYieldPeriod());
+        assertEquals(one.getLocalNetworkInterface(), two.getLocalNetworkInterface());
     }
 }

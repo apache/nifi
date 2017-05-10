@@ -643,6 +643,7 @@ limitations under the License.
       <targetUri>http://nifi:8080/nifi</targetUri>
       <transportProtocol>HTTP</transportProtocol>
       <yieldDuration>10 sec</yieldDuration>
+      <networkInterface></networkInterface>
     </remoteProcessGroups>
   </snippet>
   <timestamp>07/04/2016 21:37:51 UTC</timestamp>

@@ -97,10 +97,10 @@ limitations under the License.
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2016</inceptionYear>
-        <org.slf4j.version>1.7.12</org.slf4j.version>
-        <org.apache.nifi.version>1.1.0</org.apache.nifi.version>
-        <logback.version>1.1.8</logback.version>
-        <jetty.version>9.3.9.v20160517</jetty.version>
+        <org.slf4j.version>1.7.25</org.slf4j.version>
+        <org.apache.nifi.version>1.2.0</org.apache.nifi.version>
+        <logback.version>1.2.3</logback.version>
+        <jetty.version>9.4.3.v20170317</jetty.version>
         <jersey.version>1.19</jersey.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <spring.version>4.2.4.RELEASE</spring.version>
@@ -562,6 +562,11 @@ limitations under the License.
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-distributed-cache-client-service-api</artifactId>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
 
             <!-- Manage provided dependencies in lib -->
@@ -1301,7 +1306,7 @@ limitations under the License.
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>

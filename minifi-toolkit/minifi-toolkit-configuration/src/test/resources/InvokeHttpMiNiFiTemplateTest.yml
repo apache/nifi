@@ -295,6 +295,7 @@ Remote Process Groups:
   proxy port: 8675
   proxy user: username
   proxy password: ''
+  local network interface: ''
   Input Ports:
   - name: response
     id: b23a4621-cf19-42e6-967c-ffd3716e6a24

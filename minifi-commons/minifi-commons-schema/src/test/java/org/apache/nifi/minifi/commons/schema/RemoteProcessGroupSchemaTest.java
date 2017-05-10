@@ -73,6 +73,18 @@ public class RemoteProcessGroupSchemaTest {
     }
 
     @Test
+    public void testLocalNetworkInterface() {
+        Map<String, Object> map = new HashMap<>();
+        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
+        map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
+        map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
+
+        map.put(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY, "eth1");
+        RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
+        validateIssuesNumMatches(0,first);
+        assertEquals(first.getLocalNetworkInterface(), "eth1");
+    }
+    @Test
     public void testProxySettings() {
         Map<String, Object> map = new HashMap<>();
         map.put(RemoteProcessGroupSchema.PROXY_PORT_KEY, 1234);

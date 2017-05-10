@@ -16,39 +16,51 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository.MethodNotSupportedException;
+import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.serialization.RecordWriters;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.stream.io.DataOutputStream;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPOutputStream;
 
 import static org.apache.nifi.provenance.TestUtil.createFlowFile;
 import static org.junit.Assert.assertEquals;
@@ -61,16 +73,23 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
     @Rule
     public TestName name = new TestName();
 
+    @ClassRule
+    public static TemporaryFolder tempFolder = new TemporaryFolder();
+
     private MiNiFiPersistentProvenanceRepository repo;
-    private RepositoryConfiguration config;
+    private static RepositoryConfiguration config;
 
     public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
     private EventReporter eventReporter;
     private List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
 
+    private static int headerSize;
+    private static int recordSize;
+    private static int recordSize2;
+
     private RepositoryConfiguration createConfiguration() {
         config = new RepositoryConfiguration();
-        config.addStorageDirectory(new File("target/storage/" + UUID.randomUUID().toString()));
+        config.addStorageDirectory("1", new File("target/storage/" + UUID.randomUUID().toString()));
         config.setCompressOnRollover(true);
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS);
         config.setCompressionBlockBytes(100);
@@ -80,6 +99,44 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
     @BeforeClass
     public static void setLogLevel() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
+    }
+
+    @BeforeClass
+    public static void findJournalSizes() throws IOException {
+        // determine header and record size
+
+        final Map<String, String> attributes = new HashMap<>();
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+        final ProvenanceEventRecord record = builder.build();
+        builder.setComponentId("2345");
+        final ProvenanceEventRecord record2 = builder.build();
+
+        final File tempRecordFile = tempFolder.newFile("record.tmp");
+        System.out.println("findJournalSizes position 0 = " + tempRecordFile.length());
+
+        final AtomicLong idGenerator = new AtomicLong(0L);
+        final RecordWriter writer = RecordWriters.newSchemaRecordWriter(tempRecordFile, idGenerator, false, false);
+        writer.writeHeader(12345L);
+        writer.flush();
+        headerSize = Long.valueOf(tempRecordFile.length()).intValue();
+        writer.writeRecord(record);
+        writer.flush();
+        recordSize = Long.valueOf(tempRecordFile.length()).intValue() - headerSize;
+        writer.writeRecord(record2);
+        writer.flush();
+        recordSize2 = Long.valueOf(tempRecordFile.length()).intValue() - headerSize - recordSize;
+        writer.close();
+
+        System.out.println("headerSize =" + headerSize);
+        System.out.println("recordSize =" + recordSize);
+        System.out.println("recordSize2=" + recordSize2);
     }
 
     @Before
@@ -98,31 +155,47 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
 
     @After
     public void closeRepo() throws IOException {
-        if (repo != null) {
-            try {
-                repo.close();
-            } catch (final IOException ioe) {
-            }
+        if (repo == null) {
+            return;
+        }
+
+        try {
+            repo.close();
+        } catch (final IOException ioe) {
         }
 
         // Delete all of the storage files. We do this in order to clean up the tons of files that
         // we create but also to ensure that we have closed all of the file handles. If we leave any
         // streams open, for instance, this will throw an IOException, causing our unit test to fail.
-        for (final File storageDir : config.getStorageDirectories()) {
-            int i;
-            for (i = 0; i < 3; i++) {
-                try {
-                    FileUtils.deleteFile(storageDir, true);
-                    break;
-                } catch (final IOException ioe) {
-                    // if there is a virus scanner, etc. running in the background we may not be able to
-                    // delete the file. Wait a sec and try again.
-                    if (i == 2) {
-                        throw ioe;
-                    } else {
-                        try {
-                            Thread.sleep(1000L);
-                        } catch (final InterruptedException ie) {
+        if (config != null) {
+            for (final File storageDir : config.getStorageDirectories().values()) {
+                int i;
+                for (i = 0; i < 3; i++) {
+                    try {
+                        FileUtils.deleteFile(storageDir, true);
+                        break;
+                    } catch (final IOException ioe) {
+                        // if there is a virus scanner, etc. running in the background we may not be able to
+                        // delete the file. Wait a sec and try again.
+                        if (i == 2) {
+                            throw ioe;
+                        } else {
+                            try {
+                                System.out.println("file: " + storageDir.toString() + " exists=" + storageDir.exists());
+                                FileUtils.deleteFile(storageDir, true);
+                                break;
+                            } catch (final IOException ioe2) {
+                                // if there is a virus scanner, etc. running in the background we may not be able to
+                                // delete the file. Wait a sec and try again.
+                                if (i == 2) {
+                                    throw ioe2;
+                                } else {
+                                    try {
+                                        Thread.sleep(1000L);
+                                    } catch (final InterruptedException ie) {
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -136,6 +209,47 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         return eventReporter;
     }
 
+    private NiFiProperties properties = new NiFiProperties() {
+        @Override
+        public String getProperty(String key) {
+            if (key.equals(NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER)) {
+                return "true";
+            } else if (key.equals(NiFiProperties.PROVENANCE_ROLLOVER_TIME)) {
+                return "2000 millis";
+            } else if (key.equals(NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + ".default")) {
+                createConfiguration();
+                return config.getStorageDirectories().values().iterator().next().getAbsolutePath();
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public Set<String> getPropertyKeys() {
+            return new HashSet<>(Arrays.asList(
+                    NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER,
+                    NiFiProperties.PROVENANCE_ROLLOVER_TIME,
+                    NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + ".default"));
+        }
+    };
+
+    @Test
+    public void constructorNoArgs() {
+        TestableMiNiFiPersistentProvenanceRepository tppr = new TestableMiNiFiPersistentProvenanceRepository();
+        assertEquals(0, tppr.getRolloverCheckMillis());
+    }
+
+    @Test
+    public void constructorNiFiProperties() throws IOException {
+        TestableMiNiFiPersistentProvenanceRepository tppr = new TestableMiNiFiPersistentProvenanceRepository(properties);
+        assertEquals(10000, tppr.getRolloverCheckMillis());
+    }
+
+    @Test
+    public void constructorConfig() throws IOException {
+        RepositoryConfiguration configuration = RepositoryConfiguration.create(properties);
+        new TestableMiNiFiPersistentProvenanceRepository(configuration, 20000);
+    }
 
     @Test
     public void testAddAndRecover() throws IOException, InterruptedException {
@@ -143,7 +257,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         config.setMaxEventFileCapacity(1L);
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -163,18 +277,14 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             repo.registerEvent(record);
         }
 
-        Assert.assertEquals("Did not establish the correct, Max Event Id", 9, repo.getMaxEventId().intValue());
-
         Thread.sleep(1000L);
 
         repo.close();
         Thread.sleep(500L); // Give the repo time to shutdown (i.e., close all file handles, etc.)
 
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, 12);
-
-        Assert.assertEquals("Did not establish the correct, Max Event Id through recovery after reloading", 9, repo.getMaxEventId().intValue());
 
         assertEquals(10, recoveredRecords.size());
         for (int i = 0; i < 10; i++) {
@@ -186,14 +296,13 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         }
     }
 
-
     @Test
     public void testCompressOnRollover() throws IOException, InterruptedException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setCompressOnRollover(true);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -216,39 +325,17 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         }
 
         repo.waitForRollover();
-        final File storageDir = config.getStorageDirectories().get(0);
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
         final File compressedLogFile = new File(storageDir, "0.prov.gz");
         assertTrue(compressedLogFile.exists());
     }
-
-    @Test(expected = MethodNotSupportedException.class)
-    public void testLineageRequestNotSupported() throws IOException, InterruptedException, ParseException {
-        final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(3, TimeUnit.SECONDS);
-        config.setMaxStorageCapacity(1024L * 1024L);
-        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
-        config.setMaxEventFileCapacity(1024L * 1024L);
-        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-
-        repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
-
-        final String uuid = "00000000-0000-0000-0000-000000000001";
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "xyz");
-        attributes.put("uuid", uuid);
-        attributes.put("filename", "file-" + uuid);
-
-        repo.submitLineageComputation(uuid, null);
-    }
-
 
     @Test
     public void testCorrectProvenanceEventIdOnRestore() throws IOException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -274,7 +361,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         repo.close();
 
         final MiNiFiPersistentProvenanceRepository secondRepo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        secondRepo.initialize(getEventReporter(), null, null);
+        secondRepo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         try {
             final ProvenanceEventRecord event11 = builder.build();
@@ -283,43 +370,9 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             final ProvenanceEventRecord event11Retrieved = secondRepo.getEvent(10L);
             assertNotNull(event11Retrieved);
             assertEquals(10, event11Retrieved.getEventId());
-            Assert.assertEquals(10, secondRepo.getMaxEventId().intValue());
         } finally {
             secondRepo.close();
         }
-    }
-
-    /**
-     * Here the event file is simply corrupted by virtue of not having any event
-     * records while having correct headers
-     */
-    @Test
-    public void testWithWithEventFileMissingRecord() throws Exception {
-        File eventFile = this.prepCorruptedEventFileTests();
-
-        DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
-        in.writeUTF("BlahBlah");
-        in.writeInt(4);
-        in.close();
-        assertTrue(eventFile.exists());
-
-        final List<ProvenanceEventRecord> events = repo.getEvents(0, 100);
-        assertEquals(10, events.size());
-    }
-
-    /**
-     * Here the event file is simply corrupted by virtue of being empty (0
-     * bytes)
-     */
-    @Test
-    public void testWithWithEventFileCorrupted() throws Exception {
-        File eventFile = this.prepCorruptedEventFileTests();
-
-        DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
-        in.close();
-
-        final List<ProvenanceEventRecord> events = repo.getEvents(0, 100);
-        assertEquals(10, events.size());
     }
 
     private File prepCorruptedEventFileTests() throws Exception {
@@ -331,13 +384,13 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         config.setDesiredIndexSize(10);
 
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         String uuid = UUID.randomUUID().toString();
         for (int i = 0; i < 20; i++) {
             ProvenanceEventRecord record = repo.eventBuilder().fromFlowFile(mock(FlowFile.class))
-                .setEventType(ProvenanceEventType.CREATE).setComponentId("foo-" + i).setComponentType("myComponent")
-                .setFlowFileUUID(uuid).build();
+                    .setEventType(ProvenanceEventType.CREATE).setComponentId("foo-" + i).setComponentType("myComponent")
+                    .setFlowFileUUID(uuid).build();
             repo.registerEvent(record);
             if (i == 9) {
                 repo.waitForRollover();
@@ -345,7 +398,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             }
         }
         repo.waitForRollover();
-        File eventFile = new File(config.getStorageDirectories().get(0), "10.prov.gz");
+        File eventFile = new File(config.getStorageDirectories().values().iterator().next(), "10.prov.gz");
         assertTrue(eventFile.delete());
         return eventFile;
     }
@@ -364,7 +417,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
                 return journalCountRef.get();
             }
         };
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         final Map<String, String> attributes = new HashMap<>();
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
@@ -410,6 +463,30 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         builder.fromFlowFile(createFlowFile(15, 3000L, attributes));
         attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 15);
         repo.registerEvent(builder.build());
+
+        Thread.sleep(3000L);
+    }
+
+    private long checkJournalRecords(final File storageDir, final Boolean exact) throws IOException {
+        File[] storagefiles = storageDir.listFiles();
+        long counter = 0;
+        assertNotNull(storagefiles);
+        for (final File file : storagefiles) {
+            if (file.isFile()) {
+                try (RecordReader reader = RecordReaders.newRecordReader(file, null, 2048)) {
+                    ProvenanceEventRecord r;
+                    ProvenanceEventRecord last = null;
+                    while ((r = reader.nextRecord()) != null) {
+                        if (exact) {
+                            assertTrue(counter++ == r.getEventId());
+                        } else {
+                            assertTrue(counter++ <= r.getEventId());
+                        }
+                    }
+                }
+            }
+        }
+        return counter;
     }
 
     @Test
@@ -417,7 +494,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         final Map<String, String> attributes = new HashMap<>();
 
@@ -444,7 +521,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
 
         repo.waitForRollover();
 
-        final File storageDir = config.getStorageDirectories().get(0);
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
         long counter = 0;
         for (final File file : storageDir.listFiles()) {
             if (file.isFile()) {
@@ -462,16 +539,231 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         assertEquals(10000, counter);
     }
 
+    private void corruptJournalFile(final File journalFile, final int position,
+                                    final String original, final String replacement) throws IOException {
+        final int journalLength = Long.valueOf(journalFile.length()).intValue();
+        final byte[] origBytes = original.getBytes();
+        final byte[] replBytes = replacement.getBytes();
+        FileInputStream journalIn = new FileInputStream(journalFile);
+        byte[] content = new byte[journalLength];
+        assertEquals(journalLength, journalIn.read(content, 0, journalLength));
+        journalIn.close();
+        assertEquals(original, new String(Arrays.copyOfRange(content, position, position + origBytes.length)));
+        System.arraycopy(replBytes, 0, content, position, replBytes.length);
+        FileOutputStream journalOut = new FileOutputStream(journalFile);
+        journalOut.write(content, 0, journalLength);
+        journalOut.flush();
+        journalOut.close();
+    }
+
+    @Test
+    public void testMergeJournalsBadFirstRecord() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        testRepo.initialize(getEventReporter(), null, null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        final List<Future> futures = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            futures.add(exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    testRepo.registerEvent(record);
+                }
+            }));
+        }
+
+        // wait for writers to finish and then corrupt the first record of the first journal file
+        for (Future future : futures) {
+            while (!future.isDone()) {
+                Thread.sleep(10);
+            }
+        }
+        RecordWriter firstWriter = testRepo.getWriters()[0];
+        corruptJournalFile(firstWriter.getFile(), headerSize + 15,"RECEIVE", "BADTYPE");
+
+        testRepo.recoverJournalFiles();
+
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
+        assertTrue(checkJournalRecords(storageDir, false) < 10000);
+    }
+
+    @Test
+    public void testMergeJournalsBadRecordAfterFirst() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        testRepo.initialize(getEventReporter(), null, null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        final List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            futures.add(exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    testRepo.registerEvent(record);
+                }
+            }));
+        }
+
+        // corrupt the first record of the first journal file
+        for (Future<?> future : futures) {
+            while (!future.isDone()) {
+                Thread.sleep(10);
+            }
+        }
+        RecordWriter firstWriter = testRepo.getWriters()[0];
+        corruptJournalFile(firstWriter.getFile(), headerSize + 15 + recordSize, "RECEIVE", "BADTYPE");
+
+        testRepo.recoverJournalFiles();
+
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
+        assertTrue(checkJournalRecords(storageDir, false) < 10000);
+    }
+
+    @Test
+    public void testMergeJournalsEmptyJournal() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        testRepo.initialize(getEventReporter(), null, null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        final List<Future> futures = new ArrayList<>();
+        for (int i = 0; i < config.getJournalCount() - 1; i++) {
+            futures.add(exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    testRepo.registerEvent(record);
+                }
+            }));
+        }
+
+        // wait for writers to finish and then corrupt the first record of the first journal file
+        for (Future future : futures) {
+            while (!future.isDone()) {
+                Thread.sleep(10);
+            }
+        }
+
+        testRepo.recoverJournalFiles();
+
+        assertEquals("mergeJournals() should not error on empty journal", 0, reportedEvents.size());
+
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
+        assertEquals(config.getJournalCount() - 1, checkJournalRecords(storageDir, true));
+    }
+
+    @Test
+    public void testRolloverRetry() throws IOException, InterruptedException {
+        final AtomicInteger retryAmount = new AtomicInteger(0);
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+
+        repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS){
+            @Override
+            File mergeJournals(List<File> journalFiles, File suggestedMergeFile, EventReporter eventReporter) throws IOException {
+                retryAmount.incrementAndGet();
+                return super.mergeJournals(journalFiles, suggestedMergeFile, eventReporter);
+            }
+
+            // Indicate that there are no files available.
+            @Override
+            protected List<File> filterUnavailableFiles(List<File> journalFiles) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            protected long getRolloverRetryMillis() {
+                return 10L; // retry quickly.
+            }
+        };
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10000; i++) {
+            exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    repo.registerEvent(record);
+                }
+            });
+        }
+        exec.shutdown();
+        exec.awaitTermination(10, TimeUnit.SECONDS);
+
+        repo.waitForRollover();
+        assertEquals(5,retryAmount.get());
+    }
+
     @Test
     public void testTruncateAttributes() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxAttributeChars(50);
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
+        final String maxLengthChars = "12345678901234567890123456789012345678901234567890";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
+        attributes.put("51chars", "123456789012345678901234567890123456789012345678901");
+        attributes.put("50chars", "12345678901234567890123456789012345678901234567890");
+        attributes.put("49chars", "1234567890123456789012345678901234567890123456789");
+        attributes.put("nullChar", null);
 
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
         builder.setEventTime(System.currentTimeMillis());
@@ -489,9 +781,64 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         final ProvenanceEventRecord retrieved = repo.getEvent(0L);
         assertNotNull(retrieved);
         assertEquals("12345678-0000-0000-0000-012345678912", retrieved.getAttributes().get("uuid"));
-        assertEquals("12345678901234567890123456789012345678901234567890", retrieved.getAttributes().get("75chars"));
+        assertEquals(maxLengthChars, retrieved.getAttributes().get("75chars"));
+        assertEquals(maxLengthChars, retrieved.getAttributes().get("51chars"));
+        assertEquals(maxLengthChars, retrieved.getAttributes().get("50chars"));
+        assertEquals(maxLengthChars.substring(0, 49), retrieved.getAttributes().get("49chars"));
     }
 
+
+    @Test(timeout = 15000)
+    public void testExceptionOnIndex() throws IOException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxAttributeChars(50);
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        config.setIndexThreadPoolSize(1);
+
+        final int numEventsToIndex = 10;
+
+        final AtomicInteger indexedEventCount = new AtomicInteger(0);
+        repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected synchronized IndexingAction createIndexingAction() {
+                return new IndexingAction(config.getSearchableFields(), config.getSearchableAttributes()) {
+                    @Override
+                    public void index(StandardProvenanceEventRecord record, IndexWriter indexWriter, Integer blockIndex) throws IOException {
+                        final int count = indexedEventCount.incrementAndGet();
+                        if (count <= numEventsToIndex) {
+                            return;
+                        }
+
+                        throw new IOException("Unit Test - Intentional Exception");
+                    }
+                };
+            }
+        };
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        for (int i=0; i < 1000; i++) {
+            final ProvenanceEventRecord record = builder.build();
+            repo.registerEvent(record);
+        }
+
+        repo.waitForRollover();
+
+        assertEquals(numEventsToIndex + MiNiFiPersistentProvenanceRepository.MAX_INDEXING_FAILURE_COUNT, indexedEventCount.get());
+        assertEquals(1, reportedEvents.size());
+        final ReportedEvent event = reportedEvents.get(0);
+        assertEquals(Severity.WARNING, event.getSeverity());
+    }
 
     @Test
     public void testFailureToCreateWriterDoesNotPreventSubsequentRollover() throws IOException, InterruptedException {
@@ -515,7 +862,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         };
 
         // initialize with our event reporter
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
 
         // create some events in the journal files.
         final Map<String, String> attributes = new HashMap<>();
@@ -553,6 +900,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
         assertEquals(0, reportedEvents.size());
     }
 
+
     private static class ReportedEvent {
         private final Severity severity;
         private final String category;
@@ -564,10 +912,12 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             this.message = message;
         }
 
+        @SuppressWarnings("unused")
         public String getCategory() {
             return category;
         }
 
+        @SuppressWarnings("unused")
         public String getMessage() {
             return message;
         }
@@ -576,4 +926,88 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             return severity;
         }
     }
+
+    private NiFiUser createUser() {
+        return new NiFiUser() {
+            @Override
+            public String getIdentity() {
+                return "unit-test";
+            }
+
+            @Override
+            public NiFiUser getChain() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+
+            @Override
+            public String getClientAddress() {
+                return null;
+            }
+
+        };
+    }
+
+    private static class TestableMiNiFiPersistentProvenanceRepository extends MiNiFiPersistentProvenanceRepository {
+
+        TestableMiNiFiPersistentProvenanceRepository() {
+            super();
+        }
+
+        TestableMiNiFiPersistentProvenanceRepository(final NiFiProperties nifiProperties) throws IOException {
+            super(nifiProperties);
+        }
+
+        TestableMiNiFiPersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
+            super(configuration, rolloverCheckMillis);
+        }
+
+        RecordWriter[] getWriters() {
+            Class klass = MiNiFiPersistentProvenanceRepository.class;
+            Field writersField;
+            RecordWriter[] writers = null;
+            try {
+                writersField = klass.getDeclaredField("writers");
+                writersField.setAccessible(true);
+                writers = (RecordWriter[]) writersField.get(this);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            return writers;
+        }
+
+        int getRolloverCheckMillis() {
+            Class klass = MiNiFiPersistentProvenanceRepository.class;
+            java.lang.reflect.Field rolloverCheckMillisField;
+            int rolloverCheckMillis = -1;
+            try {
+                rolloverCheckMillisField = klass.getDeclaredField("rolloverCheckMillis");
+                rolloverCheckMillisField.setAccessible(true);
+                rolloverCheckMillis = (int) rolloverCheckMillisField.get(this);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            return rolloverCheckMillis;
+        }
+
+    }
+
+    private RepositoryConfiguration createTestableRepositoryConfiguration(final NiFiProperties properties) {
+        Class klass = MiNiFiPersistentProvenanceRepository.class;
+        Method createRepositoryConfigurationMethod;
+        RepositoryConfiguration configuration = null;
+        try {
+            createRepositoryConfigurationMethod = klass.getDeclaredMethod("createRepositoryConfiguration", NiFiProperties.class);
+            createRepositoryConfigurationMethod.setAccessible(true);
+            configuration = (RepositoryConfiguration)createRepositoryConfigurationMethod.invoke(null, properties);
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return configuration;
+    }
+
 }

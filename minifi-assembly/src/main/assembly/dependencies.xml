@@ -36,7 +36,6 @@
                 <exclude>minifi-bootstrap</exclude>
                 <exclude>minifi-resources</exclude>
                 <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
-                <exclude>zookeeper</exclude>
                 <exclude>spring-aop</exclude>
                 <exclude>spring-context</exclude>
                 <exclude>spring-beans</exclude>
@@ -46,7 +45,6 @@
                 <exclude>jaxb-impl</exclude>
                 <exclude>mail</exclude>
                 <exclude>log4j</exclude>
-                <exclude>lucene-analyzers-common</exclude>
                 <exclude>lucene-queryparser</exclude>
                 <exclude>commons-net</exclude>
                 <exclude>spring-context</exclude>

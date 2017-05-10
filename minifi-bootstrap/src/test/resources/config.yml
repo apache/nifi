@@ -87,6 +87,7 @@ Remote Process Groups:
   url: https://localhost:8090/nifi
   comment: ''
   timeout: 30 secs
+  local network interface: eth1
   yield period: 10 sec
   Input Ports:
   - id: 8644cbcc-a45c-40e0-964d-5e536e2ada61

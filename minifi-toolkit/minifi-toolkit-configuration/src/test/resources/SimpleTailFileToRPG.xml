@@ -207,6 +207,7 @@ limitations under the License.
       <targetUri>http://localhost:8080/nifi</targetUri>
       <transportProtocol>RAW</transportProtocol>
       <yieldDuration>10 sec</yieldDuration>
+      <networkInterface></networkInterface>
     </remoteProcessGroups>
   </snippet>
   <timestamp>11/29/2016 10:43:33 EST</timestamp>

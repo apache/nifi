@@ -306,18 +306,19 @@ public class ConfigMainTest {
 
             ConfigSchema configSchemaFromCurrent = new ConfigSchema(yamlMap);
             ConfigSchema.getAllProcessGroups(configSchemaFromCurrent.getProcessGroupSchema()).stream().flatMap(p -> p.getRemoteProcessGroups().stream()).forEach(r -> {
-                clearProxyInfo(r);
+                clearV3orLaterProperties(r);
             });
 
             assertNoMapDifferences(configSchemaUpgradedFromV2.toMap(), configSchemaFromCurrent.toMap());
         }
     }
 
-    private void clearProxyInfo(RemoteProcessGroupSchema remoteProcessGroupSchema) {
+    private void clearV3orLaterProperties(RemoteProcessGroupSchema remoteProcessGroupSchema) {
         remoteProcessGroupSchema.setProxyHost(RemoteProcessGroupSchema.DEFAULT_PROXY_HOST);
         remoteProcessGroupSchema.setProxyPort(RemoteProcessGroupSchema.DEFAULT_PROXY_PORT);
         remoteProcessGroupSchema.setProxyUser(RemoteProcessGroupSchema.DEFAULT_PROXY_USER);
         remoteProcessGroupSchema.setProxyPassword(RemoteProcessGroupSchema.DEFAULT_PROXY_PASSWORD);
+        remoteProcessGroupSchema.setLocalNetworkInterface(RemoteProcessGroupSchema.DEFAULT_NETWORK_INTERFACE);
     }
 
     private void testV1YmlIfPresent(String name, Map<String, Object> yamlMap) throws IOException, SchemaLoaderException {
@@ -371,7 +372,7 @@ public class ConfigMainTest {
             }
 
             ConfigSchema.getAllProcessGroups(configSchemaFromCurrent.getProcessGroupSchema()).stream().flatMap(p -> p.getRemoteProcessGroups().stream()).forEach(r -> {
-                clearProxyInfo(r);
+                clearV3orLaterProperties(r);
                 r.setTransportProtocol(RemoteProcessGroupSchema.TransportProtocolOptions.RAW.name());
             });
             Map<String, Object> v1YamlMap = configSchemaUpgradedFromV1.toMap();

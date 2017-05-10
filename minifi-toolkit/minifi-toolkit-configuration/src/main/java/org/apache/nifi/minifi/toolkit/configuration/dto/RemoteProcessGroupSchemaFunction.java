@@ -70,6 +70,7 @@ public class RemoteProcessGroupSchemaFunction implements Function<RemoteProcessG
         map.put(RemoteProcessGroupSchema.PROXY_PORT_KEY, remoteProcessGroupDTO.getProxyPort());
         map.put(RemoteProcessGroupSchema.PROXY_USER_KEY, remoteProcessGroupDTO.getProxyUser());
         map.put(RemoteProcessGroupSchema.PROXY_PASSWORD_KEY, remoteProcessGroupDTO.getProxyPassword());
+        map.put(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY, remoteProcessGroupDTO.getLocalNetworkInterface());
         return new RemoteProcessGroupSchema(map);
     }
 }

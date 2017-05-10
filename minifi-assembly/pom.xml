@@ -187,6 +187,10 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-persistent-provenance-repository</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
+        </dependency>
 
         <!-- Provided in NiFi so must include here too -->
         <dependency>
