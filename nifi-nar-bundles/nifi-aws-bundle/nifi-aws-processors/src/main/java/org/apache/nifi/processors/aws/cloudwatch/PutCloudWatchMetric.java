@@ -59,7 +59,7 @@ import com.amazonaws.services.cloudwatch.model.StatisticSet;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Publishes metrics to Amazon CloudWatch. Metric can be either a single value, or a StatisticSet comprised of "+
-        "minimum, maximum, sum and sampleCount values.")
+        "minimum, maximum, sum and sample count.")
 @DynamicProperty(name = "Dimension Name", value = "Dimension Value",
         description = "Allows dimension name/value pairs to be added to the metric. AWS supports a maximum of 10 dimensions.",
         supportsExpressionLanguage = true)
@@ -89,7 +89,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     };
 
     public static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
-            .name("Namespace")
+            .name("namespace")
             .displayName("Namespace")
             .description("The namespace for the metric data for CloudWatch")
             .required(true)
@@ -98,8 +98,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor METRIC_NAME = new PropertyDescriptor.Builder()
-            .name("MetricName")
-            .displayName("MetricName")
+            .name("metricName")
+            .displayName("Metric Name")
             .description("The name of the metric")
             .expressionLanguageSupported(true)
             .required(true)
@@ -107,7 +107,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor VALUE = new PropertyDescriptor.Builder()
-            .name("Value")
+            .name("value")
             .displayName("Value")
             .description("The value for the metric. Must be a double")
             .expressionLanguageSupported(true)
@@ -116,7 +116,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
-            .name("Timestamp")
+            .name("timestamp")
             .displayName("Timestamp")
             .description("A point in time expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. If not specified, the default value is set to the time the metric data was received")
             .expressionLanguageSupported(true)
@@ -125,7 +125,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor UNIT = new PropertyDescriptor.Builder()
-            .name("Unit")
+            .name("unit")
             .displayName("Unit")
             .description("The unit of the metric. (e.g Seconds, Bytes, Megabytes, Percent, Count,  Kilobytes/Second, Terabits/Second, Count/Second) For details see http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html")
             .expressionLanguageSupported(true)
@@ -134,7 +134,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor MAXIMUM = new PropertyDescriptor.Builder()
-            .name("Maximum")
+            .name("maximum")
+            .displayName("Maximum")
             .description("The maximum value of the sample set. Must be a double")
             .expressionLanguageSupported(true)
             .required(false)
@@ -142,7 +143,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor MINIMUM = new PropertyDescriptor.Builder()
-            .name("Minimum")
+            .name("minimum")
+            .displayName("Minimum")
             .description("The minimum value of the sample set. Must be a double")
             .expressionLanguageSupported(true)
             .required(false)
@@ -150,7 +152,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor SAMPLECOUNT = new PropertyDescriptor.Builder()
-            .name("SampleCount")
+            .name("sampleCount")
+            .displayName("Sample Count")
             .description("The number of samples used for the statistic set. Must be a double")
             .expressionLanguageSupported(true)
             .required(false)
@@ -158,7 +161,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .build();
 
     public static final PropertyDescriptor SUM = new PropertyDescriptor.Builder()
-            .name("Sum")
+            .name("sum")
+            .displayName("Sum")
             .description("The sum of values for the sample set. Must be a double")
             .expressionLanguageSupported(true)
             .required(false)
