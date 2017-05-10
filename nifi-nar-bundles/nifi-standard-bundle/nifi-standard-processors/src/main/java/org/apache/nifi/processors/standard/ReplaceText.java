@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -67,6 +48,25 @@ import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -86,7 +86,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final String regexReplaceValue = "Regex Replace";
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
-    private static final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
+    private static final Pattern unescapedBackReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
     private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
 
@@ -307,7 +307,7 @@ public class ReplaceText extends AbstractProcessor {
         }
 
         String value = unescaped;
-        final Matcher backRefMatcher = backReferencePattern.matcher(value);
+        final Matcher backRefMatcher = unescapedBackReferencePattern.matcher(value); // consider unescaped back references
         while (backRefMatcher.find()) {
             final String backRefNum = backRefMatcher.group(1);
             if (backRefNum.startsWith("0")) {
@@ -494,10 +494,12 @@ public class ReplaceText extends AbstractProcessor {
         private final int numCapturingGroups;
         private final Map<String, String> additionalAttrs;
 
+        // back references are not supported in the evaluated expression
         private static final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
             @Override
             public String decorate(final String attributeValue) {
-                return attributeValue.replace("$", "\\$");
+                // when we encounter a '$[0-9+]'  replace it with '\$[0-9+]'
+                return attributeValue.replaceAll("(\\$\\d+?)", "\\\\$1");
             }
         };
 
