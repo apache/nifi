@@ -19,16 +19,6 @@ package org.apache.nifi.web;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -39,6 +29,17 @@ import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -120,7 +121,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final String contentType = responseHeaders.getFirst("Content-Type");
 
             // create the downloadable content
-            return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
+            return new DownloadableContent(filename, contentType, nodeResponse.getInputStream());
         } else {
             // example URIs:
             // http://localhost:8080/nifi-api/provenance/events/{id}/content/{input|output}
