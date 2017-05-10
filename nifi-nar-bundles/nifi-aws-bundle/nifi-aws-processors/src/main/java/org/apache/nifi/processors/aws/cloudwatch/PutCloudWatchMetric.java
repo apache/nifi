@@ -221,14 +221,20 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
         final boolean sampleCountSet = validationContext.getProperty(SAMPLECOUNT).isSet();
         final boolean sumSet = validationContext.getProperty(SUM).isSet();
 
-        if (valueSet && (maxSet || minSet || sampleCountSet || sumSet)) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false).explanation("Cannot set both Value or StatisticSet(Maximum, Minimum, SampleCount, Sum)").build());
-        } else if (!valueSet && !(maxSet || minSet || sampleCountSet || sumSet)) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false).explanation("Must set either Value or StatisticSet(Maximum, Minimum, SampleCount, Sum)").build());
+        final boolean completeStatisticSet = (maxSet && minSet && sampleCountSet && sumSet);
+        final boolean anyStatisticSetValue = (maxSet || minSet || sampleCountSet || sumSet);
+
+        if (valueSet && anyStatisticSetValue) {
+            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
+                    .explanation("Cannot set both Value and StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
+        } else if (!valueSet && !completeStatisticSet) {
+            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
+                    .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
         }
 
         if (dynamicPropertyNames.size() > 10) {
-            problems.add(new ValidationResult.Builder().subject("Metric").valid(false).explanation("Cannot set more than 10 dimensions").build());
+            problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
+                    .explanation("Cannot set more than 10 dimensions").build());
         }
 
         return problems;

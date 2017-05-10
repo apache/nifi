@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.cloudwatch;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -95,6 +94,36 @@ public class TestPutCloudWatchMetric {
         runner.setProperty(PutCloudWatchMetric.MAXIMUM, "2.0");
         runner.setProperty(PutCloudWatchMetric.SUM, "3.0");
         runner.setProperty(PutCloudWatchMetric.SAMPLECOUNT, "2");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testContainsIncompleteStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
+        runner.setProperty(PutCloudWatchMetric.MAXIMUM, "2.0");
+        runner.setProperty(PutCloudWatchMetric.SUM, "3.0");
+        // missing sample count
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testContainsBothValueAndIncompleteStatisticSetInvalid() throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.setProperty(PutCloudWatchMetric.UNIT, "Count");
+        runner.setProperty(PutCloudWatchMetric.TIMESTAMP, "1476296132575");
+        runner.setProperty(PutCloudWatchMetric.MINIMUM, "1.0");
         runner.assertNotValid();
     }
 
