@@ -1509,7 +1509,17 @@ public class TestStandardProcessSession {
         StreamUtils.fillBuffer(in, buffer);
         assertEquals("hello, world", new String(buffer));
 
+        try {
+            session.remove(flowFile);
+            Assert.fail("Was able to remove FlowFile while an InputStream is open for it");
+        } catch (final IllegalStateException e) {
+            // expected
+        }
+
+        in.close();
+
         session.remove(flowFile);
+
         session.commit(); // This should generate a WARN log message. We can't really test this in a unit test but can verify manually.
     }
 
@@ -1543,6 +1553,96 @@ public class TestStandardProcessSession {
         session.remove(flowFile);
         session.commit();
     }
+
+    @Test
+    public void testWriteToOutputStream() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(12L)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        try (final OutputStream out = session.write(flowFile)) {
+            out.write("hello, world".getBytes());
+        }
+
+        // Call putAllAttributes, because this will return to us the most recent version
+        // of the FlowFile. In a Processor, we wouldn't need this, but for testing purposes
+        // we need it in order to get the Content Claim.
+        flowFile = session.putAllAttributes(flowFile, Collections.emptyMap());
+        assertEquals(12L, flowFile.getSize());
+
+        final byte[] buffer = new byte[(int) flowFile.getSize()];
+        try (final InputStream in = session.read(flowFile)) {
+            StreamUtils.fillBuffer(in, buffer);
+        }
+
+        assertEquals(new String(buffer), "hello, world");
+    }
+
+    @Test
+    public void testWriteToOutputStreamWhileReading() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        try (final OutputStream out = contentRepo.write(claim)) {
+            out.write("hello, world".getBytes());
+        }
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(claim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(12L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile flowFile = session.get();
+        InputStream in = session.read(flowFile);
+
+        try {
+            session.write(flowFile);
+            Assert.fail("Was able to obtain an OutputStream for a FlowFile while also holding an InputStream for it");
+        } catch (final IllegalStateException e) {
+            // expected
+        } finally {
+            in.close();
+        }
+
+        // Should now be okay
+        try (final OutputStream out = session.write(flowFile)) {
+
+        }
+    }
+
+    @Test
+    public void testReadFromInputStreamWhileWriting() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(12L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile flowFile = session.get();
+        OutputStream out = session.write(flowFile);
+
+        try {
+            session.read(flowFile);
+            Assert.fail("Was able to obtain an InputStream for a FlowFile while also holding an OutputStream for it");
+        } catch (final IllegalStateException e) {
+            // expected
+        } finally {
+            out.close();
+        }
+
+        // Should now be okay
+        try (final InputStream in = session.read(flowFile)) {
+
+        }
+    }
+
 
     @Test
     public void testTransferUnknownRelationship() {
@@ -1670,6 +1770,31 @@ public class TestStandardProcessSession {
         assertEquals(RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS, record.getType());
         final List<ContentClaim> transientClaims = record.getTransientClaims();
         assertEquals(5, transientClaims.size());
+    }
+
+    @Test
+    public void testMultipleReadCounts() throws IOException {
+        flowFileQueue.put(new MockFlowFile(1L));
+
+        FlowFile flowFile = session.get();
+
+        final List<InputStream> streams = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            streams.add(session.read(flowFile));
+        }
+
+        for (int i = 0; i < 3; i++) {
+            try {
+                flowFile = session.putAttribute(flowFile, "counter", String.valueOf(i));
+                Assert.fail("Was able to put attribute while reading");
+            } catch (final IllegalStateException ise) {
+                // expected
+            }
+
+            streams.get(i).close();
+        }
+
+        flowFile = session.putAttribute(flowFile, "counter", "4");
     }
 
 

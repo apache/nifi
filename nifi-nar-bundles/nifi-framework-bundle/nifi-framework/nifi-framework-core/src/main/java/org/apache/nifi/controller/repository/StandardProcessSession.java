@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,7 +111,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<String, Long> counters = new HashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new HashMap<>();
     private final ProcessContext context;
-    private final Set<FlowFile> recursionSet = new HashSet<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
+    private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
+    private final Set<FlowFile> writeRecursionSet = new HashSet<>();
     private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
     private final long sessionId;
     private final String connectableDescription;
@@ -133,6 +135,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
     private final Map<FlowFile, InputStream> openInputStreams = new HashMap<>();
+    // List of OutputStreams that have been opened by calls to {@link #write(FlowFile)} and not yet closed
+    private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
 
     // maps a FlowFile to all Provenance Events that were generated for that FlowFile.
     // we do this so that if we generate a Fork event, for example, and then remove the event in the same
@@ -187,14 +191,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         processingStartTime = System.nanoTime();
     }
 
-    public void checkpoint() {
-
-        resetWriteClaims(false);
-
-        final Map<FlowFile, InputStream> openStreamCopy = new HashMap<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
-        for (final Map.Entry<FlowFile, InputStream> entry : openStreamCopy.entrySet()) {
+    private void closeStreams(final Map<FlowFile, ? extends Closeable> streamMap) {
+        final Map<FlowFile, ? extends Closeable> openStreamCopy = new HashMap<>(streamMap); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final Map.Entry<FlowFile, ? extends Closeable> entry : openStreamCopy.entrySet()) {
             final FlowFile flowFile = entry.getKey();
-            final InputStream openStream = entry.getValue();
+            final Closeable openStream = entry.getValue();
 
             LOG.warn("{} closing {} for {} because the session was committed without the stream being closed.", this, openStream, flowFile);
 
@@ -205,8 +206,19 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 LOG.warn("", e);
             }
         }
+    }
 
-        if (!recursionSet.isEmpty()) {
+    public void checkpoint() {
+
+        resetWriteClaims(false);
+
+        closeStreams(openInputStreams);
+        closeStreams(openOutputStreams);
+
+        if (!readRecursionSet.isEmpty()) {
+            throw new IllegalStateException();
+        }
+        if (!writeRecursionSet.isEmpty()) {
             throw new IllegalStateException();
         }
 
@@ -902,19 +914,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         deleteOnCommit.clear();
 
-        final Map<FlowFile, InputStream> openStreamCopy = new HashMap<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
-        for (final Map.Entry<FlowFile, InputStream> entry : openStreamCopy.entrySet()) {
-            final FlowFile flowFile = entry.getKey();
-            final InputStream openStream = entry.getValue();
-
-            LOG.debug("{} closing {} for {} due to session rollback", this, openStream, flowFile);
-            try {
-                openStream.close();
-            } catch (final Exception e) {
-                LOG.warn("{} Attempted to close {} for {} due to session rollback but close failed", this, openStream, this.connectableDescription);
-                LOG.warn("", e);
-            }
-        }
+        closeStreams(openInputStreams);
+        closeStreams(openOutputStreams);
 
         try {
             claimCache.reset();
@@ -1092,7 +1093,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void resetState() {
         records.clear();
-        recursionSet.clear();
+        readRecursionSet.clear();
+        writeRecursionSet.clear();
         contentSizeIn = 0L;
         contentSizeOut = 0L;
         flowFilesIn = 0;
@@ -1142,12 +1144,21 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (final FlowFile flowFile : flowFiles) {
             if (openInputStreams.containsKey(flowFile)) {
                 throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
-                    + "has an open Input Stream for the FlowFile, created by calling ProcessSession.read(FlowFile)");
+                    + "has an open InputStream for the FlowFile, created by calling ProcessSession.read(FlowFile)");
             }
 
-            if (recursionSet.contains(flowFile)) {
+            if (openOutputStreams.containsKey(flowFile)) {
+                throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
+                    + "has an open OutputStream for the FlowFile, created by calling ProcessSession.write(FlowFile)");
+            }
+
+            if (readRecursionSet.containsKey(flowFile)) {
                 throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
             }
+            if (writeRecursionSet.contains(flowFile)) {
+                throw new IllegalStateException(flowFile + " already in use for an active callback or OutputStream created by ProcessSession.write(FlowFile) has not been closed");
+            }
+
             final StandardRepositoryRecord record = records.get(flowFile);
             if (record == null) {
                 throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
@@ -1614,8 +1625,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile clone(final FlowFile example, final long offset, final long size) {
-        validateRecordState(example);
+    public FlowFile clone(FlowFile example, final long offset, final long size) {
+        example = validateRecordState(example);
         final StandardRepositoryRecord exampleRepoRecord = records.get(example);
         final FlowFileRecord currRec = exampleRepoRecord.getCurrent();
         final ContentClaim claim = exampleRepoRecord.getCurrentClaim();
@@ -1683,8 +1694,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile penalize(final FlowFile flowFile) {
-        validateRecordState(flowFile);
+    public FlowFile penalize(FlowFile flowFile) {
+        flowFile = validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
         final long expirationEpochMillis = System.currentTimeMillis() + context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).penaltyExpirationTime(expirationEpochMillis).build();
@@ -1693,8 +1704,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile putAttribute(final FlowFile flowFile, final String key, final String value) {
-        validateRecordState(flowFile);
+    public FlowFile putAttribute(FlowFile flowFile, final String key, final String value) {
+        flowFile = validateRecordState(flowFile);
 
         if (CoreAttributes.UUID.key().equals(key)) {
             return flowFile;
@@ -1708,8 +1719,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile putAllAttributes(final FlowFile flowFile, final Map<String, String> attributes) {
-        validateRecordState(flowFile);
+    public FlowFile putAllAttributes(FlowFile flowFile, final Map<String, String> attributes) {
+        flowFile = validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
 
         final Map<String, String> updatedAttributes;
@@ -1728,8 +1739,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile removeAttribute(final FlowFile flowFile, final String key) {
-        validateRecordState(flowFile);
+    public FlowFile removeAttribute(FlowFile flowFile, final String key) {
+        flowFile = validateRecordState(flowFile);
 
         if (CoreAttributes.UUID.key().equals(key)) {
             return flowFile;
@@ -1742,8 +1753,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile removeAllAttributes(final FlowFile flowFile, final Set<String> keys) {
-        validateRecordState(flowFile);
+    public FlowFile removeAllAttributes(FlowFile flowFile, final Set<String> keys) {
+        flowFile = validateRecordState(flowFile);
 
         if (keys == null) {
             return flowFile;
@@ -1766,8 +1777,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile removeAllAttributes(final FlowFile flowFile, final Pattern keyPattern) {
-        validateRecordState(flowFile);
+    public FlowFile removeAllAttributes(FlowFile flowFile, final Pattern keyPattern) {
+        flowFile = validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).removeAttributes(keyPattern).build();
 
@@ -1800,8 +1811,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void transfer(final FlowFile flowFile, final Relationship relationship) {
-        validateRecordState(flowFile);
+    public void transfer(FlowFile flowFile, final Relationship relationship) {
+        flowFile = validateRecordState(flowFile);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -1830,8 +1841,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void transfer(final FlowFile flowFile) {
-        validateRecordState(flowFile);
+    public void transfer(FlowFile flowFile) {
+        flowFile = validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
         if (record.getOriginalQueue() == null) {
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
@@ -1848,8 +1859,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void transfer(final Collection<FlowFile> flowFiles, final Relationship relationship) {
-        validateRecordState(flowFiles);
+    public void transfer(Collection<FlowFile> flowFiles, final Relationship relationship) {
+        flowFiles = validateRecordState(flowFiles);
 
         boolean autoTerminated = false;
         boolean selfRelationship = false;
@@ -1885,8 +1896,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void remove(final FlowFile flowFile) {
-        validateRecordState(flowFile);
+    public void remove(FlowFile flowFile) {
+        flowFile = validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
         record.markForDelete();
         removedFlowFiles.add(flowFile.getAttribute(CoreAttributes.UUID.key()));
@@ -1906,8 +1917,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void remove(final Collection<FlowFile> flowFiles) {
-        validateRecordState(flowFiles);
+    public void remove(Collection<FlowFile> flowFiles) {
+        flowFiles = validateRecordState(flowFiles);
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = records.get(flowFile);
             record.markForDelete();
@@ -2044,7 +2055,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             // If the recursion set is empty, we can use the same input stream that we already have open. However, if
             // the recursion set is NOT empty, we can't do this because we may be reading the input of FlowFile 1 while in the
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
-            if (allowCachingOfStream && recursionSet.isEmpty()) {
+            if (allowCachingOfStream && readRecursionSet.isEmpty() && writeRecursionSet.isEmpty()) {
                 if (currentReadClaim == claim) {
                     if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= offset) {
                         final long bytesToSkip = offset - currentReadClaimStream.getBytesConsumed();
@@ -2097,7 +2108,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) {
-        validateRecordState(source);
+        source = validateRecordState(source, true);
         final StandardRepositoryRecord record = records.get(source);
 
         try {
@@ -2121,7 +2132,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             boolean cnfeThrown = false;
 
             try {
-                recursionSet.add(source);
+                incrementReadCount(source);
                 reader.process(ffais);
 
                 // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
@@ -2133,7 +2144,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 cnfeThrown = true;
                 throw cnfe;
             } finally {
-                recursionSet.remove(source);
+                decrementReadCount(source);
                 bytesRead += countingStream.getBytesRead();
 
                 // if cnfeThrown is true, we don't need to re-thrown the Exception; it will propagate.
@@ -2150,8 +2161,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public InputStream read(final FlowFile source) {
-        validateRecordState(source);
+    public InputStream read(FlowFile source) {
+        source = validateRecordState(source, true);
         final StandardRepositoryRecord record = records.get(source);
 
         try {
@@ -2165,6 +2176,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn);
         final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
 
+        final FlowFile sourceFlowFile = source;
         final InputStream errorHandlingStream = new InputStream() {
             private boolean closed = false;
 
@@ -2177,7 +2189,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     close();
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
                     rollback(true);
                     close();
                     throw ffae;
@@ -2198,7 +2210,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     close();
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
-                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
                     rollback(true);
                     close();
                     throw ffae;
@@ -2207,13 +2219,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             @Override
             public void close() throws IOException {
+                decrementReadCount(sourceFlowFile);
+
                 if (!closed) {
                     StandardProcessSession.this.bytesRead += countingStream.getBytesRead();
                     closed = true;
                 }
 
                 ffais.close();
-                openInputStreams.remove(source);
+                openInputStreams.remove(sourceFlowFile);
             }
 
             @Override
@@ -2243,12 +2257,31 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             @Override
             public String toString() {
-                return "ErrorHandlingInputStream[FlowFile=" + source + "]";
+                return "ErrorHandlingInputStream[FlowFile=" + sourceFlowFile + "]";
             }
         };
 
-        openInputStreams.put(source, errorHandlingStream);
+        incrementReadCount(sourceFlowFile);
+        openInputStreams.put(sourceFlowFile, errorHandlingStream);
         return errorHandlingStream;
+    }
+
+    private void incrementReadCount(final FlowFile flowFile) {
+        readRecursionSet.compute(flowFile, (ff, count) -> count == null ? 1 : count + 1);
+    }
+
+    private void decrementReadCount(final FlowFile flowFile) {
+        final Integer count = readRecursionSet.get(flowFile);
+        if (count == null) {
+            return;
+        }
+
+        final int updatedCount = count - 1;
+        if (updatedCount == 0) {
+            readRecursionSet.remove(flowFile);
+        } else {
+            readRecursionSet.put(flowFile, updatedCount);
+        }
     }
 
     @Override
@@ -2257,9 +2290,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile merge(final Collection<FlowFile> sources, final FlowFile destination, final byte[] header, final byte[] footer, final byte[] demarcator) {
-        validateRecordState(sources);
-        validateRecordState(destination);
+    public FlowFile merge(Collection<FlowFile> sources, FlowFile destination, final byte[] header, final byte[] footer, final byte[] demarcator) {
+        sources = validateRecordState(sources);
+        destination = validateRecordState(destination);
         if (sources.contains(destination)) {
             throw new IllegalArgumentException("Destination cannot be within sources");
         }
@@ -2358,8 +2391,125 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile write(final FlowFile source, final OutputStreamCallback writer) {
-        validateRecordState(source);
+    public OutputStream write(FlowFile source) {
+        source = validateRecordState(source);
+        final StandardRepositoryRecord record = records.get(source);
+
+        ContentClaim newClaim = null;
+        try {
+            newClaim = claimCache.getContentClaim();
+            claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
+            ensureNotAppending(newClaim);
+
+            final OutputStream rawStream = claimCache.write(newClaim);
+            final OutputStream disableOnClose = new DisableOnCloseOutputStream(rawStream);
+            final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnClose);
+
+            final FlowFile sourceFlowFile = source;
+            final ContentClaim updatedClaim = newClaim;
+            final OutputStream errorHandlingOutputStream = new OutputStream() {
+                private boolean closed = false;
+
+                @Override
+                public void write(final int b) throws IOException {
+                    try {
+                        countingOut.write(b);
+                    } catch (final IOException ioe) {
+                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        rollback(true);
+                        close();
+                        throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
+                    }
+                }
+
+                @Override
+                public void write(final byte[] b) throws IOException {
+                    try {
+                        countingOut.write(b);
+                    } catch (final IOException ioe) {
+                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        rollback(true);
+                        close();
+                        throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
+                    }
+                }
+
+                @Override
+                public void write(final byte[] b, final int off, final int len) throws IOException {
+                    try {
+                        countingOut.write(b, off, len);
+                    } catch (final IOException ioe) {
+                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        rollback(true);
+                        close();
+                        throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
+                    }
+                }
+
+                @Override
+                public void flush() throws IOException {
+                    try {
+                        countingOut.flush();
+                    } catch (final IOException ioe) {
+                        LOG.error("Failed to write content to " + sourceFlowFile + "; rolling back session", ioe);
+                        rollback(true);
+                        close();
+                        throw new FlowFileAccessException("Failed to write to Content Repository for " + sourceFlowFile, ioe);
+                    }
+                }
+
+                @Override
+                public void close() throws IOException {
+                    writeRecursionSet.remove(sourceFlowFile);
+
+                    final long bytesWritten = countingOut.getBytesWritten();
+                    if (!closed) {
+                        StandardProcessSession.this.bytesWritten += bytesWritten;
+                        closed = true;
+                    }
+
+                    openOutputStreams.remove(sourceFlowFile);
+
+                    removeTemporaryClaim(record);
+
+                    flush();
+                    final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
+                        .fromFlowFile(record.getCurrent())
+                        .contentClaim(updatedClaim)
+                        .contentClaimOffset(Math.max(0, updatedClaim.getLength() - bytesWritten))
+                        .size(bytesWritten)
+                        .build();
+
+                    record.setWorking(newFile);
+                }
+            };
+
+            writeRecursionSet.add(source);
+            openOutputStreams.put(source, errorHandlingOutputStream);
+            return errorHandlingOutputStream;
+        } catch (final ContentNotFoundException nfe) {
+            resetWriteClaims(); // need to reset write claim before we can remove the claim
+            destroyContent(newClaim);
+            handleContentNotFound(nfe, record);
+            throw nfe;
+        } catch (final FlowFileAccessException ffae) {
+            resetWriteClaims(); // need to reset write claim before we can remove the claim
+            destroyContent(newClaim);
+            throw ffae;
+        } catch (final IOException ioe) {
+            resetWriteClaims(); // need to reset write claim before we can remove the claim
+            destroyContent(newClaim);
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
+        } catch (final Throwable t) {
+            resetWriteClaims(); // need to reset write claim before we can remove the claim
+            destroyContent(newClaim);
+            throw t;
+        }
+    }
+
+    @Override
+    public FlowFile write(FlowFile source, final OutputStreamCallback writer) {
+        source = validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
 
         long writtenToFlowFile = 0L;
@@ -2373,14 +2523,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 final OutputStream disableOnClose = new DisableOnCloseOutputStream(stream);
                 final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnClose)) {
                 try {
-                    recursionSet.add(source);
+                    writeRecursionSet.add(source);
                     writer.process(new FlowFileAccessOutputStream(countingOut, source));
                 } finally {
                     writtenToFlowFile = countingOut.getBytesWritten();
                     bytesWritten += countingOut.getBytesWritten();
                 }
             } finally {
-                recursionSet.remove(source);
+                writeRecursionSet.remove(source);
             }
         } catch (final ContentNotFoundException nfe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
@@ -2412,9 +2562,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return newFile;
     }
 
+
     @Override
-    public FlowFile append(final FlowFile source, final OutputStreamCallback writer) {
-        validateRecordState(source);
+    public FlowFile append(FlowFile source, final OutputStreamCallback writer) {
+        source = validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
         long newSize = 0L;
 
@@ -2445,10 +2596,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     // wrap our OutputStreams so that the processor cannot close it
                     try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream)) {
-                        recursionSet.add(source);
+                        writeRecursionSet.add(source);
                         writer.process(new FlowFileAccessOutputStream(disableOnClose, source));
                     } finally {
-                        recursionSet.remove(source);
+                        writeRecursionSet.remove(source);
                     }
                 }
             } else {
@@ -2458,10 +2609,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 // wrap our OutputStreams so that the processor cannot close it
                 try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream);
                     final OutputStream flowFileAccessOutStream = new FlowFileAccessOutputStream(disableOnClose, source)) {
-                    recursionSet.add(source);
+                    writeRecursionSet.add(source);
                     writer.process(flowFileAccessOutStream);
                 } finally {
-                    recursionSet.remove(source);
+                    writeRecursionSet.remove(source);
                 }
             }
 
@@ -2593,8 +2744,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
 
     @Override
-    public FlowFile write(final FlowFile source, final StreamCallback writer) {
-        validateRecordState(source);
+    public FlowFile write(FlowFile source, final StreamCallback writer) {
+        source = validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
         final ContentClaim currClaim = record.getCurrentClaim();
 
@@ -2618,7 +2769,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 final OutputStream disableOnCloseOut = new DisableOnCloseOutputStream(os);
                 final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnCloseOut)) {
 
-                recursionSet.add(source);
+                writeRecursionSet.add(source);
 
                 // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
                 // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
@@ -2637,7 +2788,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     writtenToFlowFile = countingOut.getBytesWritten();
                     this.bytesWritten += writtenToFlowFile;
                     this.bytesRead += countingIn.getBytesRead();
-                    recursionSet.remove(source);
+                    writeRecursionSet.remove(source);
 
                     // if cnfeThrown is true, we don't need to re-thrown the Exception; it will propagate.
                     if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
@@ -2672,8 +2823,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile importFrom(final Path source, final boolean keepSourceFile, final FlowFile destination) {
-        validateRecordState(destination);
+    public FlowFile importFrom(final Path source, final boolean keepSourceFile, FlowFile destination) {
+        destination = validateRecordState(destination);
         // TODO: find a better solution. With Windows 7 and Java 7 (very early update, at least), Files.isWritable(source.getParent()) returns false, even when it should be true.
         if (!keepSourceFile && !Files.isWritable(source.getParent()) && !source.getParent().toFile().canWrite()) {
             // If we do NOT want to keep the file, ensure that we can delete it, or else error.
@@ -2722,8 +2873,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile importFrom(final InputStream source, final FlowFile destination) {
-        validateRecordState(destination);
+    public FlowFile importFrom(final InputStream source, FlowFile destination) {
+        destination = validateRecordState(destination);
         final StandardRepositoryRecord record = records.get(destination);
         ContentClaim newClaim = null;
         final long claimOffset = 0L;
@@ -2759,8 +2910,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void exportTo(final FlowFile source, final Path destination, final boolean append) {
-        validateRecordState(source);
+    public void exportTo(FlowFile source, final Path destination, final boolean append) {
+        source = validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
         try {
             ensureNotAppending(record.getCurrentClaim());
@@ -2777,8 +2928,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void exportTo(final FlowFile source, final OutputStream destination) {
-        validateRecordState(source);
+    public void exportTo(FlowFile source, final OutputStream destination) {
+        source = validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
 
         if(record.getCurrentClaim() == null) {
@@ -2806,13 +2957,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             boolean cnfeThrown = false;
 
             try {
-                recursionSet.add(source);
+                incrementReadCount(source);
                 StreamUtils.copy(ffais, destination, source.getSize());
             } catch (final ContentNotFoundException cnfe) {
                 cnfeThrown = true;
                 throw cnfe;
             } finally {
-                recursionSet.remove(source);
+                decrementReadCount(source);
+
                 IOUtils.closeQuietly(ffais);
                 // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
                 if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
@@ -2855,35 +3007,41 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
     }
 
-    private void validateRecordState(final FlowFile... flowFiles) {
-        for (final FlowFile file : flowFiles) {
-            if (recursionSet.contains(file)) {
-                throw new IllegalStateException(file + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
-            }
-            final StandardRepositoryRecord record = records.get(file);
-            if (record == null) {
-                rollback();
-                throw new FlowFileHandlingException(file + " is not known in this session (" + toString() + ")");
-            }
-            if (record.getCurrent() != file) {
-                rollback();
-                throw new FlowFileHandlingException(file + " is not the most recent version of this FlowFile within this session (" + toString() + ")");
-            }
-            if (record.getTransferRelationship() != null) {
-                rollback();
-                throw new FlowFileHandlingException(file + " is already marked for transfer");
-            }
-            if (record.isMarkedForDelete()) {
-                rollback();
-                throw new FlowFileHandlingException(file + " has already been marked for removal");
-            }
-        }
+    private FlowFile validateRecordState(final FlowFile flowFile) {
+        return validateRecordState(flowFile, false);
     }
 
-    private void validateRecordState(final Collection<FlowFile> flowFiles) {
-        for (final FlowFile flowFile : flowFiles) {
-            validateRecordState(flowFile);
+    private FlowFile validateRecordState(final FlowFile flowFile, final boolean allowRecursiveRead) {
+        if (!allowRecursiveRead && readRecursionSet.containsKey(flowFile)) {
+            throw new IllegalStateException(flowFile + " already in use for an active callback or an InputStream created by ProcessSession.read(FlowFile) has not been closed");
         }
+        if (writeRecursionSet.contains(flowFile)) {
+            throw new IllegalStateException(flowFile + " already in use for an active callback or an OutputStream created by ProcessSession.write(FlowFile) has not been closed");
+        }
+
+        final StandardRepositoryRecord record = records.get(flowFile);
+        if (record == null) {
+            rollback();
+            throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
+        }
+        if (record.getTransferRelationship() != null) {
+            rollback();
+            throw new FlowFileHandlingException(flowFile + " is already marked for transfer");
+        }
+        if (record.isMarkedForDelete()) {
+            rollback();
+            throw new FlowFileHandlingException(flowFile + " has already been marked for removal");
+        }
+
+        return record.getCurrent();
+    }
+
+    private List<FlowFile> validateRecordState(final Collection<FlowFile> flowFiles) {
+        final List<FlowFile> current = new ArrayList<>(flowFiles.size());
+        for (final FlowFile flowFile : flowFiles) {
+            current.add(validateRecordState(flowFile));
+        }
+        return current;
     }
 
     /**

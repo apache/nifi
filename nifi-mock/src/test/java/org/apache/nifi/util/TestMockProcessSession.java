@@ -38,11 +38,6 @@ import org.junit.Test;
 
 public class TestMockProcessSession {
 
-    @Test(expected = AssertionError.class)
-    public void testPenalizeFlowFileFromProcessor() {
-        TestRunners.newTestRunner(PoorlyBehavedProcessor.class).run();
-    }
-
     @Test
     public void testReadWithoutCloseThrowsExceptionOnCommit() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
