@@ -62,7 +62,16 @@ public class TestAvroReaderWithEmbeddedSchema {
     @Test
     public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
+        testLogicalTypes(schema);
+    }
 
+    @Test
+    public void testNullableLogicalTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types-nullable.avsc"));
+        testLogicalTypes(schema);
+    }
+
+    private void testLogicalTypes(Schema schema) throws ParseException, IOException, MalformedRecordException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final String expectedTime = "2017-04-04 14:20:33.000";
@@ -80,7 +89,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             final DataFileWriter<GenericRecord> writer = dataFileWriter.create(schema, baos)) {
 
             final GenericRecord record = new GenericData.Record(schema);
-            record.put("timeMillis", millisSinceMidnight);
+            record.put("timeMillis", (int) millisSinceMidnight);
             record.put("timeMicros", millisSinceMidnight * 1000L);
             record.put("timestampMillis", timeLong);
             record.put("timestampMicros", timeLong * 1000L);
