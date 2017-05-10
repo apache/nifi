@@ -36,6 +36,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
@@ -2064,6 +2065,11 @@ public final class DtoFactory {
         return restriction == null ? null : restriction.value();
     }
 
+    private String getDeprecationReason(final Class<?> cls) {
+        final DeprecationNotice deprecationNotice = cls.getAnnotation(DeprecationNotice.class);
+        return deprecationNotice == null ? null : deprecationNotice.reason();
+    }
+
     /**
      * Gets the capability description from the specified class.
      */
@@ -2166,6 +2172,7 @@ public final class DtoFactory {
             dto.setControllerServiceApis(createControllerServiceApiDto(cls));
             dto.setDescription(getCapabilityDescription(cls));
             dto.setUsageRestriction(getUsageRestriction(cls));
+            dto.setDeprecationReason(getDeprecationReason(cls));
             dto.setTags(getTags(cls));
             types.add(dto);
         }
