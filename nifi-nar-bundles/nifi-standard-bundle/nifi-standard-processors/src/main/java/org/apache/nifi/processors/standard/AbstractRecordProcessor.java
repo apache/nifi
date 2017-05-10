@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -101,26 +101,27 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSetWriter writer;
         final RecordSchema writeSchema;
         try (final InputStream rawIn = session.read(flowFile);
             final InputStream in = new BufferedInputStream(rawIn)) {
             writeSchema = writerFactory.getSchema(flowFile, in);
-            writer = writerFactory.createWriter(getLogger(), writeSchema);
         } catch (final Exception e) {
-            getLogger().error("Failed to convert records for {}; will route to failure", new Object[] {flowFile, e});
+            getLogger().error("Failed to process records for {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
+        final Map<String, String> attributes = new HashMap<>();
+        final AtomicInteger recordCount = new AtomicInteger();
 
         final FlowFile original = flowFile;
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
+
                     try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out);
 
                         final RecordSet recordSet = new RecordSet() {
                             @Override
@@ -151,8 +152,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             }
                         };
 
-                        final WriteResult writeResult = writer.write(recordSet, out);
-                        writeResultRef.set(writeResult);
+                        final WriteResult writeResult = writer.write(recordSet);
+                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                        attributes.putAll(writeResult.getAttributes());
+                        recordCount.set(writeResult.getRecordCount());
 
                     } catch (final SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
@@ -160,22 +164,17 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 }
             });
         } catch (final Exception e) {
-            getLogger().error("Failed to convert {}", new Object[] {flowFile, e});
+            getLogger().error("Failed to process {}", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        final WriteResult writeResult = writeResultRef.get();
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-        attributes.putAll(writeResult.getAttributes());
-
         flowFile = session.putAllAttributes(flowFile, attributes);
         session.transfer(flowFile, REL_SUCCESS);
-        session.adjustCounter("Records Processed", writeResult.getRecordCount(), false);
-        getLogger().info("Successfully converted {} records for {}", new Object[] {writeResult.getRecordCount(), flowFile});
+
+        final int count = recordCount.get();
+        session.adjustCounter("Records Processed", count, false);
+        getLogger().info("Successfully converted {} records for {}", new Object[] {count, flowFile});
     }
 
     protected abstract Record process(Record record, RecordSchema writeSchema, FlowFile flowFile, ProcessContext context);

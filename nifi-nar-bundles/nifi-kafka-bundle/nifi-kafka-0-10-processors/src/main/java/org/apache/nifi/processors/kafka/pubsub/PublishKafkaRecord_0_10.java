@@ -58,7 +58,6 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.RecordWriter;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "0.10.x"})
@@ -324,14 +323,13 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                 final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
                 final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
 
-                final RecordWriter writer;
-                try (final InputStream in = new BufferedInputStream(session.read(flowFile))) {
-                    final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-                    final RecordSchema schema = writerFactory.getSchema(flowFile, in);
+                final RecordSchema schema;
+                final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-                    writer = writerFactory.createWriter(getLogger(), schema);
+                try (final InputStream in = new BufferedInputStream(session.read(flowFile))) {
+                    schema = writerFactory.getSchema(flowFile, in);
                 } catch (final Exception e) {
-                    getLogger().error("Failed to create a Record Writer for {}; routing to failure", new Object[] {flowFile, e});
+                    getLogger().error("Failed to determine Schema for writing messages to Kafka for {}; routing to failure", new Object[] {flowFile, e});
                     session.transfer(flowFile, REL_FAILURE);
                     continue;
                 }
@@ -342,7 +340,7 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                         public void process(final InputStream rawIn) throws IOException {
                             try (final InputStream in = new BufferedInputStream(rawIn)) {
                                 final RecordReader reader = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class).createRecordReader(flowFile, in, getLogger());
-                                lease.publish(flowFile, reader, writer, messageKeyField, topic);
+                                lease.publish(flowFile, reader, writerFactory, schema, messageKeyField, topic);
                             } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                 throw new ProcessException(e);
                             }

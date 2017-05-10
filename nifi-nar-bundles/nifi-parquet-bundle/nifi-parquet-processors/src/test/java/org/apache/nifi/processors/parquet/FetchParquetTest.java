@@ -217,11 +217,11 @@ public class FetchParquetTest {
         configure(proc);
 
         final RecordSetWriter recordSetWriter = Mockito.mock(RecordSetWriter.class);
-        when(recordSetWriter.write(any(RecordSet.class), any(OutputStream.class))).thenThrow(new IOException("IOException"));
+        when(recordSetWriter.write(any(RecordSet.class))).thenThrow(new IOException("IOException"));
 
         final RecordSetWriterFactory recordSetWriterFactory = Mockito.mock(RecordSetWriterFactory.class);
         when(recordSetWriterFactory.getIdentifier()).thenReturn("mock-writer-factory");
-        when(recordSetWriterFactory.createWriter(any(ComponentLog.class), any(RecordSchema.class))).thenReturn(recordSetWriter);
+        when(recordSetWriterFactory.createWriter(any(ComponentLog.class), any(RecordSchema.class), any(FlowFile.class), any(OutputStream.class))).thenReturn(recordSetWriter);
 
         testRunner.addControllerService("mock-writer-factory", recordSetWriterFactory);
         testRunner.enableControllerService(recordSetWriterFactory);

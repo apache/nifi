@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -28,6 +32,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     private ControllerServiceLookup serviceLookup;
     private ComponentLog logger;
     private StateManager stateManager;
+    private volatile ConfigurationContext configurationContext;
 
     @Override
     public final void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
@@ -74,5 +79,28 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      */
     protected StateManager getStateManager() {
         return stateManager;
+    }
+
+    @OnEnabled
+    public final void abstractStoreConfigContext(final ConfigurationContext configContext) {
+        this.configurationContext = configContext;
+    }
+
+    @OnDisabled
+    public final void abstractClearConfigContext() {
+        this.configurationContext = null;
+    }
+
+    protected ConfigurationContext getConfigurationContext() {
+        final ConfigurationContext context = this.configurationContext;
+        if (context == null) {
+            throw new IllegalStateException("No Configuration Context exists");
+        }
+
+        return configurationContext;
+    }
+
+    protected PropertyValue getProperty(final PropertyDescriptor descriptor) {
+        return getConfigurationContext().getProperty(descriptor);
     }
 }

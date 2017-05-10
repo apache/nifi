@@ -34,9 +34,15 @@ import org.apache.nifi.stream.io.NonCloseableOutputStream
 
 
 class GroovyRecordSetWriter implements RecordSetWriter {
-
+    private int recordCount = 0;
+    private final OutputStream out;
+    
+    public GroovyRecordSetWriter(final OutputStream out) {
+        this.out = out;
+    }
+    
     @Override
-    WriteResult write(Record r, OutputStream out) throws IOException {
+    WriteResult write(Record r) throws IOException {
         new OutputStreamWriter(new NonCloseableOutputStream(out)).with {osw ->
             new MarkupBuilder(osw).record {
                 r.schema.fieldNames.each {fieldName ->
@@ -44,7 +50,9 @@ class GroovyRecordSetWriter implements RecordSetWriter {
                 }
             }
         }
-        WriteResult.of(0, [:])
+        
+        recordCount++;
+        WriteResult.of(1, [:])
     }
 
     @Override
@@ -53,10 +61,10 @@ class GroovyRecordSetWriter implements RecordSetWriter {
     }
 
     @Override
-    WriteResult write(final RecordSet rs, final OutputStream rawOut) throws IOException {
+    WriteResult write(final RecordSet rs) throws IOException {
         int count = 0
 
-        new OutputStreamWriter(new NonCloseableOutputStream(rawOut)).with {osw ->
+        new OutputStreamWriter(new NonCloseableOutputStream(out)).with {osw ->
             new MarkupBuilder(osw).recordSet {
 
                 Record r
@@ -73,6 +81,18 @@ class GroovyRecordSetWriter implements RecordSetWriter {
         }
         WriteResult.of(count, [:])
     }
+    
+    public void beginRecordSet() throws IOException {
+    }
+    
+    @Override
+    public WriteResult finishRecordSet() throws IOException {
+        return WriteResult.of(recordCount, [:]);
+    }
+    
+    @Override
+    public void close() throws IOException {
+    }
 }
 
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
@@ -83,9 +103,10 @@ class GroovyRecordSetWriterFactory extends AbstractControllerService implements 
     }
     
     @Override
-    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) throws SchemaNotFoundException, IOException {
-        return new GroovyRecordSetWriter()
+    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, FlowFile flowFile, OutputStream out) throws SchemaNotFoundException, IOException {
+        return new GroovyRecordSetWriter(out)
     }
+    
 }
 
 writer = new GroovyRecordSetWriterFactory()

@@ -2460,19 +2460,21 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                 @Override
                 public void close() throws IOException {
+                    if (closed) {
+                        return;
+                    }
+
+                    closed = true;
                     writeRecursionSet.remove(sourceFlowFile);
 
                     final long bytesWritten = countingOut.getBytesWritten();
-                    if (!closed) {
-                        StandardProcessSession.this.bytesWritten += bytesWritten;
-                        closed = true;
-                    }
+                    StandardProcessSession.this.bytesWritten += bytesWritten;
 
                     openOutputStreams.remove(sourceFlowFile);
 
+                    flush();
                     removeTemporaryClaim(record);
 
-                    flush();
                     final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
                         .fromFlowFile(record.getCurrent())
                         .contentClaim(updatedClaim)

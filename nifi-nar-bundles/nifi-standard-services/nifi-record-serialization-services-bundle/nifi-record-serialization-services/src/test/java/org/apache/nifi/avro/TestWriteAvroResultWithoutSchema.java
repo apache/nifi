@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -27,14 +28,15 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.nifi.schema.access.SchemaTextAsAttribute;
+import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.junit.Assert;
 
 public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
 
     @Override
-    protected WriteAvroResult createWriter(final Schema schema) {
-        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new SchemaTextAsAttribute());
+    protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) throws IOException {
+        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new SchemaTextAsAttribute(), out);
     }
 
     @Override

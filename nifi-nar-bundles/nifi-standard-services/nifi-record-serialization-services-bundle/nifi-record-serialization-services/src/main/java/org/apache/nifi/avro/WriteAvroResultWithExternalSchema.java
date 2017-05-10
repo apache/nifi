@@ -20,7 +20,7 @@ package org.apache.nifi.avro;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -29,66 +29,53 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 
-public class WriteAvroResultWithExternalSchema extends WriteAvroResult {
+public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final SchemaAccessWriter schemaAccessWriter;
     private final RecordSchema recordSchema;
+    private final Schema avroSchema;
+    private final BinaryEncoder encoder;
+    private final OutputStream buffered;
+    private final DatumWriter<GenericRecord> datumWriter;
 
-    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccessWriter) {
-        super(avroSchema);
+    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema,
+        final SchemaAccessWriter schemaAccessWriter, final OutputStream out) throws IOException {
+        super(out);
         this.recordSchema = recordSchema;
         this.schemaAccessWriter = schemaAccessWriter;
+        this.avroSchema = avroSchema;
+        this.buffered = new BufferedOutputStream(out);
+
+        datumWriter = new GenericDatumWriter<>(avroSchema);
+        schemaAccessWriter.writeHeader(recordSchema, buffered);
+        encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, null);
     }
 
     @Override
-    public WriteResult write(final RecordSet rs, final OutputStream outStream) throws IOException {
-        Record record = rs.next();
-        if (record == null) {
-            return WriteResult.of(0, Collections.emptyMap());
-        }
-
-        int nrOfRows = 0;
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-
-        final BufferedOutputStream bufferedOut = new BufferedOutputStream(outStream);
-        schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
-
-        final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
-
-        do {
-            final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-
-            datumWriter.write(rec, encoder);
-            encoder.flush();
-            nrOfRows++;
-        } while ((record = rs.next()) != null);
-
-        bufferedOut.flush();
-
-        return WriteResult.of(nrOfRows, schemaAccessWriter.getAttributes(recordSchema));
+    protected void onBeginRecordSet() throws IOException {
+        schemaAccessWriter.writeHeader(recordSchema, buffered);
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
-        final Schema schema = getSchema();
-        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
-
-        final BufferedOutputStream bufferedOut = new BufferedOutputStream(out);
-        schemaAccessWriter.writeHeader(recordSchema, bufferedOut);
-
-        final BinaryEncoder encoder = EncoderFactory.get().blockingBinaryEncoder(bufferedOut, null);
-        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-
-        datumWriter.write(rec, encoder);
+    protected Map<String, String> onFinishRecordSet() throws IOException {
         encoder.flush();
+        buffered.flush();
+        return schemaAccessWriter.getAttributes(recordSchema);
+    }
 
-        bufferedOut.flush();
-
+    @Override
+    public WriteResult write(final Record record) throws IOException {
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
+        datumWriter.write(rec, encoder);
         return WriteResult.of(1, schemaAccessWriter.getAttributes(recordSchema));
+    }
+
+    @Override
+    public String getMimeType() {
+        return "application/avro-binary";
     }
 }

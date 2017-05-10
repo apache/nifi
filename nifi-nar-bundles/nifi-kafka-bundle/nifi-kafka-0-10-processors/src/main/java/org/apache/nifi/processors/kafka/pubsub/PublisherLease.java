@@ -32,9 +32,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordWriter;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
@@ -93,7 +96,8 @@ public class PublisherLease implements Closeable {
         }
     }
 
-    void publish(final FlowFile flowFile, final RecordReader reader, final RecordWriter writer, final String messageKeyField, final String topic) throws IOException {
+    void publish(final FlowFile flowFile, final RecordReader reader, final RecordSetWriterFactory writerFactory, final RecordSchema schema,
+        final String messageKeyField, final String topic) throws IOException {
         if (tracker == null) {
             tracker = new InFlightMessageTracker();
         }
@@ -104,11 +108,11 @@ public class PublisherLease implements Closeable {
         final RecordSet recordSet = reader.createRecordSet();
         int recordCount = 0;
 
-        try {
+        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, flowFile, baos)) {
             while ((record = recordSet.next()) != null) {
                 recordCount++;
                 baos.reset();
-                writer.write(record, baos);
+                writer.write(record);
 
                 final byte[] messageContent = baos.toByteArray();
                 final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
@@ -127,6 +131,8 @@ public class PublisherLease implements Closeable {
             }
         } catch (final TokenTooLargeException ttle) {
             tracker.fail(flowFile, ttle);
+        } catch (final SchemaNotFoundException snfe) {
+            throw new IOException(snfe);
         } catch (final Exception e) {
             tracker.fail(flowFile, e);
             poison();
