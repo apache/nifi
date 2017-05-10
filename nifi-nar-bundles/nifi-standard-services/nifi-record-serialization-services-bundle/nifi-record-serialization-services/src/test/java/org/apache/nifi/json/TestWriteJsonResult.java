@@ -72,9 +72,7 @@ public class TestWriteJsonResult {
         }
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), true, RecordFieldType.DATE.getDefaultFormat(),
-            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
-
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
@@ -105,11 +103,13 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
 
-        final String output;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            writer.write(rs, baos);
-            output = baos.toString();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true, RecordFieldType.DATE.getDefaultFormat(),
+            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+
+            writer.write(rs);
         }
+
+        final String output = baos.toString();
 
         final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/json/output/dataTypes.json")));
         assertEquals(expected, output);
@@ -139,14 +139,14 @@ public class TestWriteJsonResult {
 
         final RecordSet rs = RecordSet.of(schema, record1, record2);
 
-        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), true, RecordFieldType.DATE.getDefaultFormat(),
-            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true, RecordFieldType.DATE.getDefaultFormat(),
+            RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
 
-        final byte[] data;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            writer.write(rs, baos);
-            data = baos.toByteArray();
+            writer.write(rs);
         }
+
+        final byte[] data = baos.toByteArray();
 
         final String expected = "[ " + serialized1 + ", " + serialized2 + " ]";
 
@@ -171,13 +171,12 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
         final RecordSet rs = RecordSet.of(schema, record);
 
-        final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), false, null, null, null);
-
-        final byte[] data;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            writer.write(rs, baos);
-            data = baos.toByteArray();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, null, null, null)) {
+            writer.write(rs);
         }
+
+        final byte[] data = baos.toByteArray();
 
         final String expected = "[{\"timestamp\":37293723,\"time\":37293723,\"date\":37293723}]";
 

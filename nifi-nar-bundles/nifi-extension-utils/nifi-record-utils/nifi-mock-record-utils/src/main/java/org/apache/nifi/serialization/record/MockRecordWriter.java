@@ -36,6 +36,10 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     private final int failAfterN;
     private final boolean quoteValues;
 
+    public MockRecordWriter() {
+        this(null);
+    }
+
     public MockRecordWriter(final String header) {
         this(header, true, -1);
     }
@@ -56,12 +60,16 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema) {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final FlowFile flowFile, final OutputStream out) {
         return new RecordSetWriter() {
+            private int recordCount = 0;
+
             @Override
-            public WriteResult write(final RecordSet rs, final OutputStream out) throws IOException {
-                out.write(header.getBytes());
-                out.write("\n".getBytes());
+            public WriteResult write(final RecordSet rs) throws IOException {
+                if (header != null) {
+                    out.write(header.getBytes());
+                    out.write("\n".getBytes());
+                }
 
                 int recordCount = 0;
                 Record record = null;
@@ -75,14 +83,14 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                     int i = 0;
                     for (final String fieldName : record.getSchema().getFieldNames()) {
                         final String val = record.getAsString(fieldName);
-                        if (quoteValues) {
-                            out.write("\"".getBytes());
-                            if (val != null) {
+                        if (val != null) {
+                            if (quoteValues) {
+                                out.write("\"".getBytes());
+                                out.write(val.getBytes());
+                                out.write("\"".getBytes());
+                            } else {
                                 out.write(val.getBytes());
                             }
-                            out.write("\"".getBytes());
-                        } else if (val != null) {
-                            out.write(val.getBytes());
                         }
 
                         if (i++ < numCols - 1) {
@@ -101,20 +109,24 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             }
 
             @Override
-            public WriteResult write(Record record, OutputStream out) throws IOException {
-                out.write(header.getBytes());
-                out.write("\n".getBytes());
+            public WriteResult write(Record record) throws IOException {
+                if (header != null) {
+                    out.write(header.getBytes());
+                    out.write("\n".getBytes());
+                }
 
                 final int numCols = record.getSchema().getFieldCount();
                 int i = 0;
                 for (final String fieldName : record.getSchema().getFieldNames()) {
                     final String val = record.getAsString(fieldName);
-                    if (quoteValues) {
-                        out.write("\"".getBytes());
-                        out.write(val.getBytes());
-                        out.write("\"".getBytes());
-                    } else {
-                        out.write(val.getBytes());
+                    if (val != null) {
+                        if (quoteValues) {
+                            out.write("\"".getBytes());
+                            out.write(val.getBytes());
+                            out.write("\"".getBytes());
+                        } else {
+                            out.write(val.getBytes());
+                        }
                     }
 
                     if (i++ < numCols - 1) {
@@ -123,7 +135,23 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 }
                 out.write("\n".getBytes());
 
+                recordCount++;
+
                 return WriteResult.of(1, Collections.emptyMap());
+            }
+
+            @Override
+            public void close() throws IOException {
+                out.close();
+            }
+
+            @Override
+            public void beginRecordSet() throws IOException {
+            }
+
+            @Override
+            public WriteResult finishRecordSet() throws IOException {
+                return WriteResult.of(recordCount, Collections.emptyMap());
             }
         };
     }

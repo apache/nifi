@@ -103,7 +103,12 @@ public class StandardFieldValue implements FieldValue {
     public void updateValue(final Object newValue) {
         final Optional<Record> parentRecord = getParentRecord();
         if (!parentRecord.isPresent()) {
-            throw new UnsupportedOperationException("Cannot update the field value because the value is not associated with any record");
+            if (value instanceof Record) {
+                ((Record) value).setValue(getField().getFieldName(), newValue);
+                return;
+            } else {
+                throw new UnsupportedOperationException("Cannot update the field value because the value is not associated with any record");
+            }
         }
 
         parentRecord.get().setValue(getField().getFieldName(), newValue);

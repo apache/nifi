@@ -18,6 +18,7 @@
 package org.apache.nifi.avro;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaField;
@@ -57,7 +59,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema) throws IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema, final FlowFile flowFile, final OutputStream out) throws IOException {
         final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
 
         try {
@@ -78,9 +80,9 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             }
 
             if (AVRO_EMBEDDED.getValue().equals(strategyValue)) {
-                return new WriteAvroResultWithSchema(avroSchema);
+                return new WriteAvroResultWithSchema(avroSchema, out);
             } else {
-                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema));
+                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out);
             }
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);

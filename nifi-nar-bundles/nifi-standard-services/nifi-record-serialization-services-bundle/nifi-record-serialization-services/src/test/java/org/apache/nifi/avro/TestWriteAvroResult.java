@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
@@ -47,6 +48,7 @@ import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
@@ -60,7 +62,7 @@ import org.junit.Test;
 
 public abstract class TestWriteAvroResult {
 
-    protected abstract WriteAvroResult createWriter(Schema schema);
+    protected abstract RecordSetWriter createWriter(Schema schema, OutputStream out) throws IOException;
 
     protected abstract GenericRecord readRecord(InputStream in, Schema schema) throws IOException;
 
@@ -80,7 +82,7 @@ public abstract class TestWriteAvroResult {
     }
 
     private void testLogicalTypes(Schema schema) throws ParseException, IOException {
-        final WriteAvroResult writer = createWriter(schema);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("timeMillis", RecordFieldType.TIME.getDataType()));
@@ -108,11 +110,11 @@ public abstract class TestWriteAvroResult {
         values.put("decimal", expectedDecimal.doubleValue());
         final Record record = new MapRecord(recordSchema, values);
 
-        final byte[] data;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            writer.write(RecordSet.of(record.getSchema(), record), baos);
-            data = baos.toByteArray();
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(RecordSet.of(record.getSchema(), record));
         }
+
+        final byte[] data = baos.toByteArray();
 
         try (final InputStream in = new ByteArrayInputStream(data)) {
             final GenericRecord avroRecord = readRecord(in, schema);
@@ -138,7 +140,7 @@ public abstract class TestWriteAvroResult {
     @Test
     public void testDataTypes() throws IOException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/datatypes.avsc"));
-        final WriteAvroResult writer = createWriter(schema);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final List<RecordField> subRecordFields = Collections.singletonList(new RecordField("field1", RecordFieldType.STRING.getDataType()));
         final RecordSchema subRecordSchema = new SimpleRecordSchema(subRecordFields);
@@ -178,12 +180,13 @@ public abstract class TestWriteAvroResult {
 
         final Record record = new MapRecord(recordSchema, values);
 
-        final byte[] data;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            final WriteResult writeResult = writer.write(RecordSet.of(record.getSchema(), record), baos);
-            verify(writeResult);
-            data = baos.toByteArray();
+        final WriteResult writeResult;
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writeResult = writer.write(RecordSet.of(record.getSchema(), record));
         }
+
+        verify(writeResult);
+        final byte[] data = baos.toByteArray();
 
         try (final InputStream in = new ByteArrayInputStream(data)) {
             final GenericRecord avroRecord = readRecord(in, schema);

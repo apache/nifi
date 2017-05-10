@@ -27,42 +27,24 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 
-public class FreeFormTextWriter implements RecordSetWriter {
+public class FreeFormTextWriter extends AbstractRecordSetWriter implements RecordSetWriter {
     private static final byte NEW_LINE = (byte) '\n';
     private final PropertyValue propertyValue;
     private final Charset charset;
+    private final OutputStream out;
 
-    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet) {
-        propertyValue = textPropertyValue;
-        charset = characterSet;
-    }
-
-    @Override
-    public WriteResult write(final RecordSet recordSet, final OutputStream out) throws IOException {
-        int count = 0;
-
-        try {
-            Record record;
-            while ((record = recordSet.next()) != null) {
-                final RecordSchema schema = record.getSchema();
-                final List<String> colNames = getColumnNames(schema);
-
-                count++;
-                write(record, out, colNames);
-            }
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
-
-        return WriteResult.of(count, Collections.emptyMap());
+    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet, final OutputStream out) {
+        super(out);
+        this.propertyValue = textPropertyValue;
+        this.charset = characterSet;
+        this.out = out;
     }
 
     private List<String> getColumnNames(final RecordSchema schema) {
@@ -78,7 +60,7 @@ public class FreeFormTextWriter implements RecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
+    public WriteResult write(final Record record) throws IOException {
         write(record, out, getColumnNames(record.getSchema()));
         return WriteResult.of(1, Collections.emptyMap());
     }

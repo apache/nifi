@@ -19,6 +19,7 @@ package org.apache.nifi.text;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -81,8 +82,8 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema) {
-        return new FreeFormTextWriter(textValue, characterSet);
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final FlowFile flowFile, final OutputStream out) {
+        return new FreeFormTextWriter(textValue, characterSet, out);
     }
 
     @Override

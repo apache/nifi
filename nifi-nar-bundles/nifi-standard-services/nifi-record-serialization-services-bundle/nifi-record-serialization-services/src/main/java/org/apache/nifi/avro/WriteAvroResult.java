@@ -32,9 +32,11 @@ import java.util.Collections;
 
 public abstract class WriteAvroResult implements RecordSetWriter {
     private final Schema schema;
+    private final OutputStream out;
 
-    public WriteAvroResult(final Schema schema) {
+    public WriteAvroResult(final Schema schema, final OutputStream out) {
         this.schema = schema;
+        this.out = out;
     }
 
     protected Schema getSchema() {
@@ -42,7 +44,7 @@ public abstract class WriteAvroResult implements RecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream out) throws IOException {
+    public WriteResult write(final Record record) throws IOException {
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -57,13 +59,5 @@ public abstract class WriteAvroResult implements RecordSetWriter {
     @Override
     public String getMimeType() {
         return "application/avro-binary";
-    }
-
-    public static String normalizeNameForAvro(String inputName) {
-        String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
-        if (Character.isDigit(normalizedName.charAt(0))) {
-            normalizedName = "_" + normalizedName;
-        }
-        return normalizedName;
     }
 }

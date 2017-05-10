@@ -992,6 +992,22 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-lookup-service-api</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-lookup-services</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-lookup-services-nar</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-service-api</artifactId>
                 <version>1.3.0-SNAPSHOT</version>
             </dependency>

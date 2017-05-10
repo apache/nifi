@@ -17,21 +17,20 @@
 
 package org.apache.nifi.serialization;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.apache.nifi.serialization.record.Record;
 
-public interface RecordWriter {
+public interface RecordWriter extends Closeable {
     /**
      * Writes the given result set to the given output stream
      *
      * @param record the record set to serialize
-     * @param out the OutputStream to write to
      * @return the results of writing the data
      * @throws IOException if unable to write to the given OutputStream
      */
-    WriteResult write(Record record, OutputStream out) throws IOException;
+    WriteResult write(Record record) throws IOException;
 
     /**
      * @return the MIME Type that the Result Set Writer produces. This will be added to FlowFiles using

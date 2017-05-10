@@ -20,13 +20,13 @@ package org.apache.nifi.json;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.Map;
 import java.util.Optional;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
@@ -34,87 +34,76 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
 
-public class WriteJsonResult implements RecordSetWriter {
+public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter {
     private final ComponentLog logger;
-    private final boolean prettyPrint;
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
     private final DateFormat dateFormat;
     private final DateFormat timeFormat;
     private final DateFormat timestampFormat;
+    private final JsonGenerator generator;
 
-    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final boolean prettyPrint,
-        final String dateFormat, final String timeFormat, final String timestampFormat) {
+    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
+        super(out);
         this.logger = logger;
         this.recordSchema = recordSchema;
-        this.prettyPrint = prettyPrint;
         this.schemaAccess = schemaAccess;
 
         this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+
+        this.generator = factory.createJsonGenerator(out);
+        if (prettyPrint) {
+            generator.useDefaultPrettyPrinter();
+        }
+    }
+
+
+    @Override
+    protected void onBeginRecordSet() throws IOException {
+        final OutputStream out = getOutputStream();
+        schemaAccess.writeHeader(recordSchema, out);
+
+        generator.writeStartArray();
     }
 
     @Override
-    public WriteResult write(final RecordSet rs, final OutputStream rawOut) throws IOException {
-        int count = 0;
-
-        schemaAccess.writeHeader(recordSchema, rawOut);
-
-        try (final JsonGenerator generator = factory.createJsonGenerator(new NonCloseableOutputStream(rawOut))) {
-            if (prettyPrint) {
-                generator.useDefaultPrettyPrinter();
-            }
-
-            generator.writeStartArray();
-
-            Record record;
-            while ((record = rs.next()) != null) {
-                count++;
-                writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
-            }
-
-            generator.writeEndArray();
-        } catch (final SQLException e) {
-            throw new IOException("Failed to serialize Result Set to stream", e);
-        }
-
-        return WriteResult.of(count, schemaAccess.getAttributes(recordSchema));
+    protected Map<String, String> onFinishRecordSet() throws IOException {
+        generator.writeEndArray();
+        return schemaAccess.getAttributes(recordSchema);
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream rawOut) throws IOException {
-        schemaAccess.writeHeader(recordSchema, rawOut);
-
-        try (final JsonGenerator generator = factory.createJsonGenerator(new NonCloseableOutputStream(rawOut))) {
-            if (prettyPrint) {
-                generator.useDefaultPrettyPrinter();
-            }
-
-            writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
-        } catch (final SQLException e) {
-            throw new IOException("Failed to write records to stream", e);
+    public void close() throws IOException {
+        if (generator != null) {
+            generator.close();
         }
 
+        super.close();
+    }
+
+    @Override
+    public WriteResult write(final Record record) throws IOException {
+        writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
         return WriteResult.of(1, schemaAccess.getAttributes(recordSchema));
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator, final GeneratorTask startTask, final GeneratorTask endTask)
-        throws JsonGenerationException, IOException, SQLException {
+        throws JsonGenerationException, IOException {
 
         final Optional<SerializedForm> serializedForm = record.getSerializedForm();
         if (serializedForm.isPresent()) {
@@ -155,7 +144,7 @@ public class WriteJsonResult implements RecordSetWriter {
 
     @SuppressWarnings("unchecked")
     private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType, final boolean moreCols)
-        throws JsonGenerationException, IOException, SQLException {
+        throws JsonGenerationException, IOException {
         if (value == null) {
             generator.writeNull();
             return;
@@ -268,7 +257,7 @@ public class WriteJsonResult implements RecordSetWriter {
     }
 
     private void writeArray(final Object[] values, final String fieldName, final JsonGenerator generator, final DataType elementType)
-        throws JsonGenerationException, IOException, SQLException {
+        throws JsonGenerationException, IOException {
         generator.writeStartArray();
         for (int i = 0; i < values.length; i++) {
             final boolean moreEntries = i < values.length - 1;

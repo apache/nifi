@@ -20,38 +20,44 @@ package org.apache.nifi.csv;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.Collections;
+import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.stream.io.NonCloseableOutputStream;
 
-public class WriteCSVResult implements RecordSetWriter {
-    private final CSVFormat csvFormat;
+public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSetWriter {
     private final RecordSchema recordSchema;
     private final SchemaAccessWriter schemaWriter;
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
-    private final boolean includeHeaderLine;
+    private final CSVPrinter printer;
+    private final Object[] fieldValues;
 
-    public WriteCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter,
-        final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine) {
-        this.csvFormat = csvFormat;
+    public WriteCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter, final OutputStream out,
+        final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine) throws IOException {
+
+        super(out);
         this.recordSchema = recordSchema;
         this.schemaWriter = schemaWriter;
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
         this.timestampFormat = timestampFormat;
-        this.includeHeaderLine = includeHeaderLine;
+
+        final String[] columnNames = recordSchema.getFieldNames().toArray(new String[0]);
+        final CSVFormat formatWithHeader = csvFormat.withHeader(columnNames).withSkipHeaderRecord(!includeHeaderLine);
+        final OutputStreamWriter streamWriter = new OutputStreamWriter(out);
+        printer = new CSVPrinter(streamWriter, formatWithHeader);
+
+        fieldValues = new Object[recordSchema.getFieldCount()];
     }
 
     private String getFormat(final RecordField field) {
@@ -69,60 +75,29 @@ public class WriteCSVResult implements RecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final RecordSet rs, final OutputStream rawOut) throws IOException {
-        int count = 0;
-
-        final String[] columnNames = recordSchema.getFieldNames().toArray(new String[0]);
-        final CSVFormat formatWithHeader = csvFormat.withHeader(columnNames).withSkipHeaderRecord(!includeHeaderLine);
-
-        schemaWriter.writeHeader(recordSchema, rawOut);
-
-        try (final OutputStream nonCloseable = new NonCloseableOutputStream(rawOut);
-            final OutputStreamWriter streamWriter = new OutputStreamWriter(nonCloseable);
-            final CSVPrinter printer = new CSVPrinter(streamWriter, formatWithHeader)) {
-
-            try {
-                Record record;
-                while ((record = rs.next()) != null) {
-                    final Object[] colVals = new Object[recordSchema.getFieldCount()];
-                    int i = 0;
-                    for (final RecordField recordField : recordSchema.getFields()) {
-                        colVals[i++] = record.getAsString(recordField, getFormat(recordField));
-                    }
-
-                    printer.printRecord(colVals);
-                    count++;
-                }
-            } catch (final Exception e) {
-                throw new IOException("Failed to serialize results", e);
-            }
-        }
-
-        return WriteResult.of(count, schemaWriter.getAttributes(recordSchema));
+    protected void onBeginRecordSet() throws IOException {
+        schemaWriter.writeHeader(recordSchema, getOutputStream());
     }
 
     @Override
-    public WriteResult write(final Record record, final OutputStream rawOut) throws IOException {
+    protected Map<String, String> onFinishRecordSet() throws IOException {
+        return schemaWriter.getAttributes(recordSchema);
+    }
 
-        try (final OutputStream nonCloseable = new NonCloseableOutputStream(rawOut);
-            final OutputStreamWriter streamWriter = new OutputStreamWriter(nonCloseable);
-            final CSVPrinter printer = new CSVPrinter(streamWriter, csvFormat)) {
+    @Override
+    public void close() throws IOException {
+        printer.close();
+    }
 
-            try {
-                final RecordSchema schema = record.getSchema();
-                final Object[] colVals = new Object[schema.getFieldCount()];
-                int i = 0;
-                for (final RecordField recordField : schema.getFields()) {
-                    colVals[i++] = record.getAsString(recordField, getFormat(recordField));
-                }
-
-                printer.printRecord(colVals);
-            } catch (final Exception e) {
-                throw new IOException("Failed to serialize results", e);
-            }
+    @Override
+    public WriteResult write(final Record record) throws IOException {
+        int i = 0;
+        for (final RecordField recordField : recordSchema.getFields()) {
+            fieldValues[i++] = record.getAsString(recordField, getFormat(recordField));
         }
 
-        return WriteResult.of(1, Collections.emptyMap());
+        printer.printRecord(fieldValues);
+        return WriteResult.of(1, schemaWriter.getAttributes(recordSchema));
     }
 
     @Override

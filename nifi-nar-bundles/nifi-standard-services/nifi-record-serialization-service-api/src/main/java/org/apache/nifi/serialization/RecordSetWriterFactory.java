@@ -19,6 +19,7 @@ package org.apache.nifi.serialization;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -66,9 +67,11 @@ public interface RecordSetWriterFactory extends ControllerService {
      * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
      *            because it allows messages to be logged for the component that is calling this Controller Service.
      * @param schema the schema that will be used for writing records
+     * @param flowFile the FlowFile to write to
+     * @param out the OutputStream to write to
      *
      * @return a RecordSetWriter that can write record sets to an OutputStream
      * @throws IOException if unable to read from the given InputStream
      */
-    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) throws SchemaNotFoundException, IOException;
+    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, FlowFile flowFile, OutputStream out) throws SchemaNotFoundException, IOException;
 }

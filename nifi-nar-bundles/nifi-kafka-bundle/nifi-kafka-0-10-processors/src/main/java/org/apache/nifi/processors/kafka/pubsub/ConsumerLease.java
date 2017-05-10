@@ -413,16 +413,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         FlowFile flowFile = session.create();
         try {
-            final RecordSetWriter writer;
+            final RecordSchema schema;
+
             try {
-                final RecordSchema schema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
-                writer = writerFactory.createWriter(logger, schema);
+                schema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
             } catch (final Exception e) {
-                logger.error(
-                    "Failed to obtain a Record Writer for serializing Kafka messages. This generally happens because the "
-                        + "Record Writer cannot obtain the appropriate Schema, due to failure to connect to a remote Schema Registry "
-                        + "or due to the Schema Access Strategy being dependent upon FlowFile Attributes that are not available. "
-                        + "Will roll back the Kafka message offsets.", e);
+                logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
 
                 try {
                     rollback(topicPartition);
@@ -436,6 +432,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
             final FlowFile ff = flowFile;
             final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
+            final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
 
             flowFile = session.write(flowFile, rawOut -> {
                 final Iterator<ConsumerRecord<byte[], byte[]>> itr = records.iterator();
@@ -479,15 +476,28 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     }
                 };
 
-                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                    writeResult.set(writer.write(recordSet, out));
+                try (final OutputStream out = new BufferedOutputStream(rawOut);
+                    final RecordSetWriter writer = writerFactory.createWriter(logger, schema, ff, out)) {
+                    writeResult.set(writer.write(recordSet));
+                    mimeTypeRef.set(writer.getMimeType());
+                } catch (final Exception e) {
+                    logger.error("Failed to write records to FlowFile. Will roll back the Kafka message offsets.", e);
+
+                    try {
+                        rollback(topicPartition);
+                    } catch (final Exception rollbackException) {
+                        logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+                    }
+
+                    yield();
+                    throw new ProcessException(e);
                 }
             });
 
             final WriteResult result = writeResult.get();
             if (result.getRecordCount() > 0) {
                 final Map<String, String> attributes = new HashMap<>(result.getAttributes());
-                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                 attributes.put("record.count", String.valueOf(result.getRecordCount()));
 
                 attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
