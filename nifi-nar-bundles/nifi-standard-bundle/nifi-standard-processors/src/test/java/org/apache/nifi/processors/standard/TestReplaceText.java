@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,14 +33,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TestReplaceText {
 
@@ -1192,6 +1192,36 @@ public class TestReplaceText {
         runner.assertValid();
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
         runner.assertValid();
+    }
+
+    @Test
+    public void testBackReferenceEscapeWithRegexReplaceUsingEL() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${'$1':toUpper()}");
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.assertValid();
+
+        runner.enqueue("wo$rd".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("WO$RD");
+
+        runner.enqueue("wo$1rd".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 2);
+        out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(1);
+        out.assertContentEquals("WO$1RD");
+
+        runner.enqueue("wo$1r$2d".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 3);
+        out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(2);
+        out.assertContentEquals("WO$1R$2D");
     }
 
     private String translateNewLines(final File file) throws IOException {
