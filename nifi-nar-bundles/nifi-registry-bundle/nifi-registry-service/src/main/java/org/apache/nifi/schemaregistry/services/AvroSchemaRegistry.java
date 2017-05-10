@@ -17,34 +17,26 @@
 package org.apache.nifi.schemaregistry.services;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
-import org.apache.avro.Schema.Type;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
@@ -57,12 +49,6 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     private final Map<String, String> schemaNameToSchemaMap;
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
-    private static final String LOGICAL_TYPE_DATE = "date";
-    private static final String LOGICAL_TYPE_TIME_MILLIS = "time-millis";
-    private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
-
     public AvroSchemaRegistry() {
         this.schemaNameToSchemaMap = new HashMap<>();
     }
@@ -74,7 +60,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         } else {
             try {
                 final Schema avroSchema = new Schema.Parser().parse(newValue);
-                final RecordSchema recordSchema = createRecordSchema(avroSchema, newValue, descriptor.getName());
+                final SchemaIdentifier schemaId = SchemaIdentifier.ofName(descriptor.getName());
+                final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
                 recordSchemas.put(descriptor.getName(), recordSchema);
             } catch (final Exception e) {
                 // not a problem - the service won't be valid and the validation message will indicate what is wrong.
@@ -136,113 +123,6 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .build();
     }
 
-
-    /**
-     * Converts an Avro Schema to a RecordSchema
-     *
-     * @param avroSchema the Avro Schema to convert
-     * @param text the textual representation of the schema
-     * @param schemaName the name of the schema
-     * @return the Corresponding Record Schema
-     */
-    private RecordSchema createRecordSchema(final Schema avroSchema, final String text, final String schemaName) {
-        final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
-        for (final Field field : avroSchema.getFields()) {
-            final String fieldName = field.name();
-            final DataType dataType = determineDataType(field.schema());
-
-            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
-        }
-
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, text, "avro", SchemaIdentifier.ofName(schemaName));
-        return recordSchema;
-    }
-
-    /**
-     * Returns a DataType for the given Avro Schema
-     *
-     * @param avroSchema the Avro Schema to convert
-     * @return a Data Type that corresponds to the given Avro Schema
-     */
-    private DataType determineDataType(final Schema avroSchema) {
-        final Type avroType = avroSchema.getType();
-
-        final LogicalType logicalType = avroSchema.getLogicalType();
-        if (logicalType != null) {
-            final String logicalTypeName = logicalType.getName();
-            switch (logicalTypeName) {
-                case LOGICAL_TYPE_DATE:
-                    return RecordFieldType.DATE.getDataType();
-                case LOGICAL_TYPE_TIME_MILLIS:
-                case LOGICAL_TYPE_TIME_MICROS:
-                    return RecordFieldType.TIME.getDataType();
-                case LOGICAL_TYPE_TIMESTAMP_MILLIS:
-                case LOGICAL_TYPE_TIMESTAMP_MICROS:
-                    return RecordFieldType.TIMESTAMP.getDataType();
-            }
-        }
-
-        switch (avroType) {
-            case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType()));
-            case BYTES:
-            case FIXED:
-                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
-            case BOOLEAN:
-                return RecordFieldType.BOOLEAN.getDataType();
-            case DOUBLE:
-                return RecordFieldType.DOUBLE.getDataType();
-            case ENUM:
-            case STRING:
-                return RecordFieldType.STRING.getDataType();
-            case FLOAT:
-                return RecordFieldType.FLOAT.getDataType();
-            case INT:
-                return RecordFieldType.INT.getDataType();
-            case LONG:
-                return RecordFieldType.LONG.getDataType();
-            case RECORD: {
-                final List<Field> avroFields = avroSchema.getFields();
-                final List<RecordField> recordFields = new ArrayList<>(avroFields.size());
-
-                for (final Field field : avroFields) {
-                    final String fieldName = field.name();
-                    final Schema fieldSchema = field.schema();
-                    final DataType fieldType = determineDataType(fieldSchema);
-
-                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
-                }
-
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), "avro", SchemaIdentifier.EMPTY);
-                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
-            }
-            case NULL:
-                return RecordFieldType.STRING.getDataType();
-            case MAP:
-                final Schema valueSchema = avroSchema.getValueType();
-                final DataType valueType = determineDataType(valueSchema);
-                return RecordFieldType.MAP.getMapDataType(valueType);
-            case UNION: {
-                final List<Schema> nonNullSubSchemas = avroSchema.getTypes().stream()
-                    .filter(s -> s.getType() != Type.NULL)
-                    .collect(Collectors.toList());
-
-                if (nonNullSubSchemas.size() == 1) {
-                    return determineDataType(nonNullSubSchemas.get(0));
-                }
-
-                final List<DataType> possibleChildTypes = new ArrayList<>(nonNullSubSchemas.size());
-                for (final Schema subSchema : nonNullSubSchemas) {
-                    final DataType childDataType = determineDataType(subSchema);
-                    possibleChildTypes.add(childDataType);
-                }
-
-                return RecordFieldType.CHOICE.getChoiceDataType(possibleChildTypes);
-            }
-        }
-
-        return null;
-    }
 
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
