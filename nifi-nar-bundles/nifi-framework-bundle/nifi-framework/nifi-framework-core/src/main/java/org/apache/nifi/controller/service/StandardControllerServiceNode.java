@@ -42,6 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -353,7 +354,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     public void setComments(final String comment) {
         writeLock.lock();
         try {
-            this.comment = comment;
+            this.comment = CharacterFilterUtils.filterInvalidXmlCharacters(comment);
         } finally {
             writeLock.unlock();
         }
