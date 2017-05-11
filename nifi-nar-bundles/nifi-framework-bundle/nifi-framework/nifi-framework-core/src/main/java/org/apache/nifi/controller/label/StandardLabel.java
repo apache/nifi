@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.util.CharacterFilterUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,7 +48,7 @@ public class StandardLabel implements Label {
         this.position = new AtomicReference<>(position);
         this.style = new AtomicReference<>(Collections.unmodifiableMap(new HashMap<>(style)));
         this.size = new AtomicReference<>(new Size(150, 150));
-        this.value = new AtomicReference<>(value);
+        this.value = new AtomicReference<>(CharacterFilterUtils.filterInvalidXmlCharacters(value));
         this.processGroup = new AtomicReference<>(processGroup);
     }
 
@@ -116,7 +117,7 @@ public class StandardLabel implements Label {
     }
 
     public void setValue(final String value) {
-        this.value.set(value);
+        this.value.set(CharacterFilterUtils.filterInvalidXmlCharacters(value));
     }
 
     public void setProcessGroup(final ProcessGroup group) {

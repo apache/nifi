@@ -29,6 +29,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setName(final String name) {
-        this.name.set(Objects.requireNonNull(name).intern());
+        this.name.set(CharacterFilterUtils.filterInvalidXmlCharacters(Objects.requireNonNull(name).intern()));
     }
 
     @Override
@@ -115,7 +116,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setAnnotationData(final String data) {
-        annotationData.set(data);
+        annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
     }
 
     @Override
@@ -140,7 +141,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey());
                     } else if (entry.getKey() != null) {
-                        setProperty(entry.getKey(), entry.getValue());
+                        setProperty(entry.getKey(), CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue()));
                     }
                 }
 
