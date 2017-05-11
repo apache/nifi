@@ -195,7 +195,7 @@ all elements by using the syntax `/addresses[0..-1]` or even `/addresses[0, 1, 4
 the `addresses` array has only 2 elements. The indices that do not match will simply be skipped.
 
 
-[[maps]
+[[maps]]
 === Maps
 
 Similar to an Array field, a Map field may actually consist of several different values. RecordPath gives us the ability to select a set of values based on their keys.
@@ -240,7 +240,8 @@ only for an `address` field where the state is not New York? The above examples 
 
 RecordPath provides the user the ability to specify a Predicate. A Predicate is simply a filter that can be applied to a field in order to determine whether or not the
 field should be included in the results. Like other filters, a Predicate is specified within square brackets. The syntax of the Predicate is
-`<Relative RecordPath> <Operator> <Expression>`. The `Relative RecordPath` works just like any other RecordPath but must start with a `.` instead of a slash and references
+`<Relative RecordPath> <Operator> <Expression>`. The `Relative RecordPath` works just like any other RecordPath but must start with a `.` (to reference the current field)
+or a `..` (to reference the current field's parent) instead of a slash and references
 fields relative to the field that the Predicate applies to. The `Operator` must be one of:
 
 - Equals (`=`)
@@ -287,5 +288,6 @@ We can also compare the value in one field with the value in another field. For 
 the RecordPath `/*[./state = /details/preferredState]`. In this example, this RecordPath will retrieve the `workAddress` field because its `state` field matches the
 value of the `preferredState` field.
 
+Additionally, we can write a RecordPath that references the "city" field of any record whose state is "NJ" by using the parent operator (`..`): `/*/city[../state = 'NJ']`.
 
 
