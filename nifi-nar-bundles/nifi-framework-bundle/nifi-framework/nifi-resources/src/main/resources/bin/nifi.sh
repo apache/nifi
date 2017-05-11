@@ -300,7 +300,7 @@ run() {
     fi
 
     if [ "$1" = "start" ]; then
-        ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )
+        ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )> /dev/null 1>&-
     else
         eval "cd ${NIFI_HOME} && ${run_nifi_cmd}"
     fi
