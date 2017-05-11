@@ -327,7 +327,13 @@ public class AvroTypeUtil {
 
                     return map;
                 } else if (rawValue instanceof Map) {
-                    return rawValue;
+                    final Map<String, Object> objectMap = (Map<String, Object>) rawValue;
+                    final Map<String, Object> map = new HashMap<>(objectMap.size());
+                    for (final String s : objectMap.keySet()) {
+                        final Object converted = convertToAvroObject(objectMap.get(s), fieldSchema.getValueType(), fieldName);
+                        map.put(s, converted);
+                    }
+                    return map;
                 } else {
                     throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Map");
                 }

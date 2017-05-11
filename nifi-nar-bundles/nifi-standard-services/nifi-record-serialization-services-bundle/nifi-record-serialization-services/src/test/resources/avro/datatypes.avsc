@@ -42,6 +42,12 @@
 	      	 { "name": "field1", "type": "string" }
 	      ]
       }
-    }
+    }, {
+      "name": "map",
+      "type": {
+         "type": "map",
+         "values": "subRecord"
+      }
+   }
  ]
 }
