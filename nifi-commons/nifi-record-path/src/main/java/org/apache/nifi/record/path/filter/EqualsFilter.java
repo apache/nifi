@@ -28,14 +28,37 @@ public class EqualsFilter extends BinaryOperatorFilter {
 
     @Override
     protected boolean test(final FieldValue fieldValue, final Object rhsValue) {
-        if (fieldValue.getValue() == null) {
+        final Object lhsValue = fieldValue.getValue();
+        if (lhsValue == null) {
             return rhsValue == null;
         }
-        return fieldValue.getValue().equals(rhsValue);
+
+        if (lhsValue instanceof Number) {
+            if (rhsValue instanceof Number) {
+                return compareNumbers((Number) lhsValue, (Number) rhsValue);
+            } else {
+                return false;
+            }
+        } else if (rhsValue instanceof Number) {
+            return false;
+        }
+
+        return lhsValue.equals(rhsValue);
     }
 
     @Override
     protected String getOperator() {
         return "=";
+    }
+
+    private boolean compareNumbers(final Number lhs, final Number rhs) {
+        final boolean lhsLongCompatible = (lhs instanceof Long || lhs instanceof Integer || lhs instanceof Short || lhs instanceof Byte);
+        final boolean rhsLongCompatible = (rhs instanceof Long || rhs instanceof Integer || lhs instanceof Short || lhs instanceof Byte);
+
+        if (lhsLongCompatible && rhsLongCompatible) {
+            return lhs.longValue() == rhs.longValue();
+        }
+
+        return lhs.doubleValue() == rhs.doubleValue();
     }
 }
