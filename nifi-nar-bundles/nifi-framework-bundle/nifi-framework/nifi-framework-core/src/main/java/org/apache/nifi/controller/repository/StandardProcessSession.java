@@ -111,7 +111,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<String, Long> counters = new HashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new HashMap<>();
     private final ProcessContext context;
-    private final Set<FlowFile> readRecursionSet = new HashSet<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
+    private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
     private final Set<FlowFile> writeRecursionSet = new HashSet<>();
     private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
     private final long sessionId;
@@ -1152,7 +1152,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     + "has an open OutputStream for the FlowFile, created by calling ProcessSession.write(FlowFile)");
             }
 
-            if (readRecursionSet.contains(flowFile)) {
+            if (readRecursionSet.containsKey(flowFile)) {
                 throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
             }
             if (writeRecursionSet.contains(flowFile)) {
@@ -2132,7 +2132,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             boolean cnfeThrown = false;
 
             try {
-                readRecursionSet.add(source);
+                incrementReadCount(source);
                 reader.process(ffais);
 
                 // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
@@ -2144,7 +2144,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 cnfeThrown = true;
                 throw cnfe;
             } finally {
-                readRecursionSet.remove(source);
+                decrementReadCount(source);
                 bytesRead += countingStream.getBytesRead();
 
                 // if cnfeThrown is true, we don't need to re-thrown the Exception; it will propagate.
@@ -2219,7 +2219,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             @Override
             public void close() throws IOException {
-                readRecursionSet.remove(sourceFlowFile);
+                decrementReadCount(sourceFlowFile);
 
                 if (!closed) {
                     StandardProcessSession.this.bytesRead += countingStream.getBytesRead();
@@ -2261,9 +2261,27 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         };
 
-        readRecursionSet.add(sourceFlowFile);
-        openInputStreams.put(source, errorHandlingStream);
+        incrementReadCount(sourceFlowFile);
+        openInputStreams.put(sourceFlowFile, errorHandlingStream);
         return errorHandlingStream;
+    }
+
+    private void incrementReadCount(final FlowFile flowFile) {
+        readRecursionSet.compute(flowFile, (ff, count) -> count == null ? 1 : count + 1);
+    }
+
+    private void decrementReadCount(final FlowFile flowFile) {
+        final Integer count = readRecursionSet.get(flowFile);
+        if (count == null) {
+            return;
+        }
+
+        final int updatedCount = count - 1;
+        if (updatedCount == 0) {
+            readRecursionSet.remove(flowFile);
+        } else {
+            readRecursionSet.put(flowFile, updatedCount);
+        }
     }
 
     @Override
@@ -2939,13 +2957,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             boolean cnfeThrown = false;
 
             try {
-                readRecursionSet.add(source);
+                incrementReadCount(source);
                 StreamUtils.copy(ffais, destination, source.getSize());
             } catch (final ContentNotFoundException cnfe) {
                 cnfeThrown = true;
                 throw cnfe;
             } finally {
-                readRecursionSet.remove(source);
+                decrementReadCount(source);
+
                 IOUtils.closeQuietly(ffais);
                 // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
                 if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
@@ -2993,7 +3012,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private FlowFile validateRecordState(final FlowFile flowFile, final boolean allowRecursiveRead) {
-        if (!allowRecursiveRead && readRecursionSet.contains(flowFile)) {
+        if (!allowRecursiveRead && readRecursionSet.containsKey(flowFile)) {
             throw new IllegalStateException(flowFile + " already in use for an active callback or an InputStream created by ProcessSession.read(FlowFile) has not been closed");
         }
         if (writeRecursionSet.contains(flowFile)) {

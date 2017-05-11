@@ -71,7 +71,8 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
     private final SharedSessionState sharedState;
     private final Map<String, Long> counterMap = new HashMap<>();
-    private final Set<FlowFile> recursionSet = new HashSet<>();
+    private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();
+    private final Set<FlowFile> writeRecursionSet = new HashSet<>();
     private final MockProvenanceReporter provenanceReporter;
     private final boolean enforceStreamsClosed;
 
@@ -145,8 +146,12 @@ public class MockProcessSession implements ProcessSession {
                     + "has an open OutputStream for the FlowFile, created by calling ProcessSession.write(FlowFile)");
             }
 
-            if (recursionSet.contains(flowFile)) {
+            if (readRecursionSet.containsKey(flowFile)) {
                 throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
+            }
+
+            if (writeRecursionSet.contains(flowFile)) {
+                throw new IllegalStateException(flowFile + " already in use for an active callback or OutputStream created by ProcessSession.write(FlowFile) has not been closed");
             }
 
             final FlowFile currentVersion = currentVersions.get(flowFile.getId());
@@ -537,7 +542,7 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile mock = (MockFlowFile) flowFile;
 
         final ByteArrayInputStream bais = new ByteArrayInputStream(mock.getData());
-        recursionSet.add(flowFile);
+        incrementReadCount(flowFile);
         try {
             callback.process(bais);
             if(!allowSessionStreamManagement){
@@ -546,7 +551,25 @@ public class MockProcessSession implements ProcessSession {
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         } finally {
-            recursionSet.remove(flowFile);
+            decrementReadCount(flowFile);
+        }
+    }
+
+    private void incrementReadCount(final FlowFile flowFile) {
+        readRecursionSet.compute(flowFile, (ff, count) -> count == null ? 1 : count + 1);
+    }
+
+    private void decrementReadCount(final FlowFile flowFile) {
+        final Integer count = readRecursionSet.get(flowFile);
+        if (count == null) {
+            return;
+        }
+
+        final int updatedCount = count - 1;
+        if (updatedCount == 0) {
+            readRecursionSet.remove(flowFile);
+        } else {
+            readRecursionSet.put(flowFile, updatedCount);
         }
     }
 
@@ -795,13 +818,13 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile mock = (MockFlowFile) flowFile;
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        recursionSet.add(flowFile);
+        writeRecursionSet.add(flowFile);
         try {
             callback.process(baos);
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         } finally {
-            recursionSet.remove(flowFile);
+            writeRecursionSet.remove(flowFile);
         }
 
         final MockFlowFile newFlowFile = new MockFlowFile(mock.getId(), flowFile);
@@ -818,13 +841,13 @@ public class MockProcessSession implements ProcessSession {
         }
 
         final MockFlowFile mockFlowFile = validateState(flowFile);
-        recursionSet.add(flowFile);
+        writeRecursionSet.add(flowFile);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
                 super.close();
 
-                recursionSet.remove(mockFlowFile);
+                writeRecursionSet.remove(mockFlowFile);
                 final MockFlowFile newFlowFile = new MockFlowFile(mockFlowFile.getId(), flowFile);
                 currentVersions.put(newFlowFile.getId(), newFlowFile);
 
@@ -867,13 +890,13 @@ public class MockProcessSession implements ProcessSession {
         final ByteArrayInputStream in = new ByteArrayInputStream(mock.getData());
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        recursionSet.add(flowFile);
+        writeRecursionSet.add(flowFile);
         try {
             callback.process(in, out);
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         } finally {
-            recursionSet.remove(flowFile);
+            writeRecursionSet.remove(flowFile);
         }
 
         final MockFlowFile newFlowFile = new MockFlowFile(mock.getId(), flowFile);
@@ -980,8 +1003,12 @@ public class MockProcessSession implements ProcessSession {
             throw new FlowFileHandlingException(flowFile + " is not known in this session");
         }
 
-        if (recursionSet.contains(flowFile)) {
+        if (readRecursionSet.containsKey(flowFile)) {
             throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
+        }
+
+        if (writeRecursionSet.contains(flowFile)) {
+            throw new IllegalStateException(flowFile + " already in use for an active callback or OutputStream created by ProcessSession.write(FlowFile) has not been closed");
         }
 
         for (final List<MockFlowFile> flowFiles : transferMap.values()) {

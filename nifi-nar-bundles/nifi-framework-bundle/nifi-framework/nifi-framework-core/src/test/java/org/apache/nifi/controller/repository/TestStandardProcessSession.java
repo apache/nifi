@@ -1772,6 +1772,31 @@ public class TestStandardProcessSession {
         assertEquals(5, transientClaims.size());
     }
 
+    @Test
+    public void testMultipleReadCounts() throws IOException {
+        flowFileQueue.put(new MockFlowFile(1L));
+
+        FlowFile flowFile = session.get();
+
+        final List<InputStream> streams = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            streams.add(session.read(flowFile));
+        }
+
+        for (int i = 0; i < 3; i++) {
+            try {
+                flowFile = session.putAttribute(flowFile, "counter", String.valueOf(i));
+                Assert.fail("Was able to put attribute while reading");
+            } catch (final IllegalStateException ise) {
+                // expected
+            }
+
+            streams.get(i).close();
+        }
+
+        flowFile = session.putAttribute(flowFile, "counter", "4");
+    }
+
 
     private static class MockFlowFileRepository implements FlowFileRepository {
 
