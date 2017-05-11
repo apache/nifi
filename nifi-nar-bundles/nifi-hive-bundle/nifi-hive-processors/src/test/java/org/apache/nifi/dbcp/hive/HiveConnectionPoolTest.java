@@ -19,9 +19,13 @@ package org.apache.nifi.dbcp.hive;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,6 +34,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.isA;
@@ -51,7 +57,7 @@ public class HiveConnectionPoolTest {
         when(userGroupInformation.doAs(isA(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {
             try {
                 return ((PrivilegedExceptionAction) invocation.getArguments()[0]).run();
-            } catch (IOException |Error|RuntimeException|InterruptedException e) {
+            } catch (IOException | Error | RuntimeException | InterruptedException e) {
                 throw e;
             } catch (Throwable e) {
                 throw new UndeclaredThrowableException(e);
@@ -86,5 +92,46 @@ public class HiveConnectionPoolTest {
             assertEquals(sqlException, e.getCause());
             throw e;
         }
+    }
+
+    @Test
+    public void testExpressionLanguageSupport() throws Exception {
+        final String URL = "jdbc:hive2://localhost:10000/default";
+        final String USER = "user";
+        final String PASS = "pass";
+        final int MAX_CONN = 7;
+        final String MAX_WAIT = "10 sec"; // 10000 milliseconds
+        final String CONF = "/path/to/hive-site.xml";
+        hiveConnectionPool = new HiveConnectionPool();
+
+        Map<PropertyDescriptor, String> props = new HashMap<PropertyDescriptor, String>() {{
+            put(HiveConnectionPool.DATABASE_URL, "${url}");
+            put(HiveConnectionPool.DB_USER, "${username}");
+            put(HiveConnectionPool.DB_PASSWORD, "${password}");
+            put(HiveConnectionPool.MAX_TOTAL_CONNECTIONS, "${maxconn}");
+            put(HiveConnectionPool.MAX_WAIT_TIME, "${maxwait}");
+            put(HiveConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
+        }};
+
+        MockVariableRegistry registry = new MockVariableRegistry();
+        registry.setVariable(new VariableDescriptor("url"), URL);
+        registry.setVariable(new VariableDescriptor("username"), USER);
+        registry.setVariable(new VariableDescriptor("password"), PASS);
+        registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
+        registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
+        registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
+
+
+        MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
+        hiveConnectionPool.onConfigured(context);
+
+        Field dataSourceField = HiveConnectionPool.class.getDeclaredField("dataSource");
+        dataSourceField.setAccessible(true);
+        basicDataSource = (BasicDataSource) dataSourceField.get(hiveConnectionPool);
+        assertEquals(URL, basicDataSource.getUrl());
+        assertEquals(USER, basicDataSource.getUsername());
+        assertEquals(PASS, basicDataSource.getPassword());
+        assertEquals(MAX_CONN, basicDataSource.getMaxActive());
+        assertEquals(10000L, basicDataSource.getMaxWait());
     }
 }
