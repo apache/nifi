@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -327,35 +324,6 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
-    }
-
-
-    @Test
-    public void testGetPropertyDescriptors() throws Exception {
-        PutS3Object processor = new PutS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
-        assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(PutS3Object.BUCKET));
-        assertTrue(pd.contains(PutS3Object.CANNED_ACL));
-        assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.KEY));
-        assertTrue(pd.contains(PutS3Object.OWNER));
-        assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.REGION));
-        assertTrue(pd.contains(PutS3Object.SECRET_KEY));
-        assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(PutS3Object.TIMEOUT));
-        assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
-        assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
-        assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
     }
 
     @Test

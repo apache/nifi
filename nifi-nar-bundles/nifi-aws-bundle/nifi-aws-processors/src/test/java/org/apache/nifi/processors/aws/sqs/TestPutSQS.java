@@ -17,70 +17,90 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.processors.aws.sns.PutSNS;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
 
-@Ignore("For local testing only - interacts with S3 so the credentials file must be configured and all necessary buckets created")
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.AmazonSQSException;
+import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
+
+
 public class TestPutSQS {
 
-    private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
+    private TestRunner runner = null;
+    private PutSQS mockPutSQS = null;
+    private AmazonSQSClient actualSQSClient = null;
+    private AmazonSQSClient mockSQSClient = null;
+
+    @Before
+    public void setUp() {
+        mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+        mockPutSQS = new PutSQS() {
+            protected AmazonSQSClient getClient() {
+                actualSQSClient = client;
+                return mockSQSClient;
+            }
+        };
+        runner = TestRunners.newTestRunner(mockPutSQS);
+    }
 
     @Test
     public void testSimplePut() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
-        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutSQS.TIMEOUT, "30 secs");
-        runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000");
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "1.txt");
-        runner.enqueue(Paths.get("src/test/resources/hello.txt"), attrs);
+        runner.enqueue("TestMessageBody", attrs);
+
+        SendMessageBatchResult batchResult = new SendMessageBatchResult();
+        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
+
         runner.run(1);
+
+        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
+        SendMessageBatchRequest request = captureRequest.getValue();
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+        assertEquals("hello", request.getEntries().get(0).getMessageAttributes().get("x-custom-prop").getStringValue());
+        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
 
     @Test
-    public void testSimplePutUsingCredentialsProviderService() throws Throwable {
-        final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
-
-        runner.setProperty(PutSQS.TIMEOUT, "30 secs");
-        String queueUrl = "Add queue url here";
-        runner.setProperty(PutSQS.QUEUE_URL, queueUrl);
+    public void testPutException() throws IOException {
         runner.setValidateExpressionUsage(false);
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.enableControllerService(serviceImpl);
-
-        runner.assertValid(serviceImpl);
+        runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "1.txt");
-        runner.enqueue(Paths.get("src/test/resources/hello.txt"), attrs);
-                runner.setProperty(PutSQS.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.enqueue("TestMessageBody", attrs);
+
+        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenThrow(new AmazonSQSException("TestFail"));
+
         runner.run(1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQS.REL_SUCCESS);
-        for (final MockFlowFile mff : flowFiles) {
-            System.out.println(mff.getAttributes());
-            System.out.println(new String(mff.toByteArray()));
-        }
+        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
+        SendMessageBatchRequest request = captureRequest.getValue();
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
 
+        runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
     }
+
 }
