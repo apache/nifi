@@ -40,6 +40,10 @@
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <script>
+            //force browsers to use URLSearchParams polyfill do to bugs and inconsistent browser implementations
+            URLSearchParams = undefined;
+        </script>
         <script type="text/javascript" src="assets/url-search-params/build/url-search-params.js"></script>
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="assets/d3/d3.min.js"></script>
