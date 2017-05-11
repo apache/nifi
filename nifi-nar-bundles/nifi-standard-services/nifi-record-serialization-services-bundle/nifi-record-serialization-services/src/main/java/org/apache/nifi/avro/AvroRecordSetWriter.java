@@ -18,7 +18,6 @@
 package org.apache.nifi.avro;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -32,7 +31,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaField;
@@ -59,12 +57,10 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) throws IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema) throws IOException {
         final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
 
         try {
-            final RecordSchema recordSchema = getSchema(flowFile, in);
-
             final Schema avroSchema;
             try {
                 if (recordSchema.getSchemaFormat().isPresent() & recordSchema.getSchemaFormat().get().equals(AvroTypeUtil.AVRO_SCHEMA_FORMAT)) {

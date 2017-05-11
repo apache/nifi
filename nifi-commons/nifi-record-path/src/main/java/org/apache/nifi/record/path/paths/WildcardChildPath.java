@@ -25,7 +25,6 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class WildcardChildPath extends RecordPathSegment {
 
@@ -42,7 +41,7 @@ public class WildcardChildPath extends RecordPathSegment {
     }
 
     private Stream<FieldValue> getChildren(final FieldValue fieldValue) {
-        if (fieldValue == null || fieldValue.getValue() == null || fieldValue.getField().getDataType().getFieldType() != RecordFieldType.RECORD) {
+        if (fieldValue == null || fieldValue.getValue() == null || !Filters.isRecord(fieldValue)) {
             return Stream.empty();
         }
 

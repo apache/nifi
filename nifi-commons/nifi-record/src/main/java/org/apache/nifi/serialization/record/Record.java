@@ -27,6 +27,23 @@ public interface Record {
     RecordSchema getSchema();
 
     /**
+     * Updates the Record's schema to to incorporate all of the fields in the given schema. If both schemas have a
+     * field with the same name but a different type, then the existing schema will be updated to have a
+     * {@link RecordFieldType#CHOICE} field with both types as choices. If two fields have the same name but different
+     * default values, then the default value that is already in place will remain the default value, unless the current
+     * default value is <code>null</code>. Note that all values for this Record will still be valid according
+     * to this Record's Schema after this operation completes, as no type will be changed except to become more
+     * lenient. However, if incorporating the other schema does modify this schema, then the schema text
+     * returned by {@link #getSchemaText()}, the schema format returned by {@link #getSchemaFormat()}, and
+     * the SchemaIdentifier returned by {@link #getIdentifier()} for this record's schema may all become Empty.
+     *
+     * @param other the other schema to incorporate into this Record's schema
+     *
+     * @throws UnsupportedOperationException if this record does not support incorporating other schemas
+     */
+    void incorporateSchema(RecordSchema other);
+
+    /**
      * <p>
      * Returns a view of the the values of the fields in this Record.
      * </p>

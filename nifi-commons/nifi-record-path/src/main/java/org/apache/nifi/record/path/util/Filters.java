@@ -22,6 +22,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class Filters {
@@ -48,4 +50,25 @@ public class Filters {
             .map(opt -> opt.get());
     }
 
+    public static boolean isRecord(final FieldValue fieldValue) {
+        final DataType dataType = fieldValue.getField().getDataType();
+        final Object value = fieldValue.getValue();
+        return isRecord(dataType, value);
+    }
+
+    public static boolean isRecord(final DataType dataType, final Object value) {
+        if (dataType.getFieldType() == RecordFieldType.RECORD) {
+            return true;
+        }
+
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof Record) {
+            return true;
+        }
+
+        return false;
+    }
 }

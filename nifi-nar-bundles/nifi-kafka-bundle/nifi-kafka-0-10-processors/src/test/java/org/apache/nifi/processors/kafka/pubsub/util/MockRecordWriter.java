@@ -25,10 +25,12 @@ import java.util.Collections;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
@@ -51,7 +53,12 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final FlowFile flowFile, final InputStream in) {
+    public RecordSchema getSchema(FlowFile flowFile, InputStream content) throws SchemaNotFoundException, IOException {
+        return null;
+    }
+
+    @Override
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema) {
         return new RecordSetWriter() {
             @Override
             public WriteResult write(final RecordSet rs, final OutputStream out) throws IOException {

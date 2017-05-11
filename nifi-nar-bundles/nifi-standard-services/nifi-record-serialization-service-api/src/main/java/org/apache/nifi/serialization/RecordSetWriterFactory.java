@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 /**
  * <p>
@@ -45,19 +46,29 @@ public interface RecordSetWriterFactory extends ControllerService {
 
     /**
      * <p>
-     * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream. Note that the
-     * FlowFile and InputStream that are given may well be different than the FlowFile that the writer is intended
-     * to write to. The given FlowFile and InputStream are intended to be used for determining the schema that should
-     * be used when writing records.
+     * Returns the Schema that will be used for writing Records. Note that the FlowFile and InputStream that are given
+     * may well be different than the FlowFile that the writer will write to. The given FlowFile and InputStream are
+     * intended to be used for determining the schema that should be used when writing records.
+     * </p>
+     *
+     * @param flowFile the FlowFile from which the schema should be determined.
+     * @param content the contents of the FlowFile from which to determine the schema
+     * @return the Schema that should be used for writing Records
+     * @throws SchemaNotFoundException if unable to find the schema
+     */
+    RecordSchema getSchema(FlowFile flowFile, InputStream content) throws SchemaNotFoundException, IOException;
+
+    /**
+     * <p>
+     * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream.
      * </p>
      *
      * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
      *            because it allows messages to be logged for the component that is calling this Controller Service.
-     * @param schemaFlowFile the FlowFile from which the schema should be determined.
-     * @param schemaFlowFileContent the contents of the FlowFile from which to determine the schema
+     * @param schema the schema that will be used for writing records
+     *
      * @return a RecordSetWriter that can write record sets to an OutputStream
-     * @throws SchemaNotFoundException if unable to find the schema
      * @throws IOException if unable to read from the given InputStream
      */
-    RecordSetWriter createWriter(ComponentLog logger, FlowFile schemaFlowFile, InputStream schemaFlowFileContent) throws SchemaNotFoundException, IOException;
+    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) throws SchemaNotFoundException, IOException;
 }

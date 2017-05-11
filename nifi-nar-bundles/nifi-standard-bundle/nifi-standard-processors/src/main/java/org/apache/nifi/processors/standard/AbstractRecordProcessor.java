@@ -102,9 +102,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final RecordSetWriter writer;
+        final RecordSchema writeSchema;
         try (final InputStream rawIn = session.read(flowFile);
             final InputStream in = new BufferedInputStream(rawIn)) {
-            writer = writerFactory.createWriter(getLogger(), flowFile, in);
+            writeSchema = writerFactory.getSchema(flowFile, in);
+            writer = writerFactory.createWriter(getLogger(), writeSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to convert records for {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
@@ -140,7 +142,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                                         return null;
                                     }
 
-                                    return AbstractRecordProcessor.this.process(record, original, context);
+                                    return AbstractRecordProcessor.this.process(record, writeSchema, original, context);
                                 } catch (final MalformedRecordException e) {
                                     throw new IOException(e);
                                 } catch (final Exception e) {
@@ -176,5 +178,5 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         getLogger().info("Successfully converted {} records for {}", new Object[] {writeResult.getRecordCount(), flowFile});
     }
 
-    protected abstract Record process(Record record, FlowFile flowFile, ProcessContext context);
+    protected abstract Record process(Record record, RecordSchema writeSchema, FlowFile flowFile, ProcessContext context);
 }

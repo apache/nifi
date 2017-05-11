@@ -25,8 +25,8 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.StandardRecordPathEvaluationContext;
+import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordFieldType;
 
 public abstract class RecordPathSegment implements RecordPath {
     private final String path;
@@ -100,7 +100,7 @@ public abstract class RecordPathSegment implements RecordPath {
     @Override
     public final RecordPathResult evaluate(final FieldValue contextNode) {
         final RecordPathEvaluationContext context;
-        if (contextNode.getField().getDataType().getFieldType() == RecordFieldType.RECORD) {
+        if (Filters.isRecord(contextNode.getField().getDataType(), contextNode.getValue())) {
             final Record record = (Record) contextNode.getValue();
             if (record == null) {
                 return new RecordPathResult() {

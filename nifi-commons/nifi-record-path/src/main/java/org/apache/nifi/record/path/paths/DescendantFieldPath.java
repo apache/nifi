@@ -25,9 +25,9 @@ import java.util.stream.Stream;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
+import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class DescendantFieldPath extends RecordPathSegment {
     private final String descendantName;
@@ -50,7 +50,7 @@ public class DescendantFieldPath extends RecordPathSegment {
         if (fieldValue == null || fieldValue.getValue() == null) {
             return Collections.emptyList();
         }
-        if (RecordFieldType.RECORD != fieldValue.getField().getDataType().getFieldType()) {
+        if (!Filters.isRecord(fieldValue)) {
             return Collections.emptyList();
         }
 
@@ -66,12 +66,12 @@ public class DescendantFieldPath extends RecordPathSegment {
                 }
             }
 
-            if (childField.getDataType().getFieldType() == RecordFieldType.RECORD) {
-                final Object recordValue = record.getValue(childField.getFieldName());
-                if (recordValue == null) {
-                    continue;
-                }
+            final Object recordValue = record.getValue(childField.getFieldName());
+            if (recordValue == null) {
+                continue;
+            }
 
+            if (Filters.isRecord(childField.getDataType(), recordValue)) {
                 final FieldValue childFieldValue = new StandardFieldValue(recordValue, childField, fieldValue);
                 matchingValues.addAll(findDescendants(childFieldValue));
             }

@@ -36,34 +36,34 @@ public class ChildFieldPath extends RecordPathSegment {
         this.childName = childName;
     }
 
-    private Optional<FieldValue> getChild(final FieldValue fieldValue) {
-        if (fieldValue == null) {
-            return Optional.empty();
-        }
+    private FieldValue missingChild(final FieldValue parent) {
+        final RecordField field = new RecordField(childName, RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.RECORD.getDataType()));
+        return new StandardFieldValue(null, field, parent);
+    }
 
-        if (fieldValue.getField().getDataType().getFieldType() != RecordFieldType.RECORD) {
-            return Optional.empty();
+    private FieldValue getChild(final FieldValue fieldValue) {
+        if (!Filters.isRecord(fieldValue)) {
+            return missingChild(fieldValue);
         }
 
         final Record record = (Record) fieldValue.getValue();
         final Object value = record.getValue(childName);
         if (value == null) {
-            return Optional.empty();
+            return missingChild(fieldValue);
         }
 
         final Optional<RecordField> field = record.getSchema().getField(childName);
         if (!field.isPresent()) {
-            return Optional.empty();
+            return missingChild(fieldValue);
         }
 
-        return Optional.of(new StandardFieldValue(value, field.get(), fieldValue));
+        return new StandardFieldValue(value, field.get(), fieldValue);
     }
 
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
-        return Filters.presentValues(
-            getParentPath().evaluate(context)
+        return getParentPath().evaluate(context)
             // map to Optional<FieldValue> containing child element
-            .map(fieldVal -> getChild(fieldVal)));
+            .map(fieldVal -> getChild(fieldVal));
     }
 }

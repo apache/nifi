@@ -21,9 +21,9 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class StandardFieldValue implements FieldValue {
     private final Object value;
@@ -67,7 +67,7 @@ public class StandardFieldValue implements FieldValue {
 
     protected static FieldValue validateParentRecord(final FieldValue parent) {
         Objects.requireNonNull(parent, "Cannot create an ArrayIndexFieldValue without a parent");
-        if (RecordFieldType.RECORD != parent.getField().getDataType().getFieldType()) {
+        if (!Filters.isRecord(parent)) {
             if (!parent.getParentRecord().isPresent()) {
                 throw new IllegalArgumentException("Field must have a Parent Record");
             }
@@ -87,7 +87,7 @@ public class StandardFieldValue implements FieldValue {
         }
 
         final FieldValue fieldValue = fieldValueOption.get();
-        if (RecordFieldType.RECORD == fieldValue.getField().getDataType().getFieldType()) {
+        if (Filters.isRecord(fieldValue)) {
             return Optional.ofNullable((Record) fieldValue.getValue());
         }
 

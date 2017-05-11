@@ -46,6 +46,7 @@ import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathPropertyNameValidator;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 
 @EventDriven
@@ -130,8 +131,12 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context) {
         final boolean evaluateValueAsRecordPath = context.getProperty(REPLACEMENT_VALUE_STRATEGY).getValue().equals(RECORD_PATH_VALUES.getValue());
+
+        // Incorporate the RecordSchema that we will use for writing records into the Schema that we have
+        // for the record, because it's possible that the updates to the record will not be valid otherwise.
+        record.incorporateSchema(writeSchema);
 
         for (final String recordPathText : recordPaths) {
             final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);

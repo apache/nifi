@@ -33,7 +33,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final InputStream in;
-    private final Schema avroSchema;
     private final RecordSchema recordSchema;
     private final DatumReader<GenericRecord> datumReader;
     private final BinaryDecoder decoder;
@@ -43,7 +42,6 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
         this.in = in;
         this.recordSchema = recordSchema;
 
-        this.avroSchema = avroSchema;
         datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
         decoder = DecoderFactory.get().binaryDecoder(in, null);
     }

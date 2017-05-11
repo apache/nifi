@@ -17,19 +17,19 @@
 
 package org.apache.nifi.serialization.record;
 
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.type.MapDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+
 public class MapRecord implements Record {
-    private final RecordSchema schema;
+    private RecordSchema schema;
     private final Map<String, Object> values;
     private Optional<SerializedForm> serializedForm;
 
@@ -321,5 +321,10 @@ public class MapRecord implements Record {
         if (replaced == null || !replaced.equals(coerced)) {
             serializedForm = Optional.empty();
         }
+    }
+
+    @Override
+    public void incorporateSchema(RecordSchema other) {
+        this.schema = DataTypeUtils.merge(this.schema, other);
     }
 }

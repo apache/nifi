@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -33,6 +44,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,18 +55,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
 
 public class FetchParquetTest {
 
@@ -221,7 +221,7 @@ public class FetchParquetTest {
 
         final RecordSetWriterFactory recordSetWriterFactory = Mockito.mock(RecordSetWriterFactory.class);
         when(recordSetWriterFactory.getIdentifier()).thenReturn("mock-writer-factory");
-        when(recordSetWriterFactory.createWriter(any(ComponentLog.class), any(FlowFile.class), any(InputStream.class))).thenReturn(recordSetWriter);
+        when(recordSetWriterFactory.createWriter(any(ComponentLog.class), any(RecordSchema.class))).thenReturn(recordSetWriter);
 
         testRunner.addControllerService("mock-writer-factory", recordSetWriterFactory);
         testRunner.enableControllerService(recordSetWriterFactory);

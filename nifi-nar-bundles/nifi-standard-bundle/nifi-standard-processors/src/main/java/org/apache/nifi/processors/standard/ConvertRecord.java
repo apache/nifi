@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 @EventDriven
 @SupportsBatching
@@ -48,7 +49,7 @@ import org.apache.nifi.serialization.record.Record;
 public class ConvertRecord extends AbstractRecordProcessor {
 
     @Override
-    protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context) {
         return record;
     }
 

@@ -17,14 +17,6 @@
 
 package org.apache.nifi.serialization.record.util;
 
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
@@ -32,13 +24,28 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public class DataTypeUtils {
 
@@ -783,4 +790,107 @@ public class DataTypeUtils {
         return value != null && (value instanceof Character || (value instanceof CharSequence && ((CharSequence) value).length() > 0));
     }
 
+    public static RecordSchema merge(final RecordSchema thisSchema, final RecordSchema otherSchema) {
+        if (thisSchema == null) {
+            return otherSchema;
+        }
+        if (otherSchema == null) {
+            return thisSchema;
+        }
+
+        final List<RecordField> otherFields = otherSchema.getFields();
+        if (otherFields.isEmpty()) {
+            return thisSchema;
+        }
+
+        final List<RecordField> thisFields = thisSchema.getFields();
+        if (thisFields.isEmpty()) {
+            return otherSchema;
+        }
+
+        final Map<String, Integer> fieldIndices = new HashMap<>();
+        final List<RecordField> fields = new ArrayList<>();
+        for (int i = 0; i < thisFields.size(); i++) {
+            final RecordField field = thisFields.get(i);
+
+            final Integer index = Integer.valueOf(i);
+
+            fieldIndices.put(field.getFieldName(), index);
+            for (final String alias : field.getAliases()) {
+                fieldIndices.put(alias, index);
+            }
+
+            fields.add(field);
+        }
+
+        for (final RecordField otherField : otherFields) {
+            Integer fieldIndex = fieldIndices.get(otherField.getFieldName());
+
+            // Find the field in 'thisSchema' that corresponds to 'otherField',
+            // if one exists.
+            if (fieldIndex == null) {
+                for (final String alias : otherField.getAliases()) {
+                    fieldIndex = fieldIndices.get(alias);
+                    if (fieldIndex != null) {
+                        break;
+                    }
+                }
+            }
+
+            // If there is no field with the same name then just add 'otherField'.
+            if (fieldIndex == null) {
+                fields.add(otherField);
+                continue;
+            }
+
+            // Merge the two fields, if necessary
+            final RecordField thisField = fields.get(fieldIndex);
+            if (isMergeRequired(thisField, otherField)) {
+                final RecordField mergedField = merge(thisField, otherField);
+                fields.set(fieldIndex, mergedField);
+            }
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+
+    private static boolean isMergeRequired(final RecordField thisField, final RecordField otherField) {
+        if (!thisField.getDataType().equals(otherField.getDataType())) {
+            return true;
+        }
+
+        if (!thisField.getAliases().equals(otherField.getAliases())) {
+            return true;
+        }
+
+        if (!Objects.equals(thisField.getDefaultValue(), otherField.getDefaultValue())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static RecordField merge(final RecordField thisField, final RecordField otherField) {
+        final String fieldName = thisField.getFieldName();
+        final Set<String> aliases = new HashSet<>();
+        aliases.addAll(thisField.getAliases());
+        aliases.addAll(otherField.getAliases());
+
+        final Object defaultValue;
+        if (thisField.getDefaultValue() == null && otherField.getDefaultValue() != null) {
+            defaultValue = otherField.getDefaultValue();
+        } else {
+            defaultValue = thisField.getDefaultValue();
+        }
+
+        final DataType dataType;
+        if (thisField.getDataType().equals(otherField.getDataType())) {
+            dataType = thisField.getDataType();
+        } else {
+            dataType = RecordFieldType.CHOICE.getChoiceDataType(thisField.getDataType(), otherField.getDataType());
+        }
+
+        return new RecordField(fieldName, dataType, defaultValue, aliases);
+    }
 }
