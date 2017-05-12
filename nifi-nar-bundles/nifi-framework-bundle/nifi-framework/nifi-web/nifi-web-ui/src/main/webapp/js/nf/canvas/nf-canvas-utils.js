@@ -554,6 +554,7 @@
          * @param {string} text
          */
         ellipsis: function (selection, text) {
+            text = text.trim();
             var width = parseInt(selection.attr('width'), 10);
             var node = selection.node();
 
