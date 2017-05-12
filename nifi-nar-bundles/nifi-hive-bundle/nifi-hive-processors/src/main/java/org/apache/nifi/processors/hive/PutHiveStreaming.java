@@ -179,7 +179,6 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("A comma-delimited list of column names on which the table has been partitioned. The order of values in this list must "
                     + "correspond exactly to the order of partition columns specified during the table creation.")
             .required(false)
-            .expressionLanguageSupported(false)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("[^,]+(,[^,]+)*"))) // comma-separated list with non-empty entries
             .build();
 
@@ -329,7 +328,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
         final Integer maxConnections = context.getProperty(MAX_OPEN_CONNECTIONS).asInteger();
         final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).asInteger();
-        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).asInteger();
+        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).evaluateAttributeExpressions().asInteger();
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
@@ -559,7 +558,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
 
         final ComponentLog log = getLogger();
-        final Integer recordsPerTxn = context.getProperty(RECORDS_PER_TXN).asInteger();
+        final Integer recordsPerTxn = context.getProperty(RECORDS_PER_TXN).evaluateAttributeExpressions(flowFile).asInteger();
 
         // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
         ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();

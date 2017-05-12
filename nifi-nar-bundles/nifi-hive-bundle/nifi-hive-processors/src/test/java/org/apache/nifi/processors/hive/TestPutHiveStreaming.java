@@ -107,7 +107,6 @@ public class TestPutHiveStreaming {
 
     @Test
     public void testSetup() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.assertNotValid();
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
@@ -119,7 +118,6 @@ public class TestPutHiveStreaming {
 
     @Test
     public void testUgiGetsCleared() {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -133,7 +131,6 @@ public class TestPutHiveStreaming {
         when(hiveConf.get(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION)).thenReturn(SecurityUtil.KERBEROS);
         ugi = mock(UserGroupInformation.class);
         when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString(), anyLong(), any())).thenReturn(ugi);
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -149,7 +146,6 @@ public class TestPutHiveStreaming {
 
     @Test
     public void testSetupBadPartitionColumns() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -161,7 +157,6 @@ public class TestPutHiveStreaming {
 
     @Test(expected = AssertionError.class)
     public void testSetupWithKerberosAuthFailed() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -188,7 +183,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -208,7 +202,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         runner.enqueue("I am not an Avro record".getBytes());
         runner.run();
 
@@ -222,7 +215,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         runner.enqueue("I am not an Avro record".getBytes());
         try {
             runner.run();
@@ -243,7 +235,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -277,7 +268,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -311,7 +301,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
-        runner.setValidateExpressionUsage(false);
         processor.setGenerateWriteFailure(true, 1);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
@@ -359,7 +348,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         processor.setGenerateWriteFailure(true, 1);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
@@ -401,7 +389,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         // The first two records are committed, then an issue will happen at the 3rd record.
         processor.setGenerateWriteFailure(true, 2);
         Map<String, Object> user1 = new HashMap<String, Object>() {
@@ -481,7 +468,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_number, favorite_color");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -507,7 +493,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -533,7 +518,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -563,7 +547,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -587,7 +570,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.HEARTBEAT_INTERVAL, "1");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -613,7 +595,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -636,7 +617,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -665,7 +645,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -686,7 +665,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -711,7 +689,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -739,7 +716,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -772,7 +748,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -794,7 +769,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -822,7 +796,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -845,7 +818,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -874,7 +846,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -897,7 +868,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -926,7 +896,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
