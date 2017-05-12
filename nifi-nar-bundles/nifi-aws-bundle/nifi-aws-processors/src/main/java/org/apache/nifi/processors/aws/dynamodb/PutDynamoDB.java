@@ -95,21 +95,21 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).asInteger());
+        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
         if (flowFiles == null || flowFiles.size() == 0) {
             return;
         }
 
         Map<ItemKeys, FlowFile> keysToFlowFileMap = new HashMap<>();
 
-        final String table = context.getProperty(TABLE).getValue();
+        final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
 
-        final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
+        final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
         final String hashKeyValueType = context.getProperty(HASH_KEY_VALUE_TYPE).getValue();
-        final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
+        final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
         final String rangeKeyValueType = context.getProperty(RANGE_KEY_VALUE_TYPE).getValue();
-        final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
-        final String charset = context.getProperty(DOCUMENT_CHARSET).getValue();
+        final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
+        final String charset = context.getProperty(DOCUMENT_CHARSET).evaluateAttributeExpressions().getValue();
 
         TableWriteItems tableWriteItems = new TableWriteItems(table);
 
