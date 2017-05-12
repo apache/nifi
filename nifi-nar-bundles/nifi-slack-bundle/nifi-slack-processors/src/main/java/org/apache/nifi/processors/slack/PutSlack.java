@@ -273,7 +273,11 @@ public class PutSlack extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();
             }
-        } catch (IOException | JsonParsingException e) {
+        } catch (JsonParsingException e) {
+            getLogger().error("Failed to parse JSON", e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+        } catch (IOException e) {
             getLogger().error("Failed to open connection", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
