@@ -100,19 +100,19 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).asInteger());
+        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
         if (flowFiles == null || flowFiles.size() == 0) {
             return;
         }
 
         Map<ItemKeys,FlowFile> keysToFlowFileMap = new HashMap<>();
 
-        final String table = context.getProperty(TABLE).getValue();
+        final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         TableKeysAndAttributes tableKeysAndAttributes = new TableKeysAndAttributes(table);
 
-        final String hashKeyName = context.getProperty(HASH_KEY_NAME).getValue();
-        final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).getValue();
-        final String jsonDocument = context.getProperty(JSON_DOCUMENT).getValue();
+        final String hashKeyName = context.getProperty(HASH_KEY_NAME).evaluateAttributeExpressions().getValue();
+        final String rangeKeyName = context.getProperty(RANGE_KEY_NAME).evaluateAttributeExpressions().getValue();
+        final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
 
         for (FlowFile flowFile : flowFiles) {
             final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
