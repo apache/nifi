@@ -25,6 +25,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.avro.JsonProperties;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -205,7 +206,11 @@ public class AvroTypeUtil {
             final String fieldName = field.name();
             final DataType dataType = AvroTypeUtil.determineDataType(field.schema());
 
-            recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
+            if (field.defaultVal() == JsonProperties.NULL_VALUE) {
+               recordFields.add(new RecordField(fieldName, dataType, field.aliases()));
+            } else {
+               recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
+            }
         }
 
         final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, schemaText, AVRO_SCHEMA_FORMAT, schemaId);
