@@ -50,7 +50,6 @@ public class TestGetKafka {
     @Ignore("Intended only for local tests to verify functionality.")
     public void testIntegrationLocally() {
         final TestRunner runner = TestRunners.newTestRunner(GetKafka.class);
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "192.168.0.101:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
@@ -74,7 +73,6 @@ public class TestGetKafka {
 
         final TestableProcessor proc = new TestableProcessor(null, messages);
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
@@ -97,7 +95,6 @@ public class TestGetKafka {
 
         final TestableProcessor proc = new TestableProcessor(null, messages);
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
         runner.setProperty(GetKafka.TOPIC, "testX");
         runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
