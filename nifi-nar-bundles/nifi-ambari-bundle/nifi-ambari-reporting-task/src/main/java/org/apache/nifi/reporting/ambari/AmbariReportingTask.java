@@ -17,6 +17,8 @@
 package org.apache.nifi.reporting.ambari;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
+
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -28,7 +30,7 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ambari.api.MetricsBuilder;
 import org.apache.nifi.reporting.ambari.metrics.MetricsService;
-
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
@@ -51,6 +53,7 @@ import java.util.concurrent.TimeUnit;
         "works, this reporting task should be scheduled to run every 60 seconds. Each iteration it will send the metrics " +
         "from the previous iteration, and calculate the current metrics to be sent on next iteration. Scheduling this reporting " +
         "task at a frequency other than 60 seconds may produce unexpected results.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class AmbariReportingTask extends AbstractReportingTask {
 
     static final PropertyDescriptor METRICS_COLLECTOR_URL = new PropertyDescriptor.Builder()
