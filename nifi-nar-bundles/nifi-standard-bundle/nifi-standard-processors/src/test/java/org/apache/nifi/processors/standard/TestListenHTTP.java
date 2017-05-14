@@ -116,7 +116,12 @@ public class TestListenHTTP {
         messages.add("");
         messages.add(null);
         messages.add("payload 2");
-        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 1\n"
+                     + "--------------------------962f981e211cb099--");
 
         startWebServerAndSendMessages(messages, "text/plain");
 
@@ -127,15 +132,55 @@ public class TestListenHTTP {
         mockFlowFiles.get(1).assertContentEquals("");
         mockFlowFiles.get(2).assertContentEquals("");
         mockFlowFiles.get(3).assertContentEquals("payload 2");
-        mockFlowFiles.get(4).assertContentEquals("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
+        mockFlowFiles.get(4).assertContentEquals("--------------------------962f981e211cb099\n"
+                                                 + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                                                 + "Content-Type: text/plain\n"
+                                                 + "\n"
+                                                 + "payload 1\n"
+                                                 + "--------------------------962f981e211cb099--");
     }
 
     private void testMultipartPOSTRequestsReceived() throws Exception {
         final List<String> messages = new ArrayList<>();
-        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
-        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 2\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload extra\n--------------------------962f981e211cb099--");
-        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 3 extra\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 3\n--------------------------962f981e211cb099--");
-        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip1\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 4.1\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip2\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 4.2\n--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 1\n"
+                     + "--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 2\n"
+                     + "--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload extra\n"
+                     + "--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"skip\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 3 extra\n"
+                     + "--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 3\n"
+                     + "--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"skip1\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 4.1\n"
+                     + "--------------------------962f981e211cb099\n"
+                     + "Content-Disposition: form-data; name=\"skip2\"; filename=\"file.txt\"\n"
+                     + "Content-Type: text/plain\n"
+                     + "\n"
+                     + "payload 4.2\n"
+                     + "--------------------------962f981e211cb099--");
 
         startWebServerAndSendMessages(messages, "multipart/form-data; boundary=------------------------962f981e211cb099");
 

@@ -287,7 +287,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_FLOWFILE_MAP, flowFileMap);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         if (context.getProperty(MULTIPART_PARTNAME_PATTERN).isSet()) {
-	    contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_PARTNAME_PATTERN, Pattern.compile(context.getProperty(MULTIPART_PARTNAME_PATTERN).getValue()));
+            contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_PARTNAME_PATTERN, Pattern.compile(context.getProperty(MULTIPART_PARTNAME_PATTERN).getValue()));
         }
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);

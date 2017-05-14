@@ -53,7 +53,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
 import org.apache.nifi.processors.standard.ListenHTTP;
@@ -218,7 +217,7 @@ public class ListenHTTPServlet extends HttpServlet {
             } else {
                 // not multipart/form-data
                 unthrottled = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
-            };
+            }
 
             final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.newThrottledInputStream(unthrottled);
 
