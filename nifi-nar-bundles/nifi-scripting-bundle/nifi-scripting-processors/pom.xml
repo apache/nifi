@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-scripting-bundle</artifactId>
-        <version>0.7.3</version>
+        <version>0.7.4-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-scripting-processors</artifactId>
