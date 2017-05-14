@@ -176,8 +176,6 @@ public class TestListenHTTP {
                 Thread.sleep(100);
             }
 
-            runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
-
     }
 
     private int findAvailablePort() throws IOException {
