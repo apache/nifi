@@ -81,6 +81,12 @@ detectOS() {
          export LDR_CNTRL=MAXDATA=0xB0000000@DSA
          echo ${LDR_CNTRL}
     fi
+    # In addition to those, go around the linux space and query the widely
+    # adopted /etc/os-release to detect linux variants
+    if [ -f /etc/os-release ]
+    then
+        source /etc/os-release
+    fi
 }
 
 unlimitFD() {
@@ -174,6 +180,8 @@ install() {
         SVC_NAME=$2
     fi
 
+    # since systemd seems to honour /etc/init.d we don't still create native systemd services
+    # yet...
     initd_dir='/etc/init.d'
     SVC_FILE="${initd_dir}/${SVC_NAME}"
 
@@ -222,11 +230,22 @@ SERVICEDESCRIPTOR
     # Provide the user execute access on the file
     chmod u+x ${SVC_FILE}
 
-    rm -f "/etc/rc2.d/S65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
-    rm -f "/etc/rc2.d/K65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
-    echo "Service ${SVC_NAME} installed"
+
+    # If SLES or OpenSuse...
+    if [ "${ID}" = "opensuse" ] || [ "${ID}" = "sles" ]; then
+        rm -f "/etc/rc.d/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/S65${SVC_NAME}"; exit 1; }
+        rm -f "/etc/rc.d/rc2.d/K65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/K65${SVC_NAME}"; exit 1; }
+        echo "Service ${SVC_NAME} installed"
+    # Anything other fallback to the old approach
+    else
+        rm -f "/etc/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
+        rm -f "/etc/rc2.d/K65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
+        echo "Service ${SVC_NAME} installed"
+    fi
 }
 
 run() {
