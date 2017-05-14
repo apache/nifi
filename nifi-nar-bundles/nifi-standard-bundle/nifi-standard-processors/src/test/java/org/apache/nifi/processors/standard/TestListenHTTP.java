@@ -146,7 +146,7 @@ public class TestListenHTTP {
                 Thread.sleep(100);
             }
 
-            runner.assertTransferCount(ListenTCP.REL_SUCCESS, messages.size());
+            runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
 
     }
 
