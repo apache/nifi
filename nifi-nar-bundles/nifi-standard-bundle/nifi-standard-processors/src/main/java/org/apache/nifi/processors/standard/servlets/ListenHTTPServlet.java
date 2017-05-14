@@ -19,7 +19,9 @@ package org.apache.nifi.processors.standard.servlets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,26 +36,29 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.processors.standard.ListenHTTP;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
@@ -70,6 +75,7 @@ public class ListenHTTPServlet extends HttpServlet {
     public static final String FLOWFILE_CONFIRMATION_HEADER = "x-prefer-acknowledge-uri";
     public static final String LOCATION_HEADER_NAME = "Location";
     public static final String DEFAULT_FOUND_SUBJECT = "none";
+    public static final String MULTIPART_FORM = "multipart/form-data";
     public static final String APPLICATION_FLOW_FILE_V1 = "application/flowfile";
     public static final String APPLICATION_FLOW_FILE_V2 = "application/flowfile-v2";
     public static final String APPLICATION_FLOW_FILE_V3 = "application/flowfile-v3";
@@ -91,6 +97,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private AtomicReference<ProcessSessionFactory> sessionFactoryHolder;
     private volatile ProcessContext processContext;
     private Pattern authorizedPattern;
+    private Pattern multipartPartnamePattern;
     private Pattern headerPattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
@@ -104,6 +111,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
         this.processContext = (ProcessContext) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
+        this.multipartPartnamePattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_PARTNAME_PATTERN);
         this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
@@ -181,9 +189,36 @@ public class ListenHTTPServlet extends HttpServlet {
 
             final boolean destinationIsLegacyNiFi = (protocolVersion == null);
             final boolean createHold = Boolean.parseBoolean(request.getHeader(FLOWFILE_CONFIRMATION_HEADER));
-            final String contentType = request.getContentType();
+            String contentType = request.getContentType();
+            String fileName = null;
+            String partName = null;
 
-            final InputStream unthrottled = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
+            InputStream unthrottled = null;
+            if ((multipartPartnamePattern != null) && (contentType.startsWith(MULTIPART_FORM))) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Unwrapping multipart form");
+                }
+                MultipartConfigElement multipartConfigElement = new MultipartConfigElement(System.getProperty("java.io.tmpdir"));
+                request.setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement);
+                Collection<Part> parts = request.getParts();
+                for (Part part : parts) {
+                    if (multipartPartnamePattern.matcher(part.getName()).matches()) {
+                        fileName = Paths.get(part.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
+                        contentType = part.getContentType();
+                        unthrottled = part.getInputStream();
+                        break;
+                    }
+                }
+                if (unthrottled == null) {
+                    logger.warn("Received request from " + request.getRemoteHost() + " with no multipart/form-data matching required expression");
+                    response.setHeader("Content-Type", MediaType.TEXT_PLAIN);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No multipart/form-data name matched required expression");
+                    return;
+                }
+            } else {
+                // not multipart/form-data
+                unthrottled = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
+            };
 
             final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.newThrottledInputStream(unthrottled);
 
@@ -240,9 +275,16 @@ public class ListenHTTPServlet extends HttpServlet {
                 final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
 
                 // put metadata on flowfile
-                final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
-                if (StringUtils.isNotBlank(nameVal)) {
-                    attributes.put(CoreAttributes.FILENAME.key(), nameVal);
+                if (fileName == null) {
+                    final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
+                    if (StringUtils.isNotBlank(nameVal)) {
+                        attributes.put(CoreAttributes.FILENAME.key(), nameVal);
+                    }
+                } else {
+                    attributes.put(CoreAttributes.FILENAME.key(), fileName);
+                }
+                if (partName != null) {
+                    attributes.put("restlistener.multipart.part", partName);
                 }
 
                 // put arbitrary headers on flow file

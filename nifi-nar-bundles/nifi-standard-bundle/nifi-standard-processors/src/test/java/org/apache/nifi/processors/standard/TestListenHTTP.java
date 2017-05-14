@@ -82,12 +82,23 @@ public class TestListenHTTP {
         testPOSTRequestsReceived();
     }
 
-    private int executePOST(String message) throws Exception {
+    @Test
+    public void testPOSTRequestsMultipart() throws Exception {
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MULTIPART_PARTNAME_PATTERN, "file.*");
+
+        testMultipartPOSTRequestsReceived();
+    }
+
+    private int executePOST(String message, String contentType) throws Exception {
 
         URL url= new URL("http://localhost:" + availablePort + "/" + HTTP_BASE_PATH);
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
         con.setRequestMethod(HTTP_POST_METHOD);
+        con.setRequestProperty("Content-Type", contentType);
         con.setDoOutput(true);
         DataOutputStream wr = new DataOutputStream(con.getOutputStream());
         if (message!=null) {
@@ -105,19 +116,38 @@ public class TestListenHTTP {
         messages.add("");
         messages.add(null);
         messages.add("payload 2");
+        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
 
-        startWebServerAndSendMessages(messages);
+        startWebServerAndSendMessages(messages, "text/plain");
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
-        runner.assertTransferCount(RELATIONSHIP_SUCCESS,4);
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS,5);
         mockFlowFiles.get(0).assertContentEquals("payload 1");
         mockFlowFiles.get(1).assertContentEquals("");
         mockFlowFiles.get(2).assertContentEquals("");
         mockFlowFiles.get(3).assertContentEquals("payload 2");
+        mockFlowFiles.get(4).assertContentEquals("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
     }
 
-    private void startWebServerAndSendMessages(final List<String> messages)
+    private void testMultipartPOSTRequestsReceived() throws Exception {
+        final List<String> messages = new ArrayList<>();
+        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 1\n--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 2\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload extra\n--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 3 extra\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"file\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 3\n--------------------------962f981e211cb099--");
+        messages.add("--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip1\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 4.1\n--------------------------962f981e211cb099\nContent-Disposition: form-data; name=\"skip2\"; filename=\"file.txt\"\nContent-Type: text/plain\n\npayload 4.2\n--------------------------962f981e211cb099--");
+
+        startWebServerAndSendMessages(messages, "multipart/form-data; boundary=------------------------962f981e211cb099");
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS,3);
+        mockFlowFiles.get(0).assertContentEquals("payload 1");
+        mockFlowFiles.get(1).assertContentEquals("payload 2");
+        mockFlowFiles.get(2).assertContentEquals("payload 3");
+    }
+
+    private void startWebServerAndSendMessages(final List<String> messages, final String contentType)
             throws Exception {
 
             final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
@@ -127,7 +157,7 @@ public class TestListenHTTP {
             Runnable sendMessagestoWebServer = () -> {
                 try {
                     for (final String message : messages) {
-                        if (executePOST(message)!=200) fail("HTTP POST failed.");
+                        if (executePOST(message, contentType)!=200) fail("HTTP POST failed.");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

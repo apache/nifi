@@ -101,6 +101,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .defaultValue(".*")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
+    public static final PropertyDescriptor MULTIPART_PARTNAME_PATTERN = new PropertyDescriptor.Builder()
+        .name("Multipart part name pattern")
+        .description("A Regular Expression to determine which multipart/form-data Part to use as Flowfile contents. Note only the first matching Part is used.")
+        .required(false)
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
     public static final PropertyDescriptor MAX_UNCONFIRMED_TIME = new PropertyDescriptor.Builder()
         .name("Max Unconfirmed Flowfile Time")
         .description("The maximum amount of time to wait for a FlowFile to be confirmed before it is removed from the cache")
@@ -132,6 +139,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
     public static final String CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER = "processContextHolder";
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN = "authorityPattern";
+    public static final String CONTEXT_ATTRIBUTE_MULTIPART_PARTNAME_PATTERN = "multipartPartnamePattern";
     public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
@@ -154,6 +162,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(AUTHORIZED_DN_PATTERN);
+        descriptors.add(MULTIPART_PARTNAME_PATTERN);
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         this.properties = Collections.unmodifiableList(descriptors);
@@ -277,6 +286,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER, context);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_FLOWFILE_MAP, flowFileMap);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
+        if (context.getProperty(MULTIPART_PARTNAME_PATTERN).isSet()) {
+	    contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_PARTNAME_PATTERN, Pattern.compile(context.getProperty(MULTIPART_PARTNAME_PATTERN).getValue()));
+        }
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
 
