@@ -77,12 +77,14 @@
             </exclusions>
         </dependency>
 
+        <!-- Include hadoop dependencies directly instead of relying on kite-sdk kite-hadoop-dependencies
+             in order to support non CDH hadoop libraries -->
+        <!-- start of embedding  -->
         <dependency>
-            <groupId>org.kitesdk</groupId>
-            <artifactId>kite-hadoop-dependencies</artifactId>
-            <type>pom</type>
-            <scope>provided</scope>
-            <version>${kite.version}</version>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+            <!-- exclude server-side parts that conflict with running in a webapp -->
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
@@ -92,8 +94,51 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-grizzly2</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-json</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jetty-util</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro-mapred</artifactId>
+            <classifier>hadoop2</classifier>
+            <version>1.7.5</version>
+            <!-- Avro IPC is not used and pulls in server-side dependencies -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-ipc</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- end of embedding  -->
 
         <!-- Hive dependencies to connect to the MetaStore -->
         <dependency>
