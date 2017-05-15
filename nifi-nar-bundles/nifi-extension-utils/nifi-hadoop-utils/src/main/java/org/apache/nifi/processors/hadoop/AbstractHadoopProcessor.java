@@ -82,7 +82,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
             .name("Compression codec")
             .required(true)
-            .allowableValues(CompressionType.values())
+            .allowableValues(CompressionType.allowableValues())
             .defaultValue(CompressionType.NONE.toString())
             .build();
 
