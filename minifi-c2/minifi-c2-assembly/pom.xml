@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-c2</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>0.2.0</version>
     </parent>
     <artifactId>minifi-c2-assembly</artifactId>
     <packaging>pom</packaging>
@@ -31,11 +31,11 @@ limitations under the License.
         <minifi.c2.server.secure>false</minifi.c2.server.secure>
         <minifi.c2.server.keystore>./conf/keystore.jks</minifi.c2.server.keystore>
         <minifi.c2.server.keystoreType>jks</minifi.c2.server.keystoreType>
-        <minifi.c2.server.keystorePasswd/>
-        <minifi.c2.server.keyPasswd/>
+        <minifi.c2.server.keystorePasswd />
+        <minifi.c2.server.keyPasswd />
         <minifi.c2.server.truststore>./conf/truststore.jks</minifi.c2.server.truststore>
         <minifi.c2.server.truststoreType>jks</minifi.c2.server.truststoreType>
-        <minifi.c2.server.truststorePasswd/>
+        <minifi.c2.server.truststorePasswd />
 
         <minifi.c2.server.provider.nifi.rest.api.url>http://localhost:8080/nifi-api</minifi.c2.server.provider.nifi.rest.api.url>
     </properties>
