@@ -92,9 +92,9 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
             }
         }
 
-        clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
-        clientEntity.setControllerServiceBulletins(BulletinMerger.mergeBulletins(controllerServiceBulletinDtos));
-        clientEntity.setReportingTaskBulletins(BulletinMerger.mergeBulletins(reportingTaskBulletinDtos));
+        clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos, entityMap.size()));
+        clientEntity.setControllerServiceBulletins(BulletinMerger.mergeBulletins(controllerServiceBulletinDtos, entityMap.size()));
+        clientEntity.setReportingTaskBulletins(BulletinMerger.mergeBulletins(reportingTaskBulletinDtos, entityMap.size()));
 
         // sort the bulletins
         Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);
