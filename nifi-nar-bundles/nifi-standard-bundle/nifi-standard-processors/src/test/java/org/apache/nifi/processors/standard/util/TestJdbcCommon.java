@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.apache.nifi.processors.standard.util.JdbcCommon.getDecimalSchema;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,6 +46,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import org.apache.avro.Conversions.DecimalConversion;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
@@ -355,6 +359,7 @@ public class TestJdbcCommon {
         when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
         when(metadata.getColumnName(1)).thenReturn("The.Chairman");
         when(metadata.getTableName(1)).thenReturn("1the::table");
+        when(metadata.getPrecision(1)).thenReturn(10);
 
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
@@ -384,7 +389,14 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals("_1the__table", record.getSchema().getName());
-                assertEquals(bigDecimal.toString(), record.get("The_Chairman").toString());
+                DecimalConversion decimalConversion = new DecimalConversion();
+                Schema schema = record.getSchema();
+                Schema decimalSchema = getDecimalSchema(schema, "The_Chairman");
+                LogicalType logicalType = LogicalTypes.fromSchema(decimalSchema);
+                ByteBuffer buffer = (ByteBuffer) record.get("The_Chairman");
+
+                BigDecimal resultBD = decimalConversion.fromBytes(buffer, schema, logicalType);
+                assertEquals(bigDecimal.toString(), resultBD.toString());
             }
         }
     }
