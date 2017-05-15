@@ -2379,6 +2379,22 @@ bundled with an extension that requires it, even if @RequiresInstanceClassLoadin
 logged to help avoid this bad practice.
 
 
+[[deprecation]]
+== Deprecating a Component
+Sometimes it may be desirable to deprecate a component. Whenever this occurs the developer may use the
+ @DeprecationNotice annotation to indicate that a component has been deprecated, aloowing the developer
+ to describe a reason for the deprecation and suggest alternative components. An example of how to do this can
+ be found below:
+
+[source, java]
+----
+ @DeprecationNotice(alternatives = {ListenSyslog.class}, classNames = {"org.apache.nifi.processors.standard.ListenRELP"}, reason = "Technologyhas been superseded",  )
+ public class ListenOldProtocol extends AbstractProcessor {
+----
+As you can see, the alternatives can be used to define and array of alternative Components, while classNames can be
+used to represent the similar content through an array of strings.
+
+
 == How to contribute to Apache NiFi
 
 We are always excited to have contributions from the community - especially from new contributors!

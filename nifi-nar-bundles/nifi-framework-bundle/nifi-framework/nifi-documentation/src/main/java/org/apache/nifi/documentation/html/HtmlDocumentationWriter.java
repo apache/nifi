@@ -249,7 +249,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeCharacters("Please consider using one the following alternatives: ");
 
 
-            Class<? extends ConfigurableComponent>[] componentNames = deprecationNotice.value();
+            Class<? extends ConfigurableComponent>[] componentNames = deprecationNotice.alternatives();
             String[] classNames = deprecationNotice.classNames();
 
             if (componentNames.length > 0 || classNames.length > 0) {

@@ -57,7 +57,7 @@ import java.util.Set;
 @DynamicRelationship(name = "name from dynamic property", description = "all files that match the properties XPath")
 @Stateful(scopes = {Scope.CLUSTER, Scope.LOCAL}, description = "state management description")
 @Restricted("processor restriction description")
-@DeprecationNotice({FullyDocumentedProcessor.class, FullyDocumentedReportingTask.class})
+@DeprecationNotice(alternatives = {FullyDocumentedProcessor.class, FullyDocumentedReportingTask.class})
 public class DeprecatedProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
