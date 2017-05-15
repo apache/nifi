@@ -46,11 +46,13 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
 
@@ -63,26 +65,14 @@ import org.apache.nifi.util.StopWatch;
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query. FlowFile attribute 'executesql.row.count' indicates how many rows were selected.")
 @WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query")
-public class ExecuteSQL extends AbstractProcessor {
+public class ExecuteSQL extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
 
     // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully created FlowFile from SQL query result set.")
-            .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("SQL query execution failed. Incoming FlowFile will be penalized and routed to this relationship")
-            .build();
-    private final Set<Relationship> relationships;
-
-    public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
-            .name("Database Connection Pooling Service")
-            .description("The Controller Service that is used to obtain connection to database")
-            .required(true)
-            .identifiesControllerService(DBCPService.class)
             .build();
 
     public static final PropertyDescriptor SQL_SELECT_QUERY = new PropertyDescriptor.Builder()
@@ -97,26 +87,6 @@ public class ExecuteSQL extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Max Wait Time")
-            .description("The maximum amount of time allowed for a running SQL select query "
-                    + " , zero means there is no limit. Max time less than 1 second will be equal to zero.")
-            .defaultValue("0 seconds")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
-            .name("dbf-normalize")
-            .displayName("Normalize Table/Column Names")
-            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
-                    + "will be changed to underscores in order to build a valid Avro record.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .required(true)
-            .build();
-
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
@@ -127,6 +97,7 @@ public class ExecuteSQL extends AbstractProcessor {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
+        pds.add(DB_TYPE);
         pds.add(SQL_SELECT_QUERY);
         pds.add(QUERY_TIMEOUT);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
@@ -153,9 +124,9 @@ public class ExecuteSQL extends AbstractProcessor {
             throw new ProcessException(errorString);
         }
     }
-
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        ProcessSession session = sessionFactory.createSession();
         FlowFile fileToProcess = null;
         if (context.hasIncomingConnection()) {
             fileToProcess = session.get();
@@ -170,6 +141,7 @@ public class ExecuteSQL extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+        final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final StopWatch stopWatch = new StopWatch(true);
@@ -191,7 +163,9 @@ public class ExecuteSQL extends AbstractProcessor {
 
         try (final Connection con = dbcpService.getConnection();
             final Statement st = con.createStatement()) {
-            st.setQueryTimeout(queryTimeout); // timeout in seconds
+            if(dbAdapter.getSupportsStatementTimeout()){
+                st.setQueryTimeout(queryTimeout); // timeout in seconds
+            }
             final AtomicLong nrOfRows = new AtomicLong(0L);
             if (fileToProcess == null) {
                 fileToProcess = session.create();
@@ -202,7 +176,7 @@ public class ExecuteSQL extends AbstractProcessor {
                     try {
                         logger.debug("Executing query {}", new Object[]{selectQuery});
                         final ResultSet resultSet = st.executeQuery(selectQuery);
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, convertNamesForAvro));
+                        nrOfRows.set(JdbcCommon.convertToAvroStream(dbAdapter, resultSet, out, null, null, 0, convertNamesForAvro));
                     } catch (final SQLException e) {
                         throw new ProcessException(e);
                     }

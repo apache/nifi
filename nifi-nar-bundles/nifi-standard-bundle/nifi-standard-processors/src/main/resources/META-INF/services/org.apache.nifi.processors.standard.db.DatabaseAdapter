@@ -16,3 +16,4 @@ org.apache.nifi.processors.standard.db.impl.GenericDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.OracleDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MSSQLDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MSSQL2008DatabaseAdapter
+org.apache.nifi.processors.standard.db.impl.HiveDatabaseAdapter

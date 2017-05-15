@@ -26,6 +26,27 @@ public interface DatabaseAdapter {
     String getDescription();
 
     /**
+     * Indicates whether this JDBC driver supports statement level execution timeouts
+     *
+     * @return <code>true</code> if so; <code>false</code> otherwise
+     */
+    boolean getSupportsStatementTimeout();
+
+    /**
+     * Indicates whether this JDBC driver supports retrieving the table name associated with a result set
+     *
+     * @return <code>true</code> if so; <code>false</code> otherwise
+     */
+    boolean getSupportsGetTableName();
+
+    /**
+     * Indicates whether this JDBC driver supports retrieving column sign information for numeric types
+     *
+     * @return <code>true</code> if so; <code>false</code> otherwise
+     */
+    boolean getSupportsMetaDataColumnIsSigned();
+
+    /**
      * Returns a SQL SELECT statement with the given clauses applied.
      *
      * @param tableName     The name of the table to fetch rows from
