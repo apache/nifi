@@ -341,6 +341,25 @@ public class FingerprintFactory {
         final BundleDTO bundle = FlowFromDOMFactory.getBundle(DomUtils.getChild(processorElem, "bundle"));
         addBundleFingerprint(builder, bundle);
 
+        // max concurrent tasks
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "maxConcurrentTasks"));
+        // scheduling period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "schedulingPeriod"));
+        // penalization period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "penalizationPeriod"));
+        // yield period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "yieldPeriod"));
+        // bulletin level
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "bulletinLevel"));
+        // loss tolerant
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "lossTolerant"));
+        // scheduling strategy
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "schedulingStrategy"));
+        // execution node
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "executionNode"));
+        // run duration nanos
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "runDurationNanos"));
+
         // get the temp instance of the Processor so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(className, bundle);
         final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(className, coordinate);

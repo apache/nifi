@@ -725,6 +725,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final ProcessorDTO dto = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
             final ProcessorNode procNode = processGroup.getProcessor(dto.getId());
 
+            updateNonFingerprintedProcessorSettings(procNode, dto);
+
             if (!procNode.getScheduledState().name().equals(dto.getState())) {
                 try {
                     switch (ScheduledState.valueOf(dto.getState())) {
@@ -964,15 +966,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     private void updateProcessor(final ProcessorNode procNode, final ProcessorDTO processorDTO, final ProcessGroup processGroup, final FlowController controller)
             throws ProcessorInstantiationException {
         final ProcessorConfigDTO config = processorDTO.getConfig();
-        procNode.setPosition(toPosition(processorDTO.getPosition()));
-        procNode.setName(processorDTO.getName());
-        procNode.setStyle(processorDTO.getStyle());
         procNode.setProcessGroup(processGroup);
-        procNode.setComments(config.getComments());
         procNode.setLossTolerant(config.isLossTolerant());
         procNode.setPenalizationPeriod(config.getPenaltyDuration());
         procNode.setYieldPeriod(config.getYieldDuration());
         procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
+        updateNonFingerprintedProcessorSettings(procNode, processorDTO);
 
         if (config.getSchedulingStrategy() != null) {
             procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
@@ -1009,6 +1008,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         } else if (ScheduledState.STOPPED.equals(scheduledState)) {
             controller.stopProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
         }
+    }
+
+    private void updateNonFingerprintedProcessorSettings(final ProcessorNode procNode, final ProcessorDTO processorDTO) {
+        procNode.setName(processorDTO.getName());
+        procNode.setPosition(toPosition(processorDTO.getPosition()));
+        procNode.setStyle(processorDTO.getStyle());
+        procNode.setComments(processorDTO.getConfig().getComments());
     }
 
     private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
