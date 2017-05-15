@@ -361,6 +361,14 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // submit the provenance replay request
         final ProvenanceEventDTO event = serviceFacade.submitReplay(replayRequestEntity.getEventId());
+        event.setClusterNodeId(replayRequestEntity.getClusterNodeId());
+
+        // populate the cluster node address
+        final ClusterCoordinator coordinator = getClusterCoordinator();
+        if (coordinator != null) {
+            final NodeIdentifier nodeId = coordinator.getNodeIdentifier(replayRequestEntity.getClusterNodeId());
+            event.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        }
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();
