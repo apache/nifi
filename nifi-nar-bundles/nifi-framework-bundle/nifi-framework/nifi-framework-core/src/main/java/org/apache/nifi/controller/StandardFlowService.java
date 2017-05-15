@@ -643,7 +643,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             clusterCoordinator.resetNodeStatuses(connectionResponse.getNodeConnectionStatuses().stream()
                     .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
-            controller.resumeHeartbeats();  // we are now connected, so resume sending heartbeats.
+            // reconnected, this node needs to explicitly write the inherited flow to disk, and resume heartbeats
+            saveFlowChanges();
+            controller.resumeHeartbeats();
 
             logger.info("Node reconnected.");
         } catch (final Exception ex) {
