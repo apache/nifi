@@ -57,7 +57,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
     private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA));
 
-    private PropertyDescriptor getSchemaAcessStrategyDescriptor() {
+    protected PropertyDescriptor getSchemaAcessStrategyDescriptor() {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
     }
 
