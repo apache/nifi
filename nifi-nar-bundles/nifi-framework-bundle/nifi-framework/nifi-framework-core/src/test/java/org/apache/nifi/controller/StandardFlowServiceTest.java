@@ -23,6 +23,7 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -96,7 +97,7 @@ public class StandardFlowServiceTest {
 
         FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos);
+        serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -120,7 +121,7 @@ public class StandardFlowServiceTest {
 
         FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos);
+        serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -140,7 +141,7 @@ public class StandardFlowServiceTest {
 
             FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos);
+            serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();
@@ -162,7 +163,7 @@ public class StandardFlowServiceTest {
 
             FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos);
+            serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();

@@ -138,6 +138,7 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -1509,7 +1510,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public void serialize(final FlowSerializer serializer, final OutputStream os) throws FlowSerializationException {
         readLock.lock();
         try {
-            serializer.serialize(this, os);
+            final ScheduledStateLookup scheduledStateLookup = procNode -> startConnectablesAfterInitialization.contains(procNode) ? ScheduledState.RUNNING : procNode.getScheduledState();
+            serializer.serialize(this, os, scheduledStateLookup);
         } finally {
             readLock.unlock();
         }
@@ -2932,6 +2934,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new IllegalStateException("Cannot find ProcessorNode with ID " + processorId + " within ProcessGroup with ID " + parentGroupId);
         }
         group.stopProcessor(node);
+        // If we are ready to start the processor upon initialization of the controller, don't.
+        startConnectablesAfterInitialization.remove(node);
     }
 
     public void stopAllProcessors() {
