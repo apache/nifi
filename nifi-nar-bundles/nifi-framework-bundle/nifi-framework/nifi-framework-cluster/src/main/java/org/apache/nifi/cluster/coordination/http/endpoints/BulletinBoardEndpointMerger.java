@@ -61,7 +61,7 @@ public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<Bulle
             });
         }
 
-        clientDto.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities));
+        clientDto.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities, dtoMap.size()));
     }
 
 }
