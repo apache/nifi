@@ -36,8 +36,9 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+
 public @interface DeprecationNotice {
-    Class<? extends ConfigurableComponent>[] value() default {};
+    Class<? extends ConfigurableComponent>[] alternatives() default {};
 
     String[] classNames() default {};
 
