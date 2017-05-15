@@ -14,30 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.controller.serialization;
 
-import java.io.OutputStream;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 
-import org.apache.nifi.controller.FlowController;
+public interface ScheduledStateLookup {
 
-/**
- * Serializes the flow configuration of a controller instance to an output stream.
- *
- */
-public interface FlowSerializer {
+    ScheduledState getScheduledState(ProcessorNode procNode);
 
-    public static final String ENC_PREFIX = "enc{";
-    public static final String ENC_SUFFIX = "}";
-
-    /**
-     * Serializes the flow configuration of a controller instance.
-     *
-     * @param controller a controller
-     * @param os an output stream to write the configuration to
-     * @param stateLookup a lookup that can be used to determine the ScheduledState of a Processor
-     *
-     * @throws FlowSerializationException if serialization failed
-     */
-    void serialize(FlowController controller, OutputStream os, ScheduledStateLookup stateLookup) throws FlowSerializationException;
-
+    public static final ScheduledStateLookup IDENTITY_LOOKUP = ProcessorNode::getScheduledState;
 }

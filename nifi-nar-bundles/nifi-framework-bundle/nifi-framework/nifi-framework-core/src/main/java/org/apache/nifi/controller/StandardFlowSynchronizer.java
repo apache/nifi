@@ -1006,6 +1006,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             controller.startProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
         } else if (ScheduledState.DISABLED.equals(scheduledState)) {
             processGroup.disableProcessor(procNode);
+        } else if (ScheduledState.STOPPED.equals(scheduledState)) {
+            controller.stopProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
         }
     }
 
