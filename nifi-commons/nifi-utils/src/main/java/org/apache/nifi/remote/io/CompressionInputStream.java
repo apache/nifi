@@ -174,12 +174,13 @@ public class CompressionInputStream extends InputStream {
     }
 
     /**
-     * Does nothing. Does NOT close underlying InputStream
+     * Calls {@link Inflater#end()} to free acquired memory to prevent OutOfMemory error.
+     * However, does NOT close underlying InputStream.
      *
      * @throws java.io.IOException for any issues closing underlying stream
      */
     @Override
     public void close() throws IOException {
-
+        inflater.end();
     }
 }

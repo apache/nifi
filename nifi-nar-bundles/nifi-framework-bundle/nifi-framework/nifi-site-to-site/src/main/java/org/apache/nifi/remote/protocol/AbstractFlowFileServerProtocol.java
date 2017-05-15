@@ -440,6 +440,12 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final CheckedInputStream checkedInputStream = new CheckedInputStream(flowFileInputStream, crc);
 
             final DataPacket dataPacket = codec.decode(checkedInputStream);
+
+            if (handshakeProperties.isUseGzip()) {
+                // Close CompressionInputStream to free acquired memory, without closing underlying stream.
+                checkedInputStream.close();
+            }
+
             if (dataPacket == null) {
                 logger.debug("{} Received null dataPacket indicating the end of transaction from {}", this, peer);
                 break;

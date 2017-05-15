@@ -148,6 +148,11 @@ public abstract class AbstractTransaction implements Transaction {
                 final InputStream dataIn = compress ? new CompressionInputStream(is) : is;
                 final DataPacket packet = codec.decode(new CheckedInputStream(dataIn, crc));
 
+                if (compress) {
+                    // Close CompressionInputStream to free acquired memory, without closing underlying stream.
+                    dataIn.close();
+                }
+
                 if (packet == null) {
                     this.dataAvailable = false;
                 } else {
