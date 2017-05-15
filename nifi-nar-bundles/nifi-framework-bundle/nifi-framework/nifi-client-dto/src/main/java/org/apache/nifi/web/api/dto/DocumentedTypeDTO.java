@@ -34,6 +34,7 @@ public class DocumentedTypeDTO {
     private List<ControllerServiceApiDTO> controllerServiceApis;
     private String description;
     private String usageRestriction;
+    private String deprecationReason;
     private Set<String> tags;
 
     /**
@@ -63,6 +64,21 @@ public class DocumentedTypeDTO {
     public void setUsageRestriction(String usageRestriction) {
         this.usageRestriction = usageRestriction;
     }
+
+    /**
+     * @return An optional description of why the usage of this component is deprecated
+     */
+    @ApiModelProperty(
+            value = "The description of why the usage of this component is restricted."
+    )
+    public String getDeprecationReason() {
+        return deprecationReason;
+    }
+
+    public void setDeprecationReason(String deprecationReason) {
+        this.deprecationReason = deprecationReason;
+    }
+
 
     /**
      * @return The type is the fully-qualified name of a Java class

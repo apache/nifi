@@ -89,6 +89,11 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
      */
     boolean isRestricted();
 
+    /**
+     * @return whether or not the underlying implementation is deprecated
+     */
+    boolean isDeprecated();
+
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this

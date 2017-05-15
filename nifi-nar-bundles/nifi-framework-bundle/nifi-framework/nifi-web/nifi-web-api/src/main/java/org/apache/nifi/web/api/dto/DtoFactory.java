@@ -36,6 +36,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
@@ -1254,6 +1255,7 @@ public final class DtoFactory {
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(reportingTaskNode.isRestricted());
+        dto.setDeprecated(reportingTaskNode.isDeprecated());
         dto.setExtensionMissing(reportingTaskNode.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
@@ -1334,6 +1336,7 @@ public final class DtoFactory {
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(controllerServiceNode.isRestricted());
+        dto.setDeprecated(controllerServiceNode.isDeprecated());
         dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
@@ -2062,6 +2065,11 @@ public final class DtoFactory {
         return restriction == null ? null : restriction.value();
     }
 
+    private String getDeprecationReason(final Class<?> cls) {
+        final DeprecationNotice deprecationNotice = cls.getAnnotation(DeprecationNotice.class);
+        return deprecationNotice == null ? null : deprecationNotice.reason();
+    }
+
     /**
      * Gets the capability description from the specified class.
      */
@@ -2164,6 +2172,7 @@ public final class DtoFactory {
             dto.setControllerServiceApis(createControllerServiceApiDto(cls));
             dto.setDescription(getCapabilityDescription(cls));
             dto.setUsageRestriction(getUsageRestriction(cls));
+            dto.setDeprecationReason(getDeprecationReason(cls));
             dto.setTags(getTags(cls));
             types.add(dto);
         }
@@ -2213,6 +2222,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
+        dto.setDeprecated(node.isDeprecated());
         dto.setExtensionMissing(node.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
