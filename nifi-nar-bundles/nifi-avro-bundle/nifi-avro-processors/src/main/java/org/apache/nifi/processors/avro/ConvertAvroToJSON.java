@@ -18,6 +18,7 @@ package org.apache.nifi.processors.avro;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,10 +33,14 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.io.JsonEncoder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -43,13 +48,13 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -92,6 +97,13 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
+    static final PropertyDescriptor USE_AVRO_JSON = new PropertyDescriptor.Builder().name("Use AVRO JSON")
+        .description("Determines if the resulting JSON output is in AVRO-JSON format or standard JSON format. Default 'false'")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .required(true)
+        .defaultValue("false")
+        .allowableValues("false", "true")
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -102,31 +114,50 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .description("A FlowFile is routed to this relationship if it cannot be parsed as Avro or cannot be converted to JSON for any reason")
         .build();
 
-    private List<PropertyDescriptor> properties;
-    private volatile Schema schema = null;
+    private final static List<PropertyDescriptor> PROPERTIES;
 
-    @Override
-    protected void init(ProcessorInitializationContext context) {
-        super.init(context);
+    private final static Set<Relationship> RELATIONSHIPS;
 
-        final List<PropertyDescriptor> properties = new ArrayList<>();
+    static {
+        List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONTAINER_OPTIONS);
         properties.add(WRAP_SINGLE_RECORD);
         properties.add(SCHEMA);
-        this.properties = Collections.unmodifiableList(properties);
+        properties.add(USE_AVRO_JSON);
+        PROPERTIES = Collections.unmodifiableList(properties);
+
+        Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
+    }
+
+    private volatile Schema schema;
+
+    private volatile boolean useContainer;
+
+    private volatile boolean wrapSingleRecord;
+
+    private volatile boolean useAvroJson;
+
+    @OnScheduled
+    public void schedule(ProcessContext context) {
+        String containerOption = context.getProperty(CONTAINER_OPTIONS).getValue();
+        this.useContainer = containerOption.equals(CONTAINER_ARRAY);
+        this.wrapSingleRecord = context.getProperty(WRAP_SINGLE_RECORD).asBoolean() && useContainer;
+        String stringSchema = context.getProperty(SCHEMA).getValue();
+        this.schema = stringSchema == null ? null : new Schema.Parser().parse(stringSchema);
+        this.useAvroJson = context.getProperty(USE_AVRO_JSON).asBoolean();
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_FAILURE);
-        return rels;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -136,81 +167,54 @@ public class ConvertAvroToJSON extends AbstractProcessor {
             return;
         }
 
-        final String containerOption = context.getProperty(CONTAINER_OPTIONS).getValue();
-        final boolean useContainer = containerOption.equals(CONTAINER_ARRAY);
-        // Wrap a single record (inclusive of no records) only when a container is being used
-        final boolean wrapSingleRecord = context.getProperty(WRAP_SINGLE_RECORD).asBoolean() && useContainer;
-
-        final String stringSchema = context.getProperty(SCHEMA).getValue();
-        final boolean schemaLess = stringSchema != null;
-
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
                     final GenericData genericData = GenericData.get();
 
-                    if (schemaLess) {
-                        if (schema == null) {
-                            schema = new Schema.Parser().parse(stringSchema);
-                        }
-                        try (final InputStream in = new BufferedInputStream(rawIn);
-                             final OutputStream out = new BufferedOutputStream(rawOut)) {
-                            final DatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
-                            final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
-                            final GenericRecord record = reader.read(null, decoder);
-
-                            // Schemaless records are singletons, so both useContainer and wrapSingleRecord
-                            // need to be true before we wrap it with an array
+                    try (OutputStream out = new BufferedOutputStream(rawOut); InputStream in = new BufferedInputStream(rawIn)) {
+                        DatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
+                        if (schema != null) {
+                            BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
+                            GenericRecord currRecord = reader.read(null, decoder);
                             if (useContainer && wrapSingleRecord) {
                                 out.write('[');
                             }
-
-                            final byte[] outputBytes = (record == null) ? EMPTY_JSON_OBJECT : genericData.toString(record).getBytes(StandardCharsets.UTF_8);
+                            byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT
+                                    : (useAvroJson ? toAvroJSON(schema, currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
                             out.write(outputBytes);
-
                             if (useContainer && wrapSingleRecord) {
                                 out.write(']');
                             }
-                        }
-                    } else {
-                        try (final InputStream in = new BufferedInputStream(rawIn);
-                             final OutputStream out = new BufferedOutputStream(rawOut);
-                             final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
-
-                            int recordCount = 0;
-                            GenericRecord currRecord = null;
-                            if (reader.hasNext()) {
-                                currRecord = reader.next();
-                                recordCount++;
-                            }
-
-                            // Open container if desired output is an array format and there are are multiple records or
-                            // if configured to wrap single record
-                            if (reader.hasNext() && useContainer || wrapSingleRecord) {
-                                out.write('[');
-                            }
-
-                            // Determine the initial output record, inclusive if we should have an empty set of Avro records
-                            final byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8);
-                            out.write(outputBytes);
-
-                            while (reader.hasNext()) {
-                                if (useContainer) {
-                                    out.write(',');
-                                } else {
-                                    out.write('\n');
+                        } else {
+                            try (DataFileStream<GenericRecord> stream = new DataFileStream<>(in, reader)) {
+                                int recordCount = 0;
+                                GenericRecord currRecord = null;
+                                if (stream.hasNext()) {
+                                    currRecord = stream.next();
+                                    recordCount++;
                                 }
+                                if (stream.hasNext() && useContainer || wrapSingleRecord) {
+                                    out.write('[');
+                                }
+                                byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT
+                                        : (useAvroJson ? toAvroJSON(stream.getSchema(), currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
+                                out.write(outputBytes);
+                                while (stream.hasNext()) {
+                                    if (useContainer) {
+                                        out.write(',');
+                                    } else {
+                                        out.write('\n');
+                                    }
 
-                                currRecord = reader.next(currRecord);
-                                out.write(genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
-                                recordCount++;
-                            }
-
-                            // Close container if desired output is an array format and there are multiple records or if
-                            // configured to wrap a single record
-                            if (recordCount > 1 && useContainer || wrapSingleRecord) {
-                                out.write(']');
+                                    currRecord = stream.next(currRecord);
+                                    out.write(genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
+                                    recordCount++;
+                                }
+                                if (recordCount > 1 && useContainer || wrapSingleRecord) {
+                                    out.write(']');
+                                }
                             }
                         }
                     }
@@ -224,5 +228,15 @@ public class ConvertAvroToJSON extends AbstractProcessor {
 
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    private byte[] toAvroJSON(Schema schemaToUse, GenericRecord datum) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(schemaToUse);
+        JsonEncoder encoder = EncoderFactory.get().jsonEncoder(schemaToUse, bos);
+        writer.write(datum, encoder);
+        encoder.flush();
+        bos.flush();
+        return bos.toByteArray();
     }
 }
