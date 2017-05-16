@@ -1298,7 +1298,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     throw new IllegalStateException(this.getIdentifier() + " has a Connection to Port " + port.getIdentifier() + ", but that Port no longer exists on the remote system");
                 }
 
-                port.verifyCanStart();
+                if (port.hasIncomingConnection()) {
+                    port.verifyCanStart();
+                }
             }
 
             for (final StandardRemoteGroupPort port : outputPorts.values()) {
@@ -1310,7 +1312,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     throw new IllegalStateException(this.getIdentifier() + " has a Connection to Port " + port.getIdentifier() + ", but that Port no longer exists on the remote system");
                 }
 
-                port.verifyCanStart();
+                if (!port.getConnections().isEmpty()) {
+                    port.verifyCanStart();
+                }
             }
         } finally {
             readLock.unlock();
