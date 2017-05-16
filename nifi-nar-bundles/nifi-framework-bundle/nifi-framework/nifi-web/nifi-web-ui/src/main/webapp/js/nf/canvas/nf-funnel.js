@@ -267,16 +267,18 @@
         set: function (funnelEntities, options) {
             var selectAll = false;
             var transition = false;
+            var overrideRevisionCheck = false;
             if (nfCommon.isDefinedAndNotNull(options)) {
                 selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
                 transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+                overrideRevisionCheck = nfCommon.isDefinedAndNotNull(options.overrideRevisionCheck) ? options.overrideRevisionCheck : overrideRevisionCheck;
             }
 
             var set = function (proposedFunnelEntity) {
                 var currentFunnelEntity = funnelMap.get(proposedFunnelEntity.id);
 
                 // set the funnel if appropriate due to revision and wasn't previously removed
-                if (nfClient.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
+                if ((nfClient.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) || overrideRevisionCheck === true) {
                     funnelMap.set(proposedFunnelEntity.id, $.extend({
                         type: 'Funnel',
                         dimensions: dimensions
