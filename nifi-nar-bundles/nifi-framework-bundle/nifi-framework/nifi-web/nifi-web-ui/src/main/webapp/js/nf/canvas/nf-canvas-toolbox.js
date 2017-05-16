@@ -897,8 +897,22 @@ nf.CanvasToolbox = (function () {
 
                 // initialize the processor type table
                 var processorTypesColumns = [
-                    {id: 'type', name: 'Type', field: 'label', sortable: true, resizable: true},
-                    {id: 'tags', name: 'Tags', field: 'tags', sortable: true, resizable: true}
+                    {
+                        id: 'type',
+                        name: 'Type',
+                        field: 'label',
+                        sortable: true,
+                        resizable: true,
+                        formatter: nf.Common.genericValueFormatter
+                    },
+                    {
+                        id: 'tags',
+                        name: 'Tags',
+                        field: 'tags',
+                        sortable: true,
+                        resizable: true,
+                        formatter: nf.Common.genericValueFormatter
+                    }
                 ];
                 var processorTypesOptions = {
                     forceFitColumns: true,

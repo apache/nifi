@@ -539,6 +539,20 @@ nf.Common = (function () {
         },
 
         /**
+         * Escapes the value.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        genericValueFormatter: function (row, cell, value, columnDef, dataContext) {
+            return nf.Common.escapeHtml(value);
+        },
+
+        /**
          * Formats the specified property (name and value) accordingly.
          * 
          * @argument {string} name      The name of the property
@@ -883,7 +897,7 @@ nf.Common = (function () {
             while (regex.test(string)) {
                 string = string.replace(regex, '$1' + ',' + '$2');
             }
-            return string;
+            return nf.Common.escapeHtml(string);
         },
 
         /**

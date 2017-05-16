@@ -34,7 +34,7 @@ nf.CountersTable = (function () {
 
     /**
      * Sorts the specified data using the specified sort details.
-     * 
+     *
      * @param {object} sortDetails
      * @param {object} data
      */
@@ -92,7 +92,7 @@ nf.CountersTable = (function () {
 
     /**
      * Performs the filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -113,10 +113,10 @@ nf.CountersTable = (function () {
         // perform the filter
         return item[args.property].search(filterExp) >= 0;
     };
-    
+
     /**
      * Resets the specified counter.
-     * 
+     *
      * @argument {object} item     The counter item
      */
     var resetCounter = function (item) {
@@ -173,9 +173,31 @@ nf.CountersTable = (function () {
 
             // initialize the templates table
             var countersColumns = [
-                {id: 'context', name: 'Context', field: 'context', sortable: true, resizable: true},
-                {id: 'name', name: 'Name', field: 'name', sortable: true, resizable: true},
-                {id: 'value', name: 'Value', field: 'value', sortable: true, resizable: true, defaultSortAsc: false}
+                {
+                    id: 'context',
+                    name: 'Context',
+                    field: 'context',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'name',
+                    name: 'Name',
+                    field: 'name',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'value',
+                    name: 'Value',
+                    field: 'value',
+                    sortable: true,
+                    resizable: true,
+                    defaultSortAsc: false,
+                    formatter: nf.Common.genericValueFormatter
+                }
             ];
 
             // only allow dfm's to reset counters
@@ -186,7 +208,16 @@ nf.CountersTable = (function () {
                 };
 
                 // add the action column
-                countersColumns.push({id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100});
+                countersColumns.push(
+                    {
+                        id: 'actions',
+                        name: '&nbsp;',
+                        sortable: false,
+                        resizable: false,
+                        formatter: actionFormatter,
+                        width: 100,
+                        maxWidth: 100
+                    });
             }
 
             var countersOptions = {
@@ -225,7 +256,7 @@ nf.CountersTable = (function () {
                     sortAsc: args.sortAsc
                 }, countersData);
             });
-            
+
             // configure a click listener
             countersGrid.onClick.subscribe(function (e, args) {
                 var target = $(e.target);
@@ -260,7 +291,7 @@ nf.CountersTable = (function () {
             // initialize the number of display items
             $('#displayed-counters').text('0');
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -270,7 +301,7 @@ nf.CountersTable = (function () {
                 countersGrid.resizeCanvas();
             }
         },
-        
+
         /**
          * Load the processor counters table.
          */

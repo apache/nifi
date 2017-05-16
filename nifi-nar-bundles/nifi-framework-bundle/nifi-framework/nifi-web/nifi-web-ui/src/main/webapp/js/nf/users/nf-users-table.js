@@ -555,7 +555,7 @@ nf.UsersTable = (function () {
 
             // return the status as appropriate
             if (nf.Common.isDefinedAndNotNull(value)) {
-                return value;
+                return nf.Common.escapeHtml(value);
             } else if (grouped && nf.Common.isDefinedAndNotNull(dataContext.userGroup)) {
                 return '<span class="unset">Multiple users with different status</span>';
             } else {
@@ -591,13 +591,65 @@ nf.UsersTable = (function () {
 
         // initialize the templates table
         var usersColumns = [
-            {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-            {id: 'userName', name: 'User', field: 'userName', sortable: true, resizable: true},
-            {id: 'userGroup', name: 'Group', field: 'userGroup', sortable: true, resizable: true, formatter: valueFormatter},
-            {id: 'authorities', name: 'Roles', field: 'authorities', sortable: true, resizable: true, formatter: roleFormatter},
-            {id: 'lastAccessed', name: 'Last Accessed', field: 'lastAccessed', sortable: true, defaultSortAsc: false, resizable: true, formatter: valueFormatter},
-            {id: 'status', name: 'Status', field: 'status', sortable: true, resizable: false, formatter: statusFormatter},
-            {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'userName',
+                name: 'User',
+                field: 'userName',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'userGroup',
+                name: 'Group',
+                field: 'userGroup',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
+            {
+                id: 'authorities',
+                name: 'Roles',
+                field: 'authorities',
+                sortable: true,
+                resizable: true,
+                formatter: roleFormatter
+            },
+            {
+                id: 'lastAccessed',
+                name: 'Last Accessed',
+                field: 'lastAccessed',
+                sortable: true,
+                defaultSortAsc: false,
+                resizable: true,
+                formatter: valueFormatter
+            },
+            {
+                id: 'status',
+                name: 'Status',
+                field: 'status',
+                sortable: true,
+                resizable: false,
+                formatter: statusFormatter
+            },
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: actionFormatter,
+                width: 100,
+                maxWidth: 100
+            }
         ];
         var usersOptions = {
             forceFitColumns: true,
@@ -635,7 +687,7 @@ nf.UsersTable = (function () {
                 sortAsc: args.sortAsc
             }, usersData);
         });
-        
+
         // configure a click listener
         usersGrid.onClick.subscribe(function (e, args) {
             var target = $(e.target);
@@ -689,7 +741,7 @@ nf.UsersTable = (function () {
 
     /**
      * Sorts the specified data using the specified sort details.
-     * 
+     *
      * @param {object} sortDetails
      * @param {object} data
      */
@@ -783,7 +835,7 @@ nf.UsersTable = (function () {
 
     /**
      * Performs the filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -840,7 +892,7 @@ nf.UsersTable = (function () {
 
     /**
      * Shows details for the specified user.
-     * 
+     *
      * @param {object} user
      */
     var showUserDetails = function (user) {
@@ -878,10 +930,10 @@ nf.UsersTable = (function () {
         // show the dialog
         $('#user-details-dialog').modal('show');
     };
-    
+
     /**
      * Updates the specified groups level of access.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var updateGroupAccess = function (item) {
@@ -891,10 +943,10 @@ nf.UsersTable = (function () {
         // show the dialog
         $('#group-roles-dialog').modal('show');
     };
-    
+
     /**
      * Disables the specified group's account.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var revokeGroupAccess = function (item) {
@@ -907,7 +959,7 @@ nf.UsersTable = (function () {
 
     /**
      * Ungroups the specified group.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var ungroup = function (item) {
@@ -926,10 +978,10 @@ nf.UsersTable = (function () {
             }
         });
     };
-    
+
     /**
      * Updates the specified users's level of access.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var updateUserAccess = function (item) {
@@ -963,10 +1015,10 @@ nf.UsersTable = (function () {
         // show the dialog
         $('#user-roles-dialog').modal('show');
     };
-    
+
     /**
      * Disables the specified user's account.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var revokeUserAccess = function (item) {
@@ -977,10 +1029,10 @@ nf.UsersTable = (function () {
         // show the dialog
         $('#user-revoke-dialog').modal('show');
     };
-    
+
     /**
      * Prompts to verify group removal.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var ungroupUser = function (item) {
@@ -1002,7 +1054,7 @@ nf.UsersTable = (function () {
 
     /**
      * Delete's the specified user's account.
-     * 
+     *
      * @argument {object} item        The user item
      */
     var deleteUserAccount = function (item) {
@@ -1025,7 +1077,7 @@ nf.UsersTable = (function () {
             initGroupRevokeDialog();
             initUsersTable();
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -1035,7 +1087,7 @@ nf.UsersTable = (function () {
                 grid.resizeCanvas();
             }
         },
-        
+
         /**
          * Load the processor status table.
          */

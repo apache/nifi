@@ -73,7 +73,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Downloads the content for the provenance event that is currently loaded in the specified direction.
-     * 
+     *
      * @param {string} direction
      */
     var downloadContent = function (direction) {
@@ -113,7 +113,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Views the content for the provenance event that is currently loaded in the specified direction.
-     * 
+     *
      * @param {string} direction
      */
     var viewContent = function (direction) {
@@ -312,7 +312,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Initializes the search dialog.
-     * 
+     *
      * @param {boolean} isClustered     Whether or not this NiFi clustered
      */
     var initSearchDialog = function (isClustered) {
@@ -447,7 +447,7 @@ nf.ProvenanceTable = (function () {
                     }
                 }]
         });
-        
+
         return $.ajax({
             type: 'GET',
             url: config.urls.searchOptions,
@@ -489,7 +489,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Appends the specified searchable field to the search dialog.
-     * 
+     *
      * @param {type} field      The searchable field
      */
     var appendSearchableField = function (field) {
@@ -530,7 +530,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Initializes the provenance table.
-     * 
+     *
      * @param {boolean} isClustered     Whether or not this instance is clustered
      */
     var initProvenanceTable = function (isClustered) {
@@ -654,25 +654,93 @@ nf.ProvenanceTable = (function () {
             return markup;
         };
 
-        // initialize the provenance table
-        var provenanceColumns = [
-            {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-            {id: 'eventTime', name: 'Date/Time', field: 'eventTime', sortable: true, defaultSortAsc: false, resizable: true},
-            {id: 'eventType', name: 'Type', field: 'eventType', sortable: true, resizable: true},
-            {id: 'flowFileUuid', name: 'FlowFile Uuid', field: 'flowFileUuid', sortable: true, resizable: true},
-            {id: 'fileSize', name: 'Size', field: 'fileSize', sortable: true, defaultSortAsc: false, resizable: true},
-            {id: 'componentName', name: 'Component Name', field: 'componentName', sortable: true, resizable: true, formatter: valueFormatter},
-            {id: 'componentType', name: 'Component Type', field: 'componentType', sortable: true, resizable: true}
-        ];
+            // initialize the provenance table
+            var provenanceColumns = [
+                {
+                    id: 'moreDetails',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: moreDetailsFormatter,
+                    width: 50,
+                    maxWidth: 50
+                },
+                {
+                    id: 'eventTime',
+                    name: 'Date/Time',
+                    field: 'eventTime',
+                    sortable: true,
+                    defaultSortAsc: false,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'eventType',
+                    name: 'Type',
+                    field: 'eventType',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'flowFileUuid',
+                    name: 'FlowFile Uuid',
+                    field: 'flowFileUuid',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'fileSize',
+                    name: 'Size',
+                    field: 'fileSize',
+                    sortable: true,
+                    defaultSortAsc: false,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'componentName',
+                    name: 'Component Name',
+                    field: 'componentName',
+                    sortable: true,
+                    resizable: true,
+                    formatter: valueFormatter
+                },
+                {
+                    id: 'componentType',
+                    name: 'Component Type',
+                    field: 'componentType',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                }
+            ];
 
-        // conditionally show the cluster node identifier
-        if (isClustered) {
-            provenanceColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: true, resizable: true});
-        }
+            // conditionally show the cluster node identifier
+            if (isClustered) {
+                provenanceColumns.push({
+                    id: 'clusterNodeAddress',
+                    name: 'Node',
+                    field: 'clusterNodeAddress',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                });
+            }
 
         // conditionally show the action column
         if (nf.Common.SUPPORTS_SVG || isInShell) {
-            provenanceColumns.push({id: 'actions', name: '&nbsp;', formatter: showLineageFormatter, resizable: false, sortable: false, width: 50, maxWidth: 50});
+            provenanceColumns.push(
+                {
+                    id: 'actions',
+                    name: '&nbsp;',
+                    formatter: showLineageFormatter,
+                    resizable: false,
+                    sortable: false,
+                    width: 50,
+                    maxWidth: 50
+                });
         }
 
         var provenanceOptions = {
@@ -714,7 +782,7 @@ nf.ProvenanceTable = (function () {
                 sortAsc: args.sortAsc
             }, provenanceData);
         });
-        
+
         // configure a click listener
         provenanceGrid.onClick.subscribe(function (e, args) {
             var target = $(e.target);
@@ -793,7 +861,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Performs the provenance filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -816,7 +884,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Sorts the data according to the sort details.
-     * 
+     *
      * @param {type} sortDetails
      * @param {type} data
      */
@@ -856,7 +924,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Submits a new provenance query.
-     * 
+     *
      * @argument {object} provenance The provenance query
      * @returns {deferred}
      */
@@ -873,7 +941,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Gets the results from the provenance query for the specified id.
-     * 
+     *
      * @param {object} provenance
      * @returns {deferred}
      */
@@ -894,7 +962,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Cancels the specified provenance query.
-     * 
+     *
      * @param {object} provenance
      * @return {deferred}
      */
@@ -915,7 +983,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Checks the results of the specified provenance.
-     * 
+     *
      * @param {object} provenance
      */
     var loadProvenanceResults = function (provenance) {
@@ -980,7 +1048,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Goes to the specified component if possible.
-     * 
+     *
      * @argument {object} item       The event it
      */
     var goTo = function (item) {
@@ -1002,15 +1070,15 @@ nf.ProvenanceTable = (function () {
          * The max delay between requests.
          */
         MAX_DELAY: 4,
-        
+
         /**
          * The server time offset
          */
         serverTimeOffset: null,
-        
+
         /**
          * Initializes the provenance table. Returns a deferred that will indicate when/if the table has initialized successfully.
-         * 
+         *
          * @param {boolean} isClustered     Whether or not this instance is clustered
          */
         init: function (isClustered) {
@@ -1020,7 +1088,7 @@ nf.ProvenanceTable = (function () {
                     deferred.reject();
                     nf.Common.handleAjaxError(xhr, status, error);
                 };
-                
+
                 // load the lineage capabilities
                 loadLineageCapabilities().done(function () {
                     initDetailsDialog();
@@ -1032,7 +1100,7 @@ nf.ProvenanceTable = (function () {
                 }).fail(failure);
             }).promise();
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -1042,10 +1110,10 @@ nf.ProvenanceTable = (function () {
                 provenanceGrid.resizeCanvas();
             }
         },
-        
+
         /**
          * Updates the value of the specified progress bar.
-         * 
+         *
          * @param {jQuery}  progressBar
          * @param {integer} value
          * @returns {undefined}
@@ -1061,20 +1129,20 @@ nf.ProvenanceTable = (function () {
             }
             progressBar.progressbar('value', value).append(label);
         },
-        
+
         /**
-         * Loads the provenance table with events according to the specified optional 
+         * Loads the provenance table with events according to the specified optional
          * query. If not query is specified or it is empty, the most recent entries will
          * be returned.
-         * 
+         *
          * @param {object} query
          */
         loadProvenanceTable: function (query) {
             var provenanceProgress = $('#provenance-percent-complete');
 
-            // add support to cancel outstanding requests - when the button is pressed we 
+            // add support to cancel outstanding requests - when the button is pressed we
             // could be in one of two stages, 1) waiting to GET the status or 2)
-            // in the process of GETting the status. Handle both cases by cancelling 
+            // in the process of GETting the status. Handle both cases by cancelling
             // the setTimeout (1) and by setting a flag to indicate that a request has
             // been request so we can ignore the results (2).
 
@@ -1143,7 +1211,7 @@ nf.ProvenanceTable = (function () {
                 }).fail(closeDialog);
             };
 
-            // processes the provenance, if the provenance is not done wait delay 
+            // processes the provenance, if the provenance is not done wait delay
             // before polling again
             var processProvenanceResponse = function (delay) {
                 // if the request was cancelled just ignore the current response
@@ -1196,10 +1264,10 @@ nf.ProvenanceTable = (function () {
                 processProvenanceResponse(1);
             }).fail(closeDialog);
         },
-        
+
         /**
          * Shows the details for the specified action.
-         * 
+         *
          * @param {object} event
          */
         showEventDetails: function (event) {

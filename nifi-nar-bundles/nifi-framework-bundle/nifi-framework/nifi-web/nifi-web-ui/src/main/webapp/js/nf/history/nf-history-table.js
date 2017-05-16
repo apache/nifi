@@ -257,12 +257,55 @@ nf.HistoryTable = (function () {
 
         // initialize the templates table
         var historyColumns = [
-            {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-            {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, resizable: true},
-            {id: 'sourceName', name: 'Name', field: 'sourceName', sortable: true, resizable: true},
-            {id: 'sourceType', name: 'Type', field: 'sourceType', sortable: true, resizable: true},
-            {id: 'operation', name: 'Operation', field: 'operation', sortable: true, resizable: true},
-            {id: 'userName', name: 'User', field: 'userName', sortable: true, resizable: true}
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'timestamp',
+                name: 'Date/Time',
+                field: 'timestamp',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'sourceName',
+                name: 'Name',
+                field: 'sourceName',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'sourceType',
+                name: 'Type',
+                field: 'sourceType',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'operation',
+                name: 'Operation',
+                field: 'operation',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'userName',
+                name: 'User',
+                field: 'userName',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            }
         ];
         var historyOptions = {
             forceFitColumns: true,

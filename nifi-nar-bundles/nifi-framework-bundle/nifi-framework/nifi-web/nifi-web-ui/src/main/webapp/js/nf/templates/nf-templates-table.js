@@ -35,7 +35,7 @@ nf.TemplatesTable = (function () {
 
     /**
      * Sorts the specified data using the specified sort details.
-     * 
+     *
      * @param {object} sortDetails
      * @param {object} data
      */
@@ -59,7 +59,7 @@ nf.TemplatesTable = (function () {
 
     /**
      * Prompts the user before attempting to delete the specified template.
-     * 
+     *
      * @argument {object} template     The template
      */
     var promptToDeleteTemplate = function (template) {
@@ -75,7 +75,7 @@ nf.TemplatesTable = (function () {
 
     /**
      * Deletes the template with the specified id.
-     * 
+     *
      * @argument {string} templateId     The template id
      */
     var deleteTemplate = function (templateId) {
@@ -87,7 +87,7 @@ nf.TemplatesTable = (function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
             var templatesData = templatesGrid.getData();
             templatesData.deleteItem(templateId);
-            
+
             // update the total number of templates
             $('#total-templates').text(templatesData.getItems().length);
         }).fail(nf.Common.handleAjaxError);
@@ -129,7 +129,7 @@ nf.TemplatesTable = (function () {
 
     /**
      * Performs the filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -239,10 +239,42 @@ nf.TemplatesTable = (function () {
 
             // initialize the templates table
             var templatesColumns = [
-                {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, defaultSortAsc: false, resizable: false, formatter: valueFormatter, width: 225, maxWidth: 225},
-                {id: 'name', name: 'Name', field: 'name', sortable: true, resizable: true},
-                {id: 'description', name: 'Description', field: 'description', sortable: true, resizable: true, formatter: valueFormatter},
-                {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
+                {
+                    id: 'timestamp',
+                    name: 'Date/Time',
+                    field: 'timestamp',
+                    sortable: true,
+                    defaultSortAsc: false,
+                    resizable: false,
+                    formatter: valueFormatter,
+                    width: 225,
+                    maxWidth: 225
+                },
+                {
+                    id: 'name',
+                    name: 'Name',
+                    field: 'name',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'description',
+                    name: 'Description',
+                    field: 'description',
+                    sortable: true,
+                    resizable: true,
+                    formatter: valueFormatter
+                },
+                {
+                    id: 'actions',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: actionFormatter,
+                    width: 100,
+                    maxWidth: 100
+                }
             ];
             var templatesOptions = {
                 forceFitColumns: true,
@@ -317,7 +349,7 @@ nf.TemplatesTable = (function () {
             // initialize the number of displayed items
             $('#displayed-templates').text('0');
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -327,7 +359,7 @@ nf.TemplatesTable = (function () {
                 templateGrid.resizeCanvas();
             }
         },
-        
+
         /**
          * Load the processor templates table.
          */
