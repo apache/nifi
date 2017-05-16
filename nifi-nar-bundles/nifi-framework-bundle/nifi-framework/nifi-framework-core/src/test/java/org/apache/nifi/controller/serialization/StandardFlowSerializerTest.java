@@ -92,7 +92,7 @@ public class StandardFlowSerializerTest {
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
-        serializer.serialize(controller, os);
+        serializer.serialize(controller, os, ScheduledStateLookup.IDENTITY_LOOKUP);
 
         // verify the results contain the serialized string
         final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
