@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -124,6 +125,10 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     }
 
     protected SchemaAccessWriter getSchemaWriteStrategy(final String allowableValue) {
+        if (allowableValue == null) {
+            return null;
+        }
+
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
             return new SchemaNameAsAttribute();
         } else if (allowableValue.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
@@ -140,6 +145,10 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
         final String writeStrategyValue = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final SchemaAccessWriter writer = getSchemaWriteStrategy(writeStrategyValue);
+        if (writer == null) {
+            return EnumSet.noneOf(SchemaField.class);
+        }
+
         final Set<SchemaField> requiredFields = writer.getRequiredSchemaFields();
         return requiredFields;
     }
