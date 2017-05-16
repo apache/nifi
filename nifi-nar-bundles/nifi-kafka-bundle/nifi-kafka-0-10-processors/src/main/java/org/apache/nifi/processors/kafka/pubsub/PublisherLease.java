@@ -102,9 +102,11 @@ public class PublisherLease implements Closeable {
 
         Record record;
         final RecordSet recordSet = reader.createRecordSet();
+        int recordCount = 0;
 
         try {
             while ((record = recordSet.next()) != null) {
+                recordCount++;
                 baos.reset();
                 writer.write(record, baos);
 
@@ -118,6 +120,10 @@ public class PublisherLease implements Closeable {
                     // If we have a failure, don't try to send anything else.
                     return;
                 }
+            }
+
+            if (recordCount == 0) {
+                tracker.trackEmpty(flowFile);
             }
         } catch (final TokenTooLargeException ttle) {
             tracker.fail(flowFile, ttle);
