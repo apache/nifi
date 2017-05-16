@@ -460,16 +460,18 @@
         set: function (labelEntities, options) {
             var selectAll = false;
             var transition = false;
+            var overrideRevisionCheck = false;
             if (nfCommon.isDefinedAndNotNull(options)) {
                 selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
                 transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+                overrideRevisionCheck = nfCommon.isDefinedAndNotNull(options.overrideRevisionCheck) ? options.overrideRevisionCheck : overrideRevisionCheck;
             }
 
             var set = function (proposedLabelEntity) {
                 var currentLabelEntity = labelMap.get(proposedLabelEntity.id);
 
                 // set the processor if appropriate due to revision and wasn't previously removed
-                if (nfClient.isNewerRevision(currentLabelEntity, proposedLabelEntity) && !removedCache.has(proposedLabelEntity.id)) {
+                if ((nfClient.isNewerRevision(currentLabelEntity, proposedLabelEntity) && !removedCache.has(proposedLabelEntity.id)) || overrideRevisionCheck === true) {
                     labelMap.set(proposedLabelEntity.id, $.extend({
                         type: 'Label'
                     }, proposedLabelEntity));

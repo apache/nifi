@@ -174,7 +174,8 @@
             // refresh the graph
             nfGraph.expireCaches(now);
             nfGraph.set(processGroupFlow.flow, $.extend({
-                'selectAll': false
+                'selectAll': false,
+                'overrideRevisionCheck': nfClusterSummary.didConnectedStateChange()
             }, options));
 
             // update component visibility

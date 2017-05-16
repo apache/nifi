@@ -1097,16 +1097,18 @@
         set: function (processGroupEntities, options) {
             var selectAll = false;
             var transition = false;
+            var overrideRevisionCheck = false;
             if (nfCommon.isDefinedAndNotNull(options)) {
                 selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
                 transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+                overrideRevisionCheck = nfCommon.isDefinedAndNotNull(options.overrideRevisionCheck) ? options.overrideRevisionCheck : overrideRevisionCheck;
             }
 
             var set = function (proposedProcessGroupEntity) {
                 var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
 
                 // set the process group if appropriate due to revision and wasn't previously removed
-                if (nfClient.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
+                if ((nfClient.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) || overrideRevisionCheck === true) {
                     processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
                         type: 'ProcessGroup',
                         dimensions: dimensions
