@@ -540,7 +540,7 @@
                 markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
             }
 
-            markup += dataContext.component.identity;
+            markup += nfCommon.escapeHtml(dataContext.component.identity);
 
             return markup;
         };

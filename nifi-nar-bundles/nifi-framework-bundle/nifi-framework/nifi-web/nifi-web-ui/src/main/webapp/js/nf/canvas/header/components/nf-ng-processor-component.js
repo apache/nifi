@@ -329,7 +329,8 @@
                                 name: 'Tags',
                                 field: 'tags',
                                 sortable: true,
-                                resizable: true
+                                resizable: true,
+                                formatter: nfCommon.genericValueFormatter
                             }
                         ];
 

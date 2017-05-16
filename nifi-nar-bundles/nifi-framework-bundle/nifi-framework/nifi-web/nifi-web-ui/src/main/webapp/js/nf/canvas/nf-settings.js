@@ -229,10 +229,10 @@
      */
     var nameFormatter = function (row, cell, value, columnDef, dataContext) {
         if (!dataContext.permissions.canRead) {
-            return '<span class="blank">' + dataContext.id + '</span>';
+            return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
         }
 
-        return dataContext.component.name;
+        return nfCommon.escapeHtml(dataContext.component.name);
     };
 
     /**
@@ -508,7 +508,8 @@
                 name: 'Tags',
                 field: 'tags',
                 sortable: true,
-                resizable: true
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
             }
         ];
 

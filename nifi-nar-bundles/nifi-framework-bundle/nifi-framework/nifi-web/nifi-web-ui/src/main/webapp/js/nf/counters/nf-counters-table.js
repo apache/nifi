@@ -178,14 +178,16 @@
                     name: 'Context',
                     field: 'context',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'name',
                     name: 'Name',
                     field: 'name',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'value',
@@ -193,7 +195,8 @@
                     field: 'value',
                     sortable: true,
                     resizable: true,
-                    defaultSortAsc: false
+                    defaultSortAsc: false,
+                    formatter: nfCommon.genericValueFormatter
                 }
             ];
 

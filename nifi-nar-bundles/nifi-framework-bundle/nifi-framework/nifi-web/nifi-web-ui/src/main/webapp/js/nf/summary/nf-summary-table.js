@@ -278,12 +278,12 @@
 
         // formatter for io
         var ioFormatter = function (row, cell, value, columnDef, dataContext) {
-            return dataContext.read + ' / ' + dataContext.written;
+            return nfCommon.escapeHtml(dataContext.read) + ' / ' + nfCommon.escapeHtml(dataContext.written);
         };
 
         // formatter for tasks
         var taskTimeFormatter = function (row, cell, value, columnDef, dataContext) {
-            return nfCommon.formatInteger(dataContext.tasks) + ' / ' + dataContext.tasksDuration;
+            return nfCommon.formatInteger(dataContext.tasks) + ' / ' + nfCommon.escapeHtml(dataContext.tasksDuration);
         };
 
         // function for formatting the last accessed time
@@ -295,7 +295,7 @@
         var runStatusFormatter = function (row, cell, value, columnDef, dataContext) {
             var activeThreadCount = '';
             if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.activeThreadCount + ')';
+                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
             }
             var classes = nfCommon.escapeHtml(value.toLowerCase());
             switch (nfCommon.escapeHtml(value.toLowerCase())) {
@@ -322,7 +322,14 @@
         };
 
         // define the input, read, written, and output columns (reused between both tables)
-        var nameColumn = {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true};
+        var nameColumn = {
+            id: 'name',
+            field: 'name',
+            name: 'Name',
+            sortable: true,
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
+        };
         var runStatusColumn = {
             id: 'runStatus',
             field: 'runStatus',
@@ -337,7 +344,8 @@
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var ioColumn = {
             id: 'io',
@@ -356,7 +364,8 @@
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var tasksTimeColumn = {
             id: 'tasks',
@@ -383,7 +392,14 @@
                 toolTip: 'Sorts based on presence of bulletins'
             },
             nameColumn,
-            {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true},
+            {
+                id: 'type',
+                field: 'type',
+                name: 'Type',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -583,7 +599,14 @@
 
         // initialize the cluster processor column model
         var clusterProcessorsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -653,7 +676,7 @@
             if (nfCommon.isDefinedAndNotNull(dataContext.percentUseBytes)) {
                 percentUseBytes = dataContext.percentUseBytes + '%';
             }
-            return percentUseCount + ' / ' + percentUseBytes;
+            return nfCommon.escapeHtml(percentUseCount) + ' / ' + nfCommon.escapeHtml(percentUseBytes);
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -663,7 +686,8 @@
             name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
             sortable: true,
             defaultSortAsc: false,
-            resize: true
+            resize: true,
+            formatter: nfCommon.genericValueFormatter
         };
 
         // define the backpressure column (reused between both tables)
@@ -688,14 +712,29 @@
                 width: 50,
                 maxWidth: 50
             },
-            {id: 'sourceName', field: 'sourceName', name: 'Source Name', sortable: true, resizable: true},
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true, formatter: valueFormatter},
+            {
+                id: 'sourceName',
+                field: 'sourceName',
+                name: 'Source Name',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
             {
                 id: 'destinationName',
                 field: 'destinationName',
                 name: 'Destination Name',
                 sortable: true,
-                resizable: true
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
             },
             inputColumn,
             queueColumn,
@@ -864,7 +903,14 @@
 
         // initialize the cluster processor column model
         var clusterConnectionsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             inputColumn,
             queueColumn,
             backpressureColumn,
@@ -949,7 +995,8 @@
             toolTip: 'Count / data size transferred to and from connections in the last 5 min',
             resizable: true,
             defaultSortAsc: false,
-            sortable: true
+            sortable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var sentColumn = {
             id: 'sent',
@@ -958,7 +1005,8 @@
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
         var receivedColumn = {
             id: 'received',
@@ -967,13 +1015,21 @@
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
 
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true, formatter: valueFormatter},
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
             transferredColumn,
             inputColumn,
             ioColumn,
@@ -1170,7 +1226,14 @@
 
         // initialize the cluster process groups column model
         var clusterProcessGroupsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             transferredColumn,
             inputColumn,
             ioColumn,
@@ -1414,7 +1477,14 @@
 
         // initialize the cluster input port column model
         var clusterInputPortsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             outputColumn
         ];
@@ -1654,7 +1724,14 @@
 
         // initialize the cluster output port column model
         var clusterOutputPortsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             runStatusColumn,
             inputColumn
         ];
@@ -1711,7 +1788,7 @@
         var transmissionStatusFormatter = function (row, cell, value, columnDef, dataContext) {
             var activeThreadCount = '';
             if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.activeThreadCount + ')';
+                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
             }
 
             // determine what to put in the mark up
@@ -1743,7 +1820,8 @@
             field: 'targetUri',
             name: 'Target URI',
             sortable: true,
-            resizable: true
+            resizable: true,
+            formatter: nfCommon.genericValueFormatter
         };
 
         // define the column model for the summary table
@@ -1951,7 +2029,14 @@
 
         // initialize the cluster remote process group column model
         var clusterRemoteProcessGroupsColumnModel = [
-            {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
             targetUriColumn,
             transmissionStatusColumn,
             sentColumn,

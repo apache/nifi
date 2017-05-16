@@ -329,6 +329,20 @@
         },
 
         /**
+         * Escapes any malicious HTML characters from the value.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        genericValueFormatter: function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.escapeHtml(value);
+        },
+
+        /**
          * Formats the bundle of a component type for the new instance dialog.
          *
          * @param row
@@ -1184,11 +1198,11 @@
             while (regex.test(string)) {
                 string = string.replace(regex, '$1' + ',' + '$2');
             }
-            return string;
+            return nfCommon.escapeHtml(string);
         },
 
         /**
-         * Formats the specified float using two demical places.
+         * Formats the specified float using two decimal places.
          *
          * @param {float} f
          */

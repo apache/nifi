@@ -251,15 +251,15 @@
                     return '';
                 }
 
-                return dataContext.template.timestamp;
+                return nfCommon.escapeHtml(dataContext.template.timestamp);
             };
 
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {
                 if (!dataContext.permissions.canRead) {
-                    return '<span class="blank">' + dataContext.id + '</span>';
+                    return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
                 }
 
-                return dataContext.template.name;
+                return nfCommon.escapeHtml(dataContext.template.name);
             };
 
             var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -275,7 +275,7 @@
                     return '';
                 }
 
-                return dataContext.template.groupId;
+                return nfCommon.escapeHtml(dataContext.template.groupId);
             };
 
             // function for formatting the actions column

@@ -664,21 +664,24 @@
                     field: 'eventTime',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'eventType',
                     name: 'Type',
                     field: 'eventType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'flowFileUuid',
                     name: 'FlowFile Uuid',
                     field: 'flowFileUuid',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'fileSize',
@@ -686,7 +689,8 @@
                     field: 'fileSize',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'componentName',
@@ -701,7 +705,8 @@
                     name: 'Component Type',
                     field: 'componentType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 }
             ];
 
@@ -712,7 +717,8 @@
                     name: 'Node',
                     field: 'clusterNodeAddress',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 

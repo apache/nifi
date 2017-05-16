@@ -361,7 +361,8 @@
                 name: 'Tags',
                 field: 'tags',
                 sortable: true,
-                resizable: true
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
             }
         ];
 
@@ -624,10 +625,10 @@
      */
     var nameFormatter = function (row, cell, value, columnDef, dataContext) {
         if (!dataContext.permissions.canRead) {
-            return '<span class="blank">' + dataContext.id + '</span>';
+            return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
         }
         
-        return dataContext.component.name;
+        return nfCommon.escapeHtml(dataContext.component.name);
     };
 
     /**
@@ -652,9 +653,9 @@
                 var selectedData = selection.datum();
                 if (selectedData.id === dataContext.component.parentGroupId) {
                     if (selectedData.permissions.canRead) {
-                        return selectedData.component.name;
+                        return nfCommon.escapeHtml(selectedData.component.name);
                     } else {
-                        return selectedData.id;
+                        return nfCommon.escapeHtml(selectedData.id);
                     }
                 }
             }
@@ -670,7 +671,7 @@
                 }
             });
 
-            return processGroupLabel;
+            return nfCommon.escapeHtml(processGroupLabel);
         } else {
             return 'Controller';
         }
@@ -938,7 +939,16 @@
         ];
 
         // action column should always be last
-        controllerServicesColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: controllerServiceActionFormatter, sortable: false, width: 90, maxWidth: 90});
+        controllerServicesColumns.push(
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: controllerServiceActionFormatter,
+                sortable: false,
+                width: 90,
+                maxWidth: 90
+            });
 
         // initialize the dataview
         var controllerServicesData = new Slick.Data.DataView({

@@ -534,21 +534,24 @@
                     sortable: false,
                     resizable: false,
                     width: 75,
-                    maxWidth: 75
+                    maxWidth: 75,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'uuid',
                     name: 'UUID',
                     field: 'uuid',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'filename',
                     name: 'Filename',
                     field: 'filename',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'size',
@@ -594,7 +597,8 @@
                     name: 'Node',
                     field: 'clusterNodeAddress',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 

@@ -598,7 +598,7 @@
                 // not a global policy... check if user has access to the component reference
                 return componentResourceParser(dataContext);
             } else {
-                return '<span class="unset">' + dataContext.id + '</span>';
+                return '<span class="unset">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
         };
 
@@ -774,7 +774,7 @@
                 markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
             }
 
-            markup += dataContext.component.identity;
+            markup += nfCommon.escapeHtml(dataContext.component.identity);
 
             return markup;
         };
@@ -783,11 +783,11 @@
         var membersGroupsFormatter = function (row, cell, value, columnDef, dataContext) {
             if (dataContext.type === 'group') {
                 return 'Members: <b>' + dataContext.component.users.map(function (user) {
-                        return user.component.identity;
+                        return nfCommon.escapeHtml(user.component.identity);
                     }).join('</b>, <b>') + '</b>';
             } else {
                 return 'Member of: <b>' + dataContext.component.userGroups.map(function (group) {
-                        return group.component.identity;
+                        return nfCommon.escapeHtml(group.component.identity);
                     }).join('</b>, <b>') + '</b>';
             }
         };
