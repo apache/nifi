@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReloadComponent;
@@ -27,6 +28,7 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -38,9 +40,9 @@ import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.quartz.CronExpression;
 
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,6 +123,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         configureReportingTask(reportingTask, reportingTaskDTO);
 
         // attempt to change the underlying processor if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(reportingTask, reportingTaskDTO);
 
         // configure scheduled state
@@ -166,16 +169,21 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
-        BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
             final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
-            try {
-                reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
-            } catch (ReportingTaskInstantiationException e) {
-                throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
-                        reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            final BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = reportingTask.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ReportingTaskInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
+                            reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
             }
-
         }
     }
 

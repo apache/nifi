@@ -282,13 +282,21 @@
          * @param {object} componentEntity
          */
         promptForVersionChange: function (componentEntity) {
+            var params = {
+                 'bundleGroupFilter': componentEntity.component.bundle.group,
+                 'bundleArtifactFilter': componentEntity.component.bundle.artifact
+            };
+
+            // special handling for incorrect query param
+            if (getTypeField(componentEntity) === 'controllerServiceTypes') {
+                params['typeFilter'] = componentEntity.component.type;
+            } else {
+                params['type'] = componentEntity.component.type;
+            }
+
             return $.ajax({
                 type: 'GET',
-                url: getTypeUri(componentEntity) + '?' + $.param({
-                    'bundleGroupFilter': componentEntity.component.bundle.group,
-                    'bundleArtifactFilter': componentEntity.component.bundle.artifact,
-                    'typeFilter': componentEntity.component.type
-                }),
+                url: getTypeUri(componentEntity) + '?' + $.param(params),
                 dataType: 'json'
             }).done(function (response) {
                 var options = [];

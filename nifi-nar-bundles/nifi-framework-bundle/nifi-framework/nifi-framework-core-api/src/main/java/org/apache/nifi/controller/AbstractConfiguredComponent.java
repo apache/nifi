@@ -34,6 +34,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -120,6 +121,33 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
+    public Set<URL> getAdditionalClasspathResources(final List<PropertyDescriptor> propertyDescriptors) {
+        final Set<String> modulePaths = new LinkedHashSet<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            if (descriptor.isDynamicClasspathModifier()) {
+                final String value = getProperty(descriptor);
+                if (!StringUtils.isEmpty(value)) {
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, variableRegistry);
+                    modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
+                }
+            }
+        }
+
+        final Set<URL> additionalUrls = new LinkedHashSet<>();
+        try {
+            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
+            if (urls != null) {
+                for (final URL url : urls) {
+                    additionalUrls.add(url);
+                }
+            }
+        } catch (MalformedURLException mfe) {
+            getLogger().error("Error processing classpath resources for " + id + ": " + mfe.getMessage(), mfe);
+        }
+        return additionalUrls;
+    }
+
+    @Override
     public void setProperties(Map<String, String> properties) {
         if (properties == null) {
             return;
@@ -145,18 +173,14 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                     }
                 }
 
-                // if at least one property with dynamicallyModifiesClasspath(true) was set, then re-calculate the module paths
-                // and reset the InstanceClassLoader to the new module paths
+                // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
                 if (classpathChanged) {
-                    final Set<String> modulePaths = new LinkedHashSet<>();
-                    for (final Map.Entry<PropertyDescriptor, String> entry : this.properties.entrySet()) {
-                        final PropertyDescriptor descriptor = entry.getKey();
-                        if (descriptor.isDynamicClasspathModifier() && !StringUtils.isEmpty(entry.getValue())) {
-                            final StandardPropertyValue propertyValue = new StandardPropertyValue(entry.getValue(), null, variableRegistry);
-                            modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
-                        }
+                    final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
+                    try {
+                        reload(additionalUrls);
+                    } catch (Exception e) {
+                        getLogger().error("Error reloading component with id " + id + ": " + e.getMessage(), e);
                     }
-                    processClasspathModifiers(modulePaths);
                 }
             }
         } finally {
@@ -237,32 +261,6 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return false;
     }
 
-    /**
-     * Triggers the reloading of the underlying component using a new InstanceClassLoader that includes the additional URL resources.
-     *
-     * @param modulePaths a list of module paths where each entry can be a comma-separated list of multiple module paths
-     */
-    private void processClasspathModifiers(final Set<String> modulePaths) {
-        try {
-            // compute the URLs from all the modules paths
-            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
-
-            // convert to a set of URLs
-            final Set<URL> additionalUrls = new LinkedHashSet<>();
-            if (urls != null) {
-                for (final URL url : urls) {
-                    additionalUrls.add(url);
-                }
-            }
-
-            // reload the underlying component with a new InstanceClassLoader that includes the new URLs
-            reload(additionalUrls);
-
-        } catch (Exception e) {
-            getLogger().warn("Error processing classpath resources for " + id + ": " + e.getMessage(), e);
-        }
-    }
-
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
@@ -283,6 +281,14 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     @Override
     public String getProperty(final PropertyDescriptor property) {
         return properties.get(property);
+    }
+
+    @Override
+    public void refreshProperties() {
+        // use setProperty instead of setProperties so we can bypass the class loading logic
+        getProperties().entrySet().stream()
+                .filter(e -> e.getKey() != null && e.getValue() != null)
+                .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
     }
 
     @Override
