@@ -74,7 +74,7 @@ public class CSVRecordReader implements RecordReader {
                     rawValue = csvRecord.get(fieldName);
                 } else {
                     for (final String alias : recordField.getAliases()) {
-                        if (csvRecord.isSet(fieldName)) {
+                        if (csvRecord.isSet(alias)) {
                             rawValue = csvRecord.get(alias);
                             break;
                         }
