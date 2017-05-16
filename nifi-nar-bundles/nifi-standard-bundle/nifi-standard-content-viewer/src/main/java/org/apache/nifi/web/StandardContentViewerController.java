@@ -18,11 +18,16 @@ package org.apache.nifi.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.avro.Conversions;
+import org.apache.avro.data.TimeConversions;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -103,11 +108,27 @@ public class StandardContentViewerController extends HttpServlet {
                 } else if ("application/avro-binary".equals(contentType) || "avro/binary".equals(contentType) || "application/avro+binary".equals(contentType)) {
                     final StringBuilder sb = new StringBuilder();
                     sb.append("[");
-                    final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>();
+                    // Use Avro conversions to display logical type values in human readable way.
+                    final GenericData genericData = new GenericData(){
+                        @Override
+                        protected void toString(Object datum, StringBuilder buffer) {
+                            // Since these types are not quoted and produce a malformed JSON string, quote it here.
+                            if (datum instanceof LocalDate || datum instanceof LocalTime || datum instanceof DateTime) {
+                                buffer.append("\"").append(datum).append("\"");
+                                return;
+                            }
+                            super.toString(datum, buffer);
+                        }
+                    };
+                    genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.DateConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimeConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampConversion());
+                    final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>(null, null, genericData);
                     try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(content.getContentStream(), datumReader)) {
                         while (dataFileReader.hasNext()) {
                             final GenericData.Record record = dataFileReader.next();
-                            final String formattedRecord = record.toString();
+                            final String formattedRecord = genericData.toString(record);
                             sb.append(formattedRecord);
                             sb.append(",");
                             // Do not format more than 10 MB of content.
