@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -30,6 +31,7 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -46,9 +48,9 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -406,6 +408,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         configureProcessor(processor, processorDTO);
 
         // attempt to change the underlying processor if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
         updateBundle(processor, processorDTO);
 
         // see if an update is necessary
@@ -450,14 +453,20 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
-        BundleDTO bundleDTO = processorDTO.getBundle();
+        final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
-            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
-            try {
-                flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, Collections.emptySet());
-            } catch (ProcessorInstantiationException e) {
-                throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
-                        processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate existingCoordinate = processor.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(processor.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ProcessorInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
+                            processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
             }
         }
     }
