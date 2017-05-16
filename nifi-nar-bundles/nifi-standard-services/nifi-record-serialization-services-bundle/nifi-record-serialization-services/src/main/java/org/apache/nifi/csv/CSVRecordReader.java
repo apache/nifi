@@ -68,17 +68,19 @@ public class CSVRecordReader implements RecordReader {
             final Map<String, Object> rowValues = new HashMap<>(schema.getFieldCount());
 
             for (final RecordField recordField : schema.getFields()) {
-                String rawValue = csvRecord.get(recordField.getFieldName());
-                if (rawValue == null) {
+                String rawValue = null;
+                final String fieldName = recordField.getFieldName();
+                if (csvRecord.isSet(fieldName)) {
+                    rawValue = csvRecord.get(fieldName);
+                } else {
                     for (final String alias : recordField.getAliases()) {
-                        rawValue = csvRecord.get(alias);
-                        if (rawValue != null) {
+                        if (csvRecord.isSet(alias)) {
+                            rawValue = csvRecord.get(alias);
                             break;
                         }
                     }
                 }
 
-                final String fieldName = recordField.getFieldName();
                 if (rawValue == null) {
                     rowValues.put(fieldName, null);
                     continue;
