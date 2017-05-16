@@ -286,13 +286,34 @@ nf.ComponentState = (function () {
 
             // initialize the queue listing table
             var componentStateColumns = [
-                {id: 'key', field: 'key', name: 'Key', sortable: true, resizable: true},
-                {id: 'value', field: 'value', name: 'Value', sortable: true, resizable: true}
+                {
+                    id: 'key',
+                    field: 'key',
+                    name: 'Key',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'value',
+                    field: 'value',
+                    name: 'Value',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                }
             ];
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                componentStateColumns.push({id: 'scope', field: 'scope', name: 'Scope', sortable: true, resizable: true});
+                componentStateColumns.push({
+                    id: 'scope',
+                    field: 'scope',
+                    name: 'Scope',
+                    sortable: true,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                });
             }
 
             var componentStateOptions = {

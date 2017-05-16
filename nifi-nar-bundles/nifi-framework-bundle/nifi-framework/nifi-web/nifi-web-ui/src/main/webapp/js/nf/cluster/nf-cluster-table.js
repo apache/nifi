@@ -434,9 +434,9 @@ nf.ClusterTable = (function () {
             // define a custom formatter for the status column
             var statusFormatter = function (row, cell, value, columnDef, dataContext) {
                 if (dataContext.primary === true) {
-                    return value + ', PRIMARY';
+                    return nf.Common.escapeHtml(value) + ', PRIMARY';
                 } else {
-                    return value;
+                    return nf.Common.escapeHtml(value);
                 }
             };
 
@@ -446,13 +446,67 @@ nf.ClusterTable = (function () {
             };
 
             var columnModel = [
-                {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-                {id: 'node', field: 'node', name: 'Node Address', formatter: nodeFormatter, resizable: true, sortable: true},
-                {id: 'activeThreadCount', field: 'activeThreadCount', name: 'Active Thread Count', resizable: true, sortable: true, defaultSortAsc: false},
-                {id: 'queued', field: 'queued', name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>', resizable: true, sortable: true, defaultSortAsc: false},
-                {id: 'status', field: 'status', name: 'Status', formatter: statusFormatter, resizable: true, sortable: true},
-                {id: 'uptime', field: 'nodeStartTime', name: 'Uptime', formatter: valueFormatter, resizable: true, sortable: true, defaultSortAsc: false},
-                {id: 'heartbeat', field: 'heartbeat', name: 'Last Heartbeat', formatter: valueFormatter, resizable: true, sortable: true, defaultSortAsc: false}
+                {
+                    id: 'moreDetails',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: moreDetailsFormatter,
+                    width: 50,
+                    maxWidth: 50
+                },
+                {
+                    id: 'node',
+                    field: 'node',
+                    name: 'Node Address',
+                    formatter: nodeFormatter,
+                    resizable: true,
+                    sortable: true
+                },
+                {
+                    id: 'activeThreadCount',
+                    field: 'activeThreadCount',
+                    name: 'Active Thread Count',
+                    resizable: true,
+                    sortable: true,
+                    defaultSortAsc: false,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'queued',
+                    field: 'queued',
+                    name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
+                    resizable: true,
+                    sortable: true,
+                    defaultSortAsc: false,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'status',
+                    field: 'status',
+                    name: 'Status',
+                    formatter: statusFormatter,
+                    resizable: true,
+                    sortable: true
+                },
+                {
+                    id: 'uptime',
+                    field: 'nodeStartTime',
+                    name: 'Uptime',
+                    formatter: valueFormatter,
+                    resizable: true,
+                    sortable: true,
+                    defaultSortAsc: false
+                },
+                {
+                    id: 'heartbeat',
+                    field: 'heartbeat',
+                    name: 'Last Heartbeat',
+                    formatter: valueFormatter,
+                    resizable: true,
+                    sortable: true,
+                    defaultSortAsc: false
+                }
             ];
 
             // only allow the admin to modify the cluster
@@ -491,7 +545,16 @@ nf.ClusterTable = (function () {
                     }
                 };
 
-                columnModel.push({id: 'actions', label: '&nbsp;', formatter: actionFormatter, resizable: false, sortable: false, width: 80, maxWidth: 80});
+                columnModel.push(
+                    {
+                        id: 'actions',
+                        label: '&nbsp;',
+                        formatter: actionFormatter,
+                        resizable: false,
+                        sortable: false,
+                        width: 80,
+                        maxWidth: 80
+                    });
             }
 
             var clusterOptions = {

@@ -1014,8 +1014,25 @@
         };
 
         var propertyColumns = [
-            {id: 'property', field: 'displayName', name: 'Property', sortable: false, resizable: true, rerenderOnResize: true, formatter: nameFormatter},
-            {id: 'value', field: 'value', name: 'Value', sortable: false, resizable: true, cssClass: 'pointer', rerenderOnResize: true, formatter: valueFormatter}
+            {
+                id: 'property',
+                field: 'displayName',
+                name: 'Property',
+                sortable: false,
+                resizable: true,
+                rerenderOnResize: true,
+                formatter: nameFormatter
+            },
+            {
+                id: 'value',
+                field: 'value',
+                name: 'Value',
+                sortable: false,
+                resizable: true,
+                cssClass: 'pointer',
+                rerenderOnResize: true,
+                formatter: valueFormatter
+            }
         ];
 
         // custom formatter for the actions column
@@ -1048,7 +1065,14 @@
 
             return markup;
         };
-        propertyColumns.push({id: "actions", name: "&nbsp;", minWidth: 20, width: 20, formatter: actionFormatter});
+        propertyColumns.push(
+            {
+                id: "actions",
+                name: "&nbsp;",
+                minWidth: 20,
+                width: 20,
+                formatter: actionFormatter
+            });
 
         var propertyConfigurationOptions = {
             forceFitColumns: true,

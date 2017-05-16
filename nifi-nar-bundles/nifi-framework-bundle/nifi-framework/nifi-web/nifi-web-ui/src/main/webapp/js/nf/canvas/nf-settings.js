@@ -383,8 +383,22 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var controllerServiceTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                sortable: false,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            }
         ];
 
         // initialize the dataview
@@ -553,7 +567,7 @@ nf.Settings = (function () {
      * @returns {String}
      */
     var typeFormatter = function (row, cell, value, columnDef, dataContext) {
-        return nf.Common.substringAfterLast(value, '.');
+        return nf.Common.substringAfterLast(nf.Common.escapeHtml(value), '.');
     };
 
     /**
@@ -706,19 +720,67 @@ nf.Settings = (function () {
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
-            {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
+            {
+                id: 'moreDetails',
+                field: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreControllerServiceDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'type',
+                field: 'type',
+                name: 'Type',
+                formatter: typeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'state',
+                field: 'state',
+                name: 'State',
+                formatter: controllerServiceStateFormatter,
+                sortable: true,
+                resizeable: true
+            }
         ];
 
         // only show availability when clustered
         if (nf.Canvas.isClustered()) {
-            controllerServicesColumns.push({id: 'availability', field: 'availability', name: 'Availability', formatter: availabilityFormatter, sortable: true, resizeable: true});
+            controllerServicesColumns.push(
+                {
+                    id: 'availability',
+                    field: 'availability',
+                    name: 'Availability',
+                    formatter: availabilityFormatter,
+                    sortable: true,
+                    resizeable: true
+                });
         }
 
         // action column should always be last
-        controllerServicesColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: controllerServiceActionFormatter, sortable: false, width: 90, maxWidth: 90});
+        controllerServicesColumns.push(
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: controllerServiceActionFormatter,
+                sortable: false,
+                width: 90,
+                maxWidth: 90
+            });
 
         // initialize the dataview
         var controllerServicesData = new Slick.Data.DataView({
@@ -1116,8 +1178,22 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                sortable: false,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            }
         ];
 
         // initialize the dataview
@@ -1361,19 +1437,67 @@ nf.Settings = (function () {
 
         // define the column model for the reporting tasks table
         var reportingTasksColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
-            {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
-            {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
-            {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter}
+            {
+                id: 'moreDetails',
+                field: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreReportingTaskDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                field: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: nf.Common.genericValueFormatter
+            },
+            {
+                id: 'type',
+                field: 'type',
+                name: 'Type',
+                sortable: true,
+                resizable: true,
+                formatter: typeFormatter
+            },
+            {
+                id: 'state',
+                field: 'state',
+                name: 'Run Status',
+                sortable: true,
+                resizeable: true,
+                formatter: reportingTaskRunStatusFormatter
+            }
         ];
 
         // only show availability when clustered
         if (nf.Canvas.isClustered()) {
-            reportingTasksColumnModel.push({id: 'availability', field: 'availability', name: 'Availability', formatter: availabilityFormatter, sortable: true, resizeable: true});
+            reportingTasksColumnModel.push(
+                {
+                    id: 'availability',
+                    field: 'availability',
+                    name: 'Availability',
+                    formatter: availabilityFormatter,
+                    sortable: true,
+                    resizeable: true
+                });
         }
 
         // action column should always be last
-        reportingTasksColumnModel.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: reportingTaskActionFormatter, sortable: false, width: 90, maxWidth: 90});
+        reportingTasksColumnModel.push(
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: reportingTaskActionFormatter,
+                sortable: false,
+                width: 90,
+                maxWidth: 90
+            });
 
         // initialize the dataview
         var reportingTasksData = new Slick.Data.DataView({

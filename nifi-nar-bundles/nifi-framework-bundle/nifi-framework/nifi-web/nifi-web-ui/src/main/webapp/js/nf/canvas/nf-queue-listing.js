@@ -550,19 +550,89 @@ nf.QueueListing = (function () {
 
             // initialize the queue listing table
             var queueListingColumns = [
-                {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-                {id: 'position', name: 'Position', field: 'position', sortable: false, resizable: false, width: 75, maxWidth: 75},
-                {id: 'uuid', name: 'UUID', field: 'uuid', sortable: false, resizable: true},
-                {id: 'filename', name: 'Filename', field: 'filename', sortable: false, resizable: true},
-                {id: 'size', name: 'File Size', field: 'size', sortable: false, resizable: true, defaultSortAsc: false, formatter: dataSizeFormatter},
-                {id: 'queuedDuration', name: 'Queued Duration', field: 'queuedDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'lineageDuration', name: 'Lineage Duration', field: 'lineageDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'penalized', name: 'Penalized', field: 'penalized', sortable: false, resizable: false, width: 100, maxWidth: 100, formatter: penalizedFormatter}
+                {
+                    id: 'moreDetails',
+                    field: 'moreDetails',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: moreDetailsFormatter,
+                    width: 50,
+                    maxWidth: 50
+                },
+                {
+                    id: 'position',
+                    name: 'Position',
+                    field: 'position',
+                    sortable: false,
+                    resizable: false,
+                    width: 75,
+                    maxWidth: 75,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'uuid',
+                    name: 'UUID',
+                    field: 'uuid',
+                    sortable: false,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'filename',
+                    name: 'Filename',
+                    field: 'filename',
+                    sortable: false,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                },
+                {
+                    id: 'size',
+                    name: 'File Size',
+                    field: 'size',
+                    sortable: false,
+                    resizable: true,
+                    defaultSortAsc: false,
+                    formatter: dataSizeFormatter
+                },
+                {
+                    id: 'queuedDuration',
+                    name: 'Queued Duration',
+                    field: 'queuedDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'lineageDuration',
+                    name: 'Lineage Duration',
+                    field: 'lineageDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'penalized',
+                    name: 'Penalized',
+                    field: 'penalized',
+                    sortable: false,
+                    resizable: false,
+                    width: 100,
+                    maxWidth: 100,
+                    formatter: penalizedFormatter
+                }
             ];
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                queueListingColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: false, resizable: true});
+                queueListingColumns.push({
+                    id: 'clusterNodeAddress',
+                    name: 'Node',
+                    field: 'clusterNodeAddress',
+                    sortable: false,
+                    resizable: true,
+                    formatter: nf.Common.genericValueFormatter
+                });
             }
 
             // add an actions column when the user can access provenance
@@ -572,7 +642,16 @@ nf.QueueListing = (function () {
                     return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
                 };
 
-                queueListingColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: actionsFormatter, sortable: false, width: 50, maxWidth: 50});
+                queueListingColumns.push(
+                    {
+                        id: 'actions',
+                        name: '&nbsp;',
+                        resizable: false,
+                        formatter: actionsFormatter,
+                        sortable: false,
+                        width: 50,
+                        maxWidth: 50
+                    });
             }
 
             var queueListingOptions = {
