@@ -69,7 +69,14 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -462,6 +469,9 @@ public class JettyServer implements NiFiServer {
 
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
+
+        // add a filter to set the X-Frame-Options filter
+        webappContext.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -883,4 +893,27 @@ public class JettyServer implements NiFiServer {
         }
     }
 
+    private static final Filter FRAME_OPTIONS_FILTER = new Filter() {
+        private static final String FRAME_OPTIONS = "X-Frame-Options";
+        private static final String SAME_ORIGIN = "SAMEORIGIN";
+
+        @Override
+        public void doFilter(final ServletRequest req, final ServletResponse resp, final FilterChain filterChain)
+                throws IOException, ServletException {
+
+            // set frame options accordingly
+            final HttpServletResponse response = (HttpServletResponse) resp;
+            response.addHeader(FRAME_OPTIONS, SAME_ORIGIN);
+
+            filterChain.doFilter(req, resp);
+        }
+
+        @Override
+        public void init(final FilterConfig config) {
+        }
+
+        @Override
+        public void destroy() {
+        }
+    };
 }
