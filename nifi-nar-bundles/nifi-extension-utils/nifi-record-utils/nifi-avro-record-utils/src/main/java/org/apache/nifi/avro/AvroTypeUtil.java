@@ -39,6 +39,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -58,6 +60,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class AvroTypeUtil {
+    private static final Logger logger = LoggerFactory.getLogger(AvroTypeUtil.class);
     public static final String AVRO_SCHEMA_FORMAT = "avro";
 
     private static final String LOGICAL_TYPE_DATE = "date";
@@ -459,12 +462,19 @@ public class AvroTypeUtil {
         // If at least one non-null type exists, find the first compatible type
         if (nonNullFieldSchemas.size() >= 1) {
             for (final Schema nonNullFieldSchema : nonNullFieldSchemas) {
-                final Object convertedValue = conversion.apply(nonNullFieldSchema);
                 final DataType desiredDataType = AvroTypeUtil.determineDataType(nonNullFieldSchema);
-                if (DataTypeUtils.isCompatibleDataType(convertedValue, desiredDataType)
-                        // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
-                        || (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType))) {
-                    return convertedValue;
+                try {
+                    final Object convertedValue = conversion.apply(nonNullFieldSchema);
+                    if (DataTypeUtils.isCompatibleDataType(convertedValue, desiredDataType)
+                            // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
+                            || (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType))) {
+                        return convertedValue;
+                    }
+                } catch (Exception e) {
+                    // If failed with one of possible types, continue with the next available option.
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Cannot convert value {} to type {}", originalValue, desiredDataType, e);
+                    }
                 }
             }
 

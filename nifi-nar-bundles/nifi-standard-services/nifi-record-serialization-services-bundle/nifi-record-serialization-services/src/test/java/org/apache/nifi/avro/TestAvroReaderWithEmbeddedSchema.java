@@ -290,6 +290,49 @@ public class TestAvroReaderWithEmbeddedSchema {
         }
     }
 
+    @Test
+    public void testMultipleTypes() throws IOException, ParseException, MalformedRecordException, SchemaNotFoundException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/multiple-types.avsc"));
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final byte[] serialized;
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter);
+             final DataFileWriter<GenericRecord> writer = dataFileWriter.create(schema, baos)) {
+
+            // If a union field has multiple type options, a value should be mapped to the first compatible type.
+            final GenericRecord r1 = new GenericData.Record(schema);
+            r1.put("field", 123);
+
+            final GenericRecord r2 = new GenericData.Record(schema);
+            r2.put("field", Arrays.asList(1, 2, 3));
+
+            final GenericRecord r3 = new GenericData.Record(schema);
+            r3.put("field", "not a number");
+
+            writer.append(r1);
+            writer.append(r2);
+            writer.append(r3);
+            writer.flush();
+
+            serialized = baos.toByteArray();
+        }
+
+        try (final InputStream in = new ByteArrayInputStream(serialized)) {
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
+            final RecordSchema recordSchema = reader.getSchema();
+
+            assertEquals(RecordFieldType.CHOICE, recordSchema.getDataType("field").get().getFieldType());
+
+            Record record = reader.nextRecord();
+            assertEquals(123, record.getValue("field"));
+            record = reader.nextRecord();
+            assertArrayEquals(new Object[]{1, 2, 3}, (Object[]) record.getValue("field"));
+            record = reader.nextRecord();
+            assertEquals("not a number", record.getValue("field"));
+        }
+    }
+
     private Object[] toObjectArray(final byte[] bytes) {
         final Object[] array = new Object[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
