@@ -70,7 +70,7 @@ public class CSVUtils {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(false)
         .allowableValues("true", "false")
-        .defaultValue("true")
+        .defaultValue("false")
         .required(true)
         .build();
     static final PropertyDescriptor COMMENT_MARKER = new PropertyDescriptor.Builder()
