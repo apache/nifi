@@ -386,24 +386,6 @@ public class AvroTypeUtil {
                 }
                 return avroRecord;
             case UNION:
-                // Ignore null types in union
-                final List<Schema> nonNullFieldSchemas = getNonNullSubSchemas(fieldSchema);
-
-                // If at least one non-null type exists, find the first compatible type
-                if (nonNullFieldSchemas.size() >= 1) {
-                    for (final Schema nonNullFieldSchema : nonNullFieldSchemas) {
-                        final Object avroObject = convertToAvroObject(rawValue, nonNullFieldSchema, fieldName);
-                        final DataType desiredDataType = AvroTypeUtil.determineDataType(nonNullFieldSchema);
-                        if (DataTypeUtils.isCompatibleDataType(avroObject, desiredDataType)
-                                // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
-                                || (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(rawValue, desiredDataType))) {
-                            return avroObject;
-                        }
-                    }
-
-                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass()
-                            + " because no compatible types exist in the UNION");
-                }
                 return convertUnionFieldValue(rawValue, fieldSchema, schema -> convertToAvroObject(rawValue, schema, fieldName));
             case ARRAY:
                 final Object[] objectArray = (Object[]) rawValue;

@@ -39,9 +39,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import org.apache.avro.Conversions;
+import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericRecord;
@@ -68,6 +70,16 @@ public abstract class TestWriteAvroResult {
     @Test
     public void testLogicalTypes() throws IOException, ParseException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
+        testLogicalTypes(schema);
+    }
+
+    @Test
+    public void testNullableLogicalTypes() throws IOException, ParseException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types-nullable.avsc"));
+        testLogicalTypes(schema);
+    }
+
+    private void testLogicalTypes(Schema schema) throws ParseException, IOException {
         final WriteAvroResult writer = createWriter(schema);
 
         final List<RecordField> fields = new ArrayList<>();
@@ -114,7 +126,11 @@ public abstract class TestWriteAvroResult {
             assertEquals(17260, avroRecord.get("date"));
             // Double value will be converted into logical decimal if Avro schema is defined as logical decimal.
             final Schema decimalSchema = schema.getField("decimal").schema();
-            final BigDecimal decimal = new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal"), decimalSchema, decimalSchema.getLogicalType());
+            final LogicalType logicalType = decimalSchema.getLogicalType() != null
+                    ? decimalSchema.getLogicalType()
+                    // Union type doesn't return logical type. Find the first logical type defined within the union.
+                    : decimalSchema.getTypes().stream().map(s -> s.getLogicalType()).filter(Objects::nonNull).findFirst().get();
+            final BigDecimal decimal = new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal"), decimalSchema, logicalType);
             assertEquals(expectedDecimal, decimal);
         }
     }
