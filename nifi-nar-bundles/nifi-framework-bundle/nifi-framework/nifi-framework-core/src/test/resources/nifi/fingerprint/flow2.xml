@@ -54,7 +54,7 @@
             <name>LogAttribute</name>
             <position x="0.0" y="0.0"/>
             <style>processor</style>
-            <comment/>∫
+            <comment/>
             <class>org.apache.nifi.processors.standard.LogAttribute</class>
             <maxConcurrentTasks>1</maxConcurrentTasks>
             <schedulingPeriod>0 s</schedulingPeriod>

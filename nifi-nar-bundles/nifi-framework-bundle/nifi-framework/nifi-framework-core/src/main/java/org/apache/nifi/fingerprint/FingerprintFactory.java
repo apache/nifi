@@ -382,7 +382,6 @@ public class FingerprintFactory {
             builder.append(autoTerminateElem.getTextContent());
         }
 
-
         return builder;
     }
 
