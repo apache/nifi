@@ -681,7 +681,8 @@
                 sortable: true,
                 resizable: true,
                 cssClass: 'cell-right',
-                headerCssClass: 'header-right'
+                headerCssClass: 'header-right',
+                formatter: nfCommon.genericValueFormatter
             },
             {
                 id: 'nonHeapUsed',

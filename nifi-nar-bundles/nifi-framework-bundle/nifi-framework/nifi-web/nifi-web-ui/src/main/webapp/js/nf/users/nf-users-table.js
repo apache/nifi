@@ -643,7 +643,7 @@
                 markup += dataContext.component.action;
             }
 
-            return markup;
+            return nfCommon.escapeHtml(markup);
         };
 
         var userPoliciesColumns = [
