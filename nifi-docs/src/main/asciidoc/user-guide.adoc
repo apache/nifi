@@ -714,69 +714,48 @@ For information on how to define custom properties, see the link:administration-
 [[Controller_Services]]
 === Controller Services
 
-Controller Services are available for reporting tasks, processors, and other services to utilize for
-configuration or task execution. You can use the NiFi UI to add Controller Services for either reporting
-tasks or dataflows.
+Controller Services are shared services that can be used by reporting tasks, processors, and other services to utilize for configuration or task execution.
 
-Your ability to view and add Controller Services is dependent on the roles and privileges assigned to you. If you
-do not have access to one or more Controller Services, you are not able to see or access it in the UI. Roles and
-privileges can be assigned on a global or Controller Service-specific basis.
+IMPORTANT: Controller Services defined on the controller level are limited to reporting tasks and other services defined there. Controller Services for use by processors in your dataflow must be defined in the configuration of the root process group or sub-process group(s) where they will be used.
 
-Controller Services are not reporting task or dataflow specific. You have access to the full set of available Controller
-Services whether you are adding it for a reporting task or a dataflow.
-
-
+NOTE: If your NiFi instance is secured, your ability to view and add Controller Services is dependent on the privileges assigned to you. If you do not have access to one or more Controller Services, you are not able to see or access it in the UI. Access privileges can be assigned on a global or Controller Service-specific basis (see <<UI-with-multi-tenant-authorization>> for more information).
 
 [[Controller_Services_for_Reporting_Tasks]]
-==== Adding Controller Settings for Reporting Tasks
+==== Adding Controller Services for Reporting Tasks
 
 To add a Controller Service for a reporting task, select Controller Settings from the Global Menu.
-This displays the NiFi Settings window.
 
+image:controller-settings-selection.png["Global Menu - Controller Settings"]
 
-The NiFi Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is
-for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for
-the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance
-that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
-
-The General tab also provides settings for the overall maximum thread counts of the instance.
+This displays the NiFi Settings window. The window has three tabs: General, Controller Services, and Reporting Tasks. The General tab provides settings for the overall maximum thread counts of the instance.
 
 image:settings-general-tab.png["Controller Settings General Tab"]
 
-To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right
-corner to create a new Controller Service.
+To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right corner to create a new Controller Service.
 
 image:controller-services-tab.png["Controller Services Tab"]
 
-The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the
-available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller
-Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services
-to those that fit the categories desired. The DFM may also use the Filter field at the top of the window to search
-for the desired Controller Service. Upon selecting a Controller Service from the list, the DFM can see a description of
-the the service below. Select the desired controller service and click Add, or simply double-click the name of the service
-to add it.
+The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Controller Service or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Controller Service from the list, the DFM can see a description of the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
 
 image:add-controller-service-window.png["Add Controller Service Window"]
-
 
 Once you have added a Controller Service, you can configure it by clicking the Edit button in the
 far-right column. Other buttons in this column include Remove and Access Policies.
 
-image:controller-services-edit-buttons.png["Controller Services Buttons"]
+image:controller-services-reporting-tasks-edit-buttons.png["Controller Services Buttons"]
 
-You can obtain information about Controller Services by clicking the Details, Usage, and Alerts buttons in the left-hand column.
+You can obtain information about Controller Services by clicking the View Details, Usage, and Alerts buttons in the left-hand column.
 
-image:controller-services-information-buttons.png["Controller Services Information Buttons"]
+image:controller-services-reporting-tasks-info-buttons.png["Controller Services Information Buttons"]
 
 When the DFM clicks the Edit button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,
 and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM
-to give the Controller Service a unique name (if desired). It also lists the UUID for the service and provides a list
-of other components (processors or other controller services) that reference the service.
+to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
 
 image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
 The Properties tab lists the various properties that apply to the particular controller service. As with configuring
-processors, the DFM may hover the over the question mark icons to see more information about each property.
+processors, the DFM may hover over the question mark icons to see more information about each property.
 
 image:configure-controller-service-properties.png["Configure Controller Service Properties"]
 
@@ -784,52 +763,74 @@ The Comments tab is just an open-text field, where the DFM may include comments 
 a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel
 button to cancel the changes and close the window.
 
-Note that after a Controller Service has been configured, it must be enabled in order to run. Do this using the
-Enable button in the far-right column of the Controller Services tab of the Controller Settings window. Then,
-in order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing processors, reporting tasks, and controller services). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. Likewise, when enabling a controller service, the DFM has the option to start/enable all referencing processors, reporting tasks, and controller services.
 
 [[Controller_Services_for_Dataflows]]
 ==== Adding Controller Services for Dataflows
+
 To add a Controller Service for a dataflow, you can either right click a Process Group and select Configure, or click
-Configure from the Operate Palette. When you click Configure from the Operate Palette with nothing selected on your
-canvas, you add a Controller Service for your root Process Group. That Controller Service is then available to all
-nested Process Groups in your dataflow.  When you select a Process Group on the canvas and then click Configure from
-either the Operate Palette or the Process Group context menu, you add a Controller Service only for use with the selected
-Process Group.
+Configure from the Operate Palette.
 
-In either case, use the following steps to add a Controller Service:
+image:process-group-configuration-options.png["Process Group Configuration Options"]
 
-. Click Configure, either from the Operate Palette, or from the Process Group context menu.
-. From the Process Group Configuration page, select the Controller Services tab.
-. Click the Add button to display the Add Controller Service dialog.
-. Select the Controller Service you want to add, and click Add.
-. Perform any necessary Controller Service configuration tasks by clicking the View Details icon (
-image:iconDetails.png["View Details"]
-) in the left-hand column.
+When you click Configure from the Operate Palette with nothing selected on your canvas, you add a Controller Service for your Root Process Group. That Controller Service is then available to all nested Process Groups in your dataflow.  When you select a Process Group on the canvas and then click Configure from either the Operate Palette or the Process Group context menu, the service will be available to all Processors and Controller Services defined in that Process Group and below.
 
+image:process-group-controller-services-scope.png["Process Group Controller Services Scope"]
+
+Use the following steps to add a Controller Service:
+
+1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services.
+
+image:process-group-configuration-window.png["Process Group Configuration Window"]
+
+The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
+[start=2]
+2. From the Process Group Configuration page, select the Controller Services tab.
+3. Click the Add button to display the Add Controller Service dialog.
+4. Select the Controller Service desired, and click Add.
+5. Perform any necessary Controller Service configuration tasks by clicking the Edit icon (image:iconEdit.png["Edit"]) in the right-hand column.
+
+
+[[Enabling_Disabling_Controller_Services]]
+==== Enabling/Disabling Controller Services
+
+After a Controller Service has been configured, it must be enabled in order to run. Do this using the Enable button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the Disable button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
+
+image:enable-controller-service-scope.png["Enable Controller Service Scope"]
 
 [[Reporting_Tasks]]
 === Reporting Tasks
 
-The Reporting Tasks tab behaves similarly to the Controller Services tab. The DFM has the option to add Reporting Tasks and configure them in the same way as Controller Services.
+Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks similar to the process for Controller Services.  To add a Reporting Task, select Controller Settings from the Global Menu.
+
+image:controller-settings-selection.png["Global Menu - Controller Settings"]
+
+This displays the NiFi Settings window. Select the Reporting Tasks tab and click the "+" button in the upper-right corner to create a new Reporting Task.
 
 image:reporting-tasks-tab.png["Reporting Tasks Tab"]
 
-Once a Reporting Task has been added, the DFM may configure it by clicking the Edit (pencil icon) in the far-right column. Other buttons in this column include the Start button, Remove button, and Usage button, which links to the documentation for the particular Reporting Task.
+The Add Reporting Task window opens. This window is similar to the Add Processor window. It provides a list of the available Reporting Tasks on the right and a tag cloud, showing the most common category tags used for Reporting Tasks, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Reporting Tasks to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Reporting Task or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Reporting Task from the list, the DFM can see a description of the task below. Select the desired reporting task and click Add, or simply double-click the name of the service to add it.
 
-image:reporting-tasks-edit-buttons2.png["Reporting Tasks Buttons"]
+image:add-reporting-task-window.png["Add Reporting Task Window"]
 
-When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is also similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists a UUID for the Reporting Task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+Once a Reporting Task has been added, the DFM may configure it by clicking the Edit button in the far-right column. Other buttons in this column include Remove and Access Policies.
+
+image:controller-services-reporting-tasks-edit-buttons.png["Reporting Tasks Buttons"]
+
+You can obtain information about Reporting Tasks by clicking the View Details, Usage, and Alerts buttons in the left-hand column.
+
+image:controller-services-reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
+
+When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
 image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
-The Properties tab for a Reporting Task lists the properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
+The Properties tab lists the various properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
 
 image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click Cancel to cancel the changes and close the window.
+The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click the Cancel button to cancel the changes and close the window.
 
-When you want to run the Reporting Task, click the Start button in the far-right column of the Reporting Tasks tab.
+When you want to run the Reporting Task, click the Start button (image:iconStart.png["Start Button"]) in the far-right column of the Reporting Tasks tab.
 
 
 [[Connecting_Components]]
