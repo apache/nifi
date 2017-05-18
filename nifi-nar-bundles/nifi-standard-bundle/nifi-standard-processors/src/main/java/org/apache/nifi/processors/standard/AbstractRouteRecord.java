@@ -101,7 +101,14 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
             return;
         }
 
-        final T flowFileContext = getFlowFileContext(flowFile, context);
+        final T flowFileContext;
+        try {
+            flowFileContext = getFlowFileContext(flowFile, context);
+        } catch (final Exception e) {
+            getLogger().error("Failed to process {}; routing to failure", new Object[] {flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);

@@ -45,9 +45,14 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
         Record record;
         while ((record = recordSet.next()) != null) {
             write(record);
-            recordCount++;
         }
         return finishRecordSet();
+    }
+
+    @Override
+    public final WriteResult write(final Record record) throws IOException {
+        final Map<String, String> attributes = writeRecord(record);
+        return WriteResult.of(++recordCount, attributes);
     }
 
     protected OutputStream getOutputStream() {
@@ -102,4 +107,6 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
     protected Map<String, String> onFinishRecordSet() throws IOException {
         return Collections.emptyMap();
     }
+
+    protected abstract Map<String, String> writeRecord(Record record) throws IOException;
 }

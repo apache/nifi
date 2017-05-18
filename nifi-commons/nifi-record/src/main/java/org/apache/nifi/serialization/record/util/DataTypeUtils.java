@@ -174,6 +174,10 @@ public class DataTypeUtils {
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
         for (final DataType subType : choiceType.getPossibleSubTypes()) {
             if (isCompatibleDataType(value, subType)) {
+                if (subType.getFieldType() == RecordFieldType.CHOICE) {
+                    return chooseDataType(value, (ChoiceDataType) subType);
+                }
+
                 return subType;
             }
         }
@@ -892,5 +896,31 @@ public class DataTypeUtils {
         }
 
         return new RecordField(fieldName, dataType, defaultValue, aliases);
+    }
+
+    public static boolean isScalarValue(final DataType dataType, final Object value) {
+        final RecordFieldType fieldType = dataType.getFieldType();
+
+        final RecordFieldType chosenType;
+        if (fieldType == RecordFieldType.CHOICE) {
+            final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+            final DataType chosenDataType = chooseDataType(value, choiceDataType);
+            if (chosenDataType == null) {
+                return false;
+            }
+
+            chosenType = chosenDataType.getFieldType();
+        } else {
+            chosenType = fieldType;
+        }
+
+        switch (chosenType) {
+            case ARRAY:
+            case MAP:
+            case RECORD:
+                return false;
+        }
+
+        return true;
     }
 }

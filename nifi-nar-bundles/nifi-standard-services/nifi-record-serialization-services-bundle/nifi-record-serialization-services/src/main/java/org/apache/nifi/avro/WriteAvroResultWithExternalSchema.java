@@ -30,7 +30,6 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -68,10 +67,10 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final Record record) throws IOException {
+    public Map<String, String> writeRecord(final Record record) throws IOException {
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
         datumWriter.write(rec, encoder);
-        return WriteResult.of(1, schemaAccessWriter.getAttributes(recordSchema));
+        return schemaAccessWriter.getAttributes(recordSchema);
     }
 
     @Override
