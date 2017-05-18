@@ -27,4 +27,7 @@ org.apache.nifi.processors.aws.dynamodb.PutDynamoDB
 org.apache.nifi.processors.aws.dynamodb.DeleteDynamoDB
 org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream
 org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric
-
+org.apache.nifi.processors.aws.iot.ConsumeAWSIoTMqtt
+org.apache.nifi.processors.aws.iot.PublishAWSIoTMqtt
+org.apache.nifi.processors.aws.iot.GetAWSIoTShadow
+org.apache.nifi.processors.aws.iot.PutAWSIoTShadow
