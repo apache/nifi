@@ -40,10 +40,9 @@ class StandardFlowSynchronizerSpec extends Specification {
     def systemBundle;
 
     def setupSpec() {
-        def propFile = StandardFlowSynchronizerSpec.class.getResource("/nifi.properties").getFile()
-        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
+        def propFile = StandardFlowSynchronizerSpec.class.getResource("/standardflowsynchronizerspec.nifi.properties").getFile()
 
-        def niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        def niFiProperties = NiFiProperties.createBasicNiFiProperties(propFile, null);
         systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }

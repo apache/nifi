@@ -23,7 +23,6 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.DummyScheduledProcessor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.TestFlowController;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
@@ -38,21 +37,25 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StandardFlowSerializerTest {
 
-    private static final String RAW_COMMENTS =
-            "<tagName> \"This\" is an ' example with many characters that need to be filtered and escaped \u0002 in it. \u007f \u0086 " + Character.MIN_SURROGATE;
-    private static final String SERIALIZED_COMMENTS =
-            "&lt;tagName&gt; \"This\" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; ";
+    private static final String RAW_COMMENTS
+            = "<tagName> \"This\" is an ' example with many characters that need to be filtered and escaped \u0002 in it. \u007f \u0086 " + Character.MIN_SURROGATE;
+    private static final String SERIALIZED_COMMENTS
+            = "&lt;tagName&gt; \"This\" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; ";
+    private volatile String propsFile = StandardFlowSerializerTest.class.getResource("/standardflowserializertest.nifi.properties").getFile();
 
     private FlowController controller;
     private Bundle systemBundle;
@@ -60,15 +63,13 @@ public class StandardFlowSerializerTest {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFlowController.class.getResource("/nifi.properties").getFile());
-
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final AuditService auditService = Mockito.mock(AuditService.class);
         final Map<String, String> otherProps = new HashMap<>();
         otherProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
-        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, otherProps);
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor(nifiProperties);
 
         // use the system bundle
@@ -82,6 +83,12 @@ public class StandardFlowSerializerTest {
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
 
         serializer = new StandardFlowSerializer(encryptor);
+    }
+
+    @After
+    public void after() throws Exception {
+        controller.shutdown(true);
+        FileUtils.deleteDirectory(new File("./target/standardflowserializertest"));
     }
 
     @Test

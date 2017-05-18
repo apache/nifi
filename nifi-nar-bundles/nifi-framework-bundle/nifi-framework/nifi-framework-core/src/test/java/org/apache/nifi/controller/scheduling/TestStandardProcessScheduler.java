@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import java.io.File;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -77,6 +78,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -93,11 +96,11 @@ public class TestStandardProcessScheduler {
     private ProcessGroup rootGroup;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private volatile String propsFile = TestStandardProcessScheduler.class.getResource("/standardprocessschedulertest.nifi.properties").getFile();
 
     @Before
     public void setup() throws InitializationException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessScheduler.class.getResource("/nifi.properties").getFile());
-        this.nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        this.nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, null);
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -120,6 +123,12 @@ public class TestStandardProcessScheduler {
         controller = Mockito.mock(FlowController.class);
         rootGroup = new MockProcessGroup();
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(rootGroup);
+    }
+
+    @After
+    public void after() throws Exception {
+        controller.shutdown(true);
+        FileUtils.deleteDirectory(new File("./target/standardprocessschedulertest"));
     }
 
     /**
@@ -155,8 +164,8 @@ public class TestStandardProcessScheduler {
 
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
 
-        final StandardControllerServiceProvider serviceProvider =
-                new StandardControllerServiceProvider(controller, scheduler, null, Mockito.mock(StateManagerProvider.class), variableRegistry, nifiProperties);
+        final StandardControllerServiceProvider serviceProvider
+                = new StandardControllerServiceProvider(controller, scheduler, null, Mockito.mock(StateManagerProvider.class), variableRegistry, nifiProperties);
         final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service",
                 systemBundle.getBundleDetails().getCoordinate(), null, true);
         rootGroup.addControllerService(service);
@@ -167,7 +176,7 @@ public class TestStandardProcessScheduler {
                 scheduler, serviceProvider, nifiProperties, VariableRegistry.EMPTY_REGISTRY, reloadComponent);
         rootGroup.addProcessor(procNode);
 
-        Map<String,String> procProps = new HashMap<>();
+        Map<String, String> procProps = new HashMap<>();
         procProps.put(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
         procNode.setProperties(procProps);
 
