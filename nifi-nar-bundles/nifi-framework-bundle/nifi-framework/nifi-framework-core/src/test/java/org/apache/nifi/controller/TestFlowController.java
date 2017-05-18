@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -91,7 +92,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 public class TestFlowController {
 
@@ -104,10 +104,10 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
+    private volatile String propsFile = TestFlowController.class.getResource("/flowcontrollertest.nifi.properties").getFile();
 
     @Before
     public void setup() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFlowController.class.getResource("/nifi.properties").getFile());
 
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
@@ -115,7 +115,7 @@ public class TestFlowController {
         otherProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, otherProps);
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
         encryptor = StringEncryptor.createEncryptor(nifiProperties);
 
         // use the system bundle
@@ -166,8 +166,9 @@ public class TestFlowController {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws Exception {
         controller.shutdown(true);
+        FileUtils.deleteDirectory(new File("./target/flowcontrollertest"));
     }
 
     @Test
@@ -487,34 +488,34 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
-        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor",
+    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(), "1234-ScheduledProcessor",
                 systemBundle.getBundleDetails().getCoordinate());
-        assertEquals(5,p_scheduled.getMaxConcurrentTasks());
-        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
-        assertEquals("1 sec",p_scheduled.getYieldPeriod());
-        assertEquals("30 sec",p_scheduled.getPenalizationPeriod());
-        assertEquals(LogLevel.WARN,p_scheduled.getBulletinLevel());
+        assertEquals(5, p_scheduled.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?", p_scheduled.getSchedulingPeriod());
+        assertEquals("1 sec", p_scheduled.getYieldPeriod());
+        assertEquals("30 sec", p_scheduled.getPenalizationPeriod());
+        assertEquals(LogLevel.WARN, p_scheduled.getBulletinLevel());
     }
 
     @Test
     public void testReportingTaskDefaultScheduleAnnotation() throws ReportingTaskInstantiationException {
         ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
-        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?", p_scheduled.getSchedulingPeriod());
     }
 
     @Test
-    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
+    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException, ClassNotFoundException {
 
-        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor", systemBundle.getBundleDetails().getCoordinate());
-        assertEquals("5 sec",p_settings.getYieldPeriod());
-        assertEquals("1 min",p_settings.getPenalizationPeriod());
-        assertEquals(LogLevel.DEBUG,p_settings.getBulletinLevel());
-        assertEquals(1,p_settings.getMaxConcurrentTasks());
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN,p_settings.getSchedulingStrategy());
-        assertEquals("0 sec",p_settings.getSchedulingPeriod());
+        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(), "1234-SettingsProcessor", systemBundle.getBundleDetails().getCoordinate());
+        assertEquals("5 sec", p_settings.getYieldPeriod());
+        assertEquals("1 min", p_settings.getPenalizationPeriod());
+        assertEquals(LogLevel.DEBUG, p_settings.getBulletinLevel());
+        assertEquals(1, p_settings.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.TIMER_DRIVEN, p_settings.getSchedulingStrategy());
+        assertEquals("0 sec", p_settings.getSchedulingPeriod());
     }
 
     @Test
@@ -546,7 +547,7 @@ public class TestFlowController {
 
         assertEquals(5, processorNode.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN, processorNode.getSchedulingStrategy());
-        assertEquals("0 0 0 1/1 * ?",processorNode.getSchedulingPeriod());
+        assertEquals("0 0 0 1/1 * ?", processorNode.getSchedulingPeriod());
         assertEquals("1 sec", processorNode.getYieldPeriod());
         assertEquals("30 sec", processorNode.getPenalizationPeriod());
         assertEquals(LogLevel.WARN, processorNode.getBulletinLevel());

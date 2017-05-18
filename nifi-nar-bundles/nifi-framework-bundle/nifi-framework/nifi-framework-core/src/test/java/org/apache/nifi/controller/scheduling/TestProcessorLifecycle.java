@@ -87,18 +87,17 @@ public class TestProcessorLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
     private FlowController fc;
     private Map<String,String> properties = new HashMap<>();
+    private volatile String propsFile = TestProcessorLifecycle.class.getResource("/lifecycletest.nifi.properties").getFile();
 
     @Before
     public void before() throws Exception {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestProcessorLifecycle.class.getResource("/nifi.properties").getFile());
         properties.put("P", "hello");
     }
 
     @After
     public void after() throws Exception {
         fc.shutdown(true);
-        FileUtils.deleteDirectory(new File("./target/test-repo"));
-        FileUtils.deleteDirectory(new File("./target/content_repository"));
+        FileUtils.deleteDirectory(new File("./target/lifecycletest"));
     }
 
     @Test
@@ -730,7 +729,7 @@ public class TestProcessorLifecycle {
         if (propKey != null && propValue != null) {
             addProps.put(propKey, propValue);
         }
-        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, addProps);
 
         final Bundle systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
