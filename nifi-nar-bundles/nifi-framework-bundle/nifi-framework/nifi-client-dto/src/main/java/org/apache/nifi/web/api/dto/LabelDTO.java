@@ -59,7 +59,7 @@ public class LabelDTO extends ComponentDTO {
      * @return style for this label
      */
     @ApiModelProperty(
-            value = "The styles for this label (font-size => 12px, background-color => #eee, etc)."
+            value = "The styles for this label (font-size : 12px, background-color : #eee, etc)."
     )
     public Map<String, String> getStyle() {
         return style;
