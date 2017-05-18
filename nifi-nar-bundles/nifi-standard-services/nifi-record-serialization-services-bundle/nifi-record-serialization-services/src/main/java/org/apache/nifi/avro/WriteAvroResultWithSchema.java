@@ -20,13 +20,13 @@ package org.apache.nifi.avro;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 
 public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
@@ -49,10 +49,10 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
     }
 
     @Override
-    public WriteResult write(final Record record) throws IOException {
+    public Map<String, String> writeRecord(final Record record) throws IOException {
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
         dataFileWriter.append(rec);
-        return WriteResult.of(1, Collections.emptyMap());
+        return Collections.emptyMap();
     }
 
     @Override

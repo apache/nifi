@@ -29,7 +29,7 @@ public interface RecordLookupService extends LookupService<Record> {
      * @param key the key to lookup
      * @return an Optional Record that corresponds to the given key
      *
-     * @throws if unable to lookup a value for the given key
+     * @throws LookupFailureException if unable to lookup a value for the given key
      */
     @Override
     Optional<Record> lookup(String key) throws LookupFailureException;

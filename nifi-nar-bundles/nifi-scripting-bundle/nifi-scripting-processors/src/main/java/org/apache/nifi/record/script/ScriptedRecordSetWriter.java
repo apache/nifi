@@ -129,7 +129,6 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
             }
 
         } catch (final Exception ex) {
-            ex.printStackTrace();
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + ex.getLocalizedMessage();
 

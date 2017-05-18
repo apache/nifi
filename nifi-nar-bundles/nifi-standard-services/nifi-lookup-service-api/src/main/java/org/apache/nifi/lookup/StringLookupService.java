@@ -26,8 +26,6 @@ public interface StringLookupService extends LookupService<String> {
      *
      * @param key the key to lookup
      * @return an Optional String that represents the value for the given key
-     *
-     * @throws if unable to lookup a value for the given key
      */
     @Override
     Optional<String> lookup(String key);

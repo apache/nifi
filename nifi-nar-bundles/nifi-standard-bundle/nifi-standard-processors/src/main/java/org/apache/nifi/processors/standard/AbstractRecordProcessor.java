@@ -47,7 +47,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 
 public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
@@ -120,39 +119,18 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
-                        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out);
+                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger());
+                        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out)) {
 
-                        final RecordSet recordSet = new RecordSet() {
-                            @Override
-                            public RecordSchema getSchema() throws IOException {
-                                try {
-                                    return reader.getSchema();
-                                } catch (final MalformedRecordException e) {
-                                    throw new IOException(e);
-                                } catch (final Exception e) {
-                                    throw new ProcessException(e);
-                                }
-                            }
+                        writer.beginRecordSet();
 
-                            @Override
-                            public Record next() throws IOException {
-                                try {
-                                    final Record record = reader.nextRecord();
-                                    if (record == null) {
-                                        return null;
-                                    }
+                        Record record;
+                        while ((record = reader.nextRecord()) != null) {
+                            final Record processed = AbstractRecordProcessor.this.process(record, writeSchema, original, context);
+                            writer.write(processed);
+                        }
 
-                                    return AbstractRecordProcessor.this.process(record, writeSchema, original, context);
-                                } catch (final MalformedRecordException e) {
-                                    throw new IOException(e);
-                                } catch (final Exception e) {
-                                    throw new ProcessException(e);
-                                }
-                            }
-                        };
-
-                        final WriteResult writeResult = writer.write(recordSet);
+                        final WriteResult writeResult = writer.finishRecordSet();
                         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                         attributes.putAll(writeResult.getAttributes());

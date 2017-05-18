@@ -29,7 +29,7 @@ public interface LookupService<T> extends ControllerService {
      * @param key the key to lookup
      * @return a value that corresponds to the given key
      *
-     * @throws if unable to lookup a value for the given key
+     * @throws LookupFailureException if unable to lookup a value for the given key
      */
     Optional<T> lookup(String key) throws LookupFailureException;
 

@@ -27,7 +27,6 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -90,14 +89,14 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
     }
 
     @Override
-    public WriteResult write(final Record record) throws IOException {
+    public Map<String, String> writeRecord(final Record record) throws IOException {
         int i = 0;
         for (final RecordField recordField : recordSchema.getFields()) {
             fieldValues[i++] = record.getAsString(recordField, getFormat(recordField));
         }
 
         printer.printRecord(fieldValues);
-        return WriteResult.of(1, schemaWriter.getAttributes(recordSchema));
+        return schemaWriter.getAttributes(recordSchema);
     }
 
     @Override

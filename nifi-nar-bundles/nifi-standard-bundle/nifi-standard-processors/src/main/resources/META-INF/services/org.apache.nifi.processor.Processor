@@ -66,6 +66,7 @@ org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify
 org.apache.nifi.processors.standard.ParseCEF
 org.apache.nifi.processors.standard.ParseSyslog
+org.apache.nifi.processors.standard.PartitionRecord
 org.apache.nifi.processors.standard.PostHTTP
 org.apache.nifi.processors.standard.PutDatabaseRecord
 org.apache.nifi.processors.standard.PutDistributedMapCache

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.record.path;
 
+import java.util.Objects;
+
 import org.apache.nifi.serialization.record.RecordField;
 
 public class MapEntryFieldValue extends StandardFieldValue {
@@ -36,4 +38,25 @@ public class MapEntryFieldValue extends StandardFieldValue {
         getParentRecord().get().setMapValue(getField().getFieldName(), getMapKey(), newValue);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(getValue(), getField(), getParent(), mapKey);
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof MapEntryFieldValue)) {
+            return false;
+        }
+
+        final MapEntryFieldValue other = (MapEntryFieldValue) obj;
+        return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField())
+            && Objects.equals(getParent(), other.getParent()) && Objects.equals(getMapKey(), other.getMapKey());
+    }
 }

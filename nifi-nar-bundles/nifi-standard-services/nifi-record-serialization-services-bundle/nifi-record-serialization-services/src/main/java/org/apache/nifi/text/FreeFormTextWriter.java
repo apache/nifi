@@ -29,7 +29,6 @@ import java.util.Map;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -60,9 +59,9 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
     }
 
     @Override
-    public WriteResult write(final Record record) throws IOException {
+    public Map<String, String> writeRecord(final Record record) throws IOException {
         write(record, out, getColumnNames(record.getSchema()));
-        return WriteResult.of(1, Collections.emptyMap());
+        return Collections.emptyMap();
     }
 
     private void write(final Record record, final OutputStream out, final List<String> columnNames) throws IOException {

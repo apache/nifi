@@ -59,6 +59,7 @@ public class TestLookupRecord {
         runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
         runner.setProperty(LookupRecord.LOOKUP_RECORD_PATH, "/name");
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/sport");
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
@@ -149,8 +150,8 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(LookupRecord.REL_FAILURE, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_FAILURE).get(0);
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -201,8 +202,8 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(LookupRecord.REL_FAILURE, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_FAILURE).get(0);
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
