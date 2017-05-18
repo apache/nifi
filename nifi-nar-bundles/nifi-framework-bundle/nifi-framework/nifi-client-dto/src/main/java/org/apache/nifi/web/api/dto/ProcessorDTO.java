@@ -121,7 +121,7 @@ public class ProcessorDTO extends ComponentDTO {
      * @return The styles for this processor. (Currently only supports color)
      */
     @ApiModelProperty(
-            value = "Styles for the processor (background-color => #eee)."
+            value = "Styles for the processor (background-color : #eee)."
     )
     public Map<String, String> getStyle() {
         return style;
