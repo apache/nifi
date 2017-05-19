@@ -46,7 +46,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -64,9 +66,14 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
     private volatile File kerberosServiceKeytab = null;
 
     @Override
-    public Optional<Object> lookup(String key) throws LookupFailureException {
+    public Optional<Object> lookup(Map<String, String> coordinates) throws LookupFailureException {
         // Delegate the lookup() call to the scripted LookupService
-        return lookupService.get().lookup(key);
+        return lookupService.get().lookup(coordinates);
+    }
+
+    @Override
+    public Set<String> getRequiredKeys() {
+        return lookupService.get().getRequiredKeys();
     }
 
     @Override
@@ -177,6 +184,7 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
         }
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         synchronized (scriptingComponentHelper.isInitialized) {
@@ -236,6 +244,7 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
         }
     }
 
+    @Override
     public void setup() {
         // Create a single script engine, the Processor object is reused by each task
         if (scriptEngine == null) {
@@ -263,6 +272,7 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
      * @param scriptBody An input stream associated with the script content
      * @return Whether the script was successfully reloaded
      */
+    @Override
     protected boolean reloadScript(final String scriptBody) {
         // note we are starting here with a fresh listing of validation
         // results since we are (re)loading a new/updated script. any

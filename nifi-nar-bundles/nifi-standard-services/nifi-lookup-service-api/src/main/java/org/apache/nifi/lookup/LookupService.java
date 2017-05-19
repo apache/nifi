@@ -17,25 +17,36 @@
 
 package org.apache.nifi.lookup;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.nifi.controller.ControllerService;
 
 public interface LookupService<T> extends ControllerService {
 
     /**
-     * Looks up a value that corresponds to the given key
+     * Looks up a value that corresponds to the given map of information, referred to as lookup coordinates
      *
-     * @param key the key to lookup
-     * @return a value that corresponds to the given key
+     * @param coordinates a Map of key/value pairs that indicate the information that should be looked up
+     * @return a value that corresponds to the given coordinates
      *
-     * @throws LookupFailureException if unable to lookup a value for the given key
+     * @throws LookupFailureException if unable to lookup a value for the given coordinates
      */
-    Optional<T> lookup(String key) throws LookupFailureException;
+    Optional<T> lookup(Map<String, String> coordinates) throws LookupFailureException;
 
     /**
-     * @return the Class that represents the type of value that will be returned by {@link #lookup(String)}
+     * @return the Class that represents the type of value that will be returned by {@link #lookup(Map)}
      */
     Class<?> getValueType();
 
+    /**
+     * Many Lookup Services will require a specific set of information be passed in to the {@link #lookup(Map)} method.
+     * This method will return the Set of keys that must be present in the map that is passed to {@link #lookup(Map)} in order
+     * for the lookup to succeed.
+     *
+     * @return the keys that must be present in the map passed to {@link #lookup(Map)} in order to the lookup to succeed, or an empty set
+     *         if no specific keys are required.
+     */
+    Set<String> getRequiredKeys();
 }

@@ -20,7 +20,9 @@ package org.apache.nifi.lookup;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -31,8 +33,11 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 
 @Tags({"lookup", "enrich", "key", "value"})
-@CapabilityDescription("Allows users to add key/value pairs as User-defined Properties. Each property that is added can be looked up by Property Name.")
+@CapabilityDescription("Allows users to add key/value pairs as User-defined Properties. Each property that is added can be looked up by Property Name. "
+    + "The coordinates that are passed to the lookup must contain the key 'key'.")
 public class SimpleKeyValueLookupService extends AbstractControllerService implements StringLookupService {
+    private static final String KEY = "key";
+    private static final Set<String> REQUIRED_KEYS = Stream.of(KEY).collect(Collectors.toSet());
     private volatile Map<String, String> lookupValues = new HashMap<>();
 
     @Override
@@ -52,7 +57,21 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
     }
 
     @Override
-    public Optional<String> lookup(final String key) {
+    public Optional<String> lookup(final Map<String, String> coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+
+        final String key = coordinates.get(KEY);
+        if (key == null) {
+            return Optional.empty();
+        }
+
         return Optional.ofNullable(lookupValues.get(key));
+    }
+
+    @Override
+    public Set<String> getRequiredKeys() {
+        return REQUIRED_KEYS;
     }
 }
