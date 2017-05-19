@@ -14,28 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.lookup;
 
-import java.util.Map;
-import java.util.Optional;
+import org.apache.commons.configuration2.XMLConfiguration;
 
-public interface StringLookupService extends LookupService<String> {
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 
-    /**
-     * Returns an Optional value that corresponds to the given coordinates
-     *
-     * @param coordinates the coordinates to lookup
-     * @return an Optional String that represents the value for the given coordinates
-     *
-     * @throws LookupFailureException if unable to lookup a value for the given key
-     */
-    @Override
-    Optional<String> lookup(Map<String, String> coordinates) throws LookupFailureException;
-
-    @Override
-    default Class<?> getValueType() {
-        return String.class;
-    }
+@Tags({"lookup", "cache", "enrich", "join", "xml", "reloadable", "key", "value"})
+@CapabilityDescription("A reloadable properties file-based lookup service")
+public class XMLFileLookupService extends CommonsConfigurationLookupService<XMLConfiguration> {
 
 }
