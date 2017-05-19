@@ -71,36 +71,37 @@ public class TestWriteCSVResult {
         }
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(),
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true);
-
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final long now = System.currentTimeMillis();
-        final Map<String, Object> valueMap = new HashMap<>();
-        valueMap.put("string", "string");
-        valueMap.put("boolean", true);
-        valueMap.put("byte", (byte) 1);
-        valueMap.put("char", 'c');
-        valueMap.put("short", (short) 8);
-        valueMap.put("int", 9);
-        valueMap.put("bigint", BigInteger.valueOf(8L));
-        valueMap.put("long", 8L);
-        valueMap.put("float", 8.0F);
-        valueMap.put("double", 8.0D);
-        valueMap.put("date", new Date(now));
-        valueMap.put("time", new Time(now));
-        valueMap.put("timestamp", new Timestamp(now));
-        valueMap.put("record", null);
-        valueMap.put("choice", 48L);
-        valueMap.put("array", null);
 
-        final Record record = new MapRecord(schema, valueMap);
-        final RecordSet rs = RecordSet.of(schema, record);
+        try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
 
-        final String output;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            result.write(rs, baos);
-            output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+            final Map<String, Object> valueMap = new HashMap<>();
+            valueMap.put("string", "string");
+            valueMap.put("boolean", true);
+            valueMap.put("byte", (byte) 1);
+            valueMap.put("char", 'c');
+            valueMap.put("short", (short) 8);
+            valueMap.put("int", 9);
+            valueMap.put("bigint", BigInteger.valueOf(8L));
+            valueMap.put("long", 8L);
+            valueMap.put("float", 8.0F);
+            valueMap.put("double", 8.0D);
+            valueMap.put("date", new Date(now));
+            valueMap.put("time", new Time(now));
+            valueMap.put("timestamp", new Timestamp(now));
+            valueMap.put("record", null);
+            valueMap.put("choice", 48L);
+            valueMap.put("array", null);
+
+            final Record record = new MapRecord(schema, valueMap);
+            final RecordSet rs = RecordSet.of(schema, record);
+
+            result.write(rs);
         }
+
+        final String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 
         headerBuilder.deleteCharAt(headerBuilder.length() - 1);
         final String headerLine = headerBuilder.toString();

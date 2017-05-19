@@ -42,7 +42,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class MockRecordParser extends AbstractControllerService implements RecordReaderFactory {
     private final List<Object[]> records = new ArrayList<>();
     private final List<RecordField> fields = new ArrayList<>();
-    private final int failAfterN;
+    private int failAfterN;
 
     public MockRecordParser() {
         this(-1);
@@ -52,6 +52,9 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         this.failAfterN = failAfterN;
     }
 
+    public void failAfter(final int failAfterN) {
+        this.failAfterN = failAfterN;
+    }
 
     public void addSchemaField(final String fieldName, final RecordFieldType type) {
         fields.add(new RecordField(fieldName, type.getDataType()));

@@ -104,7 +104,9 @@ class ScriptedRecordSetWriterTest {
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
 
 		def schema = recordSetWriterFactory.getSchema(mockFlowFile, inStream)
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema)
+        
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, mockFlowFile, outputStream)
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(
@@ -119,8 +121,7 @@ class ScriptedRecordSetWriterTest {
                 new MapRecord(recordSchema, ['id': 3, 'name': 'Ramon', 'code': 300])
         ] as MapRecord[]
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        recordSetWriter.write(RecordSet.of(recordSchema, records), outputStream)
+        recordSetWriter.write(RecordSet.of(recordSchema, records))
 
         def xml = new XmlSlurper().parseText(outputStream.toString())
         assertEquals('1', xml.record[0].id.toString())

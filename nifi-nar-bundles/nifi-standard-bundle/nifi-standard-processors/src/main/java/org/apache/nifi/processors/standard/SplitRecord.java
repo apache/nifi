@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -47,7 +46,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -58,6 +56,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 @EventDriven
@@ -133,10 +132,10 @@ public class SplitRecord extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSetWriter writer;
+        final RecordSchema schema;
         try (final InputStream rawIn = session.read(original);
             final InputStream in = new BufferedInputStream(rawIn)) {
-            writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(original, in));
+            schema = writerFactory.getSchema(original, in);
         } catch (final Exception e) {
             getLogger().error("Failed to create Record Writer for {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -159,28 +158,26 @@ public class SplitRecord extends AbstractProcessor {
                             FlowFile split = session.create(original);
 
                             try {
-                                final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
-                                split = session.write(split, new OutputStreamCallback() {
-                                    @Override
-                                    public void process(final OutputStream out) throws IOException {
+                                final Map<String, String> attributes = new HashMap<>();
+                                final WriteResult writeResult;
+
+                                try (final OutputStream out = session.write(split);
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, split, out)) {
                                         if (maxRecords == 1) {
                                             final Record record = pushbackSet.next();
-                                            writeResultRef.set(writer.write(record, out));
+                                            writeResult = writer.write(record);
                                         } else {
                                             final RecordSet limitedSet = pushbackSet.limit(maxRecords);
-                                            writeResultRef.set(writer.write(limitedSet, out));
+                                            writeResult = writer.write(limitedSet);
                                         }
-                                    }
-                                });
 
-                                final WriteResult writeResult = writeResultRef.get();
+                                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                                        attributes.putAll(writeResult.getAttributes());
 
-                                final Map<String, String> attributes = new HashMap<>();
-                                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                                attributes.putAll(writeResult.getAttributes());
+                                        session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
+                                }
 
-                                session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
                                 split = session.putAllAttributes(split, attributes);
                             } finally {
                                 splits.add(split);

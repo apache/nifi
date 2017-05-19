@@ -188,12 +188,14 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
                 final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
                 final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile, new NullInputStream(0));
-                final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema);
 
                 final StopWatch stopWatch = new StopWatch(true);
 
                 // use a child FlowFile so that if any error occurs we can route the original untouched FlowFile to retry/failure
                 child = session.create(originalFlowFile);
+
+                final FlowFile writableFlowFile = child;
+                final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                 child = session.write(child, (final OutputStream rawOut) -> {
                     try (final BufferedOutputStream out = new BufferedOutputStream(rawOut);
                          final HDFSRecordReader recordReader = createHDFSRecordReader(context, originalFlowFile, configuration, path)) {
@@ -212,7 +214,10 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                             }
                         };
 
-                        writeResult.set(recordSetWriter.write(recordSet, out));
+                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, writableFlowFile, out)) {
+                            writeResult.set(recordSetWriter.write(recordSet));
+                            mimeTypeRef.set(recordSetWriter.getMimeType());
+                        }
                     } catch (Exception e) {
                         exceptionHolder.set(e);
                     }
@@ -230,7 +235,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
                 final Map<String,String> attributes = new HashMap<>(writeResult.get().getAttributes());
                 attributes.put(RECORD_COUNT_ATTR, String.valueOf(writeResult.get().getRecordCount()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                 successFlowFile = session.putAllAttributes(successFlowFile, attributes);
 
                 final URI uri = path.toUri();

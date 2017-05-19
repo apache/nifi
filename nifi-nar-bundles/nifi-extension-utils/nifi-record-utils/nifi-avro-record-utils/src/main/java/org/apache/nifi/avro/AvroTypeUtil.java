@@ -24,8 +24,10 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.avro.JsonProperties;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -278,6 +280,7 @@ public class AvroTypeUtil {
         return convertToAvroObject(rawValue, fieldSchema, fieldSchema.getName());
     }
 
+    @SuppressWarnings("unchecked")
     private static Object convertToAvroObject(final Object rawValue, final Schema fieldSchema, final String fieldName) {
         if (rawValue == null) {
             return null;
@@ -465,9 +468,13 @@ public class AvroTypeUtil {
                 final DataType desiredDataType = AvroTypeUtil.determineDataType(nonNullFieldSchema);
                 try {
                     final Object convertedValue = conversion.apply(nonNullFieldSchema);
-                    if (DataTypeUtils.isCompatibleDataType(convertedValue, desiredDataType)
-                            // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
-                            || (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType))) {
+
+                    if (isCompatibleDataType(convertedValue, desiredDataType)) {
+                        return convertedValue;
+                    }
+
+                    // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
+                    if (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType)) {
                         return convertedValue;
                     }
                 } catch (Exception e) {
@@ -483,6 +490,33 @@ public class AvroTypeUtil {
         }
         return null;
     }
+
+    private static boolean isCompatibleDataType(final Object value, final DataType dataType) {
+        if (value == null) {
+            return false;
+        }
+
+        switch (dataType.getFieldType()) {
+            case RECORD:
+                if (value instanceof GenericRecord || value instanceof SpecificRecord) {
+                    return true;
+                }
+                break;
+            case STRING:
+                if (value instanceof Utf8) {
+                    return true;
+                }
+                break;
+            case ARRAY:
+                if (value instanceof Array) {
+                    return true;
+                }
+                break;
+        }
+
+        return DataTypeUtils.isCompatibleDataType(value, dataType);
+    }
+
 
     /**
      * Convert an Avro object to a normal Java objects for further processing.

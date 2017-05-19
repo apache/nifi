@@ -269,10 +269,10 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) {
+        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final FlowFile flowFile, final OutputStream out) {
             return new RecordSetWriter() {
                 @Override
-                public WriteResult write(final RecordSet rs, final OutputStream out) throws IOException {
+                public WriteResult write(final RecordSet rs) throws IOException {
                     final int colCount = rs.getSchema().getFieldCount();
                     Assert.assertEquals(columnNames.size(), colCount);
 
@@ -299,8 +299,22 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public WriteResult write(Record record, OutputStream out) throws IOException {
+                public WriteResult write(Record record) throws IOException {
                     return null;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    out.close();
+                }
+
+                @Override
+                public void beginRecordSet() throws IOException {
+                }
+
+                @Override
+                public WriteResult finishRecordSet() throws IOException {
+                    return WriteResult.EMPTY;
                 }
             };
         }

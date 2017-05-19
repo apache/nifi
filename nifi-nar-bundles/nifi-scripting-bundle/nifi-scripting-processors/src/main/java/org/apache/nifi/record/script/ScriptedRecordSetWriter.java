@@ -34,6 +34,7 @@ import javax.script.Invocable;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -52,15 +53,12 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
         super.onEnabled(context);
     }
 
-    public RecordSetWriter createWriter(ComponentLog logger, FlowFile flowFile, InputStream in) throws SchemaNotFoundException, IOException {
-        return createWriter(logger, getSchema(flowFile, in));
-    }
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, FlowFile flowFile, OutputStream out) throws SchemaNotFoundException, IOException {
         if (recordFactory.get() != null) {
             try {
-                return recordFactory.get().createWriter(logger, schema);
+                return recordFactory.get().createWriter(logger, schema, flowFile, out);
             } catch (UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }
@@ -131,6 +129,7 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
             }
 
         } catch (final Exception ex) {
+            ex.printStackTrace();
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + ex.getLocalizedMessage();
 

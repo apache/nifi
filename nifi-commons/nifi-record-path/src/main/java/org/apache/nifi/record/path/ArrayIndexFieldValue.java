@@ -52,4 +52,26 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     public void updateValue(final Object newValue) {
         getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getValue(), getField(), getParent(), index);
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof ArrayIndexFieldValue)) {
+            return false;
+        }
+
+        final ArrayIndexFieldValue other = (ArrayIndexFieldValue) obj;
+        return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField())
+            && Objects.equals(getParent(), other.getParent()) && getArrayIndex() == other.getArrayIndex();
+    }
 }

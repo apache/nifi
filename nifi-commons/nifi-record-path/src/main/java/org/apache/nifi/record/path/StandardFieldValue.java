@@ -57,6 +57,22 @@ public class StandardFieldValue implements FieldValue {
     }
 
     @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof StandardFieldValue)) {
+            return false;
+        }
+
+        final StandardFieldValue other = (StandardFieldValue) obj;
+        return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField()) && Objects.equals(getParent(), other.getParent());
+    }
+
+    @Override
     public String toString() {
         if (value instanceof Object[]) {
             return Arrays.toString((Object[]) value);
@@ -103,7 +119,12 @@ public class StandardFieldValue implements FieldValue {
     public void updateValue(final Object newValue) {
         final Optional<Record> parentRecord = getParentRecord();
         if (!parentRecord.isPresent()) {
-            throw new UnsupportedOperationException("Cannot update the field value because the value is not associated with any record");
+            if (value instanceof Record) {
+                ((Record) value).setValue(getField().getFieldName(), newValue);
+                return;
+            } else {
+                throw new UnsupportedOperationException("Cannot update the field value because the value is not associated with any record");
+            }
         }
 
         parentRecord.get().setValue(getField().getFieldName(), newValue);

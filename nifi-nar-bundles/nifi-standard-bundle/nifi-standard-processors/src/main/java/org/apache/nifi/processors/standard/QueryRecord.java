@@ -76,6 +76,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
 
@@ -248,15 +249,20 @@ public class QueryRecord extends AbstractProcessor {
         final Map<FlowFile, Relationship> transformedFlowFiles = new HashMap<>();
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
 
+        final RecordSchema recordSchema;
+
+        try (final InputStream rawIn = session.read(original);
+            final InputStream in = new BufferedInputStream(rawIn)) {
+            recordSchema = resultSetWriterFactory.getSchema(original, in);
+        } catch (final Exception e) {
+            getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
+            session.transfer(original, REL_FAILURE);
+            return;
+        }
+
         int recordsRead = 0;
 
         try {
-            final RecordSetWriter resultSetWriter;
-            try (final InputStream rawIn = session.read(original);
-                final InputStream in = new BufferedInputStream(rawIn)) {
-                resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), resultSetWriterFactory.getSchema(original, in));
-            }
-
             for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
                 if (!descriptor.isDynamic()) {
                     continue;
@@ -280,14 +286,17 @@ public class QueryRecord extends AbstractProcessor {
                         queryResult = query(session, original, sql, context, recordParserFactory);
                     }
 
+                    final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
+                    final FlowFile outFlowFile = transformed;
                     try {
                         final ResultSet rs = queryResult.getResultSet();
                         transformed = session.write(transformed, new OutputStreamCallback() {
                             @Override
                             public void process(final OutputStream out) throws IOException {
-                                try {
-                                    final ResultSetRecordSet recordSet = new ResultSetRecordSet(rs);
-                                    writeResultRef.set(resultSetWriter.write(recordSet, out));
+                                try (final RecordSetWriter resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), recordSchema, outFlowFile, out)) {
+                                    final ResultSetRecordSet resultSet = new ResultSetRecordSet(rs);
+                                    writeResultRef.set(resultSetWriter.write(resultSet));
+                                    mimeTypeRef.set(resultSetWriter.getMimeType());
                                 } catch (final Exception e) {
                                     throw new IOException(e);
                                 }
@@ -310,7 +319,7 @@ public class QueryRecord extends AbstractProcessor {
                             attributesToAdd.putAll(result.getAttributes());
                         }
 
-                        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), resultSetWriter.getMimeType());
+                        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                         attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
                         transformed = session.putAllAttributes(transformed, attributesToAdd);
                         transformedFlowFiles.put(transformed, relationship);

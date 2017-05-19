@@ -59,12 +59,14 @@ org.apache.nifi.processors.standard.ListenUDP
 org.apache.nifi.processors.standard.ListSFTP
 org.apache.nifi.processors.standard.LogAttribute
 org.apache.nifi.processors.standard.LogMessage
+org.apache.nifi.processors.standard.LookupRecord
 org.apache.nifi.processors.standard.MergeContent
 org.apache.nifi.processors.standard.ModifyBytes
 org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify
 org.apache.nifi.processors.standard.ParseCEF
 org.apache.nifi.processors.standard.ParseSyslog
+org.apache.nifi.processors.standard.PartitionRecord
 org.apache.nifi.processors.standard.PostHTTP
 org.apache.nifi.processors.standard.PutDatabaseRecord
 org.apache.nifi.processors.standard.PutDistributedMapCache
