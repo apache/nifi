@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.script.impl;
+package org.apache.nifi.script.impl;
 
 import org.apache.nifi.processors.script.engine.ClojureScriptEngine;
 
@@ -37,8 +37,10 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
                     + "[org.apache.nifi.processor.exception FlowFileAccessException FlowFileHandlingException MissingFlowFileException ProcessException]\n"
                     + "[org.apache.nifi.processor.io InputStreamCallback OutputStreamCallback StreamCallback]\n"
                     + "[org.apache.nifi.processor.util FlowFileFilters StandardValidators]\n"
-                    + "[org.apache.nifi.processors.script ScriptingComponentHelper ScriptingComponentUtils ExecuteScript InvokeScriptedProcessor ScriptEngineConfigurator]\n"
+                    + "[org.apache.nifi.processors.script ExecuteScript InvokeScriptedProcessor ScriptEngineConfigurator]\n"
+                    + "[org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]\n"
                     + "[org.apache.nifi.logging ComponentLog]\n"
+                    + "[org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]\n"
                     + ")\n";
 
 

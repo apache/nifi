@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.record.script
+package org.apache.nifi.lookup.script
 
 import org.apache.commons.io.FileUtils
 import org.apache.nifi.components.PropertyDescriptor
@@ -24,37 +24,27 @@ import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
-import org.apache.nifi.serialization.RecordSetWriter
-import org.apache.nifi.serialization.SimpleRecordSchema
-import org.apache.nifi.serialization.record.MapRecord
-import org.apache.nifi.serialization.record.RecordField
-import org.apache.nifi.serialization.record.RecordFieldType
-import org.apache.nifi.serialization.record.RecordSet
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
-import org.apache.nifi.util.TestRunners
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertEquals
+import static junit.framework.TestCase.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertTrue
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
 
 /**
- * Unit tests for the ScriptedReader class
+ * Unit tests for the ScriptedLookupService controller service
  */
-@RunWith(JUnit4.class)
-class ScriptedRecordSetWriterTest {
+class TestScriptedLookupService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ScriptedRecordSetWriterTest)
-    MockScriptedWriter recordSetWriterFactory
-    def runner
+    private static final Logger logger = LoggerFactory.getLogger(TestScriptedLookupService)
+    ScriptedLookupService scriptedLookupService
     def scriptingComponent
 
 
@@ -68,16 +58,15 @@ class ScriptedRecordSetWriterTest {
 
     @Before
     void setUp() {
-        recordSetWriterFactory = new MockScriptedWriter()
-        runner = TestRunners
-        scriptingComponent = (AccessibleScriptingComponentHelper) recordSetWriterFactory
+        scriptedLookupService = new MockScriptedLookupService()
+        scriptingComponent = (AccessibleScriptingComponentHelper) scriptedLookupService
     }
 
     @Test
-    void testRecordWriterGroovyScript() {
+    void testLookupServiceGroovyScript() {
 
         def properties = [:] as Map<PropertyDescriptor, String>
-        recordSetWriterFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
+        scriptedLookupService.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
             properties.put(descriptor, descriptor.getDefaultValue())
         }
 
@@ -86,7 +75,7 @@ class ScriptedRecordSetWriterTest {
         when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue('Groovy'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_writer_inline.groovy'))
+                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_lookup_inline.groovy'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
         when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
@@ -97,39 +86,23 @@ class ScriptedRecordSetWriterTest {
         when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
         when(initContext.getLogger()).thenReturn(logger)
 
-        recordSetWriterFactory.initialize initContext
-        recordSetWriterFactory.onEnabled configurationContext
+        scriptedLookupService.initialize initContext
+        scriptedLookupService.onEnabled configurationContext
 
         MockFlowFile mockFlowFile = new MockFlowFile(1L)
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
 
-		def schema = recordSetWriterFactory.getSchema(mockFlowFile, inStream)
-        
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, mockFlowFile, outputStream)
-        assertNotNull(recordSetWriter)
-
-        def recordSchema = new SimpleRecordSchema(
-                [new RecordField('id', RecordFieldType.INT.dataType),
-                 new RecordField('name', RecordFieldType.STRING.dataType),
-                 new RecordField('code', RecordFieldType.INT.dataType)]
-        )
-
-        def records = [
-                new MapRecord(recordSchema, ['id': 1, 'name': 'John', 'code': 100]),
-                new MapRecord(recordSchema, ['id': 2, 'name': 'Mary', 'code': 200]),
-                new MapRecord(recordSchema, ['id': 3, 'name': 'Ramon', 'code': 300])
-        ] as MapRecord[]
-
-        recordSetWriter.write(RecordSet.of(recordSchema, records))
-
-        def xml = new XmlSlurper().parseText(outputStream.toString())
-        assertEquals('1', xml.record[0].id.toString())
-        assertEquals('200', xml.record[1].code.toString())
-        assertEquals('Ramon', xml.record[2].name.toString())
+        Optional opt = scriptedLookupService.lookup('Hello')
+        assertTrue(opt.present)
+        assertEquals('Hi', opt.get())
+        opt = scriptedLookupService.lookup('World')
+        assertTrue(opt.present)
+        assertEquals('there', opt.get())
+        opt = scriptedLookupService.lookup('Not There')
+        assertFalse(opt.present)
     }
 
-    class MockScriptedWriter extends ScriptedRecordSetWriter implements AccessibleScriptingComponentHelper {
+    class MockScriptedLookupService extends ScriptedLookupService implements AccessibleScriptingComponentHelper {
 
         @Override
         ScriptingComponentHelper getScriptingComponentHelper() {

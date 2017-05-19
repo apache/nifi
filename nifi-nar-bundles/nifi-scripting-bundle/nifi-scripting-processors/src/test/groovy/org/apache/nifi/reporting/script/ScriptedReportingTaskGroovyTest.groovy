@@ -22,8 +22,8 @@ import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentUtils
+import org.apache.nifi.script.ScriptingComponentHelper
+import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.provenance.ProvenanceEventBuilder
 import org.apache.nifi.provenance.ProvenanceEventRecord
 import org.apache.nifi.provenance.ProvenanceEventRepository

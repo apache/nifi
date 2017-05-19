@@ -31,11 +31,9 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
-import org.apache.nifi.processors.script.ScriptingComponentHelper;
-import org.apache.nifi.processors.script.ScriptingComponentUtils;
+import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.util.StringUtils;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -119,15 +117,8 @@ public class ScriptedReportingTask extends AbstractReportingTask {
      */
     @OnScheduled
     public void setup(final ConfigurationContext context) {
-        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
-        scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
-        scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            scriptingComponentHelper.setModules(modulePath.split(","));
-        } else {
-            scriptingComponentHelper.setModules(new String[0]);
-        }
+        scriptingComponentHelper.setupVariables(context);
+
         // Create a script engine for each possible task
         scriptingComponentHelper.setup(1, getLogger());
         scriptToRun = scriptingComponentHelper.getScriptBody();

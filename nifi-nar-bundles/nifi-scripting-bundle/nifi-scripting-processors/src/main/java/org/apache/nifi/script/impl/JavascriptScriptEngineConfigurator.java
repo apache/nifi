@@ -14,42 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.script.impl;
+package org.apache.nifi.script.impl;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
-public class GroovyScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
-
-    private static final String PRELOADS =
-            "import org.apache.nifi.components.*\n"
-                    + "import org.apache.nifi.flowfile.FlowFile\n"
-                    + "import org.apache.nifi.processor.*\n"
-                    + "import org.apache.nifi.processor.exception.*\n"
-                    + "import org.apache.nifi.processor.io.*\n"
-                    + "import org.apache.nifi.processor.util.*\n"
-                    + "import org.apache.nifi.processors.script.*\n"
-                    + "import org.apache.nifi.logging.ComponentLog\n";
-
-
-    private ScriptEngine scriptEngine;
+/**
+ * This class offers methods to perform Javascript-specific operations during the script engine lifecycle.
+ */
+public class JavascriptScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
 
     @Override
     public String getScriptEngineName() {
-        return "Groovy";
+        return "ECMAScript";
     }
-
-
 
     @Override
     public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
-        scriptEngine = engine;
-        return scriptEngine;
+        // No initialization methods needed at present
+        return engine;
     }
 
     @Override
     public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        scriptEngine = engine;
-        return engine.eval(PRELOADS + scriptBody);
+        return engine.eval(scriptBody);
     }
 }
