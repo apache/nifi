@@ -17,6 +17,7 @@
 
 package org.apache.nifi.lookup.maxmind;
 
+import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.model.AnonymousIpResponse;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.model.ConnectionTypeResponse;
@@ -188,16 +189,47 @@ public class IPLookupService extends AbstractControllerService implements Record
             }
         }
 
-        // assign to a local so we don't need a read lock, this way another thread can update the member variable reference
-        // while the current thread continues using the local reference
-        final DatabaseReader databaseReader = this.databaseReader;
+        // If an external process changes the underlying file before we have a chance to reload the reader, then we'll get an
+        // InvalidDatabaseException, so force a reload and then retry the lookup one time, if we still get an error then throw it
+        try {
+            final DatabaseReader databaseReader = this.databaseReader;
+            return doLookup(databaseReader, key);
+        } catch (InvalidDatabaseException idbe) {
+            if (dbWriteLock.tryLock()) {
+                try {
+                    getLogger().debug("Attempting to reload database after InvalidDatabaseException");
+                    try {
+                        final File dbFile = new File(databaseFile);
+                        final String dbFileChecksum = getChecksum(dbFile);
+                        loadDatabase(dbFile, dbFileChecksum);
+                        databaseLastRefreshAttempt = System.currentTimeMillis();
+                    } catch (IOException ioe) {
+                        throw new LookupFailureException("Error reloading database due to: " + ioe.getMessage(), ioe);
+                    }
 
+                    getLogger().debug("Attempting to retry lookup after InvalidDatabaseException");
+                    try {
+                        final DatabaseReader databaseReader = this.databaseReader;
+                        return doLookup(databaseReader, key);
+                    } catch (final Exception e) {
+                        throw new LookupFailureException("Error performing look up: " + e.getMessage(), e);
+                    }
+                } finally {
+                    dbWriteLock.unlock();
+                }
+            } else {
+                throw new LookupFailureException("Failed to lookup the key " + key + " due to " + idbe.getMessage(), idbe);
+            }
+        }
+    }
+
+    private Optional<Record> doLookup(final DatabaseReader databaseReader, final String key) throws LookupFailureException, InvalidDatabaseException {
         final InetAddress inetAddress;
         try {
             inetAddress = InetAddress.getByName(key);
         } catch (final IOException ioe) {
             getLogger().warn("Could not resolve the IP for value '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
-                "providing the service with an invalid IP address", new Object[] {key}, ioe);
+                    "providing the service with an invalid IP address", new Object[] {key}, ioe);
 
             return Optional.empty();
         }
@@ -207,6 +239,8 @@ public class IPLookupService extends AbstractControllerService implements Record
             final CityResponse cityResponse;
             try {
                 cityResponse = databaseReader.city(inetAddress);
+            } catch (final InvalidDatabaseException idbe) {
+                throw idbe;
             } catch (final Exception e) {
                 throw new LookupFailureException("Failed to lookup City information for IP Address " + inetAddress, e);
             }
@@ -221,6 +255,8 @@ public class IPLookupService extends AbstractControllerService implements Record
             final IspResponse ispResponse;
             try {
                 ispResponse = databaseReader.isp(inetAddress);
+            } catch (final InvalidDatabaseException idbe) {
+                throw idbe;
             } catch (final Exception e) {
                 throw new LookupFailureException("Failed to lookup ISP information for IP Address " + inetAddress, e);
             }
@@ -235,6 +271,8 @@ public class IPLookupService extends AbstractControllerService implements Record
             final DomainResponse domainResponse;
             try {
                 domainResponse = databaseReader.domain(inetAddress);
+            } catch (final InvalidDatabaseException idbe) {
+                throw idbe;
             } catch (final Exception e) {
                 throw new LookupFailureException("Failed to lookup Domain information for IP Address " + inetAddress, e);
             }
@@ -249,6 +287,8 @@ public class IPLookupService extends AbstractControllerService implements Record
             final ConnectionTypeResponse connectionTypeResponse;
             try {
                 connectionTypeResponse = databaseReader.connectionType(inetAddress);
+            } catch (final InvalidDatabaseException idbe) {
+                throw idbe;
             } catch (final Exception e) {
                 throw new LookupFailureException("Failed to lookup Domain information for IP Address " + inetAddress, e);
             }
@@ -268,6 +308,8 @@ public class IPLookupService extends AbstractControllerService implements Record
             final AnonymousIpResponse anonymousIpResponse;
             try {
                 anonymousIpResponse = databaseReader.anonymousIp(inetAddress);
+            } catch (final InvalidDatabaseException idbe) {
+                throw idbe;
             } catch (final Exception e) {
                 throw new LookupFailureException("Failed to lookup Anonymous IP Information for IP Address " + inetAddress, e);
             }
