@@ -23,8 +23,8 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor.util.StandardValidators
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentUtils
+import org.apache.nifi.script.ScriptingComponentHelper
+import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordReader
 import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.MockFlowFile

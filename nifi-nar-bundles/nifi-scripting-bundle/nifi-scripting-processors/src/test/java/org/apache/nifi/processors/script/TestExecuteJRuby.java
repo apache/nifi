@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

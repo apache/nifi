@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.script;
+package org.apache.nifi.script;
 
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
@@ -48,6 +49,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.util.StringUtils;
 
 /**
@@ -281,7 +283,19 @@ public class ScriptingComponentHelper {
         }
     }
 
-    void setupVariables(ProcessContext context) {
+    public void setupVariables(ProcessContext context) {
+        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
+        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
+        }
+    }
+
+    public void setupVariables(ConfigurationContext context) {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
@@ -310,7 +324,7 @@ public class ScriptingComponentHelper {
         return factory.getScriptEngine();
     }
 
-    void stop() {
+    public void stop() {
         if (engineQ != null) {
             engineQ.clear();
         }
