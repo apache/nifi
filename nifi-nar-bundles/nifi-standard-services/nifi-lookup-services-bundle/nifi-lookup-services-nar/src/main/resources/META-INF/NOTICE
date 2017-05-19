@@ -10,6 +10,30 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2017 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons CSV
+    The following NOTICE information applies:
+      Apache Commons CSV
+      Copyright 2005-2016 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons BeanUtils
+    The following NOTICE information applies:
+      Apache Commons BeanUtils
+      Copyright 2000-2016 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
@@ -22,7 +46,7 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache HttpClient
       Copyright 1999-2014 The Apache Software Foundation
-      
+
       Apache HttpCore
       Copyright 2005-2014 The Apache Software Foundation
 
@@ -60,7 +84,7 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
-      
+
 ************************
 Creative Commons Attribution-ShareAlike 3.0
 ************************
@@ -68,6 +92,3 @@ Creative Commons Attribution-ShareAlike 3.0
 The following binary components are provided under the Creative Commons Attribution-ShareAlike 3.0.  See project link for details.
 
 	(CCAS 3.0) MaxMind DB (https://github.com/maxmind/MaxMind-DB)
-
-
-

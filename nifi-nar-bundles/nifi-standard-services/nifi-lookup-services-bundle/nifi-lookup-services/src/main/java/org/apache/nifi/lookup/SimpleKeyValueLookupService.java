@@ -47,6 +47,7 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
             .required(false)
             .dynamic(true)
             .addValidator(Validator.VALID)
+            .expressionLanguageSupported(true)
             .build();
     }
 
@@ -74,4 +75,5 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
     public Set<String> getRequiredKeys() {
         return REQUIRED_KEYS;
     }
+
 }
