@@ -139,8 +139,10 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     // If the component is yielded, cancel its future and re-submit it to run again
                     // after the yield has expired.
                     final long newYieldExpiration = connectable.getYieldExpiration();
-                    if (newYieldExpiration > System.currentTimeMillis()) {
-                        final long yieldMillis = newYieldExpiration - System.currentTimeMillis();
+                    final long now = System.currentTimeMillis();
+                    if (newYieldExpiration > now) {
+                        final long yieldMillis = newYieldExpiration - now;
+                        final long scheduleMillis = connectable.getSchedulingPeriod(TimeUnit.MILLISECONDS);
                         final ScheduledFuture<?> scheduledFuture = futureRef.get();
                         if (scheduledFuture == null) {
                             return;
@@ -150,7 +152,7 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         // an accurate accounting of which futures are outstanding; we must then also update the futureRef
                         // so that we can do this again the next time that the component is yielded.
                         if (scheduledFuture.cancel(false)) {
-                            final long yieldNanos = TimeUnit.MILLISECONDS.toNanos(yieldMillis);
+                            final long yieldNanos = Math.max(TimeUnit.MILLISECONDS.toNanos(scheduleMillis), TimeUnit.MILLISECONDS.toNanos(yieldMillis));
 
                             synchronized (scheduleState) {
                                 if (scheduleState.isScheduled()) {

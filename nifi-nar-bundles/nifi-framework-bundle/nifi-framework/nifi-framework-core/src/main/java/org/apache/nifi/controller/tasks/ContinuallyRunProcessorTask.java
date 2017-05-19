@@ -75,7 +75,10 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
     }
 
     static boolean isYielded(final ProcessorNode procNode) {
-        return procNode.getYieldExpiration() >= System.currentTimeMillis();
+        // after one yield period, the scheduling agent could call this again when
+        // yieldExpiration == currentTime, and we don't want that to still be considered 'yielded'
+        // so this uses ">" instead of ">="
+        return procNode.getYieldExpiration() > System.currentTimeMillis();
     }
 
     static boolean isWorkToDo(final ProcessorNode procNode) {
