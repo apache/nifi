@@ -51,8 +51,8 @@
             <artifactId>groovy-all</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.python</groupId>
-            <artifactId>jython-standalone</artifactId>
+            <groupId>org.scijava</groupId>
+            <artifactId>jython-shaded</artifactId>
             <version>2.7.0</version>
         </dependency>
         <dependency>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>org.jruby</groupId>
             <artifactId>jruby-complete</artifactId>
-            <version>9.0.4.0</version>
+            <version>9.1.9.0</version>
         </dependency>
         <dependency>
             <groupId>org.clojure</groupId>

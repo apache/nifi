@@ -53,11 +53,5 @@ Eclipse Public License v1.0
 
 The following binary components are provided under a EPL v1.0 license
 
-   (EPLv1.0) JRuby (org.jruby:jruby-complete:9.0.4.0 - http://jruby.org).
-
-    JRuby is licensed under three licenses - the EPL 1.0, GPL 2 and LGPL 2.1. Apache NiFi uses the EPL v1.0 license.
-
-    The following NOTICE information applies:
-        Copyright (c) 2007-2015 The JRuby project
-
-   (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
+    (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete:9.1.9.0 - http://jruby.org).
+    (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
