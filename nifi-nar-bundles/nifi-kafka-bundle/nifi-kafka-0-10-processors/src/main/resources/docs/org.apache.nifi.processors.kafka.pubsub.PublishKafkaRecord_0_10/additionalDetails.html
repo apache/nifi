@@ -26,22 +26,10 @@
         <p>
             This Processor puts the contents of a FlowFile to a Topic in
             <a href="http://kafka.apache.org/">Apache Kafka</a> using KafkaProducer API available
-            with Kafka 0.10.x API. The content of a FlowFile becomes the contents of a Kafka message.
+            with Kafka 0.10.x API. The contents of the incoming FlowFile will be read using the
+            configured Record Reader. Each record will then be serialized using the configured
+            Record Writer, and this serialized form will be the content of a Kafka message.
             This message is optionally assigned a key by using the &lt;Kafka Key&gt; Property.
-        </p>
-
-        <p>
-            The Processor allows the user to configure an optional Message Demarcator that
-            can be used to send many messages per FlowFile. For example, a <i>\n</i> could be used
-            to indicate that the contents of the FlowFile should be used to send one message
-            per line of text. It also supports multi-char demarcators (e.g., 'my custom demarcator').
-            If the property is not set, the entire contents of the FlowFile
-            will be sent as a single message. When using the demarcator, if some messages are
-            successfully sent but other messages fail to send, the resulting FlowFile will be
-            considered a failed FlowFile and will have additional attributes to that effect.
-            One of such attributes is 'failed.last.idx' which indicates the index of the last message
-            that was successfully ACKed by Kafka. (if no demarcator is used the value of this index will be -1).
-            This will allow PublishKafka to only re-send un-ACKed messages on the next re-try.
         </p>
         <h2>Security Configuration:</h2>
         <p>
