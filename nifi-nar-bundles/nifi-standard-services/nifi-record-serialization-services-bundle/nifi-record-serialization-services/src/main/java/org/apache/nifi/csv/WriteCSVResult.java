@@ -89,6 +89,11 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
     }
 
     @Override
+    public void flush() throws IOException {
+        printer.flush();
+    }
+
+    @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
         int i = 0;
         for (final RecordField recordField : recordSchema.getFields()) {

@@ -40,6 +40,11 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
     }
 
     @Override
+    public void flush() throws IOException {
+        out.flush();
+    }
+
+    @Override
     public WriteResult write(final RecordSet recordSet) throws IOException {
         beginRecordSet();
         Record record;

@@ -93,6 +93,10 @@ class GroovyRecordSetWriter implements RecordSetWriter {
     @Override
     public void close() throws IOException {
     }
+    
+    @Override
+    public void flush() throws IOException {
+    }
 }
 
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {

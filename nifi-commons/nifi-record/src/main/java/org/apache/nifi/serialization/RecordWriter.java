@@ -37,4 +37,11 @@ public interface RecordWriter extends Closeable {
      *         the mime.type attribute.
      */
     String getMimeType();
+
+    /**
+     * Flushes any buffered data to the underlying storage mechanism
+     *
+     * @throws IOException if unable to write to the underlying storage mechanism
+     */
+    void flush() throws IOException;
 }

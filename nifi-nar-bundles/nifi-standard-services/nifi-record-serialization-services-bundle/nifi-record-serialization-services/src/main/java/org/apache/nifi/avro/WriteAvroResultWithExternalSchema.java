@@ -61,8 +61,7 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
 
     @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
-        encoder.flush();
-        buffered.flush();
+        flush();
         return schemaAccessWriter.getAttributes(recordSchema);
     }
 
@@ -71,6 +70,12 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
         datumWriter.write(rec, encoder);
         return schemaAccessWriter.getAttributes(recordSchema);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        encoder.flush();
+        buffered.flush();
     }
 
     @Override

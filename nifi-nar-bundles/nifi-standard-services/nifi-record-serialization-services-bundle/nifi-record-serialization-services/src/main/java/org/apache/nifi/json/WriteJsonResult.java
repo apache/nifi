@@ -96,6 +96,13 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @Override
+    public void flush() throws IOException {
+        if (generator != null) {
+            generator.flush();
+        }
+    }
+
+    @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
         writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
         return schemaAccess.getAttributes(recordSchema);

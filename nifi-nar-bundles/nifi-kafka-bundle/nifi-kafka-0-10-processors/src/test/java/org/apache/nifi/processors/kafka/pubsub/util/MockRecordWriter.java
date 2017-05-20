@@ -60,6 +60,12 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final FlowFile flowFile, final OutputStream out) {
         return new RecordSetWriter() {
+
+            @Override
+            public void flush() throws IOException {
+                out.flush();
+            }
+
             @Override
             public WriteResult write(final RecordSet rs) throws IOException {
                 out.write(header.getBytes());
