@@ -17,6 +17,7 @@
 
 package org.apache.nifi.text;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -37,13 +38,11 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
     private static final byte NEW_LINE = (byte) '\n';
     private final PropertyValue propertyValue;
     private final Charset charset;
-    private final OutputStream out;
 
     public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet, final OutputStream out) {
-        super(out);
+        super(new BufferedOutputStream(out));
         this.propertyValue = textPropertyValue;
         this.charset = characterSet;
-        this.out = out;
     }
 
     private List<String> getColumnNames(final RecordSchema schema) {
@@ -60,7 +59,7 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
-        write(record, out, getColumnNames(record.getSchema()));
+        write(record, getOutputStream(), getColumnNames(record.getSchema()));
         return Collections.emptyMap();
     }
 

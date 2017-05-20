@@ -66,6 +66,11 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             private boolean headerWritten = false;
 
             @Override
+            public void flush() throws IOException {
+                out.flush();
+            }
+
+            @Override
             public WriteResult write(final RecordSet rs) throws IOException {
                 if (header != null && !headerWritten) {
                     out.write(header.getBytes());

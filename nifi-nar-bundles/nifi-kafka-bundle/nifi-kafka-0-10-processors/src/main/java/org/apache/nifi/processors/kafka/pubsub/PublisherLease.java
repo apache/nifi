@@ -113,6 +113,7 @@ public class PublisherLease implements Closeable {
                 recordCount++;
                 baos.reset();
                 writer.write(record);
+                writer.flush();
 
                 final byte[] messageContent = baos.toByteArray();
                 final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
