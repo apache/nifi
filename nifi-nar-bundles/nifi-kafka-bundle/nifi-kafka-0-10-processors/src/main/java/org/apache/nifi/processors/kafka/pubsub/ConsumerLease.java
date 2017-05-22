@@ -21,22 +21,18 @@ import static org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10.RE
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -57,11 +53,10 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.Tuple;
 
 /**
  * This class represents a lease to access a Kafka Consumer object. The lease is
@@ -411,94 +406,116 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             return;
         }
 
-        FlowFile flowFile = session.create();
+        final Map<RecordSchema, Tuple<FlowFile, RecordSetWriter>> writers = new HashMap<>();
+
+        // In order to obtain a RecordReader from the RecordReaderFactory, we need to give it a FlowFile.
+        // We don't want to create a new FlowFile for each record that we receive, so we will just create
+        // a "temporary flowfile" that will be removed in the finally block below and use that to pass to
+        // the createRecordReader method.
+        final FlowFile tempFlowFile = session.create();
         try {
-            final RecordSchema schema;
+            final Iterator<ConsumerRecord<byte[], byte[]>> itr = records.iterator();
+            while (itr.hasNext()) {
+                final ConsumerRecord<byte[], byte[]> consumerRecord = itr.next();
+                final InputStream in = new ByteArrayInputStream(consumerRecord.value());
+
+                final Record record;
+                try {
+                    final RecordReader reader = readerFactory.createRecordReader(tempFlowFile, in, logger);
+                    record = reader.nextRecord();
+                } catch (final Exception e) {
+                    // If we are unable to parse the data, we need to transfer it to 'parse failure' relationship
+                    final Map<String, String> attributes = new HashMap<>();
+                    attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
+                    attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
+                    attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
+
+                    FlowFile failureFlowFile = session.create();
+                    failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+                    failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
+
+                    final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
+                    session.getProvenanceReporter().receive(failureFlowFile, transitUri);
+
+                    session.transfer(failureFlowFile, REL_PARSE_FAILURE);
+                    logger.error("Failed to parse message from Kafka using the configured Record Reader. "
+                        + "Will route message as its own FlowFile to the 'parse.failure' relationship", e);
+
+                    session.adjustCounter("Parse Failures", 1, false);
+                    continue;
+                }
+
+                final RecordSchema recordSchema = record.getSchema();
+
+                Tuple<FlowFile, RecordSetWriter> tuple = writers.get(recordSchema);
+                if (tuple == null) {
+                    FlowFile flowFile = session.create();
+                    final OutputStream rawOut = session.write(flowFile);
+
+                    final RecordSchema writeSchema;
+                    try {
+                        writeSchema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
+                    } catch (final Exception e) {
+                        logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
+
+                        try {
+                            rollback(topicPartition);
+                        } catch (final Exception rollbackException) {
+                            logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+                        }
+
+                        yield();
+                        throw new ProcessException(e);
+                    }
+
+                    final RecordSetWriter writer = writerFactory.createWriter(logger, writeSchema, flowFile, rawOut);
+                    writer.beginRecordSet();
+
+                    tuple = new Tuple<>(flowFile, writer);
+                    writers.put(recordSchema, tuple);
+                }
+
+                final RecordSetWriter writer = tuple.getValue();
+                writer.write(record);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to properly receive messages from Kafka. Will roll back session and any un-committed offsets from Kafka.", e);
 
             try {
-                schema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
-            } catch (final Exception e) {
-                logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
+                rollback(topicPartition);
+            } catch (final Exception rollbackException) {
+                logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+            }
 
+            throw new ProcessException(e);
+        } finally {
+            session.remove(tempFlowFile);
+        }
+
+        for (final Tuple<FlowFile, RecordSetWriter> tuple : writers.values()) {
+            FlowFile flowFile = tuple.getKey();
+            final RecordSetWriter writer = tuple.getValue();
+
+            final WriteResult writeResult;
+            try {
+                writeResult = writer.finishRecordSet();
+                writer.close();
+            } catch (final Exception e) {
+                logger.error("Failed to finish writing records to Content Repository", e);
                 try {
                     rollback(topicPartition);
                 } catch (final Exception rollbackException) {
                     logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
                 }
-
-                yield();
                 throw new ProcessException(e);
             }
 
-            final FlowFile ff = flowFile;
-            final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
-            final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
-
-            flowFile = session.write(flowFile, rawOut -> {
-                final Iterator<ConsumerRecord<byte[], byte[]>> itr = records.iterator();
-
-                final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
-                final RecordSet recordSet = new RecordSet() {
-                    @Override
-                    public RecordSchema getSchema() throws IOException {
-                        return emptySchema;
-                    }
-
-                    @Override
-                    public Record next() throws IOException {
-                        while (itr.hasNext()) {
-                            final ConsumerRecord<byte[], byte[]> consumerRecord = itr.next();
-
-                            final InputStream in = new ByteArrayInputStream(consumerRecord.value());
-                            try {
-                                final RecordReader reader = readerFactory.createRecordReader(ff, in, logger);
-                                final Record record = reader.nextRecord();
-                                return record;
-                            } catch (final Exception e) {
-                                final Map<String, String> attributes = new HashMap<>();
-                                attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
-                                attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
-                                attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
-
-                                FlowFile failureFlowFile = session.create();
-                                failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
-                                failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
-
-                                session.transfer(failureFlowFile, REL_PARSE_FAILURE);
-                                logger.error("Failed to parse message from Kafka using the configured Record Reader. "
-                                    + "Will route message as its own FlowFile to the 'parse.failure' relationship", e);
-
-                                session.adjustCounter("Parse Failures", 1, false);
-                            }
-                        }
-
-                        return null;
-                    }
-                };
-
-                try (final OutputStream out = new BufferedOutputStream(rawOut);
-                    final RecordSetWriter writer = writerFactory.createWriter(logger, schema, ff, out)) {
-                    writeResult.set(writer.write(recordSet));
-                    mimeTypeRef.set(writer.getMimeType());
-                } catch (final Exception e) {
-                    logger.error("Failed to write records to FlowFile. Will roll back the Kafka message offsets.", e);
-
-                    try {
-                        rollback(topicPartition);
-                    } catch (final Exception rollbackException) {
-                        logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
-                    }
-
-                    yield();
-                    throw new ProcessException(e);
-                }
-            });
-
-            final WriteResult result = writeResult.get();
-            if (result.getRecordCount() > 0) {
-                final Map<String, String> attributes = new HashMap<>(result.getAttributes());
-                attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
-                attributes.put("record.count", String.valueOf(result.getRecordCount()));
+            final int recordCount = writeResult.getRecordCount();
+            if (recordCount > 0) {
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.putAll(writeResult.getAttributes());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                attributes.put("record.count", String.valueOf(recordCount));
 
                 attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
                 attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
@@ -509,16 +526,14 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
                 session.getProvenanceReporter().receive(flowFile, transitUri, executionDurationMillis);
 
-                session.adjustCounter("Records Received", result.getRecordCount(), false);
+                session.adjustCounter("Records Received", recordCount, false);
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 session.remove(flowFile);
             }
-        } catch (final Exception e) {
-            session.remove(flowFile);
-            throw e;
         }
     }
+
 
     private void populateAttributes(final BundleTracker tracker) {
         final Map<String, String> kafkaAttrs = new HashMap<>();
