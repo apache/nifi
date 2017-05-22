@@ -17,10 +17,13 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
@@ -57,7 +60,7 @@ public class TestLookupRecord {
         runner.setProperty(LookupRecord.RECORD_READER, "reader");
         runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
         runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
-        runner.setProperty(LookupRecord.LOOKUP_RECORD_PATH, "/name");
+        runner.setProperty("lookup", "/name");
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/sport");
         runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
 
@@ -145,7 +148,7 @@ public class TestLookupRecord {
 
     @Test
     public void testLookupPathNotFound() throws InitializationException {
-        runner.setProperty(LookupRecord.LOOKUP_RECORD_PATH, "/other");
+        runner.setProperty("lookup", "/other");
 
         runner.enqueue("");
         runner.run();
@@ -197,7 +200,7 @@ public class TestLookupRecord {
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
 
-        runner.setProperty(LookupRecord.LOOKUP_RECORD_PATH, "/*");
+        runner.setProperty("lookup", "/*");
 
         runner.enqueue("");
         runner.run();
@@ -208,6 +211,19 @@ public class TestLookupRecord {
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
         out.assertContentEquals("John Doe,48,\nJane Doe,47,\nJimmy Doe,14,\n");
+    }
+
+    @Test
+    public void testInvalidUnlessAllRequiredPropertiesAdded() throws InitializationException {
+        runner.removeProperty(new PropertyDescriptor.Builder().name("lookup").build());
+        runner.setProperty("hello", "/name");
+        runner.assertNotValid();
+
+        runner.setProperty("lookup", "xx");
+        runner.assertNotValid();
+
+        runner.setProperty("lookup", "/name");
+        runner.assertValid();
     }
 
 
@@ -225,8 +241,22 @@ public class TestLookupRecord {
         }
 
         @Override
-        public Optional<String> lookup(final String key) {
+        public Optional<String> lookup(final Map<String, String> coordinates) {
+            if (coordinates == null) {
+                return Optional.empty();
+            }
+
+            final String key = coordinates.get("lookup");
+            if (key == null) {
+                return Optional.empty();
+            }
+
             return Optional.ofNullable(values.get(key));
+        }
+
+        @Override
+        public Set<String> getRequiredKeys() {
+            return Collections.singleton("lookup");
         }
     }
 

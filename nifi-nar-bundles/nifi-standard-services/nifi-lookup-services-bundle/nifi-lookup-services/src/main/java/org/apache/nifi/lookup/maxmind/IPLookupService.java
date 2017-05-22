@@ -17,16 +17,23 @@
 
 package org.apache.nifi.lookup.maxmind;
 
-import com.maxmind.db.InvalidDatabaseException;
-import com.maxmind.geoip2.model.AnonymousIpResponse;
-import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.model.ConnectionTypeResponse;
-import com.maxmind.geoip2.model.ConnectionTypeResponse.ConnectionType;
-import com.maxmind.geoip2.model.DomainResponse;
-import com.maxmind.geoip2.model.IspResponse;
-import com.maxmind.geoip2.record.Country;
-import com.maxmind.geoip2.record.Location;
-import com.maxmind.geoip2.record.Subdivision;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -42,28 +49,30 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import com.maxmind.db.InvalidDatabaseException;
+import com.maxmind.geoip2.model.AnonymousIpResponse;
+import com.maxmind.geoip2.model.CityResponse;
+import com.maxmind.geoip2.model.ConnectionTypeResponse;
+import com.maxmind.geoip2.model.ConnectionTypeResponse.ConnectionType;
+import com.maxmind.geoip2.model.DomainResponse;
+import com.maxmind.geoip2.model.IspResponse;
+import com.maxmind.geoip2.record.Country;
+import com.maxmind.geoip2.record.Location;
+import com.maxmind.geoip2.record.Subdivision;
+
 
 @Tags({"lookup", "enrich", "ip", "geo", "ipgeo", "maxmind", "isp", "domain", "cellular", "anonymous", "tor"})
 @CapabilityDescription("A lookup service that provides several types of enrichment information for IP addresses. The service is configured by providing a MaxMind "
-    + "Database file and specifying which types of enrichment should be provided for an IP Address. Each type of enrichment is a separate lookup, so configuring the "
-    + "service to provide all of the available enrichment data may be slower than returning only a portion of the available enrichments. View the Usage of this component "
+    + "Database file and specifying which types of enrichment should be provided for an IP Address or Hostname. Each type of enrichment is a separate lookup, so configuring the "
+    + "service to provide all of the available enrichment data may be slower than returning only a portion of the available enrichments. In order to use this service, a lookup "
+    + "must be performed using key of 'ip' and a value that is a valid IP address or hostname. View the Usage of this component "
     + "and choose to view Additional Details for more information, such as the Schema that pertains to the information that is returned.")
 public class IPLookupService extends AbstractControllerService implements RecordLookupService {
 
     private volatile String databaseFile = null;
+    private static final String IP_KEY = "ip";
+    private static final Set<String> REQUIRED_KEYS = Stream.of(IP_KEY).collect(Collectors.toSet());
+
     private volatile DatabaseReader databaseReader = null;
     private volatile String databaseChecksum = null;
     private volatile long databaseLastRefreshAttempt = -1;
@@ -175,8 +184,13 @@ public class IPLookupService extends AbstractControllerService implements Record
     }
 
     @Override
-    public Optional<Record> lookup(final String key) throws LookupFailureException {
-        if (key == null) {
+    public Set<String> getRequiredKeys() {
+        return REQUIRED_KEYS;
+    }
+
+    @Override
+    public Optional<Record> lookup(final Map<String, String> coordinates) throws LookupFailureException {
+        if (coordinates == null) {
             return Optional.empty();
         }
 
@@ -193,7 +207,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         // InvalidDatabaseException, so force a reload and then retry the lookup one time, if we still get an error then throw it
         try {
             final DatabaseReader databaseReader = this.databaseReader;
-            return doLookup(databaseReader, key);
+            return doLookup(databaseReader, coordinates);
         } catch (InvalidDatabaseException idbe) {
             if (dbWriteLock.tryLock()) {
                 try {
@@ -210,7 +224,7 @@ public class IPLookupService extends AbstractControllerService implements Record
                     getLogger().debug("Attempting to retry lookup after InvalidDatabaseException");
                     try {
                         final DatabaseReader databaseReader = this.databaseReader;
-                        return doLookup(databaseReader, key);
+                        return doLookup(databaseReader, coordinates);
                     } catch (final Exception e) {
                         throw new LookupFailureException("Error performing look up: " + e.getMessage(), e);
                     }
@@ -218,18 +232,23 @@ public class IPLookupService extends AbstractControllerService implements Record
                     dbWriteLock.unlock();
                 }
             } else {
-                throw new LookupFailureException("Failed to lookup the key " + key + " due to " + idbe.getMessage(), idbe);
+                throw new LookupFailureException("Failed to lookup a value for " + coordinates + " due to " + idbe.getMessage(), idbe);
             }
         }
     }
 
-    private Optional<Record> doLookup(final DatabaseReader databaseReader, final String key) throws LookupFailureException, InvalidDatabaseException {
+    private Optional<Record> doLookup(final DatabaseReader databaseReader, final Map<String, String> coordinates) throws LookupFailureException, InvalidDatabaseException {
+        final String ipAddress = coordinates.get(IP_KEY);
+        if (ipAddress == null) {
+            return Optional.empty();
+        }
+
         final InetAddress inetAddress;
         try {
-            inetAddress = InetAddress.getByName(key);
+            inetAddress = InetAddress.getByName(ipAddress);
         } catch (final IOException ioe) {
             getLogger().warn("Could not resolve the IP for value '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
-                    "providing the service with an invalid IP address", new Object[] {key}, ioe);
+                "providing the service with an invalid IP address", new Object[] {coordinates}, ioe);
 
             return Optional.empty();
         }
