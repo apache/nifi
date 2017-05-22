@@ -25,12 +25,15 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
 
 import io.thekraken.grok.api.Grok;
@@ -181,6 +184,43 @@ public class TestGrokRecordReader {
                     assertTrue(stackTrace.endsWith("    ... 12 common frames omitted"));
                 }
             }
+
+            assertNull(deserializer.nextRecord());
+        }
+    }
+
+    @Test
+    public void testInheritNamedParameters() throws FileNotFoundException, IOException, GrokException, MalformedRecordException {
+        final String syslogMsg = "May 22 15:58:23 my-host nifi[12345]:My Message";
+        final byte[] msgBytes = syslogMsg.getBytes();
+
+        try (final InputStream in = new ByteArrayInputStream(msgBytes)) {
+            final Grok grok = new Grok();
+            grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
+            grok.compile("%{SYSLOGBASE}%{GREEDYDATA:message}");
+
+            final RecordSchema schema = GrokReader.createRecordSchema(grok);
+            final List<String> fieldNames = schema.getFieldNames();
+            assertEquals(8, fieldNames.size());
+            assertTrue(fieldNames.contains("timestamp"));
+            assertTrue(fieldNames.contains("logsource"));
+            assertTrue(fieldNames.contains("facility"));
+            assertTrue(fieldNames.contains("priority"));
+            assertTrue(fieldNames.contains("program"));
+            assertTrue(fieldNames.contains("pid"));
+            assertTrue(fieldNames.contains("message"));
+            assertTrue(fieldNames.contains("stackTrace"));  // always implicitly there
+
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, true);
+            final Record record = deserializer.nextRecord();
+
+            assertEquals("May 22 15:58:23", record.getValue("timestamp"));
+            assertEquals("my-host", record.getValue("logsource"));
+            assertNull(record.getValue("facility"));
+            assertNull(record.getValue("priority"));
+            assertEquals("nifi", record.getValue("program"));
+            assertEquals("12345", record.getValue("pid"));
+            assertEquals("My Message", record.getValue("message"));
 
             assertNull(deserializer.nextRecord());
         }

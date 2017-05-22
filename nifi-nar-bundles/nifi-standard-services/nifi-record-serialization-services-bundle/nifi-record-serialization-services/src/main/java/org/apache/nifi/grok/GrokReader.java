@@ -133,35 +133,56 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
         appendUnmatchedLine = context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue());
 
-        this.recordSchema = createRecordSchema(grok);
+        final String schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+        if (STRING_FIELDS_FROM_GROK_EXPRESSION.getValue().equals(schemaAccess)) {
+            this.recordSchema = createRecordSchema(grok);
+        } else {
+            this.recordSchema = null;
+        }
     }
 
     static RecordSchema createRecordSchema(final Grok grok) {
         final List<RecordField> fields = new ArrayList<>();
 
         String grokExpression = grok.getOriginalGrokPattern();
-        while (grokExpression.length() > 0) {
-            final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
-            if (matcher.find()) {
-                final Map<String, String> namedGroups = GrokUtils.namedGroups(matcher, grokExpression);
-                final String fieldName = namedGroups.get("subname");
-
-                DataType dataType = RecordFieldType.STRING.getDataType();
-                final RecordField recordField = new RecordField(fieldName, dataType);
-                fields.add(recordField);
-
-                if (grokExpression.length() > matcher.end() + 1) {
-                    grokExpression = grokExpression.substring(matcher.end() + 1);
-                } else {
-                    break;
-                }
-            }
-        }
+        populateSchemaFieldNames(grok, grokExpression, fields);
 
         fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
         return schema;
+    }
+
+    private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final List<RecordField> fields) {
+        while (grokExpression.length() > 0) {
+            final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
+            if (matcher.find()) {
+                final Map<String, String> extractedGroups = GrokUtils.namedGroups(matcher, grokExpression);
+                final String subName = extractedGroups.get("subname");
+
+                if (subName == null) {
+                    final String subPatternName = extractedGroups.get("pattern");
+                    if (subPatternName == null) {
+                        continue;
+                    }
+
+                    final String subExpression = grok.getPatterns().get(subPatternName);
+                    populateSchemaFieldNames(grok, subExpression, fields);
+                } else {
+                    DataType dataType = RecordFieldType.STRING.getDataType();
+                    final RecordField recordField = new RecordField(subName, dataType);
+                    fields.add(recordField);
+                }
+
+                if (grokExpression.length() > matcher.end() + 1) {
+                    grokExpression = grokExpression.substring(matcher.end());
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
     }
 
 
