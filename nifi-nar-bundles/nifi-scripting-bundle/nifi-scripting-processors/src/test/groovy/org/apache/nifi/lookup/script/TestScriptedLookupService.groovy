@@ -92,13 +92,13 @@ class TestScriptedLookupService {
         MockFlowFile mockFlowFile = new MockFlowFile(1L)
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
 
-        Optional opt = scriptedLookupService.lookup('Hello')
+        Optional opt = scriptedLookupService.lookup(['key':'Hello'])
         assertTrue(opt.present)
         assertEquals('Hi', opt.get())
-        opt = scriptedLookupService.lookup('World')
+        opt = scriptedLookupService.lookup(['key':'World'])
         assertTrue(opt.present)
         assertEquals('there', opt.get())
-        opt = scriptedLookupService.lookup('Not There')
+        opt = scriptedLookupService.lookup(['key':'Not There'])
         assertFalse(opt.present)
     }
 

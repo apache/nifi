@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import java.util.Set
+
 import org.apache.nifi.controller.ControllerServiceInitializationContext
 import org.apache.nifi.reporting.InitializationException
 
@@ -28,10 +30,15 @@ class GroovyLookupService implements LookupService<String> {
 
 
     @Override
-    Optional<String> lookup(String key) {
+    Optional<String> lookup(Map<String, String> coordinates) {
+        final String key = coordinates.values().iterator().next();
         Optional.ofNullable(lookupTable[key])
     }
-
+    
+    Set<String> getRequiredKeys() {
+        return java.util.Collections.emptySet();
+    }
+    
     @Override
     Class<?> getValueType() {
         return String
