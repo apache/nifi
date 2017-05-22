@@ -95,6 +95,12 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
+        // If we are not writing an active record set, then we need to ensure that we write the
+        // schema information.
+        if (!isActiveRecordSet()) {
+            schemaWriter.writeHeader(recordSchema, getOutputStream());
+        }
+
         int i = 0;
         for (final RecordField recordField : recordSchema.getFields()) {
             fieldValues[i++] = record.getAsString(recordField, getFormat(recordField));

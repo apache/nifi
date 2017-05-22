@@ -50,7 +50,6 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
         this.buffered = new BufferedOutputStream(out);
 
         datumWriter = new GenericDatumWriter<>(avroSchema);
-        schemaAccessWriter.writeHeader(recordSchema, buffered);
         encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, null);
     }
 
@@ -67,6 +66,13 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
+        // If we are not writing an active record set, then we need to ensure that we write the
+        // schema information.
+        if (!isActiveRecordSet()) {
+            flush();
+            schemaAccessWriter.writeHeader(recordSchema, getOutputStream());
+        }
+
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
         datumWriter.write(rec, encoder);
         return schemaAccessWriter.getAttributes(recordSchema);
