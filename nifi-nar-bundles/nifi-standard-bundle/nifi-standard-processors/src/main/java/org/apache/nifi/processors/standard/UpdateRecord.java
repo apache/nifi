@@ -20,21 +20,24 @@ package org.apache.nifi.processors.standard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
@@ -47,6 +50,7 @@ import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathPropertyNameValidator;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 
 @EventDriven
@@ -60,12 +64,16 @@ import org.apache.nifi.serialization.record.RecordSchema;
     + "the Record. Whether the Property value is determined to be a RecordPath or a literal value depends on the configuration of the <Replacement Value Strategy> Property.")
 @SeeAlso({ConvertRecord.class})
 public class UpdateRecord extends AbstractRecordProcessor {
+    private static final String FIELD_NAME = "field.name";
+    private static final String FIELD_VALUE = "field.value";
+    private static final String FIELD_TYPE = "field.type";
 
     private volatile RecordPathCache recordPathCache;
     private volatile List<String> recordPaths;
 
     static final AllowableValue LITERAL_VALUES = new AllowableValue("literal-value", "Literal Value",
-        "The value entered for a Property (after Expression Language has been evaluated) is the desired value to update the Record Fields with.");
+        "The value entered for a Property (after Expression Language has been evaluated) is the desired value to update the Record Fields with. Expression Language "
+            + "may reference variables 'field.name', 'field.type', and 'field.value' to access information about the field and the value of the field being evaluated.");
     static final AllowableValue RECORD_PATH_VALUES = new AllowableValue("record-path-value", "Record Path Value",
         "The value entered for a Property (after Expression Language has been evaluated) is not the literal value to use but rather is a Record Path "
             + "that should be evaluated against the Record, and the result of the RecordPath will be used to update the Record. Note that if this option is selected, "
@@ -142,8 +150,8 @@ public class UpdateRecord extends AbstractRecordProcessor {
             final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);
             final RecordPathResult result = recordPath.evaluate(record);
 
-            final String replacementValue = context.getProperty(recordPathText).evaluateAttributeExpressions(flowFile).getValue();
             if (evaluateValueAsRecordPath) {
+                final String replacementValue = context.getProperty(recordPathText).evaluateAttributeExpressions(flowFile).getValue();
                 final RecordPath replacementRecordPath = recordPathCache.getCompiled(replacementValue);
 
                 // If we have an Absolute RecordPath, we need to evaluate the RecordPath only once against the Record.
@@ -154,7 +162,18 @@ public class UpdateRecord extends AbstractRecordProcessor {
                     processRelativePath(replacementRecordPath, result.getSelectedFields(), record, replacementValue);
                 }
             } else {
-                result.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(replacementValue));
+                final PropertyValue replacementValue = context.getProperty(recordPathText);
+                final Map<String, String> fieldVariables = new HashMap<>(4);
+
+                result.getSelectedFields().forEach(fieldVal -> {
+                    fieldVariables.clear();
+                    fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
+                    fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
+                    fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
+
+                    final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue();
+                    fieldVal.updateValue(evaluatedReplacementVal);
+                });
             }
         }
 
