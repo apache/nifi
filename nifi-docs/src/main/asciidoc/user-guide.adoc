@@ -267,7 +267,7 @@ Processor developers have the ability to add Tags to their Processors. These tag
 displayed on the left-hand side in a Tag Cloud. The more Processors that exist with a particular Tag, the larger the Tag appears
 in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processors to only those that contain that Tag. If multiple
 Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those
-Processors that allow us to ingest data via HTTP, we can select both the `http` Tag and the `ingest` Tag:
+Processors that allow us to ingest files, we can select both the `files` Tag and the `ingest` Tag:
 
 image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
@@ -279,8 +279,8 @@ These components could be used by an otherwise authorized NiFi user to go beyond
 privilege, or could expose data about the internals of the NiFi process or the host system. All of these capabilities should
 be considered privileged, and admins should be aware of these capabilities and explicitly enable them for a subset of trusted users.
 
-Before a user is allowed to create and modify restricted components they must be granted access to restricted components. Refer to
-<<UI-with-multi-tenant-authorization,multi-tenant>> documentation.
+Before a user is allowed to create and modify restricted components they must be granted access to restricted components. For more information refer to
+<<UI-with-multi-tenant-authorization>>.
 
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
@@ -298,10 +298,11 @@ While the options available from the context menu vary, the following options ar
 
 - *Configure*: This option allows the user to establish or change the configuration of the Processor (see <<Configuring_a_Processor>>).
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
+- *Enable* or *Disable*: This option allows the user to enable or enable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *Status History*: This option opens a graphical representation of the Processor's statistical information over time.
+- *Data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
-- *Data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *Usage*: This option takes the user to the Processor's usage documentation.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
 - *Center in view*: This option centers the view of the canvas on the given Processor.
@@ -355,6 +356,7 @@ While the options available from the context menu vary, the following options ar
 - *Enter group*: This option allows the user to enter the Process Group. It is also possible to double-click on the Process Group to enter it.
 - *Start*: This option allows the user to start a Process Group.
 - *Stop*: This option allows the user to stop a Process Group.
+- *Group*: This option allows the user to create a new Process Group that contains the selected Process Group and any other components selected on the canvas.
 - *Status History*: This option opens a graphical representation of the Process Group's statistical information over time.
 - *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Process Group.
 - *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
@@ -383,6 +385,7 @@ image::nifi-rpg-menu.png["Remote Process Group Menu"]
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Remote Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Remote Process Group.
+- *Group*: This option allows the user to create a new Process Group that contains the selected Remote Process Group and any other components selected on the canvas.
 - *Remote Ports*: This option allows the user to see input ports and/or output ports that exist on the remote instance of NiFi that the Remote Process Group is connected to. Note that if the Site-to-Site configuration is secure, only the ports that the connecting NiFi has been given accessed to will be visible.
 - *Enable transmission*: Makes the transmission of data between NiFi instances active (see <<Remote_Group_Transmission>>).
 - *Disable transmission*: Disables the transmission of data between NiFi instances.
@@ -437,22 +440,34 @@ This is especially useful when you are working within a clustered environment wi
 different versions of a component or if you have upgraded to a newer version of a processor. The Add Processor,
 Add Controller Service, and Add Reporting Task dialogs include a column identifying the component version, as well
 as the name of the component, the organization or group that created the component, and the NAR bundle that contains
-the processor. Each component displayed on the canvas also contains this information.
+the component.
+
+image::add-processor-version-example.png["Add Processor Version Example"]
+
+Each component displayed on the canvas also contains this information.
+
+image::processor-version-information-example.png["Processor Version Information Example"]
 
 ==== Sorting and Filtering Components
-When you are adding a component, you can filter based on originating source or version number.
+When you are adding a component, you can sort on version number or filter based on originating source.
 
 To sort based on version, click the version column to display in ascending or descending version order.
 
 To filter based on source group, click the source drop-down in the upper left of your Add Component dialog,
-and select the source group you want to view.
+and select the group you want to view.
+
+image::add-processor-version-sort-filter.png["Add Processor Version Sort and Filter"]
 
 ==== Changing Component Versions
 To change a component version, perform the following steps.
 
-. Right-click the component on the canvas to display configuration options.
-. Select Change version.
-. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
+1. Right-click the component on the canvas to display configuration options.
+2. Select Change version.
+
+image::processor-change-version.png["Processor Change Version"]
+
+[start=3]
+3. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
 
 image::component-version-dialog.png["Component Version"]
 
@@ -464,6 +479,19 @@ When you are configuring a component, you can also view information about versio
 . Click the information icon to view any version dependency information.
 
 image::configure-processor-with-version-information.png["Configuration Version Requirements"]
+
+In the following example, MyProcessor version 1.0 is configured properly with the controller service StandardMyService version 1.0:
+
+image::processor-cs-version-match.png["Processor and Controller Service Version Match"]
+
+If the version of MyProcessor is changed to an incompatible version (MyProcessor 2.0), validation errors will be displayed on the processor:
+
+image::processor-cs-version-mismatch-warnings.png["Processor and Controller Service Version Mismatch Warnings"]
+
+and an error message will be displayed in the processor's controller service configuration since the service is no longer valid:
+
+image::processor-cs-version-mismatch-config.png["Processor and Controller Service Version Mismatch Property"]
+
 
 
 [[Configuring_a_Processor]]
@@ -495,8 +523,7 @@ The name of a Processor by default is the same as the Processor type. Next to th
 Processor is disabled, it cannot be started. The disabled state is used to indicate that when a group of Processors is started,
 such as when a DFM starts an entire Process Group, this (disabled) Processor should be excluded.
 
-Below the Name configuration, the Processor's unique identifier is displayed along with the Processor's type. These
-values cannot be modified.
+Below the Name configuration, the Processor's unique identifier is displayed along with the Processor's type and NAR bundle. These values cannot be modified.
 
 Next are two dialogues for configuring `Penalty duration' and `Yield duration'. During the normal course of processing a
 piece of data (a FlowFile), an event may occur that indicates that the data cannot be processed at this time but the
@@ -662,7 +689,7 @@ Some processors also have an Advanced User Interface (UI) built into them. For e
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
-image:create-service-ssl-context.png["Create Service", width=700]
+image:create-service-ssl-context.png["Create Service"]
 
 ==== Comments Tab
 
