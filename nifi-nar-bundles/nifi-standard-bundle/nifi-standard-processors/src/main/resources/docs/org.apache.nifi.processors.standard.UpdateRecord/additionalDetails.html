@@ -328,5 +328,63 @@
 			these simple type coercions for us.
 		</p>
 
+
+
+
+		<h3>Example 5 - Use Expression Language to Modify Value</h3>
+		
+		<p>
+			This example will capitalize the value of all 'name' fields, regardless of
+			where in the Record hierarchy the field is found. This is done by referencing the 'field.value' variable in the Expression Language.
+			We can also access the field.name variable and the field.type variable.
+		</p>
+
+		<table>
+    		<tr>
+    			<th>Property Name</th>
+    			<th>Property Value</th>
+    		</tr>
+			<tr>
+				<td>Replacement Value Strategy</td>
+				<td>Literal Value</td>
+			</tr>
+			<tr>
+				<td>//name</td>
+				<td>${field.value:toUpper()}</td>
+			</tr>
+		</table>
+		
+		<p>
+			This will yield the following output:
+		</p>
+
+<code>
+<pre>
+  [{
+    "id": 17,
+    "name": "JOHN",
+    "child": {
+        "id": "1"
+    },
+    "siblingIds": [4, 8],
+    "siblings": [
+        { "name": "JEREMY", "id": 4 },
+        { "name": "JULIA", "id": 8 }
+    ]
+  },
+  {
+    "id": 98,
+    "name": "JANE",
+    "child": {
+        "id": 2
+    },
+    "gender": "F",
+    "siblingIds": [],
+    "siblings": []
+  }]
+</pre>
+</code>
+
+
 	</body>
 </html>
