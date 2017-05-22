@@ -282,6 +282,13 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     protected abstract Map<NodeIdentifier, NodeHeartbeat> getLatestHeartbeats();
 
     /**
+     * Returns when the heartbeats were purged last.
+     *
+     * @return when the heartbeats were purged last
+     */
+    protected abstract long getPurgeTimestamp();
+
+    /**
      * This method does nothing in the abstract class but is meant for
      * subclasses to override in order to provide functionality when the monitor
      * is started.

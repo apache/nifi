@@ -59,13 +59,6 @@ public interface HeartbeatMonitor {
     void purgeHeartbeats();
 
     /**
-     * Returns when the heartbeats were purged last.
-     *
-     * @return when the heartbeats were purged last
-     */
-    long getPurgeTimestamp();
-
-    /**
      * @return the address that heartbeats should be sent to when this node is elected coordinator.
      */
     String getHeartbeatAddress();
