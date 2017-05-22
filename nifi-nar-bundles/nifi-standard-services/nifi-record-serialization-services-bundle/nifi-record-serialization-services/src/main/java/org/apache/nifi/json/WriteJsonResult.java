@@ -104,6 +104,13 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
+        // If we are not writing an active record set, then we need to ensure that we write the
+        // schema information.
+        if (!isActiveRecordSet()) {
+            generator.flush();
+            schemaAccess.writeHeader(recordSchema, getOutputStream());
+        }
+
         writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject());
         return schemaAccess.getAttributes(recordSchema);
     }

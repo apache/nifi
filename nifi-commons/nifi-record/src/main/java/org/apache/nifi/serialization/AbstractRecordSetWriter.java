@@ -68,7 +68,7 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
         return recordCount;
     }
 
-    protected final boolean isRecordSetActive() {
+    protected final boolean isActiveRecordSet() {
         return activeRecordSet;
     }
 
@@ -84,7 +84,7 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
 
     @Override
     public final WriteResult finishRecordSet() throws IOException {
-        if (!isRecordSetActive()) {
+        if (!isActiveRecordSet()) {
             throw new IllegalStateException("Cannot finish RecordSet because no RecordSet has begun");
         }
 

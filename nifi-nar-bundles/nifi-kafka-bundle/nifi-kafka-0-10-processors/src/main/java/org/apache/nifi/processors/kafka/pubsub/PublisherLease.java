@@ -112,6 +112,7 @@ public class PublisherLease implements Closeable {
             while ((record = recordSet.next()) != null) {
                 recordCount++;
                 baos.reset();
+
                 writer.write(record);
                 writer.flush();
 
