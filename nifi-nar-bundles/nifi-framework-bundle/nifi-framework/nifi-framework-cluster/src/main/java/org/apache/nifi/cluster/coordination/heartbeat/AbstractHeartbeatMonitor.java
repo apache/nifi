@@ -154,19 +154,38 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
         // Disconnect any node that hasn't sent a heartbeat in a long time (8 times the heartbeat interval)
         final long maxMillis = heartbeatIntervalMillis * 8;
-        final long threshold = System.currentTimeMillis() - maxMillis;
-        for (final NodeHeartbeat heartbeat : latestHeartbeats.values()) {
-            if (heartbeat.getTimestamp() < threshold) {
-                final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - heartbeat.getTimestamp());
+        final long currentTimestamp = System.currentTimeMillis();
+        final long threshold = currentTimestamp - maxMillis;
 
-                clusterCoordinator.disconnectionRequestedByNode(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
-                        "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
+        // consider all connected nodes
+        for (final NodeIdentifier nodeIdentifier : clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)) {
+            final NodeHeartbeat heartbeat = latestHeartbeats.get(nodeIdentifier);
 
-                try {
-                    removeHeartbeat(heartbeat.getNodeIdentifier());
-                } catch (final Exception e) {
-                    logger.warn("Failed to remove heartbeat for {} due to {}", heartbeat.getNodeIdentifier(), e.toString());
-                    logger.warn("", e);
+            // consider the most recent heartbeat for this node
+            if (heartbeat == null) {
+                final long purgeTimestamp = getPurgeTimestamp();
+
+                // if there is no heartbeat for this node, see if we purged the heartbeats beyond the allowed heartbeat threshold
+                if (purgeTimestamp < threshold) {
+                    final long secondsSinceLastPurge = TimeUnit.MILLISECONDS.toSeconds(currentTimestamp - purgeTimestamp);
+
+                    clusterCoordinator.disconnectionRequestedByNode(nodeIdentifier, DisconnectionCode.LACK_OF_HEARTBEAT,
+                            "Have not received a heartbeat from node in " + secondsSinceLastPurge + " seconds");
+                }
+            } else {
+                // see if the heartbeat occurred before the allowed heartbeat threshold
+                if (heartbeat.getTimestamp() < threshold) {
+                    final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(currentTimestamp - heartbeat.getTimestamp());
+
+                    clusterCoordinator.disconnectionRequestedByNode(nodeIdentifier, DisconnectionCode.LACK_OF_HEARTBEAT,
+                            "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
+
+                    try {
+                        removeHeartbeat(nodeIdentifier);
+                    } catch (final Exception e) {
+                        logger.warn("Failed to remove heartbeat for {} due to {}", nodeIdentifier, e.toString());
+                        logger.warn("", e);
+                    }
                 }
             }
         }
