@@ -42,16 +42,20 @@ public class ArrayIndexPath extends RecordPathSegment {
 
         return parentResult
             .filter(Filters.fieldTypeFilter(RecordFieldType.ARRAY))
-            .filter(fieldValue -> fieldValue.getValue() != null && ((Object[]) fieldValue.getValue()).length >= Math.abs(index) - 1)
+            .filter(fieldValue -> fieldValue.getValue() != null && ((Object[]) fieldValue.getValue()).length > getArrayIndex(((Object[]) fieldValue.getValue()).length))
             .map(fieldValue -> {
                 final ArrayDataType arrayDataType = (ArrayDataType) fieldValue.getField().getDataType();
                 final DataType elementDataType = arrayDataType.getElementType();
                 final RecordField arrayField = new RecordField(fieldValue.getField().getFieldName(), elementDataType);
                 final Object[] values = (Object[]) fieldValue.getValue();
-                final int arrayIndex = index < 0 ? values.length + index : index;
+                final int arrayIndex = getArrayIndex(values.length);
                 final RecordField elementField = new RecordField(arrayField.getFieldName() + "[" + arrayIndex + "]", elementDataType);
                 final FieldValue result = new ArrayIndexFieldValue(values[arrayIndex], elementField, fieldValue, arrayIndex);
                 return result;
             });
+    }
+
+    private int getArrayIndex(final int arrayLength) {
+        return index < 0 ? arrayLength + index : index;
     }
 }
