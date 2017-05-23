@@ -255,19 +255,12 @@ public class ExtractGrok extends AbstractProcessor {
                 Grok grok = new Grok();
                 try {
                     grok.compile(input);
-                } catch (GrokException e) {
+                } catch (GrokException | java.util.regex.PatternSyntaxException e) {
                     return new ValidationResult.Builder()
                             .subject(subject)
                             .input(input)
                             .valid(false)
-                            .explanation("Not a valid Grok Expression")
-                            .build();
-                } catch (java.util.regex.PatternSyntaxException e) {
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(false)
-                            .explanation("Not a valid Grok Expression")
+                            .explanation("Not a valid Grok Expression - " + e.getMessage())
                             .build();
                 }
 
