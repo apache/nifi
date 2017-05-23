@@ -213,8 +213,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
-        connectionUrl = context.getProperty(DATABASE_URL).getValue();
-
         ComponentLog log = getLogger();
 
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
@@ -251,7 +249,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
 
-        final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
+        connectionUrl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
@@ -261,7 +259,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             dataSource.setTestOnBorrow(true);
         }
 
-        dataSource.setUrl(dburl);
+        dataSource.setUrl(connectionUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
     }
