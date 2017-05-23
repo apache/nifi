@@ -165,11 +165,8 @@
                     }
                 },
                 position: {
-                    at: 'bottom center',
-                    my: 'top center',
-                    adjust: {
-                        y: 5
-                    }
+                    at: 'top center',
+                    my: 'bottom center'
                 }
             }
         },

@@ -210,8 +210,15 @@
                             }
 
                             if (!isBlank(option.description)) {
-                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip($.extend({},
-                                    {
+                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip({
+                                        content: option.description,
+                                        position: {
+                                            at: 'top center',
+                                            my: 'bottom center',
+                                            adjust: {
+                                                y: 5
+                                            }
+                                        },
                                         style: {
                                             classes: 'nifi-tooltip'
                                         },
@@ -225,23 +232,9 @@
                                             effect: function(offset) {
                                                 $(this).slideUp(100);
                                             }
-                                        },
-                                        position: {
-                                            at: 'bottom center',
-                                            my: 'top center',
-                                            adjust: {
-                                                y: 5
-                                            }
-                                        }
-                                    },
-                                    {
-                                        content: option.description,
-                                        position: {
-                                            at: 'top right',
-                                            my: 'bottom left'
                                         }
                                     }
-                                ));
+                                );
                             }
 
                             actualHeight += 16;
