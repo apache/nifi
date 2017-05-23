@@ -133,5 +133,6 @@ public class HiveConnectionPoolTest {
         assertEquals(PASS, basicDataSource.getPassword());
         assertEquals(MAX_CONN, basicDataSource.getMaxActive());
         assertEquals(10000L, basicDataSource.getMaxWait());
+        assertEquals(URL, hiveConnectionPool.getConnectionURL());
     }
 }
