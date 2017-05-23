@@ -47,9 +47,11 @@ public class StandardCommsSession implements CommsSession {
 
     private int protocolVersion;
 
-    public StandardCommsSession(final String hostname, final int port) throws IOException {
-        socketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
+    public StandardCommsSession(final String hostname, final int port, final int timeoutMillis) throws IOException {
+        socketChannel = SocketChannel.open();
+        socketChannel.socket().connect(new InetSocketAddress(hostname, port), timeoutMillis);
         socketChannel.configureBlocking(false);
+
         in = new SocketChannelInputStream(socketChannel);
         bufferedIn = new InterruptableInputStream(new BufferedInputStream(in));
 

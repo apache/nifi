@@ -19,6 +19,8 @@ package org.apache.nifi.distributed.cache.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
@@ -44,8 +46,12 @@ public class SSLCommsSession implements CommsSession {
 
     private int protocolVersion;
 
-    public SSLCommsSession(final SSLContext sslContext, final String hostname, final int port) throws IOException {
-        sslSocketChannel = new SSLSocketChannel(sslContext, hostname, port, null, true);
+    public SSLCommsSession(final SSLContext sslContext, final String hostname, final int port, final int timeoutMillis) throws IOException {
+        final SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.socket().connect(new InetSocketAddress(hostname, port), timeoutMillis);
+        socketChannel.configureBlocking(false);
+
+        sslSocketChannel = new SSLSocketChannel(sslContext, socketChannel,true);
 
         in = new SSLSocketChannelInputStream(sslSocketChannel);
         bufferedIn = new BufferedInputStream(in);
