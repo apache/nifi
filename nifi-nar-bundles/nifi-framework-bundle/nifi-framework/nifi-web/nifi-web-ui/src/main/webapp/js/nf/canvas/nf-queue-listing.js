@@ -462,7 +462,10 @@
             var attributesContainer = $('#flowfile-attributes-container');
 
             // get any action details
-            $.each(flowFile.attributes, function (attributeName, attributeValue) {
+            var sortedAttributeNames = Object.keys(flowFile.attributes).sort();
+            sortedAttributeNames.forEach(function (attributeName) {
+                var attributeValue = flowFile.attributes[attributeName];
+
                 // create the attribute record
                 var attributeRecord = $('<div class="attribute-detail"></div>')
                     .append($('<div class="attribute-name">' + nfCommon.formatValue(attributeName) + '</div>').ellipsis())
