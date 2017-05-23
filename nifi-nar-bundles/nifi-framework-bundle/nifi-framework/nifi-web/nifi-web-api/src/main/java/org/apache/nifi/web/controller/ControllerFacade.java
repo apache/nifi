@@ -918,6 +918,12 @@ public class ControllerFacade implements Authorizable {
         final List<ProvenanceSearchableFieldDTO> searchableFieldNames = new ArrayList<>();
         final List<SearchableField> fields = provenanceRepository.getSearchableFields();
         for (final SearchableField field : fields) {
+            // we exclude the Event Time because it is always searchable but don't want support querying it this way...
+            // we prefer the user queries using startDate and endDate
+            if (SearchableFields.EventTime.equals(field)) {
+                continue;
+            }
+
             final ProvenanceSearchableFieldDTO searchableField = new ProvenanceSearchableFieldDTO();
             searchableField.setId(field.getIdentifier());
             searchableField.setField(field.getSearchableFieldName());
