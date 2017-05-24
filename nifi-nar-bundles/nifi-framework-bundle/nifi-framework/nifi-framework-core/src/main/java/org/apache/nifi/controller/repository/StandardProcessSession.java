@@ -1883,12 +1883,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             record.setTransferRelationship(relationship);
             updateLastQueuedDate(record);
 
-            contentSize += flowFile.getSize() * multiplier;
+            contentSize += flowFile.getSize();
         }
 
         if (autoTerminated) {
             removedCount += multiplier * flowFiles.size();
-            removedBytes += contentSize;
+            removedBytes += multiplier * contentSize;
         } else if (!selfRelationship) {
             flowFilesOut += multiplier * flowFiles.size();
             contentSizeOut += multiplier * contentSize;
