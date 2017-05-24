@@ -112,7 +112,15 @@ public class ContentClaimFieldMap implements Record {
         final Long length = (Long) claimRecord.getFieldValue(ContentClaimSchema.CONTENT_CLAIM_LENGTH);
         final Long resourceOffset = (Long) claimRecord.getFieldValue(ContentClaimSchema.RESOURCE_CLAIM_OFFSET);
 
-        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, lossTolerant, false);
+        // Make sure that we preserve the existing ResourceClaim, if there is already one held by the Resource Claim Manager
+        // because we need to honor its determination of whether or not the claim is writable. If the Resource Claim Manager
+        // does not have a copy of this Resource Claim, then we can go ahead and just create one and assume that it is not
+        // writable (because if it were writable, then the Resource Claim Manager would know about it).
+        ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(container, section, identifier);
+        if (resourceClaim == null) {
+            resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, lossTolerant, false);
+        }
+
         final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, resourceOffset);
         contentClaim.setLength(length);
 
