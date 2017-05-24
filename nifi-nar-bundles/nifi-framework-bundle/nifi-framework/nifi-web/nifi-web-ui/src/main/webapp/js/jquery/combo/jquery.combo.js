@@ -161,8 +161,8 @@
                         var comboOptions = $('<div></div>').addClass('combo-options').css({
                             'position': 'absolute',
                             'left': position.left + 'px',
-                            'top': (position.top + combo.outerHeight() - 1) + 'px',
-                            'width': (combo.outerWidth() - 2) + 'px',
+                            'top': (position.top + Math.round(combo.outerHeight()) - 1) + 'px',
+                            'width': (Math.round(combo.outerWidth()) - 2) + 'px',
                             'overflow-y': 'auto'
                         });
 
@@ -235,6 +235,8 @@
                                         }
                                     }
                                 );
+                            } else {
+                                optionText.css('width', '100%');
                             }
 
                             actualHeight += 16;
