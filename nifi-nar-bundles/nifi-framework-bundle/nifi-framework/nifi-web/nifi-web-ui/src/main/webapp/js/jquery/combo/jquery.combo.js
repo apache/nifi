@@ -225,20 +225,16 @@
                                             effect: function(offset) {
                                                 $(this).slideUp(100);
                                             }
-                                        },
-                                        position: {
-                                            at: 'bottom center',
-                                            my: 'top center',
-                                            adjust: {
-                                                y: 5
-                                            }
                                         }
                                     },
                                     {
                                         content: option.description,
                                         position: {
                                             at: 'top right',
-                                            my: 'bottom left'
+                                            my: 'bottom left',
+                                            adjust: {
+                                                y: 20
+                                            }
                                         }
                                     }
                                 ));
