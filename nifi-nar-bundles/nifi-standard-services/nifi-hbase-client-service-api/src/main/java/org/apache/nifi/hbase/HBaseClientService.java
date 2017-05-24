@@ -95,6 +95,28 @@ public interface HBaseClientService extends ControllerService {
     void put(String tableName, byte[] rowId, Collection<PutColumn> columns) throws IOException;
 
     /**
+     * Atomically checks if a row/family/qualifier value matches the expected value. If it does, then the Put is added to HBase.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to check
+     * @param family the family of the row to check
+     * @param qualifier the qualifier of the row to check
+     * @param value the value of the row to check. If null, the check is for the lack of column (ie: non-existence)
+     * @return True if the Put was executed, false otherwise
+     * @throws IOException thrown when there are communication errors with HBase$
+     */
+    boolean checkAndPut(String tableName, byte[] rowId, byte[] family, byte[] qualifier, byte[] value, PutColumn column) throws IOException;
+
+    /**
+     * Deletes the given row on HBase. All cells are deleted.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to delete
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void delete(String tableName, byte[] rowId) throws IOException;
+
+    /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.
      *
      * @param tableName the name of an HBase table to scan

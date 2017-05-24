@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.hbase.HBaseClientService;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -35,6 +36,13 @@ public class TestProcessor extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor HBASE_CACHE_SERVICE = new PropertyDescriptor.Builder()
+            .name("HBase Cache Service")
+            .description("HBaseCacheService")
+            .identifiesControllerService(DistributedMapCacheClient.class)
+            .required(true)
+            .build();
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }
@@ -43,6 +51,7 @@ public class TestProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(HBASE_CLIENT_SERVICE);
+        propDescs.add(HBASE_CACHE_SERVICE);
         return propDescs;
     }
 }

@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -305,6 +306,26 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                         column.getBuffer());
             }
             table.put(put);
+        }
+    }
+
+    @Override
+    public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            Put put = new Put(rowId);
+            put.addColumn(
+                column.getColumnFamily(),
+                column.getColumnQualifier(),
+                column.getBuffer());
+            return table.checkAndPut(rowId, family, qualifier, value, put);
+        }
+    }
+
+    @Override
+    public void delete(final String tableName, final byte[] rowId) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            Delete delete = new Delete(rowId);
+            table.delete(delete);
         }
     }
 

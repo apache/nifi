@@ -56,6 +56,16 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
+    public boolean checkAndPut(String tableName, byte[] rowId, byte[] family, byte[] qualifier, byte[]value, PutColumn column) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void delete(String tableName, byte[] rowId) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException {
         if (throwException) {
             throw new IOException("exception");
