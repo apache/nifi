@@ -407,12 +407,13 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
-                        future.complete(null);
-
                         boolean shouldEnable = false;
                         synchronized (active) {
                             shouldEnable = active.get() && stateRef.compareAndSet(ControllerServiceState.ENABLING, ControllerServiceState.ENABLED);
                         }
+
+                        future.complete(null);
+
                         if (!shouldEnable) {
                             LOG.debug("Disabling service " + this + " after it has been enabled due to disable action being initiated.");
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
@@ -421,6 +422,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                             stateRef.set(ControllerServiceState.DISABLED);
                         }
                     } catch (Exception e) {
+                        future.completeExceptionally(e);
+
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
                         componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
@@ -438,6 +441,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                     }
                 }
             });
+        } else {
+            future.complete(null);
         }
 
         return future;
