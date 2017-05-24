@@ -205,7 +205,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         // if we have created all of the bins that are allowed, go ahead and remove the oldest one. If we don't do
         // this, then we will simply wait for it to expire because we can't get any more FlowFiles into the
         // bins. So we may as well expire it now.
-        if (added == 0 && (readyBins.size() + binManager.getBinCount()) >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        if (added == 0 && binManager.getBinCount() >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
