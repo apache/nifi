@@ -63,7 +63,7 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    width: 80%;
+    width: calc(100% - 15px);
     font-weight: normal;
 }
 
@@ -89,6 +89,7 @@ div.selected-disabled-option {
     height: 32px;
     font-weight: normal;
     line-height: 32px;
+    width: calc(100% - 15px);
 }
 
 .combo-glass-pane {
