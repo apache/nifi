@@ -19,6 +19,7 @@ package org.apache.nifi.hbase;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -229,7 +230,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         public void handle(byte[] row, ResultCell[] resultCells) {
             numRows += 1;
             for( final ResultCell resultCell : resultCells ){
-                lastResultBytes = resultCell.getValueArray();
+                lastResultBytes = Arrays.copyOfRange(resultCell.getValueArray(), resultCell.getValueOffset(), resultCell.getValueLength() + resultCell.getValueOffset());
             }
         }
         public int numRows() {
