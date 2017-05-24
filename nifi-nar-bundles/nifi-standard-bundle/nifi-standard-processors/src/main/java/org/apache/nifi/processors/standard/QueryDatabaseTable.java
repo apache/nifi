@@ -68,6 +68,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
+import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_PRECISION;
+import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_SCALE;
 import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
 import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
 
@@ -160,6 +162,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_FRAGMENTS);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         pds.add(USE_AVRO_LOGICAL_TYPES);
+        pds.add(DEFAULT_PRECISION);
+        pds.add(DEFAULT_SCALE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -212,6 +216,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 .maxRows(maxRowsPerFlowFile)
                 .convertNames(context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean())
                 .useLogicalTypes(context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean())
+                .defaultPrecision(context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger())
+                .defaultScale(context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger())
                 .build();
 
         final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());

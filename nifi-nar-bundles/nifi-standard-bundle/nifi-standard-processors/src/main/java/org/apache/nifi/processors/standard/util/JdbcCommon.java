@@ -73,11 +73,18 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * JDBC / SQL common functions.
  */
 public class JdbcCommon {
+
+    private static final int MAX_DIGITS_IN_BIGINT = 19;
+    private static final int MAX_DIGITS_IN_INT = 9;
+    // Derived from MySQL default precision.
+    private static final int DEFAULT_PRECISION_VALUE = 10;
+    private static final int DEFAULT_SCALE_VALUE = 0;
 
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
 
@@ -107,9 +114,36 @@ public class JdbcCommon {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor DEFAULT_PRECISION = new PropertyDescriptor.Builder()
+            .name("dbf-default-precision")
+            .displayName("Default Decimal Precision")
+            .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
+                    + " a specific 'precision' denoting number of available digits is required."
+                    + " Generally, precision is defined by column data type definition or database engines default."
+                    + " However undefined precision (0) can be returned from some database engines."
+                    + " 'Default Decimal Precision' is used when writing those undefined precision numbers.")
+            .defaultValue(String.valueOf(DEFAULT_PRECISION_VALUE))
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
 
-    private static final int MAX_DIGITS_IN_BIGINT = 19;
-    private static final int MAX_DIGITS_IN_INT = 9;
+    public static final PropertyDescriptor DEFAULT_SCALE = new PropertyDescriptor.Builder()
+            .name("dbf-default-scale")
+            .displayName("Default Decimal Scale")
+            .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
+                    + " a specific 'scale' denoting number of available decimal digits is required."
+                    + " Generally, scale is defined by column data type definition or database engines default."
+                    + " However when undefined precision (0) is returned, scale can also be uncertain with some database engines."
+                    + " 'Default Decimal Scale' is used when writing those undefined numbers."
+                    + " If a value has more decimals than specified scale, then the value will be rounded-up,"
+                    + " e.g. 1.53 becomes 2 with scale 0, and 1.5 with scale 1.")
+            .defaultValue(String.valueOf(DEFAULT_SCALE_VALUE))
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
+
 
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
@@ -140,12 +174,16 @@ public class JdbcCommon {
         private final int maxRows;
         private final boolean convertNames;
         private final boolean useLogicalTypes;
+        private final int defaultPrecision;
+        private final int defaultScale;
 
-        private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes) {
+        private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes, int defaultPrecision, int defaultScale) {
             this.recordName = recordName;
             this.maxRows = maxRows;
             this.convertNames = convertNames;
             this.useLogicalTypes = useLogicalTypes;
+            this.defaultPrecision = defaultPrecision;
+            this.defaultScale = defaultScale;
         }
 
         public static Builder builder() {
@@ -157,6 +195,8 @@ public class JdbcCommon {
             private int maxRows = 0;
             private boolean convertNames = false;
             private boolean useLogicalTypes = false;
+            private int defaultPrecision = DEFAULT_PRECISION_VALUE;
+            private int defaultScale = DEFAULT_SCALE_VALUE;
 
             /**
              * Specify a priori record name to use if it cannot be determined from the result set.
@@ -181,8 +221,18 @@ public class JdbcCommon {
                 return this;
             }
 
+            public Builder defaultPrecision(int defaultPrecision) {
+                this.defaultPrecision = defaultPrecision;
+                return this;
+            }
+
+            public Builder defaultScale(int defaultScale) {
+                this.defaultScale = defaultScale;
+                return this;
+            }
+
             public AvroConversionOptions build() {
-                return new AvroConversionOptions(recordName, maxRows, convertNames, useLogicalTypes);
+                return new AvroConversionOptions(recordName, maxRows, convertNames, useLogicalTypes, defaultPrecision, defaultScale);
             }
         }
     }
@@ -455,14 +505,28 @@ public class JdbcCommon {
                 // Since Avro 1.8, LogicalType is supported.
                 case DECIMAL:
                 case NUMERIC:
-
-                    final LogicalTypes.Decimal decimal = options.useLogicalTypes
-                            ? LogicalTypes.decimal(meta.getPrecision(i), meta.getScale(i)) : null;
-                    addNullableField(builder, columnName,
-                            u -> options.useLogicalTypes
-                                    ? u.type(decimal.addToSchema(SchemaBuilder.builder().bytesType()))
-                                    : u.stringType());
-
+                    if (options.useLogicalTypes) {
+                        final int decimalPrecision;
+                        final int decimalScale;
+                        if (meta.getPrecision(i) > 0) {
+                            // When database returns a certain precision, we can rely on that.
+                            decimalPrecision = meta.getPrecision(i);
+                            decimalScale = meta.getScale(i);
+                        } else {
+                            // If not, use default precision.
+                            decimalPrecision = options.defaultPrecision;
+                            // Oracle returns precision=0, scale=-127 for variable scale value such as ROWNUM or function result.
+                            // Specifying 'oracle.jdbc.J2EE13Compliant' SystemProperty makes it to return scale=0 instead.
+                            // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
+                            // Default scale is used to preserve decimals in such case.
+                            decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
+                        }
+                        final LogicalTypes.Decimal decimal = LogicalTypes.decimal(decimalPrecision, decimalScale);
+                        addNullableField(builder, columnName,
+                                u -> u.type(decimal.addToSchema(SchemaBuilder.builder().bytesType())));
+                    } else {
+                        addNullableField(builder, columnName, u -> u.stringType());
+                    }
                     break;
 
                 case DATE:

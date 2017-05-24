@@ -335,8 +335,12 @@ public class AvroTypeUtil {
                     final LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
                     final BigDecimal decimal;
                     if (rawValue instanceof BigDecimal) {
-                        decimal = (BigDecimal) rawValue;
+                        final BigDecimal rawDecimal = (BigDecimal) rawValue;
+                        final int desiredScale = decimalType.getScale();
+                        // If the desired scale is different than this value's coerce scale.
+                        decimal = rawDecimal.scale() == desiredScale ? rawDecimal : rawDecimal.setScale(desiredScale, BigDecimal.ROUND_HALF_UP);
                     } else if (rawValue instanceof Double) {
+                        // Scale is adjusted based on precision. If double was 123.456 and precision is 5, then decimal would be 123.46.
                         decimal = new BigDecimal((Double) rawValue, new MathContext(decimalType.getPrecision()));
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a logical decimal");

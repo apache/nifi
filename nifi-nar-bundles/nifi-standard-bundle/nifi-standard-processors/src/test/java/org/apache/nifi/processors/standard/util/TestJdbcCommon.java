@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -55,6 +57,8 @@ import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 import org.apache.avro.Conversions;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
@@ -362,15 +366,29 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
-        final BigDecimal bigDecimal = new BigDecimal(38D);
+        final BigDecimal bigDecimal = new BigDecimal(12345D);
+        // If db returns a precision, it should be used.
+        testConvertToAvroStreamForBigDecimal(bigDecimal, 38, 10, 38, 0);
+    }
+
+    @Test
+    public void testConvertToAvroStreamForBigDecimalWithUndefinedPrecision() throws SQLException, IOException {
+        final int expectedScale = 3;
+        final int dbPrecision = 0;
+        final BigDecimal bigDecimal = new BigDecimal(new BigInteger("12345"), expectedScale, new MathContext(dbPrecision));
+        // If db doesn't return a precision, default precision should be used.
+        testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 24, 24, expectedScale);
+    }
+
+    private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, int dbPrecision, int defaultPrecision, int expectedPrecision, int expectedScale) throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
         when(metadata.getColumnName(1)).thenReturn("The.Chairman");
         when(metadata.getTableName(1)).thenReturn("1the::table");
-        when(metadata.getPrecision(1)).thenReturn(bigDecimal.precision());
-        when(metadata.getScale(1)).thenReturn(bigDecimal.scale());
+        when(metadata.getPrecision(1)).thenReturn(dbPrecision);
+        when(metadata.getScale(1)).thenReturn(expectedScale);
 
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
@@ -388,7 +406,7 @@ public class TestJdbcCommon {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
-                .builder().convertNames(true).useLogicalTypes(true).build();
+                .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision).build();
         JdbcCommon.convertToAvroStream(rs, baos, options, null);
 
         final byte[] serializedBytes = baos.toByteArray();
@@ -400,6 +418,16 @@ public class TestJdbcCommon {
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(null, null, genericData);
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            final Schema generatedUnion = dataFileReader.getSchema().getField("The_Chairman").schema();
+            // null and decimal.
+            assertEquals(2, generatedUnion.getTypes().size());
+            final LogicalType logicalType = generatedUnion.getTypes().get(1).getLogicalType();
+            assertNotNull(logicalType);
+            assertEquals("decimal", logicalType.getName());
+            LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
+            assertEquals(expectedPrecision, decimalType.getPrecision());
+            assertEquals(expectedScale, decimalType.getScale());
+
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
