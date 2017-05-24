@@ -911,6 +911,24 @@ public class TestMergeContent {
         bundle.assertAttributeExists(MergeContent.MERGE_BIN_AGE_ATTRIBUTE);
     }
 
+    @Test
+    public void testLeavesSmallBinUnmerged() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "5");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "5");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+
+        for (int i = 0; i < 17; i++) {
+            runner.enqueue(String.valueOf(i) + "\n");
+        }
+
+        runner.run(5);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 3);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 15);
+        assertEquals(2, runner.getQueueSize().getObjectCount());
+    }
+
     private void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
