@@ -55,6 +55,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
 
+import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_PRECISION;
+import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_SCALE;
 import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
 import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
 
@@ -125,6 +127,8 @@ public class ExecuteSQL extends AbstractProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         pds.add(USE_AVRO_LOGICAL_TYPES);
+        pds.add(DEFAULT_PRECISION);
+        pds.add(DEFAULT_SCALE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -168,6 +172,8 @@ public class ExecuteSQL extends AbstractProcessor {
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
+        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
         final StopWatch stopWatch = new StopWatch(true);
         final String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
@@ -200,7 +206,10 @@ public class ExecuteSQL extends AbstractProcessor {
                         final ResultSet resultSet = st.executeQuery(selectQuery);
                         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
                                 .convertNames(convertNamesForAvro)
-                                .useLogicalTypes(useAvroLogicalTypes).build();
+                                .useLogicalTypes(useAvroLogicalTypes)
+                                .defaultPrecision(defaultPrecision)
+                                .defaultScale(defaultScale)
+                                .build();
                         nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, null));
                     } catch (final SQLException e) {
                         throw new ProcessException(e);
