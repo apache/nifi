@@ -31,7 +31,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.Address;
-import javax.mail.Flags;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
@@ -369,12 +368,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         this.getLogger().info("Successfully received {} from {} in {} millis", new Object[]{flowFile, fromAddressesString, executionDuration});
         processSession.transfer(flowFile, REL_SUCCESS);
 
-        try {
-            emailMessage.setFlag(Flags.Flag.DELETED, this.shouldSetDeleteFlag);
-        } catch (MessagingException e) {
-            this.logger.warn("Failed to set DELETE Flag on the message", e);
-            this.getLogger().warn("Failed to set DELETE Flag on the message");
-        }
     }
 
     /**
