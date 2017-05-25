@@ -38,5 +38,7 @@ public interface MapCache {
 
     MapPutResult replace(MapCacheRecord record) throws IOException;
 
+    MapPutResult replace(ByteBuffer key, ByteBuffer previousValue, ByteBuffer newValue) throws IOException;
+
     void shutdown() throws IOException;
 }

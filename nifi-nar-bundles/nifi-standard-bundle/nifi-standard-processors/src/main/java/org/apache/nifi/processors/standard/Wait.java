@@ -58,6 +58,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
+import org.apache.nifi.processors.standard.WaitNotifyProtocol.SignalHolder;
 
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
@@ -304,7 +305,7 @@ public class Wait extends AbstractProcessor {
 
         final String attributeCopyMode = context.getProperty(ATTRIBUTE_COPY_MODE).getValue();
         final boolean replaceOriginalAttributes = ATTRIBUTE_COPY_REPLACE.getValue().equals(attributeCopyMode);
-        final AtomicReference<Signal> signalRef = new AtomicReference<>();
+        final AtomicReference<SignalHolder> signalRef = new AtomicReference<>();
 
         final Consumer<FlowFile> transferToFailure = flowFile -> {
             flowFile = session.penalize(flowFile);
@@ -323,8 +324,10 @@ public class Wait extends AbstractProcessor {
                 }
             }
 
+            final Signal signal = signalRef.get() == null ? null : signalRef.get().getSignal();
+
             final List<FlowFile> flowFilesWithSignalAttributes = routedFlowFiles.getValue().stream()
-                    .map(f -> copySignalAttributes(session, f, signalRef.get(), replaceOriginalAttributes)).collect(Collectors.toList());
+                    .map(f -> copySignalAttributes(session, f, signal, replaceOriginalAttributes)).collect(Collectors.toList());
             session.transfer(flowFilesWithSignalAttributes, relationship);
         };
 
@@ -344,12 +347,12 @@ public class Wait extends AbstractProcessor {
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
         final String signalId = targetSignalId.get();
-        final Signal signal;
+        final SignalHolder signalHolder;
 
         // get notifying signal
         try {
-            signal = protocol.getSignal(signalId);
-            signalRef.set(signal);
+            signalHolder = protocol.getSignal(signalId);
+            signalRef.set(signalHolder);
         } catch (final IOException e) {
             throw new ProcessException(String.format("Failed to get signal for %s due to %s", signalId, e), e);
         }
@@ -388,7 +391,7 @@ public class Wait extends AbstractProcessor {
             }
 
             // If there's no signal yet, then we don't have to evaluate target counts. Return immediately.
-            if (signal == null) {
+            if (signalHolder == null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("No release signal found for {} on FlowFile {} yet", new Object[] {signalId, flowFile});
                 }
@@ -421,7 +424,8 @@ public class Wait extends AbstractProcessor {
 
         boolean waitCompleted = false;
         boolean waitProgressed = false;
-        if (signal != null && !candidates.isEmpty()) {
+        if (signalHolder != null && !candidates.isEmpty()) {
+            final Signal signal = signalHolder.getSignal();
 
             if (releasableFlowFileCount > 1) {
                 signal.releaseCandidatese(targetCounterName, targetCount, releasableFlowFileCount, candidates,
@@ -460,7 +464,7 @@ public class Wait extends AbstractProcessor {
             if (waitCompleted) {
                 protocol.complete(signalId);
             } else if (waitProgressed) {
-                protocol.replace(signal);
+                protocol.replace(signalHolder);
             }
 
         } catch (final IOException e) {

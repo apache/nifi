@@ -21,7 +21,7 @@ import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
-import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
+import org.apache.nifi.processors.standard.WaitNotifyProtocol.SignalHolder;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -74,10 +74,10 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final SignalHolder signal = new WaitNotifyProtocol(service).getSignal("1");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("value", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(1));
+        assertTrue(signal.getSignal().isTotalCountReached(1));
     }
 
     @Test
@@ -109,12 +109,12 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
         runner.clearTransferState();
 
-        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final SignalHolder signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(3));
-        assertEquals(2, signal.getCount("success"));
-        assertEquals(1, signal.getCount("failure"));
+        assertTrue(signal.getSignal().isTotalCountReached(3));
+        assertEquals(2, signal.getSignal().getCount("success"));
+        assertEquals(1, signal.getSignal().getCount("failure"));
     }
 
     @Test
@@ -148,12 +148,12 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 2);
         runner.clearTransferState();
 
-        Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        SignalHolder signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("Same attribute key will be overwritten by the latest signal", "data2", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(2));
-        assertEquals(2, signal.getCount("success"));
-        assertEquals(0, signal.getCount("failure"));
+        assertTrue(signal.getSignal().isTotalCountReached(2));
+        assertEquals(2, signal.getSignal().getCount("success"));
+        assertEquals(0, signal.getSignal().getCount("failure"));
 
         // Run it again, and it should process remaining one flow file.
         runner.run();
@@ -161,11 +161,11 @@ public class TestNotify {
         runner.clearTransferState();
 
         signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        cachedAttributes = signal.getAttributes();
+        cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(3));
-        assertEquals(2, signal.getCount("success"));
-        assertEquals(1, signal.getCount("failure"));
+        assertTrue(signal.getSignal().isTotalCountReached(3));
+        assertEquals(2, signal.getSignal().getCount("success"));
+        assertEquals(1, signal.getSignal().getCount("failure"));
 
     }
 
@@ -203,12 +203,12 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
         runner.clearTransferState();
 
-        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final SignalHolder signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(3584));
-        assertEquals(3072, signal.getCount("success"));
-        assertEquals(512, signal.getCount("failure"));
+        assertTrue(signal.getSignal().isTotalCountReached(3584));
+        assertEquals(3072, signal.getSignal().getCount("success"));
+        assertEquals(512, signal.getSignal().getCount("failure"));
     }
 
     @Test
@@ -247,12 +247,12 @@ public class TestNotify {
         runner.assertTransferCount(Notify.REL_FAILURE, 1);
         runner.clearTransferState();
 
-        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final SignalHolder signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
-        assertTrue(signal.isTotalCountReached(1536));
-        assertEquals(1024, signal.getCount("success"));
-        assertEquals(512, signal.getCount("failure"));
+        assertTrue(signal.getSignal().isTotalCountReached(1536));
+        assertEquals(1024, signal.getSignal().getCount("success"));
+        assertEquals(512, signal.getSignal().getCount("failure"));
 
     }
 
@@ -272,11 +272,11 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final SignalHolder signal = new WaitNotifyProtocol(service).getSignal("1");
+        Map<String, String> cachedAttributes = signal.getSignal().getAttributes();
         assertEquals("value", cachedAttributes.get("key1"));
         assertNull(cachedAttributes.get("other.key1"));
-        assertTrue(signal.isTotalCountReached(1));
+        assertTrue(signal.getSignal().isTotalCountReached(1));
     }
 
     @Test
@@ -413,6 +413,21 @@ public class TestNotify {
             }
 
             values.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+
+            return true;
+        }
+
+        @Override
+        public <K, V> boolean replace(K key, V previousValue, V newValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+            verifyNotFail();
+
+            final CacheEntry existing = values.get(key);
+
+            if (existing != null && !existing.getValue().equals(previousValue)) {
+                return false;
+            }
+
+            values.put(key, new StandardCacheEntry<>(key, newValue, 0));
 
             return true;
         }

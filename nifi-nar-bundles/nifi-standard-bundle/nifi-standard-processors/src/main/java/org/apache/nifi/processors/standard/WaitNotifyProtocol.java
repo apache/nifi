@@ -19,11 +19,11 @@ package org.apache.nifi.processors.standard;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient.CacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +49,14 @@ public class WaitNotifyProtocol {
     private static final int REPLACE_RETRY_WAIT_MILLIS = 10;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final Serializer<String> stringSerializer = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
-    private final Deserializer<String> stringDeserializer = input -> new String(input, StandardCharsets.UTF_8);
+
+    private static final Serializer<String> stringSerializer = (value, output) -> {
+        if (value != null ) {
+            output.write(value.getBytes(StandardCharsets.UTF_8));
+        }
+    };
+
+    private final Deserializer<String> stringDeserializer = input -> input == null ? null : new String(input, StandardCharsets.UTF_8);
 
     public static class Signal {
 
@@ -107,7 +113,7 @@ public class WaitNotifyProtocol {
          *
          * <p>This method updates state of this instance, but does not update cache storage.
          * Caller of this method is responsible for updating cache storage after processing released and waiting candidates
-         * by calling {@link #replace(Signal)}. Caller should rollback what it processed with these candidates if complete call failed.</p>
+         * by calling {@link #replace(SignalHolder)}. Caller should rollback what it processed with these candidates if complete call failed.</p>
          *
          * @param _counterName signal counter name to consume from.
          * @param requiredCountForPass number of required signals to acquire a pass.
@@ -144,6 +150,28 @@ public class WaitNotifyProtocol {
 
     }
 
+    /**
+     * Class to pass around the signal with the JSON that was deserialized to create it.
+     */
+    public static class SignalHolder {
+
+        private final Signal signal;
+        private final String signalJson;
+
+        public SignalHolder(final Signal signal, final String signalJson) {
+            this.signal = signal;
+            this.signalJson = signalJson;
+        }
+
+        public Signal getSignal() {
+            return signal;
+        }
+
+        public String getSignalJson() {
+            return signalJson;
+        }
+    }
+
     private final AtomicDistributedMapCacheClient cache;
 
     public WaitNotifyProtocol(final AtomicDistributedMapCacheClient cache) {
@@ -164,9 +192,14 @@ public class WaitNotifyProtocol {
 
         for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
 
-            final Signal existingSignal = getSignal(signalId);
-            final Signal signal = existingSignal != null ? existingSignal : new Signal();
-            signal.identifier = signalId;
+            SignalHolder existingSignalHolder = getSignal(signalId);
+            if (existingSignalHolder == null) {
+                final Signal signal = new Signal();
+                signal.identifier = signalId;
+                existingSignalHolder = new SignalHolder(signal, null);
+            }
+
+            final Signal signal = existingSignalHolder.getSignal();
 
             if (attributes != null) {
                 signal.attributes.putAll(attributes);
@@ -178,7 +211,7 @@ public class WaitNotifyProtocol {
                 signal.counts.put(counterName, count);
             });
 
-            if (replace(signal)) {
+            if (replace(existingSignalHolder)) {
                 return signal;
             }
 
@@ -225,22 +258,20 @@ public class WaitNotifyProtocol {
      * @throws IOException thrown when it failed interacting with the cache engine
      * @throws DeserializationException thrown if the cache found is not in expected serialized format
      */
-    public Signal getSignal(final String signalId) throws IOException, DeserializationException {
+    public SignalHolder getSignal(final String signalId) throws IOException, DeserializationException {
 
-        final CacheEntry<String, String> entry = cache.fetch(signalId, stringSerializer, stringDeserializer);
+        final String value = cache.get(signalId, stringSerializer, stringDeserializer);
 
-        if (entry == null) {
+        if (StringUtils.isBlank(value)) {
             // No signal found.
             return null;
         }
 
-        final String value = entry.getValue();
-
         try {
             final Signal signal = objectMapper.readValue(value, Signal.class);
             signal.identifier = signalId;
-            signal.revision = entry.getRevision();
-            return signal;
+            //signal.revision = entry.getRevision();
+            return new SignalHolder(signal, value);
         } catch (final JsonParseException jsonE) {
             // Try to read it as FlowFileAttributes for backward compatibility.
             try {
@@ -249,7 +280,7 @@ public class WaitNotifyProtocol {
                 signal.identifier = signalId;
                 signal.setAttributes(attributes);
                 signal.getCounts().put(DEFAULT_COUNT_NAME, 1L);
-                return signal;
+                return new SignalHolder(signal, value);
             } catch (Exception attrE) {
                 final String msg = String.format("Cached value for %s was not a serialized Signal nor FlowFileAttributes. Error messages: \"%s\", \"%s\"",
                         signalId, jsonE.getMessage(), attrE.getMessage());
@@ -267,10 +298,11 @@ public class WaitNotifyProtocol {
         cache.remove(signalId, stringSerializer);
     }
 
-    public boolean replace(final Signal signal) throws IOException {
-
-        final String signalJson = objectMapper.writeValueAsString(signal);
-        return cache.replace(signal.identifier, signalJson, stringSerializer, stringSerializer, signal.revision);
-
+    public boolean replace(final SignalHolder signalHolder) throws IOException {
+        final Signal signal = signalHolder.getSignal();
+        final String previousJson = signalHolder.getSignalJson();
+        final String newJson = objectMapper.writeValueAsString(signal);
+        return cache.replace(signal.identifier, previousJson, newJson, stringSerializer, stringSerializer);
     }
+
 }

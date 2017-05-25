@@ -18,8 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.activemq.util.ByteArrayOutputStream;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient.CacheEntry;
-import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
+import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
@@ -46,20 +45,19 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class TestWaitNotifyProtocol {
 
-    private final Map<String, CacheEntry<String, String>> cacheEntries = new HashMap<>();
+    private final Map<String, String> cacheEntries = new HashMap<>();
 
     private AtomicDistributedMapCacheClient cache;
     private final Answer successfulReplace = invocation -> {
+        // 0 is key, 1 is prevValue, 2 is new value
         final String key = invocation.getArgumentAt(0, String.class);
-        final String value = invocation.getArgumentAt(1, String.class);
-        final Long revision = invocation.getArgumentAt(4, Long.class);
-        cacheEntries.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+        final String value = invocation.getArgumentAt(2, String.class);
+        cacheEntries.put(key, value);
         return true;
     };
 
@@ -70,9 +68,9 @@ public class TestWaitNotifyProtocol {
         // Default mock implementations.
         cache = mock(AtomicDistributedMapCacheClient.class);
         doAnswer(invocation -> {
-            final CacheEntry<String, String> entry = cacheEntries.get(invocation.getArguments()[0]);
-            return entry;
-        }).when(cache).fetch(any(), any(), any());
+            final String value = cacheEntries.get(invocation.getArguments()[0]);
+            return value;
+        }).when(cache).get(any(), any(), any());
     }
 
     @Test
@@ -80,7 +78,7 @@ public class TestWaitNotifyProtocol {
 
         // replace always return false.
         doAnswer(invocation -> false)
-                .when(cache).replace(any(), any(), any(), any(), anyLong());
+                .when(cache).replace(any(), any(), any(), any(Serializer.class), any(Serializer.class));
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -95,7 +93,7 @@ public class TestWaitNotifyProtocol {
     @Test
     public void testNotifyFirst() throws Exception {
 
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(Serializer.class), any(Serializer.class));
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -106,16 +104,15 @@ public class TestWaitNotifyProtocol {
         assertEquals(Long.valueOf(1), signal.getCounts().get("a"));
         assertTrue(cacheEntries.containsKey("signal-id"));
 
-        final CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
+        final String value = cacheEntries.get("signal-id");
 
-        assertEquals(0, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}", value);
     }
 
     @Test
     public void testNotifyCounters() throws Exception {
 
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -124,43 +121,37 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, null);
         protocol.notify(signalId, "a", 1, null);
 
-        CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(1, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        String value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}", value);
 
         protocol.notify(signalId, "a", 10, null);
 
-        cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(2, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}", value);
 
         protocol.notify(signalId, "b", 2, null);
         protocol.notify(signalId, "c", 3, null);
 
-        cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(4, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}", value);
 
         final Map<String, Integer> deltas = new HashMap<>();
         deltas.put("a", 10);
         deltas.put("b", 25);
         protocol.notify("signal-id", deltas, null);
 
-        cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(5, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}", value);
 
         // Zero clear 'b'.
         protocol.notify("signal-id", "b", 0, null);
-        cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(6, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
-
+        value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}", value);
     }
 
     @Test
     public void testNotifyAttributes() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -172,9 +163,8 @@ public class TestWaitNotifyProtocol {
 
         protocol.notify(signalId, "a", 1, attributeA1);
 
-        CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(0, cacheEntry.getRevision());
-        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}", cacheEntry.getValue());
+        String value = cacheEntries.get("signal-id");
+        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}", value);
 
         final Map<String, String> attributeA2 = new HashMap<>();
         attributeA2.put("p2", "a2"); // Update p2
@@ -183,46 +173,47 @@ public class TestWaitNotifyProtocol {
         // Notify again
         protocol.notify(signalId, "a", 1, attributeA2);
 
-        cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(1, cacheEntry.getRevision());
+        value = cacheEntries.get("signal-id");
         assertEquals("Updated attributes should be merged correctly",
-                "{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}", cacheEntry.getValue());
+                "{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}", value);
 
     }
 
     @Test
     public void testSignalCount() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
         final String signalId = "signal-id";
 
-        Signal signal = protocol.getSignal(signalId);
-        assertNull("Should be null since there's no signal yet", signal);
+        WaitNotifyProtocol.SignalHolder signalHolder = protocol.getSignal(signalId);
+        assertNull("Should be null since there's no signal yet", signalHolder);
 
         // First notification.
         protocol.notify(signalId, "success", 1, null);
 
-        signal = protocol.getSignal(signalId);
-        assertNotNull(signal);
-        assertEquals(1, signal.getCount("success"));
-        assertTrue(signal.isCountReached("success", 1));
-        assertFalse(signal.isCountReached("success", 2));
-        assertTrue(signal.isTotalCountReached(1));
-        assertFalse(signal.isTotalCountReached(2));
+        signalHolder = protocol.getSignal(signalId);
+        assertNotNull(signalHolder);
+        assertNotNull(signalHolder.getSignal());
+        assertEquals(1, signalHolder.getSignal().getCount("success"));
+        assertTrue(signalHolder.getSignal().isCountReached("success", 1));
+        assertFalse(signalHolder.getSignal().isCountReached("success", 2));
+        assertTrue(signalHolder.getSignal().isTotalCountReached(1));
+        assertFalse(signalHolder.getSignal().isTotalCountReached(2));
 
         // Notify again with different counter name.
         protocol.notify(signalId, "failure", 1, null);
 
-        signal = protocol.getSignal(signalId);
-        assertNotNull(signal);
-        assertEquals(1, signal.getCount("success"));
-        assertEquals(1, signal.getCount("failure"));
-        assertTrue(signal.isCountReached("failure", 1));
-        assertFalse(signal.isCountReached("failure", 2));
-        assertTrue(signal.isTotalCountReached(1));
-        assertTrue(signal.isTotalCountReached(2));
+        signalHolder = protocol.getSignal(signalId);
+        assertNotNull(signalHolder);
+        assertNotNull(signalHolder.getSignal());
+        assertEquals(1, signalHolder.getSignal().getCount("success"));
+        assertEquals(1, signalHolder.getSignal().getCount("failure"));
+        assertTrue(signalHolder.getSignal().isCountReached("failure", 1));
+        assertFalse(signalHolder.getSignal().isCountReached("failure", 2));
+        assertTrue(signalHolder.getSignal().isTotalCountReached(1));
+        assertTrue(signalHolder.getSignal().isTotalCountReached(2));
 
     }
 
@@ -233,7 +224,7 @@ public class TestWaitNotifyProtocol {
      */
     @Test
     public void testNiFiVersionUpgrade() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), any());
 
         // Simulate old cache entry.
         final FlowFileAttributesSerializer attributesSerializer = new FlowFileAttributesSerializer();
@@ -245,17 +236,17 @@ public class TestWaitNotifyProtocol {
         attributesSerializer.serialize(cachedAttributes, bos);
 
         final String signalId = "old-entry";
-        cacheEntries.put(signalId, new StandardCacheEntry<>(signalId, new String(bos.toByteArray(), StandardCharsets.UTF_8), 0));
+        cacheEntries.put(signalId, new String(bos.toByteArray(), StandardCharsets.UTF_8));
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
-        final Signal signal = protocol.getSignal(signalId);
+        final Signal signal = protocol.getSignal(signalId).getSignal();
 
         assertEquals(1, signal.getCount(DEFAULT_COUNT_NAME));
         assertEquals("value1", signal.getAttributes().get("key1"));
         assertEquals("value2", signal.getAttributes().get("key2"));
         assertEquals("value3", signal.getAttributes().get("key3"));
 
-        cacheEntries.put(signalId, new StandardCacheEntry<>(signalId, "UNSUPPORTED_FORMAT", 0));
+        cacheEntries.put(signalId, "UNSUPPORTED_FORMAT");
         try {
             protocol.getSignal(signalId);
             fail("Should fail since cached value was not in expected format.");

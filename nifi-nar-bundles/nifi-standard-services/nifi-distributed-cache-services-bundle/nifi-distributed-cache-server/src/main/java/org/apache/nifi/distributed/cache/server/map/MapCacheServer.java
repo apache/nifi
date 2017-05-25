@@ -56,7 +56,7 @@ public class MapCacheServer extends AbstractCacheServer {
      * for details of each version enhancements.
      */
     protected StandardVersionNegotiator getVersionNegotiator() {
-        return new StandardVersionNegotiator(2, 1);
+        return new StandardVersionNegotiator(3, 2, 1);
     }
 
     @Override
@@ -155,6 +155,14 @@ public class MapCacheServer extends AbstractCacheServer {
                 final long revision = dis.readLong();
                 final byte[] value = readValue(dis);
                 final MapPutResult result = cache.replace(new MapCacheRecord(ByteBuffer.wrap(key), ByteBuffer.wrap(value), revision));
+                dos.writeBoolean(result.isSuccessful());
+                break;
+            }
+            case "replaceIfEqual": {
+                final byte[] key = readValue(dis);
+                final byte[] prevValue = readValue(dis);
+                final byte[] newValue = readValue(dis);
+                final MapPutResult result = cache.replace(ByteBuffer.wrap(key), ByteBuffer.wrap(prevValue), ByteBuffer.wrap(newValue));
                 dos.writeBoolean(result.isSuccessful());
                 break;
             }

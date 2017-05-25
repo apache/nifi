@@ -35,6 +35,7 @@ import java.io.IOException;
         + "multiple nodes to coordinate state with a single remote entity.")
 public interface AtomicDistributedMapCacheClient extends DistributedMapCacheClient {
 
+    @Deprecated
     interface CacheEntry<K, V> {
 
         long getRevision();
@@ -55,6 +56,7 @@ public interface AtomicDistributedMapCacheClient extends DistributedMapCacheClie
      * @return A CacheEntry instance if one exists, otherwise <cod>null</cod>.
      * @throws IOException if unable to communicate with the remote instance
      */
+    @Deprecated
     <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
 
     /**
@@ -71,6 +73,23 @@ public interface AtomicDistributedMapCacheClient extends DistributedMapCacheClie
      * @return true only if the key is replaced.
      * @throws IOException if unable to communicate with the remote instance
      */
+    @Deprecated
     <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException;
+
+
+    /**
+     * Replaces the value of a key, only if the current value is equal the given previous value.
+     *
+     * @param key the key to replace
+     * @param previousValue the value to compare against the current value of the key, passing a null previousValue indicates no value previously existed
+     * @param newValue the new value for the key
+     * @param keySerializer key serializer
+     * @param valueSerializer value serializer
+     * @param <K> the key type
+     * @param <V> the value type
+     * @return true only if the key is replaced, false otherwise
+     * @throws IOException if unable to communicate with the remote cache
+     */
+    <K, V> boolean replace(K key, V previousValue, V newValue, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
 
 }

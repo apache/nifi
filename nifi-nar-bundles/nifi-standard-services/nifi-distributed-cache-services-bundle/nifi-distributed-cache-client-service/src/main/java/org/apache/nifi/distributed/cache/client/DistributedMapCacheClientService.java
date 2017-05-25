@@ -288,6 +288,26 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         });
     }
 
+    @Override
+    public <K, V> boolean replace(final K key, final V previousValue, final V newValue, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        return withCommsSession(session -> {
+            validateProtocolVersion(session, 3);
+
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("replaceIfEqual");
+
+            serialize(key, keySerializer, dos);
+            serialize(previousValue, valueSerializer, dos);
+            serialize(newValue, valueSerializer, dos);
+
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            return dis.readBoolean();
+        });
+    }
+
     private byte[] readLengthDelimitedResponse(final DataInputStream dis) throws IOException {
         final int responseLength = dis.readInt();
         final byte[] responseBuffer = new byte[responseLength];
@@ -319,7 +339,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         }
 
         session = createCommsSession(configContext);
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(2, 1);
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(3, 2, 1);
         try {
             ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
             session.setProtocolVersion(versionNegotiator.getVersion());
