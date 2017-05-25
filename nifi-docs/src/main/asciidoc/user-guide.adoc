@@ -1336,7 +1336,7 @@ The image outlines the following elements:
 
 - *Active Tasks*: The number of tasks that this Processor is currently executing. This number is constrained
 	by the ``Concurrent tasks'' setting in the ``Scheduling'' tab of the Processor configuration dialog.
-	Here, we can see that the Processor is currently performing two tasks. If the NiFi instance is clustered,
+	Here, we can see that the Processor is currently performing one task. If the NiFi instance is clustered,
 	this value represents the number of tasks that are currently executing across all nodes in the cluster.
 
 - *5-Minute Statistics*: The Processor shows several different statistics in tabular form. Each of these
@@ -1345,15 +1345,15 @@ The image outlines the following elements:
 	in the past five minutes. These metrics are:
 
 	** *In*: The amount of data that the Processor has pulled from the queues of its incoming Connections.
-		This value is represented as <count> / <size> where <count> is the number of FlowFiles that have been
+		This value is represented as <count> (<size>) where <count> is the number of FlowFiles that have been
 		pulled from the queues and <size> is the total size of those FlowFiles' content. In this example,
-		the Processor has pulled 884 FlowFiles from the input queues, for a total of 8.85 megabytes (MB).
+		the Processor has pulled 29 FlowFiles from the input queues, for a total of 14.16 megabytes (MB).
 	** *Read/Write*: The total size of the FlowFile content that the Processor has read from disk and written
 		to disk. This provides valuable information about the I/O performance that this Processor requires.
 		Some Processors may only read the data without writing anything while some will not read the data but
 		will only write data. Others will neither read nor write data, and some Processors will both read
-		and write data. In this example, we see that in the past five minutes, this Processor has read 4.7
-		MB of the FlowFile content and has written 4.7 MB as well. This is what we would expect,
+		and write data. In this example, we see that in the past five minutes, this Processor has read 4.88
+		MB of the FlowFile content and has written 4.88 MB as well. This is what we would expect,
 		since this Processor simply copies the contents of a FlowFile to disk. Note, however, that this is
 		not the same as the amount of data that it pulled from its input queues. This is because some of
 		the files that it pulled from the input queues already exist in the output directory, and the
@@ -1361,7 +1361,7 @@ The image outlines the following elements:
 		which already existed in the output directory, data was neither read nor written to disk.
 	** *Out*: The amount of data that the Processor has transferred to its outbound Connections. This does
 		not include FlowFiles that the Processor removes itself, or FlowFiles that are routed to connections
-		that are auto-terminated. Like the ``In'' metric above, this value is represented as <count> / <size>
+		that are auto-terminated. Like the ``In'' metric above, this value is represented as <count> (<size>)
 		where <count> is the number of FlowFiles that have been transferred to outbound Connections and <size>
 		is the total size of those FlowFiles' content. In this example, all of the Relationships are configured to be
 		auto-terminated, so no FlowFiles are reported as having been transferred Out.
@@ -1398,7 +1398,7 @@ The Process Group consists of the following elements:
 	allowing the user to hover over the icon with the mouse to see the Bulletin.
 
 - *Active Tasks*: The number of tasks that are currently executing by the components within this
-	Process Group. Here, we can see that the Process Group is currently performing one task. If the
+	Process Group. Here, we can see that the Process Group is currently performing two tasks. If the
 	NiFi instance is clustered, this value represents the number of tasks that are currently executing
 	across all nodes in the cluster.
 
@@ -1410,24 +1410,20 @@ The Process Group consists of the following elements:
 	the past 5 minutes as well as the amount of data currently enqueued within the Process Group. The following elements
 	comprise the ``Statistics'' portion of a Process Group:
 	** *Queued*: The number of FlowFiles currently enqueued within the Process Group.
-		This field is represented as <count> / <size> where <count> is the number of FlowFiles that are
+		This field is represented as <count> (<size>) where <count> is the number of FlowFiles that are
 		currently enqueued in the Process Group and <size> is the total size of those FlowFiles' content. In this example,
-		the Process Group currently has 1,738 FlowFiles enqueued; those FlowFiles have a total size of 350.03 megabytes (MB).
+		the Process Group currently has 26 FlowFiles enqueued with a total size of 12.7 megabytes (MB).
 
  	** *In*: The number of FlowFiles that have been transferred into the Process Group through all of its Input Ports
- 		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
-		have entered the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content.
-		In this example, 686 FlowFiles have entered the Process Group and their total size is 214.01 MB.
+ 		over the past 5 minutes. This field is represented as <count> / <size> -> <ports> where <count> is the number of FlowFiles that have entered the Process Group in the past 5 minutes, <size> is the total size of those FlowFiles' content and <ports> is the number of Input Ports. In this example, 8 FlowFiles have entered the Process Group with a total size of 800 KB and two Input Ports exist.
 
 	** *Read/Write*: The total size of the FlowFile content that the components within the Process Group have
 		read from disk and written to disk. This provides valuable information about the I/O performance that this
 		Process Group requires. In this example, we see that in the past five minutes, components within this
-		Process Group have read 72.9 MB of the FlowFile content and have written 686.65 MB.
+		Process Group have read 14.72 MB of the FlowFile content and have written 14.8 MB.
 
 	** *Out*: The number of FlowFiles that have been transferred out of the Process Group through its Output Ports
-		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
-		have exited the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content.
-		In this example, 657 FlowFiles have exited the Process Group and their total size is 477.74 MB.
+		over the past 5 minutes. This field is represented as <ports> -> <count> (<size>) where <ports> is the number of Output Ports, <count> is the number of FlowFiles that have exited the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content. In this example, there are three Output Ports, 16 FlowFiles have exited the Process Group and their total size is 78.57 KB.
 
 - *Component Counts*: The Component Counts element provides information about how many components of each type exist
 	within the Process Group. The following provides information about each of these icons and their meanings:
@@ -1508,7 +1504,7 @@ image:iconNotSecure.png["Not Secure"]
 	and the data is not encrypted while it is transferred between instances of NiFi.
 
 - *5-Minute Statistics*: Two statistics are shown for Remote Process Groups: *Sent* and *Received*. Both of these are
-	in the format <count> / <size> where <count> is the number of FlowFiles that have been sent or received in the previous
+	in the format <count> (<size>) where <count> is the number of FlowFiles that have been sent or received in the previous
 	five minutes and <size> is the total size of those FlowFiles' content.
 
 - *Comments*: The Comments that are provided for a Remote Process Group are not comments added by the users of this NiFi but
