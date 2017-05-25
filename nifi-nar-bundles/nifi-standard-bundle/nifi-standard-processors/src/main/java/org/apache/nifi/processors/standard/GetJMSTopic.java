@@ -67,8 +67,7 @@ import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"jms", "topic", "subscription", "durable", "non-durable", "listen", "get", "pull", "source", "consume", "consumer"})
-@CapabilityDescription("Pulls messages from a ActiveMQ JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured" +
-        "Note: ")
+@CapabilityDescription("Pulls messages from a ActiveMQ JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured.")
 @SeeAlso({PutJMS.class })
 public class GetJMSTopic extends JmsConsumer {
 
