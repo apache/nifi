@@ -432,7 +432,7 @@ public class TestHttpClient {
         // Create embedded Jetty server
         // Use less threads to mitigate Gateway Timeout (504) with proxy test
         // Minimum thread pool size = (acceptors=2 + selectors=8 + request=1), defaults to max=200
-        final QueuedThreadPool threadPool = new QueuedThreadPool(20);
+        final QueuedThreadPool threadPool = new QueuedThreadPool(50);
         server = new Server(threadPool);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
