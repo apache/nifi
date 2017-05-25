@@ -63,10 +63,12 @@ import java.util.regex.Pattern;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
-@CapabilityDescription("Retrieves a listing of files from HDFS. For each file that is listed in HDFS, creates a FlowFile that represents "
-        + "the HDFS file so that it can be fetched in conjunction with FetchHDFS. This Processor is designed to run on Primary Node only "
-        + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
-        + "all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.")
+@CapabilityDescription("Retrieves a listing of files from HDFS. Each time a listing is performed, the files with the latest timestamp will be excluded "
+        + "and picked up during the next execution of the processor. This is done to ensure that we do not miss any files, or produce duplicates, in the "
+        + "cases where files with the same timestamp are written immediately before and after a single execution of the processor. For each file that is "
+        + "listed in HDFS, this processor creates a FlowFile that represents the HDFS file to be fetched in conjunction with FetchHDFS. This Processor is "
+        +  "designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left "
+        +  "off without duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.")
 @WritesAttributes({
     @WritesAttribute(attribute="filename", description="The name of the file that was read from HDFS."),
     @WritesAttribute(attribute="path", description="The path is set to the absolute path of the file's directory on HDFS. For example, if the Directory property is set to /tmp, "
@@ -80,10 +82,11 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute="hdfs.permissions", description="The permissions for the file in HDFS. This is formatted as 3 characters for the owner, "
             + "3 for the group, and 3 for other users. For example rw-rw-r--")
 })
-@Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of HDFS files, the timestamp of the newest file is stored, "
-    + "along with the filenames of all files that share that same timestamp. This allows the Processor to list only files that have been added or modified after "
-    + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
-    + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
+@Stateful(scopes = Scope.CLUSTER, description = "After performing a listing of HDFS files, the latest timestamp of all the files listed and the latest "
+        + "timestamp of all the files transferred are both stored. This allows the Processor to list only files that have been added or modified after "
+        + "this date the next time that the Processor is run, without having to store all of the actual filenames/paths which could lead to performance "
+        + "problems. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
+        + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
 
