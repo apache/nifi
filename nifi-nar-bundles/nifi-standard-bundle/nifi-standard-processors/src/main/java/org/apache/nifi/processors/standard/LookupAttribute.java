@@ -228,13 +228,15 @@ public class LookupAttribute extends AbstractProcessor {
                     logger.debug("No such value for key: {}", new Object[]{lookupKey});
                 }
             }
+
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, matched ? REL_MATCHED : REL_UNMATCHED);
+
         } catch (final LookupFailureException e) {
             logger.error(e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
 
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        session.transfer(flowFile, matched ? REL_MATCHED : REL_UNMATCHED);
     }
 
     private boolean putAttribute(final String attributeName, final Optional<String> attributeValue, final Map<String, String> attributes, final boolean includeEmptyValues, final ComponentLog logger) {

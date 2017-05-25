@@ -34,7 +34,7 @@ public class TestPropertiesFileLookupService {
     final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
-    public void testPropertiesFileLookupService() throws InitializationException {
+    public void testPropertiesFileLookupService() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PropertiesFileLookupService service = new PropertiesFileLookupService();
 

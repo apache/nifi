@@ -34,7 +34,7 @@ public class TestXMLFileLookupService {
     final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
-    public void testXMLFileLookupService() throws InitializationException {
+    public void testXMLFileLookupService() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final XMLFileLookupService service = new XMLFileLookupService();
 
