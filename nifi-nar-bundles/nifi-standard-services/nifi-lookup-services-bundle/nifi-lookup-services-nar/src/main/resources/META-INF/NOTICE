@@ -80,10 +80,47 @@ The following binary components are provided under the Apache Software License v
         Apache Commons Net
         Copyright 2001-2016 The Apache Software Foundation
 
+  (ASLv2) Apache Commons Collections
+    The following NOTICE information applies:
+      Apache Commons Collections
+      Copyright 2001-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
   (ASLv2) GeoIP2 Java API
     The following NOTICE information applies:
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
+
+  (ASLv2) Google HTTP Client Library for Java
+    The following NOTICE information applies:
+      Copyright 2011 Google Inc.
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+      ## Credits
+
+      A list of contributors may be found from CREDITS file, which is included
+      in some artifacts (usually source distributions); but is always available
+      from the source code management (SCM) system project uses.
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0

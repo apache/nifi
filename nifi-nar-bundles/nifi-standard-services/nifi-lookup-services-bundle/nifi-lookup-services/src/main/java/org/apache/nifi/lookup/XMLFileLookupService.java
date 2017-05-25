@@ -23,7 +23,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 
 @Tags({"lookup", "cache", "enrich", "join", "xml", "reloadable", "key", "value"})
-@CapabilityDescription("A reloadable properties file-based lookup service")
+@CapabilityDescription("A reloadable XML file-based lookup service." +
+        " This service uses Apache Commons Configuration." +
+        " Example XML configuration file and how to access specific configuration can be found at" +
+        " http://commons.apache.org/proper/commons-configuration/userguide/howto_hierarchical.html")
 public class XMLFileLookupService extends CommonsConfigurationLookupService<XMLConfiguration> {
 
 }

@@ -42,6 +42,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -73,14 +74,13 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
 
     private volatile ReloadingFileBasedConfigurationBuilder<T> builder;
 
-    private Configuration getConfiguration() {
+    private Configuration getConfiguration() throws LookupFailureException {
         try {
             if (builder != null) {
                 return builder.getConfiguration();
             }
         } catch (final ConfigurationException e) {
-            // TODO: Need to fail starting the service if this happens
-            getLogger().error(e.getMessage(), e);
+            throw new LookupFailureException("Failed to get configuration due to " + e.getMessage(), e);
         }
         return null;
     }
@@ -111,10 +111,18 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
                     }
                 }
             });
+
+        try {
+            // Try getting configuration to see if there is any issue, for example wrong file format.
+            // Then throw InitializationException to keep this service in 'Enabling' state.
+            builder.getConfiguration();
+        } catch (ConfigurationException e) {
+            throw new InitializationException(e);
+        }
     }
 
     @Override
-    public Optional<String> lookup(final Map<String, String> coordinates) {
+    public Optional<String> lookup(final Map<String, String> coordinates) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }

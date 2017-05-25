@@ -52,7 +52,7 @@ import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value"})
-@CapabilityDescription("A reloadable properties file-based lookup service")
+@CapabilityDescription("A reloadable CSV file-based lookup service")
 public class SimpleCsvFileLookupService extends AbstractControllerService implements StringLookupService {
 
     private static final String KEY = "key";

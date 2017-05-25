@@ -54,7 +54,7 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
     @OnEnabled
     public void cacheConfiguredValues(final ConfigurationContext context) {
         lookupValues = context.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> context.getProperty(entry.getKey()).getValue()));
+            .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> context.getProperty(entry.getKey()).evaluateAttributeExpressions().getValue()));
     }
 
     @Override
