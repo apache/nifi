@@ -159,19 +159,19 @@ public class StandardFlowSerializer implements FlowSerializer {
 
         if (group.isRootGroup()) {
             for (final Port port : group.getInputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "inputPort");
+                addRootGroupPort(element, (RootGroupPort) port, "inputPort", scheduledStateLookup);
             }
 
             for (final Port port : group.getOutputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "outputPort");
+                addRootGroupPort(element, (RootGroupPort) port, "outputPort", scheduledStateLookup);
             }
         } else {
             for (final Port port : group.getInputPorts()) {
-                addPort(element, port, "inputPort");
+                addPort(element, port, "inputPort", scheduledStateLookup);
             }
 
             for (final Port port : group.getOutputPorts()) {
-                addPort(element, port, "outputPort");
+                addPort(element, port, "outputPort", scheduledStateLookup);
             }
         }
 
@@ -330,7 +330,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         parentElement.appendChild(element);
     }
 
-    private void addPort(final Element parentElement, final Port port, final String elementName) {
+    private void addPort(final Element parentElement, final Port port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
@@ -338,12 +338,12 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "name", port.getName());
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
-        addTextElement(element, "scheduledState", port.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
 
         parentElement.appendChild(element);
     }
 
-    private void addRootGroupPort(final Element parentElement, final RootGroupPort port, final String elementName) {
+    private void addRootGroupPort(final Element parentElement, final RootGroupPort port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
@@ -351,7 +351,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "name", port.getName());
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
-        addTextElement(element, "scheduledState", port.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
         addTextElement(element, "maxConcurrentTasks", String.valueOf(port.getMaxConcurrentTasks()));
         for (final String user : port.getUserAccessControl()) {
             addTextElement(element, "userAccessControl", user);

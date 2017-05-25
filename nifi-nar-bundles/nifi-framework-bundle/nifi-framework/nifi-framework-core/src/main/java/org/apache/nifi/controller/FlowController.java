@@ -1518,7 +1518,29 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public void serialize(final FlowSerializer serializer, final OutputStream os) throws FlowSerializationException {
         readLock.lock();
         try {
-            final ScheduledStateLookup scheduledStateLookup = procNode -> startConnectablesAfterInitialization.contains(procNode) ? ScheduledState.RUNNING : procNode.getScheduledState();
+            final ScheduledStateLookup scheduledStateLookup = new ScheduledStateLookup() {
+                @Override
+                public ScheduledState getScheduledState(final ProcessorNode procNode) {
+                    if (startConnectablesAfterInitialization.contains(procNode)) {
+                        return ScheduledState.RUNNING;
+                    }
+
+                    return procNode.getScheduledState();
+                }
+
+                @Override
+                public ScheduledState getScheduledState(final Port port) {
+                    if (startConnectablesAfterInitialization.contains(port)) {
+                        return ScheduledState.RUNNING;
+                    }
+                    if (startRemoteGroupPortsAfterInitialization.contains(port)) {
+                        return ScheduledState.RUNNING;
+                    }
+
+                    return port.getScheduledState();
+                }
+            };
+
             serializer.serialize(this, os, scheduledStateLookup);
         } finally {
             readLock.unlock();
@@ -2916,6 +2938,33 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
             } else {
                 startConnectablesAfterInitialization.add(connectable);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public void stopConnectable(final Connectable connectable) {
+        final ProcessGroup group = requireNonNull(connectable).getProcessGroup();
+
+        writeLock.lock();
+        try {
+            switch (requireNonNull(connectable).getConnectableType()) {
+                case FUNNEL:
+                    // Ignore. We don't support stopping funnels.
+                    break;
+                case INPUT_PORT:
+                case REMOTE_INPUT_PORT:
+                    startConnectablesAfterInitialization.remove(connectable);
+                    group.stopInputPort((Port) connectable);
+                    break;
+                case OUTPUT_PORT:
+                case REMOTE_OUTPUT_PORT:
+                    startConnectablesAfterInitialization.remove(connectable);
+                    group.stopOutputPort((Port) connectable);
+                    break;
+                default:
+                    throw new IllegalArgumentException();
             }
         } finally {
             writeLock.unlock();

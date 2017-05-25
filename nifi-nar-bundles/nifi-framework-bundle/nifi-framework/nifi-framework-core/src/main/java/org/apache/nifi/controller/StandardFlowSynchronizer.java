@@ -774,19 +774,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     case DISABLED:
                         // switch processor do disabled. This means we have to stop it (if it's already stopped, this method does nothing),
                         // and then we have to disable it.
-                        port.getProcessGroup().stopInputPort(port);
+                        controller.stopConnectable(port);
                         port.getProcessGroup().disableInputPort(port);
                         break;
                     case RUNNING:
                         // we want to run now. Make sure processor is not disabled and then start it.
                         port.getProcessGroup().enableInputPort(port);
-                        port.getProcessGroup().startInputPort(port);
+                        controller.startConnectable(port);
                         break;
                     case STOPPED:
                         if (port.getScheduledState() == ScheduledState.DISABLED) {
                             port.getProcessGroup().enableInputPort(port);
                         } else if (port.getScheduledState() == ScheduledState.RUNNING) {
-                            port.getProcessGroup().stopInputPort(port);
+                            controller.stopConnectable(port);
                         }
                         break;
                 }
@@ -803,19 +803,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     case DISABLED:
                         // switch processor do disabled. This means we have to stop it (if it's already stopped, this method does nothing),
                         // and then we have to disable it.
-                        port.getProcessGroup().stopOutputPort(port);
+                        controller.stopConnectable(port);
                         port.getProcessGroup().disableOutputPort(port);
                         break;
                     case RUNNING:
                         // we want to run now. Make sure processor is not disabled and then start it.
                         port.getProcessGroup().enableOutputPort(port);
-                        port.getProcessGroup().startOutputPort(port);
+                        controller.startConnectable(port);
                         break;
                     case STOPPED:
                         if (port.getScheduledState() == ScheduledState.DISABLED) {
                             port.getProcessGroup().enableOutputPort(port);
                         } else if (port.getScheduledState() == ScheduledState.RUNNING) {
-                            port.getProcessGroup().stopOutputPort(port);
+                            controller.stopConnectable(port);
                         }
                         break;
                 }
