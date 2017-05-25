@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.serialization;
 
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 
@@ -24,5 +25,17 @@ public interface ScheduledStateLookup {
 
     ScheduledState getScheduledState(ProcessorNode procNode);
 
-    public static final ScheduledStateLookup IDENTITY_LOOKUP = ProcessorNode::getScheduledState;
+    ScheduledState getScheduledState(Port port);
+
+    public static final ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
+        @Override
+        public ScheduledState getScheduledState(final ProcessorNode procNode) {
+            return procNode.getScheduledState();
+        }
+
+        @Override
+        public ScheduledState getScheduledState(final Port port) {
+            return port.getScheduledState();
+        }
+    };
 }
