@@ -88,6 +88,11 @@ class CryptoUtilsTest {
         Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
+    private static boolean isRootUser() {
+        Process p = Runtime.getRuntime().exec("id -u")
+        p.exitValue() == 0
+    }
+
     @Test
     void testShouldConcatenateByteArrays() {
         // Arrange
@@ -197,6 +202,7 @@ class CryptoUtilsTest {
     void testShouldNotValidateUnreadableFileBasedKeyProvider() {
         // Arrange
         Assume.assumeFalse("This test does not run on Windows", SystemUtils.IS_OS_WINDOWS)
+        Assume.assumeFalse("This test does not run for root users", isRootUser())
 
         String fileBasedProvider = FileBasedKeyProvider.class.name
         File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
