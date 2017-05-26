@@ -141,7 +141,7 @@
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
         <nifi.security.needClientAuth />
-        <nifi.security.user.authorizer>file-provider</nifi.security.user.authorizer>
+        <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />

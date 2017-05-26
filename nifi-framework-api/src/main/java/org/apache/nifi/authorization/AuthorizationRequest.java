@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -31,6 +32,7 @@ public class AuthorizationRequest {
 
     private final Resource resource;
     private final String identity;
+    private final Set<String> groups;
     private final RequestAction action;
     private final boolean isAccessAttempt;
     private final boolean isAnonymous;
@@ -46,6 +48,7 @@ public class AuthorizationRequest {
 
         this.resource = builder.resource;
         this.identity = builder.identity;
+        this.groups = builder.groups == null ? null : Collections.unmodifiableSet(builder.groups);
         this.action = builder.action;
         this.isAccessAttempt = builder.isAccessAttempt;
         this.isAnonymous = builder.isAnonymous;
@@ -79,6 +82,16 @@ public class AuthorizationRequest {
      */
     public String getIdentity() {
         return identity;
+    }
+
+    /**
+     * The groups the user making this request belongs to. May be null if this NiFi is not configured to load user
+     * groups or empty if the user has no groups
+     *
+     * @return The groups
+     */
+    public Set<String> getGroups() {
+        return groups;
     }
 
     /**
@@ -142,6 +155,7 @@ public class AuthorizationRequest {
 
         private Resource resource;
         private String identity;
+        private Set<String> groups;
         private Boolean isAnonymous;
         private Boolean isAccessAttempt;
         private RequestAction action;
@@ -156,6 +170,11 @@ public class AuthorizationRequest {
 
         public Builder identity(final String identity) {
             this.identity = identity;
+            return this;
+        }
+
+        public Builder groups(final Set<String> groups) {
+            this.groups = groups;
             return this;
         }
 

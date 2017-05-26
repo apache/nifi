@@ -146,15 +146,15 @@
                             <i class="fa fa-history"></i>Flow Configuration History
                         </a>
                     </md-menu-item>
-                    <md-menu-divider ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()"></md-menu-divider>
-                    <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()">
+                    <md-menu-divider ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()"></md-menu-divider>
+                    <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()">
                         <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants())}">
                             <i class="fa fa-users"></i>Users
                         </a>
                     </md-menu-item>
-                    <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()">
+                    <md-menu-item layout-align="space-around center" ng-if="appCtrl.nf.CanvasUtils.isManagedAuthorizer()">
                         <a id="policies-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
                            ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">

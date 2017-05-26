@@ -133,7 +133,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canManagePolicies = function (selection) {
-        return nfCanvasUtils.isConfigurableAuthorizer() && nfCanvasUtils.canManagePolicies(selection);
+        return nfCanvasUtils.isManagedAuthorizer() && nfCanvasUtils.canManagePolicies(selection);
     };
 
     /**

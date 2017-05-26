@@ -28,7 +28,7 @@ import java.util.Date;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an {@link AccessPolicyDTO}.
  */
 @XmlRootElement(name = "accessPolicyEntity")
-public class AccessPolicyEntity extends ComponentEntity {
+public class AccessPolicyEntity extends ComponentEntity implements Permissible<AccessPolicyDTO> {
 
     private Date generated;
     private AccessPolicyDTO component;

@@ -84,7 +84,9 @@
     var groupName = null;
     var permissions = null;
     var parentGroupId = null;
+    var managedAuthorizer = false;
     var configurableAuthorizer = false;
+    var configurableUsersAndGroups = false;
     var svg = null;
     var canvas = null;
 
@@ -878,6 +880,22 @@
         },
 
         /**
+         * Set whether the authorizer is managed.
+         *
+         * @param bool The boolean value representing whether the authorizer is managed
+         */
+        setManagedAuthorizer: function (bool) {
+            managedAuthorizer = bool;
+        },
+
+        /**
+         * Returns whether the authorizer is managed.
+         */
+        isManagedAuthorizer: function () {
+            return managedAuthorizer;
+        },
+
+        /**
          * Set whether the authorizer is configurable.
          *
          * @param bool The boolean value representing whether the authorizer is configurable.
@@ -891,6 +909,22 @@
          */
         isConfigurableAuthorizer: function () {
             return configurableAuthorizer;
+        },
+
+        /**
+         * Set whether the users and groups is configurable.
+         *
+         * @param bool The boolean value representing whether the users and groups is configurable.
+         */
+        setConfigurableUsersAndGroups: function(bool){
+            configurableUsersAndGroups = bool;
+        },
+
+        /**
+         * Returns whether the users and groups is configurable.
+         */
+        isConfigurableUsersAndGroups: function () {
+            return configurableUsersAndGroups;
         },
 
         /**

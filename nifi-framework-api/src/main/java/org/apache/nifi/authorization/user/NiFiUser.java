@@ -17,6 +17,8 @@
 
 package org.apache.nifi.authorization.user;
 
+import java.util.Set;
+
 /**
  * A representation of a NiFi user that has logged into the application
  */
@@ -26,6 +28,11 @@ public interface NiFiUser {
      * @return the unique identity of this user
      */
     String getIdentity();
+
+    /**
+     * @return the groups that this user belongs to if this nifi is configured to load user groups, null otherwise.
+     */
+    Set<String> getGroups();
 
     /**
      * @return the next user in the proxied entities chain, or <code>null</code> if no more users exist in the chain.

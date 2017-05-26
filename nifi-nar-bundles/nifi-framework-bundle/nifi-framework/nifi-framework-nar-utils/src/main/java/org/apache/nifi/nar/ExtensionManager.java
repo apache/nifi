@@ -18,7 +18,9 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -82,6 +84,8 @@ public class ExtensionManager {
         definitionMap.put(ReportingTask.class, new HashSet<>());
         definitionMap.put(ControllerService.class, new HashSet<>());
         definitionMap.put(Authorizer.class, new HashSet<>());
+        definitionMap.put(UserGroupProvider.class, new HashSet<>());
+        definitionMap.put(AccessPolicyProvider.class, new HashSet<>());
         definitionMap.put(LoginIdentityProvider.class, new HashSet<>());
         definitionMap.put(ProvenanceRepository.class, new HashSet<>());
         definitionMap.put(ComponentStatusRepository.class, new HashSet<>());

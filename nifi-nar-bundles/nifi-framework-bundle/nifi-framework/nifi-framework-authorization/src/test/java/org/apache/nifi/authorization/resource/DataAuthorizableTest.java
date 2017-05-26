@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.authorization.resource;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -31,10 +23,18 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class DataAuthorizableTest {
 
@@ -83,20 +83,20 @@ public class DataAuthorizableTest {
 
     @Test(expected = AccessDeniedException.class)
     public void testAuthorizeUnauthorizedUser() {
-        final NiFiUser user = new StandardNiFiUser("unknown");
+        final NiFiUser user = new Builder().identity("unknown").build();
         testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
     }
 
     @Test
     public void testCheckAuthorizationUnauthorizedUser() {
-        final NiFiUser user = new StandardNiFiUser("unknown");
+        final NiFiUser user = new Builder().identity("unknown").build();
         final AuthorizationResult result = testDataAuthorizable.checkAuthorization(testAuthorizer, RequestAction.READ, user, null);
         assertEquals(Result.Denied, result.getResult());
     }
 
     @Test
     public void testAuthorizedUser() {
-        final NiFiUser user = new StandardNiFiUser(IDENTITY_1);
+        final NiFiUser user = new Builder().identity(IDENTITY_1).build();
         testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
 
         verify(testAuthorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
@@ -109,7 +109,7 @@ public class DataAuthorizableTest {
 
     @Test
     public void testCheckAuthorizationUser() {
-        final NiFiUser user = new StandardNiFiUser(IDENTITY_1);
+        final NiFiUser user = new Builder().identity(IDENTITY_1).build();
         final AuthorizationResult result = testDataAuthorizable.checkAuthorization(testAuthorizer, RequestAction.READ, user, null);
 
         assertEquals(Result.Approved, result.getResult());
@@ -123,9 +123,9 @@ public class DataAuthorizableTest {
 
     @Test
     public void testAuthorizedUserChain() {
-        final NiFiUser proxy2 = new StandardNiFiUser(PROXY_2);
-        final NiFiUser proxy1 = new StandardNiFiUser(PROXY_1, proxy2);
-        final NiFiUser user = new StandardNiFiUser(IDENTITY_1, proxy1);
+        final NiFiUser proxy2 = new Builder().identity(PROXY_2).build();
+        final NiFiUser proxy1 = new Builder().identity(PROXY_1).chain(proxy2).build();
+        final NiFiUser user = new Builder().identity(IDENTITY_1).chain(proxy1).build();
         testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
 
         verify(testAuthorizer, times(3)).authorize(any(AuthorizationRequest.class));
@@ -136,9 +136,9 @@ public class DataAuthorizableTest {
 
     @Test
     public void testCheckAuthorizationUserChain() {
-        final NiFiUser proxy2 = new StandardNiFiUser(PROXY_2);
-        final NiFiUser proxy1 = new StandardNiFiUser(PROXY_1, proxy2);
-        final NiFiUser user = new StandardNiFiUser(IDENTITY_1, proxy1);
+        final NiFiUser proxy2 = new Builder().identity(PROXY_2).build();
+        final NiFiUser proxy1 = new Builder().identity(PROXY_1).chain(proxy2).build();
+        final NiFiUser user = new Builder().identity(IDENTITY_1).chain(proxy1).build();
         final AuthorizationResult result = testDataAuthorizable.checkAuthorization(testAuthorizer, RequestAction.READ, user, null);
 
         assertEquals(Result.Approved, result.getResult());

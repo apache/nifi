@@ -31,7 +31,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
@@ -190,7 +190,7 @@ public class StandardNiFiServiceFacadeTest {
     @Test
     public void testGetActionApprovedThroughAction() throws Exception {
         // set the user
-        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(USER_1)));
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         // get the action
@@ -218,7 +218,7 @@ public class StandardNiFiServiceFacadeTest {
     @Test(expected = AccessDeniedException.class)
     public void testGetActionDeniedDespiteControllerAccess() throws Exception {
         // set the user
-        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(USER_2)));
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {
@@ -245,7 +245,7 @@ public class StandardNiFiServiceFacadeTest {
     @Test
     public void testGetActionApprovedThroughController() throws Exception {
         // set the user
-        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(USER_2)));
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         // get the action
@@ -273,7 +273,7 @@ public class StandardNiFiServiceFacadeTest {
     @Test
     public void testGetActionsForUser1() throws Exception {
         // set the user
-        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(USER_1)));
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         final HistoryDTO dto = serviceFacade.getActions(new HistoryQueryDTO());
@@ -292,7 +292,7 @@ public class StandardNiFiServiceFacadeTest {
     @Test
     public void testGetActionsForUser2() throws Exception {
         // set the user
-        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(USER_2)));
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         final HistoryDTO  dto = serviceFacade.getActions(new HistoryQueryDTO());

@@ -871,7 +871,7 @@
             }
 
             // allow policy configuration conditionally
-            if (nfCanvasUtils.isConfigurableAuthorizer() && nfCommon.canAccessTenants()) {
+            if (nfCanvasUtils.isManagedAuthorizer() && nfCommon.canAccessTenants()) {
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
             }
 

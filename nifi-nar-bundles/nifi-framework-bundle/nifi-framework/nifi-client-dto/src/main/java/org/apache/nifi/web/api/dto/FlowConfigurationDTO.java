@@ -29,7 +29,9 @@ import java.util.Date;
 @XmlType(name = "flowConfiguration")
 public class FlowConfigurationDTO {
 
+    private Boolean supportsManagedAuthorizer;
     private Boolean supportsConfigurableAuthorizer;
+    private Boolean supportsConfigurableUsersAndGroups;
     private Long autoRefreshIntervalSeconds;
 
     private Date currentTime;
@@ -48,6 +50,37 @@ public class FlowConfigurationDTO {
 
     public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
         this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
+    }
+
+    /**
+     * @return whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups,
+     * and policies in the UI. This value is read only
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
+            readOnly = true
+    )
+    public Boolean getSupportsManagedAuthorizer() {
+        return supportsManagedAuthorizer;
+    }
+
+    public void setSupportsManagedAuthorizer(Boolean supportsManagedAuthorizer) {
+        this.supportsManagedAuthorizer = supportsManagedAuthorizer;
+    }
+
+    /**
+     * @return whether this NiFi supports configurable users and groups. This value is read only
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi supports configurable users and groups.",
+            readOnly = true
+    )
+    public Boolean getSupportsConfigurableUsersAndGroups() {
+        return supportsConfigurableUsersAndGroups;
+    }
+
+    public void setSupportsConfigurableUsersAndGroups(Boolean supportsConfigurableUsersAndGroups) {
+        this.supportsConfigurableUsersAndGroups = supportsConfigurableUsersAndGroups;
     }
 
     /**

@@ -24,7 +24,7 @@ import java.util.Collection;
  * TenantEntity objects.
  */
 @XmlRootElement(name = "tenantsEntity")
-public class TenantsEntity {
+public class TenantsEntity extends Entity {
 
     private Collection<TenantEntity> users;
     private Collection<TenantEntity> userGroups;

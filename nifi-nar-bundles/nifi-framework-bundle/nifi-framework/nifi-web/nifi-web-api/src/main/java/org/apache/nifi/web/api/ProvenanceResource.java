@@ -114,6 +114,7 @@ public class ProvenanceResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getProvenanceResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.READ)

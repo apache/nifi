@@ -17,8 +17,9 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
+import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -572,8 +573,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     private byte[] getAuthorizerFingerprint() {
-        final boolean isInternalAuthorizer = (authorizer instanceof AbstractPolicyBasedAuthorizer);
-        return isInternalAuthorizer ? ((AbstractPolicyBasedAuthorizer) authorizer).getFingerprint().getBytes(StandardCharsets.UTF_8) : null;
+        final boolean isInternalAuthorizer = AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer);
+        return isInternalAuthorizer ? ((ManagedAuthorizer) authorizer).getFingerprint().getBytes(StandardCharsets.UTF_8) : null;
     }
 
     @Override

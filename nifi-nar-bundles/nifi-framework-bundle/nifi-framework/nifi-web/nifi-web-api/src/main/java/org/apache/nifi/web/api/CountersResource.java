@@ -94,6 +94,7 @@ public class CountersResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getCountersResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)
