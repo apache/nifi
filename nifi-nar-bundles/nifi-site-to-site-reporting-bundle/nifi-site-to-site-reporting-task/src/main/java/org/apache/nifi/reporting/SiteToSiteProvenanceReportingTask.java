@@ -23,6 +23,8 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -71,6 +73,11 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
     static final String LAST_EVENT_ID_KEY = "last_event_id";
 
+    static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream", "Beginning of Stream",
+        "Start reading provenance Events from the beginning of the stream (the oldest event first)");
+    static final AllowableValue END_OF_STREAM = new AllowableValue("end-of-stream", "End of Stream",
+        "Start reading provenance Events from the end of the stream, ignoring old events");
+
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
         .displayName("Platform")
@@ -83,7 +90,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
         .name("s2s-prov-task-event-filter")
-        .displayName("Event type")
+        .displayName("Event Type")
         .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
                 + "Available event types are " + ProvenanceEventType.values() + ". If no filter is set, all the events are sent. If "
                         + "multiple filters are set, the filters are cumulative.")
@@ -93,7 +100,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     static final PropertyDescriptor FILTER_COMPONENT_TYPE = new PropertyDescriptor.Builder()
         .name("s2s-prov-task-type-filter")
-        .displayName("Component type")
+        .displayName("Component Type")
         .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
                 + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
         .required(false)
@@ -109,11 +116,21 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
+        .name("start-position")
+        .displayName("Start Position")
+        .description("If the Reporting Task has never been run, or if its state has been reset by a user, specifies where in the stream of Provenance Events the Reporting Task should start")
+        .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
+        .defaultValue(BEGINNING_OF_STREAM.getValue())
+        .required(true)
+        .build();
+
     private volatile long firstEventId = -1L;
     private volatile boolean isFilteringEnabled = false;
     private volatile Pattern componentTypeRegex;
     private volatile List<ProvenanceEventType> eventTypes = new ArrayList<ProvenanceEventType>();
     private volatile List<String> componentIds = new ArrayList<String>();
+    private volatile boolean scheduled = false;
 
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) throws IOException {
@@ -139,6 +156,17 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         // set a boolean whether filtering will be applied or not
         isFilteringEnabled = componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty();
+
+        scheduled = true;
+    }
+
+    @OnUnscheduled
+    public void onUnscheduled() {
+        scheduled = false;
+    }
+
+    public boolean isScheduled() {
+        return scheduled;
     }
 
     @Override
@@ -148,6 +176,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         properties.add(FILTER_EVENT_TYPE);
         properties.add(FILTER_COMPONENT_TYPE);
         properties.add(FILTER_COMPONENT_ID);
+        properties.add(START_POSITION);
         return properties;
     }
 
@@ -210,14 +239,27 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 getLogger().error("Failed to get state at start up due to:" + e.getMessage(), e);
                 return;
             }
+
+            final String startPositionValue = context.getProperty(START_POSITION).getValue();
+
             if (state.containsKey(LAST_EVENT_ID_KEY)) {
                 firstEventId = Long.parseLong(state.get(LAST_EVENT_ID_KEY)) + 1;
+            } else {
+                if (END_OF_STREAM.getValue().equals(startPositionValue)) {
+                    firstEventId = currMaxId;
+                }
             }
 
-            if(currMaxId < (firstEventId - 1)){
-                getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
+            if (currMaxId < (firstEventId - 1)) {
+                if (BEGINNING_OF_STREAM.getValue().equals(startPositionValue)) {
+                    getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
                         "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
-                firstEventId = -1;
+                    firstEventId = -1;
+                } else {
+                    getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
+                        "ids. Restarting querying from the latest event in the Provenance Repository.", new Object[] {currMaxId, firstEventId});
+                    firstEventId = currMaxId;
+                }
             }
         }
 
@@ -258,7 +300,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
         df.setTimeZone(TimeZone.getTimeZone("Z"));
 
-        while (events != null && !events.isEmpty()) {
+        while (events != null && !events.isEmpty() && isScheduled()) {
             final long start = System.nanoTime();
 
             // Create a JSON array of all the events in the current batch

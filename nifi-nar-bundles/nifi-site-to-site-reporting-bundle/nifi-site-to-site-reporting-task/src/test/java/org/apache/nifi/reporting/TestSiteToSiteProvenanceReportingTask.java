@@ -95,7 +95,10 @@ public class TestSiteToSiteProvenanceReportingTask {
 
                 final List<ProvenanceEventRecord> eventsToReturn = new ArrayList<>();
                 for (int i = (int) Math.max(0, startId); i < (int) (startId + maxRecords) && totalEvents.get() < maxEventId; i++) {
-                    eventsToReturn.add(event);
+                    if (event != null) {
+                        eventsToReturn.add(event);
+                    }
+
                     totalEvents.getAndIncrement();
                 }
                 return eventsToReturn;
@@ -304,17 +307,18 @@ public class TestSiteToSiteProvenanceReportingTask {
         final long maxEventId = 2500;
 
         // create the mock reporting task and mock state manager
-        final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+
+        final MockSiteToSiteProvenanceReportingTask task = setup(null, properties);
         final MockStateManager stateManager = new MockStateManager(task);
 
         // create the state map and set the last id to the same value as maxEventId
         final Map<String,String> state = new HashMap<>();
         state.put(SiteToSiteProvenanceReportingTask.LAST_EVENT_ID_KEY, String.valueOf(maxEventId));
         stateManager.setState(state, Scope.LOCAL);
-
-        // setup the mock reporting context to return the mock state manager
-        final ReportingContext context = Mockito.mock(ReportingContext.class);
-        Mockito.when(context.getStateManager()).thenReturn(stateManager);
 
         // setup the mock provenance repository to return maxEventId
         final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
@@ -327,14 +331,7 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         // setup the mock EventAccess to return the mock provenance repository
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
-
-        // setup the mock initialization context
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
 
         task.initialize(initContext);
 
