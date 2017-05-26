@@ -1,0 +1,5 @@
+<test>
+	<a testAttr="input.xml">Foo</a>
+	<b testAttr="attrB">Bar</b>
+	<b testAttr="attrB">Baz</b>
+</test>

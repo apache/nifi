@@ -1,0 +1,109 @@
+nifi-pipelinexml-nar
+Copyright 2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Ant
+    The following NOTICE information applies:
+      Apache Ant
+      Copyright 1999-2012 The Apache Software Foundation
+
+      The <sync> task is based on code Copyright (c) 2002, Landmark
+      Graphics Corp that has been kindly donated to the Apache Software
+      Foundation.
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons File Upload
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2013 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2013 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache HttpClient
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache HttpCore
+    The following NOTICE information applies:
+      Apache HttpCore
+      Copyright 2005-2016 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      This project contains annotations derived from JCIP-ANNOTATIONS
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+
+  (ASLv2) Apache Log4j
+    The following NOTICE information applies:
+      Apache Log4j API
+      Copyright 1999-2014 Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and
+Distribution License 1.1. See project link for details.
+
+  (CDDL 1.0) (LGPL3.0) Restlet (org.restlet:org.restlet:jar:2.2.2 - http://restlet.org)
+  (CDDL 1.0) (LGPL3.0) Restlet File Upload (org.restlet:org.restlet.ext.fileupload:jar:2.2.2 - http://restlet.org)
+  (CDDL 1.0) (LGPL3.0) Restlet SLF4J (org.restlet:org.restlet.ext.slf4j:jar:2.2.2 - http://restlet.org)
+  (CDDL 1.0) (GPL2.0) XML Calabash (com.xmlcalabash:com.xmlcalabash:jar:1.1.15-96 - http://xmlcalabash.com)
+
+*****************
+Mozilla Public License v2.0
+*****************
+
+The following binary components are provided under the Mozilla Public License
+v2.0.  See project link for details.
+
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)

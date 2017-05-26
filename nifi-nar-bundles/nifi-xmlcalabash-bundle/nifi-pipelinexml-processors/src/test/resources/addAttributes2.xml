@@ -1,0 +1,5 @@
+<test>
+	<a testAttr="attrA">Foo</a>
+	<b testAttr="attrB">Bar</b>
+	<b testAttr="attrB">Baz</b>
+</test>
