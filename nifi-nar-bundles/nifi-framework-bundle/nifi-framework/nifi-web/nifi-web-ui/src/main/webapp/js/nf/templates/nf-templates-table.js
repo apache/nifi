@@ -293,7 +293,7 @@
 
                 // allow policy configuration conditionally if embedded in
                 if (top !== window && nfCommon.canAccessTenants()) {
-                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isConfigurableAuthorizer()) {
+                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isManagedAuthorizer()) {
                         markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
                     }
                 }

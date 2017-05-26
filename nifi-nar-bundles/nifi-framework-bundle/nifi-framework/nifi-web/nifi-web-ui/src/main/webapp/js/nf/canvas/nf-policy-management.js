@@ -567,8 +567,11 @@
                 sortable: true,
                 resizable: true,
                 formatter: identityFormatter
-            },
-            {
+            }
+        ];
+
+        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+            usersColumns.push({
                 id: 'actions',
                 name: '&nbsp;',
                 sortable: false,
@@ -576,8 +579,8 @@
                 formatter: actionFormatter,
                 width: 100,
                 maxWidth: 100
-            }
-        ];
+            });
+        }
 
         var usersOptions = {
             forceFitColumns: true,
@@ -874,20 +877,24 @@
 
         // see if the policy is for this resource
         if (resourceAndAction.resource === policy.resource) {
-            // allow remove when policy is not inherited
-            $('#delete-policy-button').prop('disabled', policyEntity.permissions.canWrite === false);
+            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                // allow remove when policy is not inherited
+                $('#delete-policy-button').prop('disabled', policyEntity.permissions.canWrite === false);
 
-            // allow modification if allowed
-            $('#new-policy-user-button').prop('disabled', policyEntity.permissions.canWrite === false);
+                // allow modification if allowed
+                $('#new-policy-user-button').prop('disabled', policyEntity.permissions.canWrite === false);
+            }
         } else {
             $('#policy-message').append(getResourceMessage(policy.resource));
 
-            // policy is inherited, we do not know if the user has permissions to modify the desired policy... show button and let server decide
-            $('#override-policy-message').show();
+            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                // policy is inherited, we do not know if the user has permissions to modify the desired policy... show button and let server decide
+                $('#override-policy-message').show();
 
-            // do not support policy deletion/modification
-            $('#delete-policy-button').prop('disabled', true);
-            $('#new-policy-user-button').prop('disabled', true);
+                // do not support policy deletion/modification
+                $('#delete-policy-button').prop('disabled', true);
+                $('#new-policy-user-button').prop('disabled', true);
+            }
         }
 
         // populate the table
@@ -928,8 +935,10 @@
                             // show an appropriate message
                             $('#policy-message').text('No component specific administrators.');
 
-                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
-                            $('#add-local-admin-message').show();
+                            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                                // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                                $('#add-local-admin-message').show();
+                            }
                         }
                     } else {
                         // reset the policy
@@ -938,8 +947,10 @@
                         // show an appropriate message
                         $('#policy-message').text('No component specific administrators.');
 
-                        // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
-                        $('#add-local-admin-message').show();
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#add-local-admin-message').show();
+                        }
                     }
 
                     deferred.resolve();
@@ -951,8 +962,10 @@
                         // show an appropriate message
                         $('#policy-message').text('No component specific administrators.');
 
-                        // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
-                        $('#add-local-admin-message').show();
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#add-local-admin-message').show();
+                        }
 
                         deferred.resolve();
                     } else if (xhr.status === 403) {
@@ -997,8 +1010,10 @@
                         // since we cannot read, the policy may be inherited or not... we cannot tell
                         $('#policy-message').text('Not authorized to view the policy.');
 
-                        // allow option to override because we don't know if it's supported or not
-                        $('#override-policy-message').show();
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // allow option to override because we don't know if it's supported or not
+                            $('#override-policy-message').show();
+                        }
                     }
 
                     deferred.resolve();
@@ -1010,8 +1025,10 @@
                         // show an appropriate message
                         $('#policy-message').text('No policy for the specified resource.');
 
-                        // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
-                        $('#new-policy-message').show();
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#new-policy-message').show();
+                        }
 
                         deferred.resolve();
                     } else if (xhr.status === 403) {
@@ -1183,9 +1200,11 @@
      */
     var resetPolicyMessage = function () {
         $('#policy-message').text('').empty();
-        $('#new-policy-message').hide();
-        $('#override-policy-message').hide();
-        $('#add-local-admin-message').hide();
+        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+            $('#new-policy-message').hide();
+            $('#override-policy-message').hide();
+            $('#add-local-admin-message').hide();
+        }
     };
 
     /**
@@ -1194,9 +1213,11 @@
     var resetPolicy = function () {
         resetPolicyMessage();
 
-        // reset button state
-        $('#delete-policy-button').prop('disabled', true);
-        $('#new-policy-user-button').prop('disabled', true);
+        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+            // reset button state
+            $('#delete-policy-button').prop('disabled', true);
+            $('#new-policy-user-button').prop('disabled', true);
+        }
 
         // reset the current policy
         $('#policy-table').removeData('policy');
@@ -1228,6 +1249,11 @@
         init: function () {
             initAddTenantToPolicyDialog();
             initPolicyTable();
+
+            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                $('#delete-policy-button').show();
+                $('#new-policy-user-button').show();
+            }
 
             $('#policy-refresh-button').on('click', function () {
                 loadPolicy();

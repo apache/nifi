@@ -325,7 +325,9 @@
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
                     // record whether we can configure the authorizer
+                    nfCanvas.setManagedAuthorizer(configDetails.supportsManagedAuthorizer);
                     nfCanvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
+                    nfCanvas.setConfigurableUsersAndGroups(configDetails.supportsConfigurableUsersAndGroups);
 
                     // init nfStorage
                     nfStorage.init();

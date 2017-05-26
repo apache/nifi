@@ -2559,6 +2559,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getDataTransferResource(port.getResource()))
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(false)
                 .action(RequestAction.WRITE)

@@ -110,6 +110,7 @@ public class ControllerResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getControllerResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)

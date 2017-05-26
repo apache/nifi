@@ -22,10 +22,15 @@ package org.apache.nifi.authorization;
 public class StandardAuthorizerInitializationContext implements AuthorizerInitializationContext {
 
     private final String identifier;
+    private final UserGroupProviderLookup userGroupProviderLookup;
+    private final AccessPolicyProviderLookup accessPolicyProviderLookup;
     private final AuthorizerLookup authorizerLookup;
 
-    public StandardAuthorizerInitializationContext(String identifier, AuthorizerLookup authorizerLookup) {
+    public StandardAuthorizerInitializationContext(String identifier, UserGroupProviderLookup userGroupProviderLookup,
+                                                   AccessPolicyProviderLookup accessPolicyProviderLookup, AuthorizerLookup authorizerLookup) {
         this.identifier = identifier;
+        this.userGroupProviderLookup = userGroupProviderLookup;
+        this.accessPolicyProviderLookup = accessPolicyProviderLookup;
         this.authorizerLookup = authorizerLookup;
     }
 
@@ -38,4 +43,13 @@ public class StandardAuthorizerInitializationContext implements AuthorizerInitia
         return authorizerLookup;
     }
 
+    @Override
+    public AccessPolicyProviderLookup getAccessPolicyProviderLookup() {
+        return accessPolicyProviderLookup;
+    }
+
+    @Override
+    public UserGroupProviderLookup getUserGroupProviderLookup() {
+        return userGroupProviderLookup;
+    }
 }

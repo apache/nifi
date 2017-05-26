@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web.security;
 
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
+import org.apache.nifi.authorization.util.UserGroupUtil;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Base AuthenticationProvider that provides common functionality to mapping identities.
@@ -34,12 +37,13 @@ public abstract class NiFiAuthenticationProvider implements AuthenticationProvid
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFiAuthenticationProvider.class);
 
     private NiFiProperties properties;
+    private Authorizer authorizer;
     private List<IdentityMapping> mappings;
 
     /**
      * @param properties the NiFiProperties instance
      */
-    public NiFiAuthenticationProvider(final NiFiProperties properties) {
+    public NiFiAuthenticationProvider(final NiFiProperties properties, final Authorizer authorizer) {
         this.properties = properties;
         this.mappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
     }
@@ -52,4 +56,7 @@ public abstract class NiFiAuthenticationProvider implements AuthenticationProvid
         return IdentityMappingUtil.mapIdentity(identity, mappings);
     }
 
+    protected Set<String> getUserGroups(final String identity) {
+        return UserGroupUtil.getUserGroups(authorizer, identity);
+    }
 }

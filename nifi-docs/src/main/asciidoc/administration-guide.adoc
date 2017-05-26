@@ -385,7 +385,32 @@ Authorizers are configured using two properties in the 'nifi.properties' file:
 Authorizers.xml Setup
 ~~~~~~~~~~~~~~~~~~~~~
 
-The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the FileAuthorizer, however, you can develop additional authorizers as extensions.  The FileAuthorizer has the following properties:
+The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the StandardManagedAuthorizer.  The managed authorizer is comprised of a UserGroupProvider
+and a AccessPolicyProvider.  The users, group, and access policies will be loaded and optionally configured through these providers.  The managed authorizer will make all access decisions based on
+these provided users, groups, and access policies.
+
+The default UserGroupProvider is the FileUserGroupProvider, however, you can develop additional UserGroupProviders as extensions.  The FileUserGroupProvider has the following properties:
+
+* Users File - The file where the FileUserGroupProvider stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
+* Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically be used to load the users and groups into the Users File.
+* Initial User Identity - The identity of a users and systems to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
+
+The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you can develop additional AccessPolicyProvider as extensions.  The FileAccessPolicyProvider has the following properties:
+
+* User Group Provider - The identifier for an User Group Provider defined above that will be used to access users and groups for use in the managed access policies.
+* Authorizations File - The file where the FileAccessPolicyProvider will store policies.
+* Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
+* Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
+* Node Identity - The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered these properties can be ignored. The name of each property must be unique, for example for a three node cluster: "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
+
+The identities configured in the Initial Admin Identity, the Node Identity properties, or discovered in a Legacy Authorized Users File must be available in the configured User Group Provider.
+
+The default authorizer is the StandardManagedAuthorizer, however, you can develop additional authorizers as extensions.  The StandardManagedAuthorizer has the following properties:
+
+* Access Policy Provider - The identifier for an Access Policy Provider defined above.
+
+The FileAuthorizer has been replaced with the more granular StandardManagedAuthorizer approach described above. However, it is still available for backwards compatibility reasons. The
+FileAuthorizer has the following properties.
 
 * Authorizations File - The file where the FileAuthorizer stores policies.  By default, the 'authorizations.xml' in the 'conf' directory is chosen.
 * Users File - The file where the FileAuthorizer stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
@@ -402,17 +427,29 @@ If you are setting up a secured NiFi instance for the first time, you must manua
 Here is an example LDAP entry using the name John Smith:
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">cn=John Smith,ou=people,dc=example,dc=com</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">cn=John Smith,ou=people,dc=example,dc=com</property>
         <property name="Legacy Authorized Users File"></property>
-        <!--
+
         <property name="Node Identity 1"></property>
-        <property name="Node Identity 2"></property>
-        -->
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -420,17 +457,29 @@ Here is an example LDAP entry using the name John Smith:
 Here is an example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">johnsmith@NIFI.APACHE.ORG</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
         <property name="Legacy Authorized Users File"></property>
-        <!--
+
         <property name="Node Identity 1"></property>
-        <property name="Node Identity 2"></property>
-        -->
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -449,13 +498,28 @@ Here is an example entry:
 
 ----
 <authorizers>
-    <authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File">/Users/johnsmith/config_files/authorized-users.xml</property>
+
+        <property name="Initial User Identity 1"></property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File">/Users/johnsmith/config_files/authorized-users.xml</property>
+
+        <property name="Node Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -514,15 +578,32 @@ cn=nifi-2,ou=people,dc=example,dc=com
 ----
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">johnsmith@NIFI.APACHE.ORG</property>
+        <property name="Initial User Identity 2">cn=nifi-1,ou=people,dc=example,dc=com</property>
+        <property name="Initial User Identity 3">cn=nifi-2,ou=people,dc=example,dc=com</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
         <property name="Legacy Authorized Users File"></property>
+
         <property name="Node Identity 1">cn=nifi-1,ou=people,dc=example,dc=com</property>
         <property name="Node Identity 2">cn=nifi-2,ou=people,dc=example,dc=com</property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -535,7 +616,11 @@ Now that initial authorizations have been created, additional users, groups and 
 Configuring Users & Access Policies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This section describes:
+Depending on the capabilities of the configured UserGroupProvider and AccessPolicyProvider the users, groups, and policies will be configurable in the UI. If the extensions are not configurable the
+users, groups, and policies will read-only in the UI. If the configured authorizer does not use UserGroupProvider and AccessPolicyProvider the users and policies may or may not be visible and
+configurable in the UI based on the underlying implementation.
+
+This section assumes the users, groups, and policies are configurable in the UI and describes:
 
 * How to create users and groups
 * How access policies are used to define authorizations

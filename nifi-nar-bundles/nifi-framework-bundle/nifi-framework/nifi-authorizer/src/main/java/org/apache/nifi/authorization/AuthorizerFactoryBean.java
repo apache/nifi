@@ -25,7 +25,6 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,12 +48,11 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Factory bean for loading the configured authorizer.
  */
-public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, AuthorizerLookup {
+public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizerFactoryBean.class);
     private static final String AUTHORIZERS_XSD = "/authorizers.xsd";
@@ -74,8 +72,19 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
 
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private final Map<String, UserGroupProvider> userGroupProviders = new HashMap<>();
+    private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
 
+    @Override
+    public UserGroupProvider getUserGroupProvider(String identifier) {
+        return userGroupProviders.get(identifier);
+    }
+
+    @Override
+    public AccessPolicyProvider getAccessPolicyProvider(String identifier) {
+        return accessPolicyProviders.get(identifier);
+    }
 
     @Override
     public Authorizer getAuthorizer(String identifier) {
@@ -98,6 +107,28 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 } else {
                     final Authorizers authorizerConfiguration = loadAuthorizersConfiguration();
 
+                    // create each user group provider
+                    for (final org.apache.nifi.authorization.generated.UserGroupProvider userGroupProvider : authorizerConfiguration.getUserGroupProvider()) {
+                        userGroupProviders.put(userGroupProvider.getIdentifier(), createUserGroupProvider(userGroupProvider.getIdentifier(), userGroupProvider.getClazz()));
+                    }
+
+                    // configure each user group provider
+                    for (final org.apache.nifi.authorization.generated.UserGroupProvider provider : authorizerConfiguration.getUserGroupProvider()) {
+                        final UserGroupProvider instance = userGroupProviders.get(provider.getIdentifier());
+                        instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
+                    }
+
+                    // create each access policy provider
+                    for (final org.apache.nifi.authorization.generated.AccessPolicyProvider accessPolicyProvider : authorizerConfiguration.getAccessPolicyProvider()) {
+                        accessPolicyProviders.put(accessPolicyProvider.getIdentifier(), createAccessPolicyProvider(accessPolicyProvider.getIdentifier(), accessPolicyProvider.getClazz()));
+                    }
+
+                    // configure each access policy provider
+                    for (final org.apache.nifi.authorization.generated.AccessPolicyProvider provider : authorizerConfiguration.getAccessPolicyProvider()) {
+                        final AccessPolicyProvider instance = accessPolicyProviders.get(provider.getIdentifier());
+                        instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
+                    }
+
                     // create each authorizer
                     for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
                         authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz()));
@@ -106,7 +137,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                     // configure each authorizer
                     for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
                         final Authorizer instance = authorizers.get(provider.getIdentifier());
-                        instance.onConfigured(loadAuthorizerConfiguration(provider));
+                        instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
                     }
 
                     // get the authorizer instance
@@ -144,6 +175,102 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         } else {
             throw new Exception("Unable to find the authorizer configuration file at " + authorizersConfigurationFile.getAbsolutePath());
         }
+    }
+
+    private UserGroupProvider createUserGroupProvider(final String identifier, final String userGroupProviderClassName) throws Exception {
+        // get the classloader for the specified user group provider
+        final List<Bundle> userGroupProviderBundles = ExtensionManager.getBundles(userGroupProviderClassName);
+
+        if (userGroupProviderBundles.size() == 0) {
+            throw new Exception(String.format("The specified user group provider class '%s' is not known to this nifi.", userGroupProviderClassName));
+        }
+
+        if (userGroupProviderBundles.size() > 1) {
+            throw new Exception(String.format("Multiple bundles found for the specified user group provider class '%s', only one is allowed.", userGroupProviderClassName));
+        }
+
+        final Bundle userGroupProviderBundle = userGroupProviderBundles.get(0);
+        final ClassLoader userGroupProviderClassLoader = userGroupProviderBundle.getClassLoader();
+
+        // get the current context classloader
+        final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+
+        final UserGroupProvider instance;
+        try {
+            // set the appropriate class loader
+            Thread.currentThread().setContextClassLoader(userGroupProviderClassLoader);
+
+            // attempt to load the class
+            Class<?> rawUserGroupProviderClass = Class.forName(userGroupProviderClassName, true, userGroupProviderClassLoader);
+            Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
+
+            // otherwise create a new instance
+            Constructor constructor = userGroupProviderClass.getConstructor();
+            instance = (UserGroupProvider) constructor.newInstance();
+
+            // method injection
+            performMethodInjection(instance, userGroupProviderClass);
+
+            // field injection
+            performFieldInjection(instance, userGroupProviderClass);
+
+            // call post construction lifecycle event
+            instance.initialize(new StandardAuthorizerInitializationContext(identifier, this, this, this));
+        } finally {
+            if (currentClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(currentClassLoader);
+            }
+        }
+
+        return UserGroupProviderFactory.withNarLoader(instance);
+    }
+
+    private AccessPolicyProvider createAccessPolicyProvider(final String identifier, final String accessPolicyProviderClassName) throws Exception {
+        // get the classloader for the specified access policy provider
+        final List<Bundle> accessPolicyProviderBundles = ExtensionManager.getBundles(accessPolicyProviderClassName);
+
+        if (accessPolicyProviderBundles.size() == 0) {
+            throw new Exception(String.format("The specified access policy provider class '%s' is not known to this nifi.", accessPolicyProviderClassName));
+        }
+
+        if (accessPolicyProviderBundles.size() > 1) {
+            throw new Exception(String.format("Multiple bundles found for the specified access policy provider class '%s', only one is allowed.", accessPolicyProviderClassName));
+        }
+
+        final Bundle accessPolicyProviderBundle = accessPolicyProviderBundles.get(0);
+        final ClassLoader accessPolicyProviderClassLoader = accessPolicyProviderBundle.getClassLoader();
+
+        // get the current context classloader
+        final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+
+        final AccessPolicyProvider instance;
+        try {
+            // set the appropriate class loader
+            Thread.currentThread().setContextClassLoader(accessPolicyProviderClassLoader);
+
+            // attempt to load the class
+            Class<?> rawAccessPolicyProviderClass = Class.forName(accessPolicyProviderClassName, true, accessPolicyProviderClassLoader);
+            Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
+
+            // otherwise create a new instance
+            Constructor constructor = accessPolicyClass.getConstructor();
+            instance = (AccessPolicyProvider) constructor.newInstance();
+
+            // method injection
+            performMethodInjection(instance, accessPolicyClass);
+
+            // field injection
+            performFieldInjection(instance, accessPolicyClass);
+
+            // call post construction lifecycle event
+            instance.initialize(new StandardAuthorizerInitializationContext(identifier, this, this, this));
+        } finally {
+            if (currentClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(currentClassLoader);
+            }
+        }
+
+        return AccessPolicyProviderFactory.withNarLoader(instance);
     }
 
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName) throws Exception {
@@ -184,26 +311,26 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
             performFieldInjection(instance, authorizerClass);
 
             // call post construction lifecycle event
-            instance.initialize(new StandardAuthorizerInitializationContext(identifier, this));
+            instance.initialize(new StandardAuthorizerInitializationContext(identifier, this, this, this));
         } finally {
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
         }
 
-        return withNarLoader(instance);
+        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance));
     }
 
-    private AuthorizerConfigurationContext loadAuthorizerConfiguration(final org.apache.nifi.authorization.generated.Authorizer authorizer) {
+    private AuthorizerConfigurationContext loadAuthorizerConfiguration(final String identifier, final List<Property> properties) {
         final Map<String, String> authorizerProperties = new HashMap<>();
 
-        for (final Property property : authorizer.getProperty()) {
+        for (final Property property : properties) {
             authorizerProperties.put(property.getName(), property.getValue());
         }
-        return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties);
+        return new StandardAuthorizerConfigurationContext(identifier, authorizerProperties);
     }
 
-    private void performMethodInjection(final Authorizer instance, final Class authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private void performMethodInjection(final Object instance, final Class authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : authorizerClass.getMethods()) {
             if (method.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
@@ -235,7 +362,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         }
     }
 
-    private void performFieldInjection(final Authorizer instance, final Class authorizerClass) throws IllegalArgumentException, IllegalAccessException {
+    private void performFieldInjection(final Object instance, final Class authorizerClass) throws IllegalArgumentException, IllegalAccessException {
         for (final Field field : authorizerClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(AuthorizerContext.class)) {
                 // make the method accessible
@@ -289,189 +416,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
             public void preDestruction() throws AuthorizerDestructionException {
             }
         };
-    }
-
-    /**
-     * Decorates the base authorizer to ensure the nar context classloader is used when invoking the underlying methods.
-     *
-     * @param baseAuthorizer base authorizer
-     * @return authorizer
-     */
-    public Authorizer withNarLoader(final Authorizer baseAuthorizer) {
-        if (baseAuthorizer instanceof AbstractPolicyBasedAuthorizer) {
-            AbstractPolicyBasedAuthorizer policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) baseAuthorizer;
-            return new AbstractPolicyBasedAuthorizer() {
-                @Override
-                public Group doAddGroup(Group group) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.addGroup(group);
-                    }
-                }
-
-                @Override
-                public Group getGroup(String identifier) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getGroup(identifier);
-                    }
-                }
-
-                @Override
-                public Group doUpdateGroup(Group group) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.updateGroup(group);
-                    }
-                }
-
-                @Override
-                public Group deleteGroup(Group group) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.deleteGroup(group);
-                    }
-                }
-
-                @Override
-                public Set<Group> getGroups() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getGroups();
-                    }
-                }
-
-                @Override
-                public User doAddUser(User user) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.addUser(user);
-                    }
-                }
-
-                @Override
-                public User getUser(String identifier) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getUser(identifier);
-                    }
-                }
-
-                @Override
-                public User getUserByIdentity(String identity) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getUserByIdentity(identity);
-                    }
-                }
-
-                @Override
-                public User doUpdateUser(User user) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.updateUser(user);
-                    }
-                }
-
-                @Override
-                public User deleteUser(User user) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.deleteUser(user);
-                    }
-                }
-
-                @Override
-                public Set<User> getUsers() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getUsers();
-                    }
-                }
-
-                @Override
-                public AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.addAccessPolicy(accessPolicy);
-                    }
-                }
-
-                @Override
-                public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getAccessPolicy(identifier);
-                    }
-                }
-
-                @Override
-                public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.updateAccessPolicy(accessPolicy);
-                    }
-                }
-
-                @Override
-                public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.deleteAccessPolicy(accessPolicy);
-                    }
-                }
-
-                @Override
-                public Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getAccessPolicies();
-                    }
-                }
-
-                @Override
-                public UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return policyBasedAuthorizer.getUsersAndAccessPolicies();
-                    }
-                }
-
-                @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        policyBasedAuthorizer.initialize(initializationContext);
-                    }
-                }
-
-                @Override
-                public void doOnConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        policyBasedAuthorizer.onConfigured(configurationContext);
-                    }
-                }
-
-                @Override
-                public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        baseAuthorizer.preDestruction();
-                    }
-                }
-            };
-        } else {
-            return new Authorizer() {
-                @Override
-                public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        return baseAuthorizer.authorize(request);
-                    }
-                }
-
-                @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        baseAuthorizer.initialize(initializationContext);
-                    }
-                }
-
-                @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        baseAuthorizer.onConfigured(configurationContext);
-                    }
-                }
-
-                @Override
-                public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                        baseAuthorizer.preDestruction();
-                    }
-                }
-            };
-        }
     }
 
     @Override
