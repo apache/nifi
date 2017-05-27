@@ -89,8 +89,11 @@ class CryptoUtilsTest {
     }
 
     private static boolean isRootUser() {
-        Process p = Runtime.getRuntime().exec("id -u")
-        p.exitValue() == 0
+        ProcessBuilder pb = new ProcessBuilder(["id", "-u"])
+        Process process = pb.start()
+        InputStream responseStream = process.getInputStream()
+        BufferedReader responseReader = new BufferedReader(new InputStreamReader(responseStream))
+        responseReader.text.trim() == "0"
     }
 
     @Test
