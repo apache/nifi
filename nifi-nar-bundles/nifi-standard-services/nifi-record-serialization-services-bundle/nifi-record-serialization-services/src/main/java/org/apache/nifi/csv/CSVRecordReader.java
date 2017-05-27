@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -43,17 +44,22 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 public class CSVRecordReader implements RecordReader {
     private final CSVParser csvParser;
     private final RecordSchema schema;
-    private final DateFormat dateFormat;
-    private final DateFormat timeFormat;
-    private final DateFormat timestampFormat;
+
+    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         this.schema = schema;
-        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+
+        LAZY_DATE_FORMAT = () -> df;
+        LAZY_TIME_FORMAT = () -> tf;
+        LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
         final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
@@ -114,7 +120,7 @@ public class CSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, () -> dateFormat, () -> timeFormat, () -> timestampFormat, fieldName);
+        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
     }
 
     @Override
