@@ -12,5 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.controller.repository.FileSystemRepository
-org.apache.nifi.controller.repository.VolatileContentRepository
+#
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# Explicitly declare java and json files as Unix style line endings
+# we may add other files if required
+*.java text eol=lf
+*.json text eol=lf
+
+# Set bat files to crlf
+*.bat text eol=crlf
+
+# Set asc files to crlf as per
+# https://www.ietf.org/mail-archive/web/openpgp/current/msg04453.html
+*.asc text eol=crlf
+
+#Handle particular text files in deterministic fashion
+nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/CompressedData/*.txt text eol=crlf
+nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestEncryptContent/*.txt eol=crlf
