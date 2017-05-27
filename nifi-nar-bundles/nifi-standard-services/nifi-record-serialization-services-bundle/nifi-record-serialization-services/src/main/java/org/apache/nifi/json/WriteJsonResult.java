@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -48,10 +49,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
-    private final DateFormat dateFormat;
-    private final DateFormat timeFormat;
-    private final DateFormat timestampFormat;
     private final JsonGenerator generator;
+    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
@@ -61,9 +62,13 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
 
-        this.dateFormat = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        this.timeFormat = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        this.timestampFormat = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+
+        LAZY_DATE_FORMAT = () -> df;
+        LAZY_TIME_FORMAT = () -> tf;
+        LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         this.generator = factory.createJsonGenerator(out);
         if (prettyPrint) {
@@ -164,7 +169,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, () -> dateFormat, () -> timeFormat, () -> timestampFormat, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
             return;
@@ -172,7 +177,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> dateFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_DATE_FORMAT);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -181,7 +186,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIME: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> timeFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIME_FORMAT);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -190,7 +195,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> timestampFormat);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIMESTAMP_FORMAT);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
