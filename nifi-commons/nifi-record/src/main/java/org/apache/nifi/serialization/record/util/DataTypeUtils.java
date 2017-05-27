@@ -34,8 +34,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -49,11 +50,38 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public class DataTypeUtils {
 
+    // Regexes for parsing Floting-Point numbers
+    private static final String OptionalSign  = "[\\-\\+]?";
+    private static final String Infinity = "(Infinity)";
+    private static final String NotANumber = "(NaN)";
+
+    private static final String Base10Digits  = "\\d+";
+    private static final String Base10Decimal  = "\\." + Base10Digits;
+    private static final String OptionalBase10Decimal  = Base10Decimal + "?";
+
+    private static final String Base10Exponent      = "[eE]" + OptionalSign + Base10Digits;
+    private static final String OptionalBase10Exponent = "(" + Base10Exponent + ")?";
+
+    private static final String  doubleRegex =
+        OptionalSign +
+        "(" +
+            Infinity + "|" +
+            NotANumber + "|"+
+            "(" + Base10Digits + Base10Decimal + ")" + "|" +
+            "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
+            "(" + Base10Decimal + OptionalBase10Exponent + ")" +
+        ")";
+
+    private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
+
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
+    private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
+    private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
+    private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
+
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
-        return convertType(value, dataType, () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat()), () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat()),
-            () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
+        return convertType(value, dataType, DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIMESTAMP_FORMAT, fieldName);
     }
 
     public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
@@ -616,10 +644,10 @@ public class DataTypeUtils {
     }
 
     public static boolean isDoubleTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, s -> Double.parseDouble(s));
+        return isNumberTypeCompatible(value, s -> isDouble(s));
     }
 
-    private static boolean isNumberTypeCompatible(final Object value, final Consumer<String> stringValueVerifier) {
+    private static boolean isNumberTypeCompatible(final Object value, final Predicate<String> stringPredicate) {
         if (value == null) {
             return false;
         }
@@ -629,12 +657,7 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            try {
-                stringValueVerifier.accept((String) value);
-                return true;
-            } catch (final NumberFormatException nfe) {
-                return false;
-            }
+            return stringPredicate.test((String) value);
         }
 
         return false;
@@ -657,7 +680,45 @@ public class DataTypeUtils {
     }
 
     public static boolean isFloatTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, s -> Float.parseFloat(s));
+        return isNumberTypeCompatible(value, s -> isFloatingPoint(s));
+    }
+
+    private static boolean isFloatingPoint(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (!FLOATING_POINT_PATTERN.matcher(value).matches()) {
+            return false;
+        }
+
+        // Just to ensure that the exponents are in range, etc.
+        try {
+            Float.parseFloat(value);
+        } catch (final NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean isDouble(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (!FLOATING_POINT_PATTERN.matcher(value).matches()) {
+            return false;
+        }
+
+        // Just to ensure that the exponents are in range, etc.
+        try {
+            Double.parseDouble(value);
+        } catch (final NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
     }
 
     public static Long toLong(final Object value, final String fieldName) {
@@ -694,15 +755,40 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            try {
-                Long.parseLong((String) value);
-                return true;
-            } catch (final NumberFormatException nfe) {
+            return isIntegral((String) value, Long.MIN_VALUE, Long.MAX_VALUE);
+        }
+
+        return false;
+    }
+
+    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        int initialPosition = 0;
+        final char firstChar = value.charAt(0);
+        if (firstChar == '+' || firstChar == '-') {
+            initialPosition = 1;
+
+            if (value.length() == 1) {
                 return false;
             }
         }
 
-        return false;
+        for (int i = initialPosition; i < value.length(); i++) {
+            if (!Character.isDigit(value.charAt(i))) {
+                return false;
+            }
+        }
+
+        try {
+            final long longValue = Long.parseLong(value);
+            return longValue >= minValue && longValue <= maxValue;
+        } catch (final NumberFormatException nfe) {
+            // In case the value actually exceeds the max value of a Long
+            return false;
+        }
     }
 
 
@@ -723,7 +809,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, s -> Integer.parseInt(s));
+        return isNumberTypeCompatible(value, s -> isIntegral(s, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
 
@@ -744,7 +830,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isShortTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, s -> Short.parseShort(s));
+        return isNumberTypeCompatible(value, s -> isIntegral(s, Short.MIN_VALUE, Short.MAX_VALUE));
     }
 
     public static Byte toByte(final Object value, final String fieldName) {
@@ -764,7 +850,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isByteTypeCompatible(final Object value) {
-        return isNumberTypeCompatible(value, s -> Byte.parseByte(s));
+        return isNumberTypeCompatible(value, s -> isIntegral(s, Byte.MIN_VALUE, Byte.MAX_VALUE));
     }
 
 
