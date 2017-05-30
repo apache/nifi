@@ -14,46 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
 
-import java.util.Map;
+package org.apache.nifi.controller.repository.metrics;
 
-public interface FlowFileEvent {
+import org.apache.nifi.controller.repository.FlowFileEvent;
 
-    String getComponentIdentifier();
+public interface EventContainer {
+    public void addEvent(FlowFileEvent event);
 
-    int getFlowFilesIn();
+    public void purgeEvents(long cutoffEpochMillis);
 
-    int getFlowFilesOut();
-
-    int getFlowFilesRemoved();
-
-    long getContentSizeIn();
-
-    long getContentSizeOut();
-
-    long getContentSizeRemoved();
-
-    long getBytesRead();
-
-    long getBytesWritten();
-
-    long getProcessingNanoseconds();
-
-    long getAverageLineageMillis();
-
-    long getAggregateLineageMillis();
-
-    int getFlowFilesReceived();
-
-    long getBytesReceived();
-
-    int getFlowFilesSent();
-
-    long getBytesSent();
-
-    int getInvocations();
-
-    Map<String, Long> getCounters();
-
+    public FlowFileEvent generateReport(String componentId, long sinceEpochMillis);
 }

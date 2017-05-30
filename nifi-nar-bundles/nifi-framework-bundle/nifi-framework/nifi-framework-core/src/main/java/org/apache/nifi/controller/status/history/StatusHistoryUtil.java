@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,9 +38,23 @@ public class StatusHistoryUtil {
         final Set<MetricDescriptor<?>> metricDescriptors = new LinkedHashSet<>();
         final LinkedHashMap<String, String> componentDetails = new LinkedHashMap<>(statusHistory.getComponentDetails());
 
+        final Set<String> metricNames = new HashSet<>();
         for (final StatusSnapshot snapshot : statusHistory.getStatusSnapshots()) {
-            snapshotDtos.add(StatusHistoryUtil.createStatusSnapshotDto(snapshot));
+            final StatusSnapshotDTO snapshotDto = StatusHistoryUtil.createStatusSnapshotDto(snapshot);
+            snapshotDtos.add(snapshotDto);
+            metricNames.addAll(snapshotDto.getStatusMetrics().keySet());
             metricDescriptors.addAll(snapshot.getStatusMetrics().keySet());
+        }
+
+        // We need to ensure that the 'aggregate snapshot' has an entry for every metric, including counters.
+        // So for any metric that has is not in the aggregate snapshot, add it with a value of 0
+        for (final StatusSnapshotDTO snapshotDto : snapshotDtos) {
+            final Map<String, Long> metrics = snapshotDto.getStatusMetrics();
+            for (final String metricName : metricNames) {
+                if (!metrics.containsKey(metricName)) {
+                    metrics.put(metricName, 0L);
+                }
+            }
         }
 
         final StatusHistoryDTO dto = new StatusHistoryDTO();

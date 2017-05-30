@@ -16,31 +16,38 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
+import org.apache.nifi.controller.status.history.MetricDescriptor;
+import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
+import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
+import org.apache.nifi.controller.status.history.ProcessorStatusDescriptor;
+import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescriptor;
+import org.apache.nifi.controller.status.history.StandardMetricDescriptor;
+import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
+import org.apache.nifi.controller.status.history.StatusHistoryUtil;
+import org.apache.nifi.controller.status.history.StatusSnapshot;
+import org.apache.nifi.controller.status.history.ValueMapper;
+import org.apache.nifi.web.api.dto.status.NodeStatusSnapshotsDTO;
+import org.apache.nifi.web.api.dto.status.StatusDescriptorDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
-import org.apache.nifi.controller.status.history.MetricDescriptor;
-import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
-import org.apache.nifi.controller.status.history.ProcessorStatusDescriptor;
-import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescriptor;
-import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
-import org.apache.nifi.controller.status.history.StatusHistoryUtil;
-import org.apache.nifi.controller.status.history.StatusSnapshot;
-import org.apache.nifi.web.api.dto.status.NodeStatusSnapshotsDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
-import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 
 public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
@@ -55,7 +62,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         this.componentStatusSnapshotMillis = componentStatusSnapshotMillis;
     }
 
-    private Map<String, MetricDescriptor<?>> getMetricDescriptors(final URI uri) {
+    private Map<String, MetricDescriptor<?>> getStandardMetricDescriptors(final URI uri) {
         final String path = uri.getPath();
 
         final Map<String, MetricDescriptor<?>> metricDescriptors = new HashMap<>();
@@ -87,16 +94,19 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
             return false;
         }
 
-        final Map<String, MetricDescriptor<?>> descriptors = getMetricDescriptors(uri);
+        final Map<String, MetricDescriptor<?>> descriptors = getStandardMetricDescriptors(uri);
         return descriptors != null && !descriptors.isEmpty();
     }
 
     @Override
     public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
-        final Map<String, MetricDescriptor<?>> metricDescriptors = getMetricDescriptors(uri);
+        final Map<String, MetricDescriptor<?>> metricDescriptors = getStandardMetricDescriptors(uri);
 
         final StatusHistoryEntity responseEntity = clientResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
 
+        final Set<StatusDescriptorDTO> fieldDescriptors = new LinkedHashSet<>();
+
+        boolean includeCounters = true;
         StatusHistoryDTO lastStatusHistory = null;
         final List<NodeStatusSnapshotsDTO> nodeStatusSnapshots = new ArrayList<>(successfulResponses.size());
         LinkedHashMap<String, String> noReadPermissionsComponentDetails = null;
@@ -109,6 +119,10 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
                 noReadPermissionsComponentDetails = nodeStatus.getComponentDetails();
             }
 
+            if (!Boolean.TRUE.equals(nodeResponseEntity.getCanRead())) {
+                includeCounters = false;
+            }
+
             final NodeIdentifier nodeId = nodeResponse.getNodeId();
             final NodeStatusSnapshotsDTO nodeStatusSnapshot = new NodeStatusSnapshotsDTO();
             nodeStatusSnapshot.setNodeId(nodeId.getId());
@@ -116,6 +130,38 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
             nodeStatusSnapshot.setApiPort(nodeId.getApiPort());
             nodeStatusSnapshot.setStatusSnapshots(nodeStatus.getAggregateSnapshots());
             nodeStatusSnapshots.add(nodeStatusSnapshot);
+
+            final List<StatusDescriptorDTO> descriptors = nodeStatus.getFieldDescriptors();
+            if (descriptors != null) {
+                fieldDescriptors.addAll(descriptors);
+            }
+        }
+
+        // If there's a status descriptor that is in the fieldDescriptors, but is not in the standard metric descriptors that we find,
+        // then it is a counter metric and should be included only if all StatusHistoryDTO's include counter metrics. This is done because
+        // we include counters in the status history only if the user is authorized to read the Processor. Since it's possible for the nodes
+        // to disagree about who is authorized (if, for example, the authorizer is asynchronously updated), then if any node indicates that
+        // the user is not authorized, we want to assume that the user is, in fact, not authorized.
+        if (includeCounters) {
+            for (final StatusDescriptorDTO descriptorDto : fieldDescriptors) {
+                final String fieldName = descriptorDto.getField();
+
+                if (!metricDescriptors.containsKey(fieldName)) {
+                    final ValueMapper<ProcessorStatus> valueMapper = s -> {
+                        final Map<String, Long> counters = s.getCounters();
+                        if (counters == null) {
+                            return 0L;
+                        }
+
+                        return counters.getOrDefault(descriptorDto.getField(), 0L);
+                    };
+
+                    final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(descriptorDto.getField(),
+                        descriptorDto.getLabel(), descriptorDto.getDescription(), Formatter.COUNT, valueMapper);
+
+                    metricDescriptors.put(fieldName, metricDescriptor);
+                }
+            }
         }
 
         final StatusHistoryDTO clusterStatusHistory = new StatusHistoryDTO();
@@ -124,8 +170,8 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         clusterStatusHistory.setNodeSnapshots(nodeStatusSnapshots);
         if (lastStatusHistory != null) {
             clusterStatusHistory.setComponentDetails(noReadPermissionsComponentDetails == null ? lastStatusHistory.getComponentDetails() : noReadPermissionsComponentDetails);
-            clusterStatusHistory.setFieldDescriptors(lastStatusHistory.getFieldDescriptors());
         }
+        clusterStatusHistory.setFieldDescriptors(new ArrayList<>(fieldDescriptors));
 
         final StatusHistoryEntity clusterEntity = new StatusHistoryEntity();
         clusterEntity.setStatusHistory(clusterStatusHistory);
@@ -176,6 +222,19 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     private StatusSnapshot createSnapshot(final StatusSnapshotDTO snapshotDto, final Map<String, MetricDescriptor<?>> metricDescriptors) {
         final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
         snapshot.setTimestamp(snapshotDto.getTimestamp());
+
+        // Default all metrics to 0 so that if a counter has not yet been registered, it will have a value of 0 instead
+        // of missing all together.
+        for (final MetricDescriptor<?> descriptor : metricDescriptors.values()) {
+            snapshot.addStatusMetric(descriptor, 0L);
+
+            // If the DTO doesn't have an entry for the metric, add with a value of 0.
+            final Map<String, Long> dtoMetrics = snapshotDto.getStatusMetrics();
+            final String field = descriptor.getField();
+            if (!dtoMetrics.containsKey(field)) {
+                dtoMetrics.put(field, 0L);
+            }
+        }
 
         final Map<String, Long> metrics = snapshotDto.getStatusMetrics();
         for (final Map.Entry<String, Long> entry : metrics.entrySet()) {

@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
+package org.apache.nifi.controller.repository.metrics;
+
+import java.util.Map;
+
+import org.apache.nifi.controller.repository.FlowFileEvent;
 
 public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
 
@@ -35,54 +39,10 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
     private int flowFilesSent;
     private long bytesSent;
     private int invocations;
+    private Map<String, Long> counters;
 
     public StandardFlowFileEvent(final String componentId) {
         this.componentId = componentId;
-    }
-
-    public StandardFlowFileEvent(final String componentId,
-            final int flowFilesIn, final long contentSizeIn,
-            final int flowFilesOut, final long contentSizeOut,
-            final int flowFilesRemoved, final long contentSizeRemoved,
-            final long bytesRead, final long bytesWritten,
-            final int flowFilesReceived, final long bytesReceived,
-            final int flowFilesSent, final long bytesSent,
-            final int invocations, final long averageLineageMillis, final long processingNanos) {
-        this.componentId = componentId;
-        this.flowFilesIn = flowFilesIn;
-        this.contentSizeIn = contentSizeIn;
-        this.flowFilesOut = flowFilesOut;
-        this.contentSizeOut = contentSizeOut;
-        this.flowFilesRemoved = flowFilesRemoved;
-        this.contentSizeRemoved = contentSizeRemoved;
-        this.bytesRead = bytesRead;
-        this.bytesWritten = bytesWritten;
-        this.invocations = invocations;
-        this.flowFilesReceived = flowFilesReceived;
-        this.bytesReceived = bytesReceived;
-        this.flowFilesSent = flowFilesSent;
-        this.bytesSent = bytesSent;
-        this.aggregateLineageMillis = averageLineageMillis;
-        this.processingNanos = processingNanos;
-    }
-
-    public StandardFlowFileEvent(final FlowFileEvent other) {
-        this.componentId = other.getComponentIdentifier();
-        this.flowFilesIn = other.getFlowFilesIn();
-        this.contentSizeIn = other.getContentSizeIn();
-        this.flowFilesOut = other.getFlowFilesOut();
-        this.contentSizeOut = other.getContentSizeOut();
-        this.flowFilesRemoved = other.getFlowFilesRemoved();
-        this.contentSizeRemoved = other.getContentSizeRemoved();
-        this.bytesRead = other.getBytesRead();
-        this.bytesWritten = other.getBytesWritten();
-        this.invocations = other.getInvocations();
-        this.flowFilesReceived = other.getFlowFilesReceived();
-        this.bytesReceived = other.getBytesReceived();
-        this.flowFilesSent = other.getFlowFilesSent();
-        this.bytesSent = other.getBytesSent();
-        this.aggregateLineageMillis = other.getAggregateLineageMillis();
-        this.processingNanos = other.getProcessingNanoseconds();
     }
 
     @Override
@@ -234,4 +194,12 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return aggregateLineageMillis;
     }
 
+    @Override
+    public Map<String, Long> getCounters() {
+        return counters;
+    }
+
+    public void setCounters(final Map<String, Long> counters) {
+        this.counters = counters;
+    }
 }
