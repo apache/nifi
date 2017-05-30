@@ -2943,6 +2943,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setFlowFilesSent(entry.getFlowFilesSent());
             status.setBytesSent(entry.getBytesSent());
             status.setFlowFilesRemoved(entry.getFlowFilesRemoved());
+            status.setCounters(entry.getCounters());
         }
 
         // Determine the run status and get any validation error... only validating while STOPPED

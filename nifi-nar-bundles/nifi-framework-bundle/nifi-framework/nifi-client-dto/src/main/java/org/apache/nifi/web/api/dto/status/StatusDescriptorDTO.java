@@ -101,5 +101,4 @@ public class StatusDescriptorDTO {
     public void setFormatter(String formatter) {
         this.formatter = formatter;
     }
-
 }

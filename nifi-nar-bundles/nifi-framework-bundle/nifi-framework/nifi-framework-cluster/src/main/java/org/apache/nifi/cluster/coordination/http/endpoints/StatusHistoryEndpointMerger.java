@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -25,19 +26,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
+
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
+import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.controller.status.history.ProcessorStatusDescriptor;
 import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescriptor;
+import org.apache.nifi.controller.status.history.StandardMetricDescriptor;
 import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.web.api.dto.status.NodeStatusSnapshotsDTO;
+import org.apache.nifi.web.api.dto.status.StatusDescriptorDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -97,6 +104,11 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
         final StatusHistoryEntity responseEntity = clientResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
 
+        final Comparator<StatusDescriptorDTO> comparator = (a, b) -> {
+            return a.getField().compareTo(b.getField());
+        };
+        final Set<StatusDescriptorDTO> fieldDescriptors = new TreeSet<>(comparator);
+
         StatusHistoryDTO lastStatusHistory = null;
         final List<NodeStatusSnapshotsDTO> nodeStatusSnapshots = new ArrayList<>(successfulResponses.size());
         LinkedHashMap<String, String> noReadPermissionsComponentDetails = null;
@@ -116,6 +128,20 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
             nodeStatusSnapshot.setApiPort(nodeId.getApiPort());
             nodeStatusSnapshot.setStatusSnapshots(nodeStatus.getAggregateSnapshots());
             nodeStatusSnapshots.add(nodeStatusSnapshot);
+
+            fieldDescriptors.addAll(nodeStatus.getFieldDescriptors());
+        }
+
+        for (final StatusDescriptorDTO descriptorDto : fieldDescriptors) {
+            final String fieldName = descriptorDto.getField();
+
+            if (!metricDescriptors.containsKey(fieldName)) {
+                final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(descriptorDto.getField(),
+                    descriptorDto.getLabel(), descriptorDto.getDescription(), Formatter.valueOf(descriptorDto.getFormatter()),
+                    s -> s.getCounters() == null ? null : s.getCounters().get(descriptorDto.getField()));
+
+                metricDescriptors.put(fieldName, metricDescriptor);
+            }
         }
 
         final StatusHistoryDTO clusterStatusHistory = new StatusHistoryDTO();
@@ -124,8 +150,8 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         clusterStatusHistory.setNodeSnapshots(nodeStatusSnapshots);
         if (lastStatusHistory != null) {
             clusterStatusHistory.setComponentDetails(noReadPermissionsComponentDetails == null ? lastStatusHistory.getComponentDetails() : noReadPermissionsComponentDetails);
-            clusterStatusHistory.setFieldDescriptors(lastStatusHistory.getFieldDescriptors());
         }
+        clusterStatusHistory.setFieldDescriptors(new ArrayList<>(fieldDescriptors));
 
         final StatusHistoryEntity clusterEntity = new StatusHistoryEntity();
         clusterEntity.setStatusHistory(clusterStatusHistory);

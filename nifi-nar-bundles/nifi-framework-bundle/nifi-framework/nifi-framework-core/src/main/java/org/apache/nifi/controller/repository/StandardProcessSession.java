@@ -57,6 +57,7 @@ import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -108,7 +109,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<String, StandardFlowFileEvent> connectionCounts = new HashMap<>();
     private final Map<FlowFileQueue, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-    private final Map<String, Long> counters = new HashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new HashMap<>();
     private final ProcessContext context;
     private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();// set used to track what is currently being operated on to prevent logic failures if recursive calls occurring
@@ -116,6 +116,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
     private final long sessionId;
     private final String connectableDescription;
+
+    private Map<String, Long> countersOnCommit;
+    private Map<String, Long> immediateCounters;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
     private final Set<String> createdFlowFiles = new HashSet<>();
@@ -438,8 +441,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
             }
 
-            for (final Map.Entry<String, Long> entry : checkpoint.counters.entrySet()) {
-                adjustCounter(entry.getKey(), entry.getValue(), true);
+            for (final Map.Entry<String, Long> entry : checkpoint.countersOnCommit.entrySet()) {
+                context.adjustCounter(entry.getKey(), entry.getValue());
             }
 
             acknowledgeRecords();
@@ -533,6 +536,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
             flowFileEvent.setAggregateLineageMillis(lineageMillis);
 
+            final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
+            flowFileEvent.setCounters(counters);
+
             context.getFlowFileEventRepository().updateRepository(flowFileEvent);
 
             for (final FlowFileEvent connectionEvent : checkpoint.connectionCounts.values()) {
@@ -541,6 +547,23 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
         }
+    }
+
+    private Map<String, Long> combineCounters(final Map<String, Long> first, final Map<String, Long> second) {
+        if (first == null && second == null) {
+            return null;
+        }
+        if (first == null) {
+            return second;
+        }
+        if (second == null) {
+            return first;
+        }
+
+        final Map<String, Long> combined = new HashMap<>();
+        combined.putAll(first);
+        combined.putAll(second);
+        return combined;
     }
 
     private void addEventType(final Map<String, Set<ProvenanceEventType>> map, final String id, final ProvenanceEventType eventType) {
@@ -1013,6 +1036,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
         flowFileEvent.setBytesRead(bytesRead);
         flowFileEvent.setBytesWritten(bytesWritten);
+        flowFileEvent.setCounters(immediateCounters);
 
         // update event repository
         try {
@@ -1106,7 +1130,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         connectionCounts.clear();
         createdFlowFiles.clear();
         removedFlowFiles.clear();
-        counters.clear();
+        if (countersOnCommit != null) {
+            countersOnCommit.clear();
+        }
+        if (immediateCounters != null) {
+            immediateCounters.clear();
+        }
 
         generatedProvenanceEvents.clear();
         forkEventBuilders.clear();
@@ -1441,12 +1470,24 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void adjustCounter(final String name, final long delta, final boolean immediate) {
+        final Map<String, Long> counters;
         if (immediate) {
-            context.adjustCounter(name, delta);
-            return;
+            if (immediateCounters == null) {
+                immediateCounters = new HashMap<>();
+            }
+            counters = immediateCounters;
+        } else {
+            if (countersOnCommit == null) {
+                countersOnCommit = new HashMap<>();
+            }
+            counters = countersOnCommit;
         }
 
         adjustCounter(name, delta, counters);
+
+        if (immediate) {
+            context.adjustCounter(name, delta);
+        }
     }
 
     private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
@@ -3216,7 +3257,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
         private final Map<String, StandardFlowFileEvent> connectionCounts = new HashMap<>();
         private final Map<FlowFileQueue, Set<FlowFileRecord>> unacknowledgedFlowFiles = new HashMap<>();
-        private final Map<String, Long> counters = new HashMap<>();
+
+        private Map<String, Long> countersOnCommit = new HashMap<>();
+        private Map<String, Long> immediateCounters = new HashMap<>();
 
         private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
         private final Set<String> removedFlowFiles = new HashSet<>();
@@ -3242,7 +3285,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.records.putAll(session.records);
             this.connectionCounts.putAll(session.connectionCounts);
             this.unacknowledgedFlowFiles.putAll(session.unacknowledgedFlowFiles);
-            this.counters.putAll(session.counters);
+
+            if (session.countersOnCommit != null) {
+                if (this.countersOnCommit == null) {
+                    this.countersOnCommit = new HashMap<>();
+                }
+
+                this.countersOnCommit.putAll(session.countersOnCommit);
+            }
+
+            if (session.immediateCounters != null) {
+                if (this.immediateCounters == null) {
+                    this.immediateCounters = new HashMap<>();
+                }
+
+                this.immediateCounters.putAll(session.immediateCounters);
+            }
 
             this.deleteOnCommit.putAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);
