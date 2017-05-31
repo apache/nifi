@@ -107,7 +107,7 @@ public class PutAzureEventHubTest {
         }
 
         @Override
-        protected void sendMessage(final byte[] buffer) throws ProcessException {
+        protected void sendMessage(final byte[] buffer, final String partitionId) throws ProcessException {
             receivedBuffer = buffer;
         }
     }
