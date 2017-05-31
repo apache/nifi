@@ -34,7 +34,7 @@ public class HBaseTestUtil {
         boolean foundPut = false;
 
         for (final PutFlowFile put : puts) {
-            if (!row.equals(put.getRow())) {
+            if (!row.equals(new String(put.getRow()))) {
                 continue;
             }
 
@@ -49,7 +49,7 @@ public class HBaseTestUtil {
                 // determine if we have the current expected column
                 boolean foundColumn = false;
                 for (PutColumn putColumn : put.getColumns()) {
-                    if (columnFamily.equals(putColumn.getColumnFamily()) && entry.getKey().equals(putColumn.getColumnQualifier())
+                    if (columnFamily.equals(new String(putColumn.getColumnFamily())) && entry.getKey().equals(new String(putColumn.getColumnQualifier()))
                             && Arrays.equals(entry.getValue(), putColumn.getBuffer())) {
                         foundColumn = true;
                         break;
