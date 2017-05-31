@@ -47,7 +47,6 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
         bb.put((byte) LATEST_PROTOCOL_VERSION);
         bb.putLong(id);
         bb.putInt(version);
-        bb.put((byte) 0); // We always use generic records
 
         out.write(bb.array());
     }
