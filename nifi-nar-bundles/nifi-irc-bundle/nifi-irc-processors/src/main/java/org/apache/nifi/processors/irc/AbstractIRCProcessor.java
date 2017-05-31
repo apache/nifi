@@ -20,7 +20,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.irc.IRCClientService;
-import org.apache.nifi.irc.StandardIRCClientService;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -39,7 +38,7 @@ abstract class AbstractIRCProcessor extends AbstractSessionFactoryProcessor {
             .name("IRC_CLIENT_SERVICE")
             .displayName("IRC Client Service")
             .description("The IRC Client Service to use with this client")
-            .identifiesControllerService(StandardIRCClientService.class)
+            .identifiesControllerService(IRCClientService.class)
             .required(true)
             .build();
     public static PropertyDescriptor IRC_CHANNEL = new PropertyDescriptor.Builder()

@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"publish", "irc"})
 @TriggerSerially
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 
 @CapabilityDescription("This processor implements a IRC client allowing nifi to publish flowfile contents into a " +
         "predefined IRC channel. " + "\n" +

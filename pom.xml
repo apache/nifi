@@ -1429,6 +1429,24 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-irc-client-service-api-nar</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-irc-client-service-nar</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-irc-processors-nar</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-parquet-nar</artifactId>
                 <version>1.3.0-SNAPSHOT</version>
                 <type>nar</type>
