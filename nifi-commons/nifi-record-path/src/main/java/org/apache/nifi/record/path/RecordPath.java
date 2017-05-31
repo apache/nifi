@@ -54,10 +54,11 @@ public interface RecordPath {
      * against a Record via {@link #evaluate(Record)} and then have a Relative RecordPath evaluated against
      * the results. This method will throw an Exception if this RecordPath is an Absolute RecordPath.
      *
+     * @param record the Record to evaluate
      * @param contextNode the context node that represents where in the Record the 'current node' or 'context node' is
      * @return a RecordPathResult that contains a FieldValue for each field that matches
      */
-    RecordPathResult evaluate(FieldValue contextNode);
+    RecordPathResult evaluate(Record record, FieldValue contextNode);
 
     /**
      * Indicates whether the RecordPath is an Absolute Path (starts with a '/' character) or a Relative Path (starts with a '.' character).

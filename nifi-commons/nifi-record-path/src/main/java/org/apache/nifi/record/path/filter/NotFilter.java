@@ -22,8 +22,17 @@ import java.util.stream.Stream;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 
-public interface RecordPathFilter {
+public class NotFilter implements RecordPathFilter {
+    private final RecordPathFilter filter;
 
-    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
+    public NotFilter(final RecordPathFilter filter) {
+        this.filter = filter;
+    }
+
+    @Override
+    public Stream<FieldValue> filter(final RecordPathEvaluationContext context, final boolean invert) {
+        return filter.filter(context, !invert);
+    }
+
 
 }

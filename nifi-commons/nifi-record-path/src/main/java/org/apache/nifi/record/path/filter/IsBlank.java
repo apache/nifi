@@ -17,13 +17,25 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-public interface RecordPathFilter {
+public class IsBlank extends FunctionFilter {
 
-    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
 
+    public IsBlank(RecordPathSegment recordPath) {
+        super(recordPath);
+    }
+
+    @Override
+    protected boolean test(final FieldValue fieldValue, final RecordPathEvaluationContext context) {
+        final String fieldVal = DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+        if (fieldVal == null) {
+            return true;
+        }
+
+        return fieldVal.trim().isEmpty();
+    }
 }

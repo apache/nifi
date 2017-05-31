@@ -37,10 +37,10 @@ public class EqualsFilter extends BinaryOperatorFilter {
             if (rhsValue instanceof Number) {
                 return compareNumbers((Number) lhsValue, (Number) rhsValue);
             } else {
-                return false;
+                return lhsValue.toString().equals(rhsValue.toString());
             }
         } else if (rhsValue instanceof Number) {
-            return false;
+            return lhsValue.toString().equals(rhsValue.toString());
         }
 
         return lhsValue.equals(rhsValue);

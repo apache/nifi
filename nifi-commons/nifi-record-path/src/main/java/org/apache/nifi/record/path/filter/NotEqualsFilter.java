@@ -30,7 +30,7 @@ public class NotEqualsFilter extends BinaryOperatorFilter {
     protected boolean test(final FieldValue fieldValue, final Object rhsValue) {
         final Object lhsValue = fieldValue.getValue();
         if (lhsValue == null) {
-            return rhsValue != null;
+            return false;
         }
 
         if (lhsValue instanceof Number) {
