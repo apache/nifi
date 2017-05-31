@@ -38,9 +38,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -67,14 +66,13 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         final long startNanos = System.nanoTime();
 
-        String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        String containerName = context.getProperty(Azure.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
 
         String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudStorageAccount storageAccount = createStorageConnection(context, flowFile);
-            CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
+            CloudBlobClient blobClient = Azure.createCloudBlobClient(context, getLogger());
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);

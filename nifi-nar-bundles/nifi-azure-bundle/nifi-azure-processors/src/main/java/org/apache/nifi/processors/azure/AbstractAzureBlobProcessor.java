@@ -17,23 +17,52 @@
 package org.apache.nifi.processors.azure;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public abstract class AbstractAzureBlobProcessor extends AbstractAzureProcessor {
+public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor BLOB = new PropertyDescriptor.Builder().name("blob").displayName("Blob").description("The filename of the blob")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).defaultValue("${azure.blobname}").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All successfully processed FlowFiles are routed to this relationship").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Unsuccessful operations will be transferred to the failure relationship.").build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections
-            .unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, BLOB));
+            .unmodifiableList(Arrays.asList(
+                    Azure.CONTAINER,
+                    Azure.PROP_SAS_TOKEN,
+                    Azure.ACCOUNT_NAME,
+                    Azure.ACCOUNT_KEY,
+                    BLOB));
+
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    AbstractAzureBlobProcessor.REL_SUCCESS,
+                    AbstractAzureBlobProcessor.REL_FAILURE)));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        return Azure.validateCredentialProperties(validationContext);
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
 }

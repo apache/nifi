@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.nifi.processors.azure.AbstractAzureProcessor;
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -55,19 +55,19 @@ public class ITFetchAzureBlobStorage {
         try {
             runner.setValidateExpressionUsage(true);
 
-            runner.setProperty(AzureConstants.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureConstants.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureConstants.CONTAINER, containerName);
+            runner.setProperty(Azure.ACCOUNT_NAME, AzureTestUtil.getAccountName());
+            runner.setProperty(Azure.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
+            runner.setProperty(Azure.CONTAINER, containerName);
             runner.setProperty(FetchAzureBlobStorage.BLOB, "${azure.blobname}");
 
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("azure.primaryUri", "https://" + AzureTestUtil.getAccountName() + ".blob.core.windows.net/" + containerName + "/" + AzureTestUtil.TEST_BLOB_NAME);
             attributes.put("azure.blobname", AzureTestUtil.TEST_BLOB_NAME);
-            attributes.put("azure.blobtype", AzureConstants.BLOCK);
+            attributes.put("azure.blobtype", Azure.BLOCK);
             runner.enqueue(new byte[0], attributes);
             runner.run();
 
-            runner.assertAllFlowFilesTransferred(AbstractAzureProcessor.REL_SUCCESS, 1);
+            runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
             List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
             for (MockFlowFile flowFile : flowFilesForRelationship) {
                 flowFile.assertContentEquals("0123456789".getBytes());
