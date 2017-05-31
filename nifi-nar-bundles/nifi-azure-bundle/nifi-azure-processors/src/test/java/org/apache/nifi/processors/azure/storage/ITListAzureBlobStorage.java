@@ -23,7 +23,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.UUID;
 
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -49,9 +49,9 @@ public class ITListAzureBlobStorage {
         final TestRunner runner = TestRunners.newTestRunner(new ListAzureBlobStorage());
 
         try {
-            runner.setProperty(AzureConstants.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureConstants.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureConstants.CONTAINER, containerName);
+            runner.setProperty(Azure.ACCOUNT_NAME, AzureTestUtil.getAccountName());
+            runner.setProperty(Azure.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
+            runner.setProperty(Azure.CONTAINER, containerName);
 
             // requires multiple runs to deal with List processor checking
             runner.run(3);

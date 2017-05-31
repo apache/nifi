@@ -25,7 +25,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 import org.apache.nifi.util.file.FileUtils;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -67,7 +67,7 @@ class AzureTestUtil {
     }
 
     static CloudBlobContainer getContainer(String containerName) throws InvalidKeyException, URISyntaxException, StorageException {
-        String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, getAccountName(), getAccountKey());
+        String storageConnectionString = String.format(Azure.FORMAT_BLOB_CONNECTION_STRING, getAccountName(), getAccountKey());
         CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
         CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
         return blobClient.getContainerReference(containerName);
