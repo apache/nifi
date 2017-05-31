@@ -21,9 +21,20 @@ import java.util.stream.Stream;
 
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.paths.RecordPathSegment;
 
-public interface RecordPathFilter {
+public abstract class FunctionFilter implements RecordPathFilter {
+    private final RecordPathSegment recordPath;
 
-    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
+    protected FunctionFilter(final RecordPathSegment recordPath) {
+        this.recordPath = recordPath;
+    }
 
+    @Override
+    public Stream<FieldValue> filter(final RecordPathEvaluationContext context, final boolean invert) {
+        return recordPath.evaluate(context)
+            .filter(fv -> invert ? !test(fv, context) : test(fv, context));
+    }
+
+    protected abstract boolean test(FieldValue fieldValue, final RecordPathEvaluationContext context);
 }

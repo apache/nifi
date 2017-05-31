@@ -15,15 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.record.path.filter;
+package org.apache.nifi.record.path.util;
 
-import java.util.stream.Stream;
+import java.util.Optional;
 
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-public interface RecordPathFilter {
+public class RecordPathUtils {
 
-    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
+    public static String getFirstStringValue(final RecordPathSegment segment, final RecordPathEvaluationContext context) {
+        final Optional<FieldValue> stringFieldValue = segment.evaluate(context).findFirst();
+        if (!stringFieldValue.isPresent()) {
+            return null;
+        }
 
+        final String stringValue = DataTypeUtils.toString(stringFieldValue.get().getValue(), (String) null);
+        if (stringValue == null) {
+            return null;
+        }
+
+        return stringValue;
+    }
 }

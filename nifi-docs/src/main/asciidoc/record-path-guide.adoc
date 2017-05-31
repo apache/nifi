@@ -157,6 +157,15 @@ when we reference an Array field and want to only reference some of the elements
 specific entries in the Map; or when we want to reference a Record only if it adheres to some criteria. We can accomplish this by providing our criteria to the
 RecordPath within square brackets (using the `[` and `]` characters). We will go over each of these cases below.
 
+[[function_usage]]
+== Function Usage
+
+In addition to retrieving a field from a Record, as outlined above in the <<filters>> section, we sometimes need to refine which fields we want to select. Or we
+may want to return a modified version of a field. To do this, we rely on functions. The syntax for a function is <function name> <open parenthesis> <args> <close parenthesis>,
+where <args> represents one or more arguments separated by commas. An argument may be a string literal (such as `'hello'`) or a number literal (such as `48`), or could be
+a relative or absolute RecordPath (such as `./name` or `/id`). Additionally, we can use functions within a filter. For example, we could use a RecordPath such as
+`/person[ isEmpty('name') ]/id` to retrieve the `id` field of any person whose name is empty. A listing of functions that are available and their corresponding documentation
+can be found below in the <<functions>> section.
 
 [[arrays]]
 === Arrays
@@ -291,3 +300,246 @@ value of the `preferredState` field.
 Additionally, we can write a RecordPath that references the "city" field of any record whose state is "NJ" by using the parent operator (`..`): `/*/city[../state = 'NJ']`.
 
 
+
+[[functions]]
+== Functions
+
+In the <<function_usage>> section above, we describe how and why to use a function in RecordPath. Here, we will describe the different functions that are available,
+what they do, and how they work. Functions can be divided into two groups: <<standalone_functions>>, which can be the 'root' of a RecordPath, such as `substringAfter( /name, ' ' )`
+and <<filter_functions>>, which are to be used as a filter, such as `/name[ contains('John') ]`. A Standalone Function can also be used within a filter but does not return a `boolean`
+(`true` or `false` value) and therefore cannot itself be an entire filter. For example, we can use a path such as `/name[ substringAfter(., ' ') = 'Doe']` but we cannot simply use
+`/name[ substringAfter(., ' ') ]` because doing so doesn't really make sense, as filters must be boolean values.
+
+Unless otherwise noted, all of the examples below are written to operate on the following Record:
+
+----
+{
+	"name": "John Doe",
+	"workAddress": {
+		"number": "123",
+		"street": "5th Avenue",
+		"city": "New York",
+		"state": "NY",
+		"zip": "10020"
+	},
+	"homeAddress": {
+		"number": "456",
+		"street": "Grand St",
+		"city": "Jersey City",
+		"state": "NJ",
+		"zip": "07304"
+	},
+	"details": {
+		"position": "Dataflow Engineer",
+		"preferredState": "NY",
+		"employer": "",
+		"vehicle": null,
+		"phrase": "   "
+	}
+}
+----
+
+
+[[standalone_functions]]
+== Standalone Functions
+
+=== substring
+
+The substring function returns a portion of a String value. The function requires 3 arguments: The value to take a portion of, the 0-based start index (inclusive),
+and the 0-based end index (exclusive). The start index and end index can be `0` to indicate the first character of a String, a positive integer to indicate the nth index
+into the string, or a negative integer. If the value is a negative integer, say `-n`, then this represents the `n`th character for the end. A value of `-1` indicates the last
+character in the String. So, for example, `substring( 'hello world', 0, -1 )` means to take the string `hello`, and return characters 0 through the last character, so the return
+value will be `hello world`.
+
+|==========================================================
+| RecordPath | Return value
+| `substring( /name, 0, -1 )` | John Doe
+| `substring( /name, 0, -5 )` | John
+| `substring( /name, 1000, 1005 )` | <empty string>
+| `substring( /name, 0, 1005)` | John Doe
+| `substring( /name, -50, -1)` | <empty string>
+|==========================================================
+
+
+
+=== substringAfter
+
+Returns the portion of a String value that occurs after the first occurrence of some other value.
+
+|==========================================================
+| RecordPath | Return value
+| `substringAfter( /name, ' ' )` | Doe
+| `substringAfter( /name, 'o' )` | hn Doe
+| `substringAfter( /name, '' )` | John Doe
+| `substringAfter( /name, 'xyz' )` | John Doe
+|==========================================================
+
+
+=== substringAfterLast
+
+Returns the portion of a String value that occurs after the last occurrence of some other value.
+
+|==========================================================
+| RecordPath | Return value
+| `substringAfterLast( /name, ' ' )` | Doe
+| `substringAfterLast( /name, 'o' )` | e
+| `substringAfterLast( /name, '' )` | John Doe
+| `substringAfterLast( /name, 'xyz' )` | John Doe
+|==========================================================
+
+
+
+=== substringBefore
+
+Returns the portion of a String value that occurs before the first occurrence of some other value.
+
+|==========================================================
+| RecordPath | Return value
+| `substringBefore( /name, ' ' )` | John
+| `substringBefore( /name, 'o' )` | J
+| `substringBefore( /name, '' )` | John Doe
+| `substringBefore( /name, 'xyz' )` | John Doe
+|==========================================================
+
+
+
+=== substringBeforeLast
+
+Returns the portion of a String value that occurs before the last occurrence of some other value.
+
+|==========================================================
+| RecordPath | Return value
+| `substringBeforeLast( /name, ' ' )` | John
+| `substringBeforeLast( /name, 'o' )` | John D
+| `substringBeforeLast( /name, '' )` | John Doe
+| `substringBeforeLast( /name, 'xyz' )` | John Doe
+|==========================================================
+
+
+
+=== replace
+
+Replaces all occurrences of a String with another String.
+
+|==========================================================
+| RecordPath | Return value
+| `replace( /name, 'o', 'x' )` | Jxhn Dxe
+| `replace( /name, 'o', 'xyz' )` | Jxyzhn Dxyze
+| `replace( /name, 'xyz', 'zyx' )` | John Doe
+| `replace( /name, 'Doe', /workAddress/city )` | John New York
+|==========================================================
+
+
+
+=== replaceRegex
+
+Evaluates a Regular Expression against the contents of a String value and replaces any match with another value.
+This function requires 3 arguments: the String to run the regular expression against, the regular expression to run,
+and the replacement value. The replacement value may optionally use back-references, such as `$1` and `${named_group}`
+
+|==================================================================
+| RecordPath | Return value
+| `replaceRegex( /name, 'o', 'x' )` | Jxhn Dxe
+| `replaceRegex( /name, 'o', 'xyz' )` | Jxyzhn Dxyze
+| `replaceRegex( /name, 'xyz', 'zyx' )` | John Doe
+| `replaceRegex( /name, '\s+.*', /workAddress/city )` | John New York
+| `replaceRegex(/name, '([JD])', '$1x')` | Jxohn Dxoe
+| `replaceRegex(/name, '(?<hello>[JD])', '${hello}x')` | Jxohn Dxoe 
+|==================================================================
+
+
+
+[[filter_functions]]
+== Filter Functions
+
+=== contains
+
+Returns `true` if a String value contains the provided substring, `false` otherwise
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[contains(., 'o')]` | John Doe
+| `/name[contains(., 'x')]` | <returns no results>
+| `/name[contains( ../workAddress/state, /details/preferredState )]` | John Doe
+|==============================================================================
+
+
+
+=== matchesRegex
+
+Evaluates a Regular Expression against the contents of a String value and returns `true` if the Regular Expression
+exactly matches the String value, `false` otherwise.
+This function requires 2 arguments: the String to run the regular expression against, and the regular expression to run.
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[matchesRegex(., 'John Doe')]` | John Doe
+| `/name[matchesRegex(., 'John')]` | <returns no results>
+| `/name[matchesRegex(., '.* Doe' )]` | John Doe
+|==============================================================================
+
+
+
+=== startsWith
+
+Returns `true` if a String value starts with the provided substring, `false` otherwise
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[startsWith(., 'J')]` | John Doe
+| `/name[startsWith(., 'x')]` | <returns no results>
+| `/name[startsWith(., 'xyz')]` | <returns no results>
+| `/name[startsWith(., '')]` | John Doe
+|==============================================================================
+
+
+=== endsWith
+
+Returns `true` if a String value ends with the provided substring, `false` otherwise
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[endsWith(., 'e')]` | John Doe
+| `/name[endsWith(., 'x')]` | <returns no results>
+| `/name[endsWith(., 'xyz')]` | <returns no results>
+| `/name[endsWith(., '')]` | John Doe
+|==============================================================================
+
+
+=== not
+
+Inverts the value of the function or expression that is passed into the `not` function.
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[not(endsWith(., 'x'))]` | John Doe
+| `/name[not(contains(., 'x'))]` | John Doe
+| `/name[not(endsWith(., 'e'))]` | <returns no results>
+|==============================================================================
+
+
+=== isEmpty
+
+Returns `true` if the provided value is either null or is an empty string.
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[isEmpty(/details/employer)]` | John Doe
+| `/name[isEmpty(/details/vehicle)]` | John Doe
+| `/name[isEmpty(/details/phase)]` | <returns no results>
+| `/name[isEmpty(.)]` | <returns no results>
+|==============================================================================
+
+
+=== isBlank
+
+Returns `true` if the provided value is either null or is an empty string or a string that consists
+only of white space (spaces, tabs, carriage returns, and new-line characters).
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[isBlank(/details/employer)]` | John Doe
+| `/name[isBlank(/details/vehicle)]` | John Doe
+| `/name[isBlank(/details/phase)]` | John Doe
+| `/name[isBlank(.)]` | <returns no results>
+|==============================================================================

@@ -43,17 +43,12 @@ public class PredicatePath extends RecordPathSegment {
             context.setContextNode(fieldVal);
             try {
                 // Really what we want to do is filter out Stream<FieldValue> but that becomes very difficult
-                // to implement for the RecordPathFilter's. So, instead, we pass the FieldValue to field and
+                // to implement for the RecordPathFilter's. So, instead, we pass
                 // the RecordPathEvaluationContext and receive back a Stream<FieldValue>. Since this is a Predicate,
                 // though, we don't want to transform our Stream - we just want to filter it. So we handle this by
                 // mapping the result back to fieldVal. And since this predicate shouldn't return the same field multiple
-                // times, we will limit the stream to 1 element. We also filter out any FieldValue whose value is null.
-                // This is done because if we have a predicate like [./iDoNotExist != 'hello'] then the relative path will
-                // return a value of null and that will be compared to 'hello'. Since they are not equal, the NotEqualsFilter
-                // will return 'true', so we will get back a FieldValue with a null value. This should not make the Predicate
-                // true.
-                return filter.filter(fieldVal, context)
-                    .filter(fv -> fv.getValue() != null)
+                // times, we will limit the stream to 1 element.
+                return filter.filter(context, false)
                     .limit(1)
                     .map(ignore -> fieldVal);
             } finally {

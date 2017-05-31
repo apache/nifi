@@ -25,7 +25,6 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.StandardRecordPathEvaluationContext;
-import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 
 public abstract class RecordPathSegment implements RecordPath {
@@ -33,7 +32,7 @@ public abstract class RecordPathSegment implements RecordPath {
     private final RecordPathSegment parentPath;
     private final boolean absolute;
 
-    RecordPathSegment(final String path, final RecordPathSegment parentPath, final boolean absolute) {
+    public RecordPathSegment(final String path, final RecordPathSegment parentPath, final boolean absolute) {
         this.path = path;
         this.parentPath = parentPath;
         this.absolute = absolute;
@@ -98,34 +97,8 @@ public abstract class RecordPathSegment implements RecordPath {
     }
 
     @Override
-    public final RecordPathResult evaluate(final FieldValue contextNode) {
-        final RecordPathEvaluationContext context;
-        if (Filters.isRecord(contextNode.getField().getDataType(), contextNode.getValue())) {
-            final Record record = (Record) contextNode.getValue();
-            if (record == null) {
-                return new RecordPathResult() {
-                    @Override
-                    public String getPath() {
-                        return RecordPathSegment.this.getPath();
-                    }
-
-                    @Override
-                    public Stream<FieldValue> getSelectedFields() {
-                        return Stream.empty();
-                    }
-                };
-            }
-
-            context = new StandardRecordPathEvaluationContext(record);
-        } else {
-            final FieldValue parent = contextNode.getParent().orElse(null);
-            if (parent == null) {
-                context = new StandardRecordPathEvaluationContext(null);
-            } else {
-                context = new StandardRecordPathEvaluationContext(parent.getParentRecord().orElse(null));
-            }
-        }
-
+    public final RecordPathResult evaluate(final Record record, final FieldValue contextNode) {
+        final RecordPathEvaluationContext context = new StandardRecordPathEvaluationContext(record);
         context.setContextNode(contextNode);
         final Stream<FieldValue> selectedFields = evaluate(context);
 

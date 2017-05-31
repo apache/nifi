@@ -69,6 +69,8 @@ CHILD_SEPARATOR : '/';
 DESCENDANT_SEPARATOR : '//';
 LBRACKET : '[';
 RBRACKET : ']';
+LPAREN : '(';
+RPAREN : ')';
 NUMBER : '-'? ('0'..'9')+;
 QUOTE : '\'';
 COMMA : ',';
@@ -92,9 +94,20 @@ WHITESPACE : SPACE+ { skip(); };
 fragment SPACE : ' ' | '\t' | '\n' | '\r' | '\u000C';
 
 
-RAW_FIELD_NAME : (
-	~('/' | '[' | ']' | '*' | '"' | '\'' | ',' | '\t' | '\r' | '\n' | '0'..'9' | ' ' | '.' | '-' | '=' | '?' | '<' | '>')
-	~('/' | '[' | ']' | '*' | '"' | '\'' | ',' | '\t' | '\r' | '\n' | '=' | '?' | '<' | '>' | ' ')*
+// filter functions
+CONTAINS : 'contains';
+CONTAINS_REGEX : 'containsRegex';
+ENDS_WITH : 'endsWith';
+STARTS_WITH : 'startsWith';
+IS_BLANK : 'isBlank';
+IS_EMPTY : 'isEmpty';
+MATCHES_REGEX : 'matchesRegex';
+NOT : 'not';
+
+
+IDENTIFIER : (
+	~('/' | '[' | ']' | '*' | '"' | '\'' | ',' | '\t' | '\r' | '\n' | '0'..'9' | ' ' | '.' | '-' | '=' | '?' | '<' | '>' | '(' | ')' )
+	~('/' | '[' | ']' | '*' | '"' | '\'' | ',' | '\t' | '\r' | '\n' | '=' | '?' | '<' | '>' | ' ' | '(' | ')' )*
 );
 
 // STRINGS

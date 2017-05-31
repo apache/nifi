@@ -17,13 +17,17 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.stream.Stream;
+import org.apache.nifi.record.path.paths.RecordPathSegment;
 
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPathEvaluationContext;
+public class EndsWith extends StringComparisonFilter {
 
-public interface RecordPathFilter {
+    public EndsWith(RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
+        super(recordPath, searchValuePath);
+    }
 
-    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
+    @Override
+    protected boolean isMatch(final String fieldValue, final String comparison) {
+        return fieldValue.endsWith(comparison);
+    }
 
 }
