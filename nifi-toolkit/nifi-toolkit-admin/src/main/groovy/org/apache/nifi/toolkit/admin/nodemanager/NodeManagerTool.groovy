@@ -30,6 +30,7 @@ import org.apache.commons.cli.ParseException
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
+import org.apache.nifi.toolkit.admin.util.AdminUtil
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.web.api.dto.NodeDTO
@@ -72,7 +73,7 @@ public class NodeManagerTool extends AbstractAdminTool {
 
     @Override
     protected Logger getLogger() {
-        LoggerFactory.getLogger(NodeManagerTool.class)
+        LoggerFactory.getLogger(NodeManagerTool)
     }
 
     protected Options getOptions(){
@@ -168,31 +169,40 @@ public class NodeManagerTool extends AbstractAdminTool {
     void disconnectNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
         final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
-        for(String activeUrl: activeUrls) {
-            try {
-                final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
-                updateNode(url, client, currentNode, STATUS.DISCONNECTING,proxyDN)
-                return
-            } catch (Exception ex){
-                logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
+        if(currentNode != null){
+            for(String activeUrl: activeUrls) {
+                try {
+                    final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
+                    updateNode(url, client, currentNode, STATUS.DISCONNECTING,proxyDN)
+                    return
+                } catch (Exception ex){
+                    logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
+                }
             }
+            throw new RuntimeException("Could not successfully complete request")
+        }else{
+            throw new RuntimeException("Current node could not be found in the cluster")
         }
-        throw new RuntimeException("Could not successfully complete request")
     }
 
     void connectNode(final Client client, NiFiProperties niFiProperties,List<String> activeUrls, final String proxyDN){
         final ClusterEntity clusterEntity = NiFiClientUtil.getCluster(client, niFiProperties, activeUrls,proxyDN)
         NodeDTO currentNode = getCurrentNode(clusterEntity,niFiProperties)
-        for(String activeUrl: activeUrls) {
-            try {
-                final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
-                updateNode(url, client, currentNode, STATUS.CONNECTING,proxyDN)
-                return
-            } catch (Exception ex){
-                logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
+
+        if(currentNode != null) {
+            for(String activeUrl: activeUrls) {
+                try {
+                    final String url = activeUrl + NODE_ENDPOINT + File.separator + currentNode.nodeId
+                    updateNode(url, client, currentNode, STATUS.CONNECTING,proxyDN)
+                    return
+                } catch (Exception ex){
+                    logger.warn("Could not connect to node on "+activeUrl+". Exception: "+ex.toString())
+                }
             }
+            throw new RuntimeException("Could not successfully complete request")
+        }else{
+            throw new RuntimeException("Current node could not be found in the cluster")
         }
-        throw new RuntimeException("Could not successfully complete request")
     }
 
     void removeNode(final Client client, NiFiProperties niFiProperties, List<String> activeUrls, final String proxyDN){
@@ -250,15 +260,15 @@ public class NodeManagerTool extends AbstractAdminTool {
             if(commandLine.hasOption(BOOTSTRAP_CONF) && commandLine.hasOption(NIFI_INSTALL_DIR) && commandLine.hasOption(OPERATION)) {
 
                 if(commandLine.hasOption(VERBOSE_ARG)){
-                    this.isVerbose = true;
+                    this.isVerbose = true
                 }
 
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
                 final String proxyDN = commandLine.getOptionValue(PROXY_DN)
                 final File bootstrapConf = new File(bootstrapConfFileName)
-                Properties bootstrapProperties = getBootstrapConf(Paths.get(bootstrapConfFileName))
-                String nifiConfDir = getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
-                String nifiLibDir = getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
+                Properties bootstrapProperties = AdminUtil.getBootstrapConf(Paths.get(bootstrapConfFileName))
+                String nifiConfDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
+                String nifiLibDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
                 String nifiPropertiesFileName = nifiConfDir + File.separator +"nifi.properties"
                 final String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfFileName)
                 final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFileName)
@@ -270,7 +280,7 @@ public class NodeManagerTool extends AbstractAdminTool {
 
                 final String nifiInstallDir = commandLine.getOptionValue(NIFI_INSTALL_DIR)
 
-                if(supportedNiFiMinimumVersion(nifiConfDir,nifiLibDir,SUPPORTED_MINIMUM_VERSION)){
+                if(AdminUtil.supportedNiFiMinimumVersion(nifiConfDir,nifiLibDir,SUPPORTED_MINIMUM_VERSION)){
 
                     final Client client = clientFactory.getClient(niFiProperties,nifiInstallDir)
 
@@ -335,8 +345,8 @@ public class NodeManagerTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | RuntimeException e ) {
-            tool.printUsage(e.getLocalizedMessage());
+        } catch (Exception e ) {
+            tool.printUsage(e.getLocalizedMessage())
             System.exit(1)
         }
 

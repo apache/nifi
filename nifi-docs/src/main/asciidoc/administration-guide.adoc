@@ -1269,6 +1269,7 @@ and clustered environments. These utilities include:
 
 * Notify -- The notification tool allows administrators to send bulletins to the NiFi UI using the command line.
 * Node Manager -- The node manager tool allows administrators to perform a status check on a node as well as to connect, disconnect, or remove nodes that are part of a cluster.
+* File Manager -- The file manager tool allows administrators to backup, install or restore a NiFi installation from backup.
 
 The admin toolkit is bundled with the nifi-toolkit and can be executed with scripts found in the _bin_ folder.
 
@@ -1401,6 +1402,84 @@ should show 2 of 2 nodes).  The cluster should allow a flow to be adjusted.  The
 cluster if restarted and the flow for the cluster has not changed. If the flow was changed, the flow template of
 the removed node should be deleted before restarting the node to allow it to obtain the cluster flow (otherwise
 an uninheritable flow file exception may occur).
+
+=== File Manager
+
+The File Manager utility allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi
+in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup.
+File Manager supports NiFi version 1.0.0 and higher and is available in 'file-manager.bat' file for use on Windows machines.
+
+To show help:
+
+  file-manager.sh -h
+
+The following are available options:
+
+* `-o,--operation <arg>` File operation (install | backup | restore)
+* `-b,--backupDir <arg>` Backup NiFi Directory (used with backup or restore operation)
+* `-c,--nifiCurrentDir <arg>` Current NiFi Installation Directory (used optionally with install or restore operation)
+* `-d,--nifiInstallDir <arg>` NiFi Installation Directory (used with install or restore operation)
+* `-i,--installFile <arg>` NiFi Install File (used with install operation)
+* `-r,--nifiRollbackDir <arg>` NiFi Installation Directory (used with install or restore operation)
+* `-t,--bootstrapConf <arg>` Current NiFi Bootstrap Configuration File (used optionally)
+* `-m,--moveRepositories` Allow repositories to be moved to new/restored nifi directory from existing installation, if available (used optionally with install or restore operation)
+* `-x,--overwriteConfigs` Overwrite existing configuration directory with upgrade changes (used optionally with install or restore operation)
+* `-v,--verbose` Verbose messaging (optional)
+* `-h,--help` Print help info (optional)
+
+Example usage on Linux:
+
+ # backup NiFi installation
+ # option -t may be provided to ensure backup of external boostrap.conf file
+ ./file-manager.sh
+ -o backup
+ –b /tmp/nifi_bak
+ –c /usr/nifi_old
+ -v
+
+ # install NiFi using compressed tar file into /usr/nifi directory (should install as /usr/nifi/nifi-1.3.0).
+ # migrate existing configurations with location determined by external bootstrap.conf and move over repositories from nifi_old
+ # options -t and -c should both be provided if migration of configurations, state and repositories are required
+ ./file-manager.sh
+ -o install
+ –i nifi-1.3.0.tar.gz
+ –d /usr/nifi
+ –c /usr/nifi/nifi_old
+ -t /usr/nifi/old_conf/bootstrap.conf
+ -v
+ -m
+
+ # restore NiFi installation from backup directory and move back repositories
+ # option -t may be provided to ensure bootstrap.conf is restored to the file path provided, otherwise it is placed in the
+ # default directory under the rollback path (e.g. /usr/nifi_old/conf)
+ ./file-manager.sh
+ -o restore
+ –b /tmp/nifi_bak
+ –r /usr/nifi_old
+ –c /usr/nifi
+ -m
+ -v
+
+=== Expected Behavior
+
+Backup:
+
+During the backup operation a backup directory is created in a designated location for an existing NiFi installation. Backups will capture all critical files
+(including any internal or external configurations, libraries, scripts and documents) however it excludes backing up repositories and logs due to potential size.
+If configuration/library files are external from the existing installation folder the backup operation will capture those as well.
+
+Install:
+
+During the install operation File Manager will perform installation using the designated NiFi binary file (either tar.gz or zip file)
+to create a new installation or migrate an existing nifi installation to a new one.  Installation can optionally move repositories (if located within the configuration
+folder of the current installation) to the new installation as well as migrate configuration files to the newer installation.
+
+Restore:
+
+The restore operation allows an existing installation to revert back to a previous installation.  Using an existing backup directory (created from the backup operation)
+the FileManager utility will restore libraries, scripts and documents as well as revert to previous configurations. NOTE: If repositories were changed due to the installation
+of a newer version of NiFi these may no longer be compatible during restore.  In that scenario exclude the -m option to ensure new repositories will be created or, if repositories
+live outside of the NiFi directory, remove them so they can be recreated on startup after restore.
 
 
 [[clustering]]
