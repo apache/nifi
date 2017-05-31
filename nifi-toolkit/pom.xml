@@ -32,6 +32,7 @@
         <module>nifi-toolkit-assembly</module>
         <module>nifi-toolkit-flowanalyzer</module>
         <module>nifi-toolkit-cli</module>
+        <module>nifi-toolkit-api</module>
     </modules>
     <dependencyManagement>
         <dependencies>

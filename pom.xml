@@ -681,6 +681,11 @@
                                 <phase>verify</phase>
                                 <configuration>
                                     <encoding>UTF-8</encoding>
+                                    <excludes>**/generated-sources/**/*</excludes>
+                                    <sourceDirectories>
+                                        <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                                        <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+                                    </sourceDirectories>
                                 </configuration>
                                 <goals>
                                     <goal>check</goal>
