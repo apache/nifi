@@ -191,9 +191,10 @@ public class PartitionRecord extends AbstractProcessor {
         final Map<RecordValueMap, RecordSetWriter> writerMap = new HashMap<>();
 
         try (final InputStream in = session.read(flowFile)) {
-            final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+            final Map<String, String> originalAttributes = flowFile.getAttributes();
+            final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger());
 
-            final RecordSchema writeSchema = writerFactory.getSchema(flowFile, reader.getSchema());
+            final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -221,7 +222,7 @@ public class PartitionRecord extends AbstractProcessor {
 
                     final OutputStream out = session.write(childFlowFile);
 
-                    writer = writerFactory.createWriter(getLogger(), writeSchema, childFlowFile, out);
+                    writer = writerFactory.createWriter(getLogger(), writeSchema, out);
                     writer.beginRecordSet();
                     writerMap.put(recordValueMap, writer);
                 }

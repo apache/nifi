@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -64,7 +63,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
         return new RecordReader() {

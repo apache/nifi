@@ -325,16 +325,17 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
 
                 final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
                 final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+                final Map<String, String> attributes = flowFile.getAttributes();
 
                 try {
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
                         public void process(final InputStream rawIn) throws IOException {
                             try (final InputStream in = new BufferedInputStream(rawIn)) {
-                                final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+                                final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
                                 final RecordSet recordSet = reader.createRecordSet();
 
-                                final RecordSchema schema = writerFactory.getSchema(flowFile, recordSet.getSchema());
+                                final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
                                 lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic);
                             } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                 throw new ProcessException(e);
