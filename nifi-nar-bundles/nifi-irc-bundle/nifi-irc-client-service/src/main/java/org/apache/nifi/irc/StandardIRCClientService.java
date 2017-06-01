@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -47,6 +48,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.feature.sending.SingleDelaySender;
@@ -73,6 +75,14 @@ public class StandardIRCClientService extends AbstractControllerService implemen
             .required(true)
             .defaultValue("6667")
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor IRC_TIMEOUT = new PropertyDescriptor
+            .Builder().name("IRC_TIMEOUT")
+            .displayName("IRC Timeout")
+            .description("The amount of time to wait for certain actions to complete before timing-out")
+            .required(true)
+            .defaultValue("5 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL_CONTEXT_SERVICE")
@@ -107,11 +117,11 @@ public class StandardIRCClientService extends AbstractControllerService implemen
     protected String clientIdentification;
     private static final Set<String> requestedChannels = new HashSet<>();
 
-
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(IRC_SERVER);
         props.add(IRC_SERVER_PORT);
+        props.add(IRC_TIMEOUT);
         props.add(IRC_NICK);
         props.add(IRC_SERVER_PASSWORD);
         props.add(SSL_CONTEXT_SERVICE);
@@ -130,7 +140,7 @@ public class StandardIRCClientService extends AbstractControllerService implemen
      * @param context
      *            the configuration context
      * @throws InitializationException
-     *             if unable to create a database connection
+     *             if unable to create an IRC connection
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
@@ -198,10 +208,17 @@ public class StandardIRCClientService extends AbstractControllerService implemen
 
     @OnDisabled
     public void shutdown() {
+        Long timeOut = getConfigurationContext().getProperty(IRC_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final StopWatch stopWatch = new StopWatch();
+
+        stopWatch.start();
+
         this.ircClient.shutdown(clientIdentification + " - is going to rest a bit...");
-        while (this.connectionStatus.get()) {
+        while (this.connectionStatus.get() || ( stopWatch.getElapsed(TimeUnit.MILLISECONDS) <= timeOut ) ) {
             // Wait for the disconnection
         }
+        stopWatch.stop();
+        logger.info("Disconnected from server after {} milliseconds", new Object[]{stopWatch.getDuration(TimeUnit.MILLISECONDS)});
     }
 
     @Override
