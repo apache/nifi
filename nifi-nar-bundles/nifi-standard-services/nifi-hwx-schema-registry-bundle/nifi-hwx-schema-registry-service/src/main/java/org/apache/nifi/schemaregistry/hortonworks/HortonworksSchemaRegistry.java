@@ -18,7 +18,6 @@ package org.apache.nifi.schemaregistry.hortonworks;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +71,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
-    private static final long VERSION_INFO_CACHE_NANOS = TimeUnit.MINUTES.toNanos(1L);
+
+    private volatile long versionInfoCacheNanos;
 
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("url")
@@ -83,33 +83,50 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .required(true)
         .build();
 
+    static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
+        .name("cache-size")
+        .displayName("Cache Size")
+        .description("Specifies how many Schemas should be cached from the Hortonworks Schema Registry")
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .defaultValue("1000")
+        .required(true)
+        .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors = Collections.singletonList(URL);
+    static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
+        .name("cache-expiration")
+        .displayName("Cache Expiration")
+        .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
+            + "cached version of a schema will no longer be used, and the service will have to communicate with the "
+            + "Hortonworks Schema Registry again in order to obtain the schema.")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("1 hour")
+        .required(true)
+        .build();
+
     private volatile SchemaRegistryClient schemaRegistryClient;
     private volatile boolean initialized;
     private volatile Map<String, Object> schemaRegistryConfig;
-
-    public HortonworksSchemaRegistry() {
-    }
 
 
     @OnEnabled
     public void enable(final ConfigurationContext context) throws InitializationException {
         schemaRegistryConfig = new HashMap<>();
 
+        versionInfoCacheNanos = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
+
         // The below properties may or may not need to be exposed to the end
         // user. We just need to watch usage patterns to see if sensible default
         // can satisfy NiFi requirements
         String urlValue = context.getProperty(URL).evaluateAttributeExpressions().getValue();
-        if (urlValue == null || urlValue.trim().length() == 0){
-            throw new IllegalArgumentException("'Schema Registry URL' must not  be nul or empty.");
+        if (urlValue == null || urlValue.trim().isEmpty()) {
+            throw new IllegalArgumentException("'Schema Registry URL' must not be null or empty.");
         }
 
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_REGISTRY_URL.name(), urlValue);
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_SIZE.name(), 10L);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), 5000L);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_SIZE.name(), 1000L);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), 60 * 60 * 1000L);
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_SIZE.name(), context.getProperty(CACHE_SIZE).asInteger());
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
     }
 
 
@@ -126,11 +143,15 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(URL);
+        properties.add(CACHE_SIZE);
+        properties.add(CACHE_EXPIRATION);
+        return properties;
     }
 
 
-    private synchronized SchemaRegistryClient getClient() {
+    protected synchronized SchemaRegistryClient getClient() {
         if (!initialized) {
             schemaRegistryClient = new SchemaRegistryClient(schemaRegistryConfig);
             initialized = true;
@@ -149,7 +170,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             if (timestampedVersionInfo == null) {
                 fetch = true;
             } else {
-                final long minTimestamp = System.nanoTime() - VERSION_INFO_CACHE_NANOS;
+                final long minTimestamp = System.nanoTime() - versionInfoCacheNanos;
                 fetch = timestampedVersionInfo.getValue() < minTimestamp;
             }
 
