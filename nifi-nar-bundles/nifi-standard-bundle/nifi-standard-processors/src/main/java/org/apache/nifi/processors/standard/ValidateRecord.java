@@ -419,7 +419,7 @@ public class ValidateRecord extends AbstractProcessor {
         }
 
         final OutputStream out = session.write(flowFile);
-        final RecordSetWriter created = factory.createWriter(getLogger(), inputSchema, flowFile, out);
+        final RecordSetWriter created = factory.createWriter(getLogger(), inputSchema, out);
         created.beginRecordSet();
         return created;
     }

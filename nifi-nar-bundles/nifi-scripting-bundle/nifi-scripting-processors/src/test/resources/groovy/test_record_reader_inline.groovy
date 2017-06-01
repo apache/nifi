@@ -16,7 +16,6 @@
  */
 
 import org.apache.nifi.controller.AbstractControllerService
-import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.schema.access.SchemaNotFoundException
 import org.apache.nifi.serialization.MalformedRecordException
@@ -58,7 +57,7 @@ class GroovyRecordReader implements RecordReader {
 
 class GroovyRecordReaderFactory extends AbstractControllerService implements RecordReaderFactory {
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         return new GroovyRecordReader()
     }
 }

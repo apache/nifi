@@ -17,10 +17,12 @@
 package org.apache.nifi.record.script;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 
 import javax.script.Invocable;
 import javax.script.ScriptException;
@@ -31,7 +33,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -55,10 +56,10 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
 
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, FlowFile flowFile, OutputStream out) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
         if (recordFactory.get() != null) {
             try {
-                return recordFactory.get().createWriter(logger, schema, flowFile, out);
+                return recordFactory.get().createWriter(logger, schema, out);
             } catch (UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }
@@ -149,14 +150,14 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     }
 
     @Override
-    public RecordSchema getSchema(FlowFile flowFile, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final RecordSetWriterFactory writerFactory = recordFactory.get();
         if (writerFactory == null) {
             return null;
         }
 
         try {
-            return writerFactory.getSchema(flowFile, readSchema);
+            return writerFactory.getSchema(variables, content, readSchema);
         } catch (UndeclaredThrowableException ute) {
             throw new IOException(ute.getCause());
         }

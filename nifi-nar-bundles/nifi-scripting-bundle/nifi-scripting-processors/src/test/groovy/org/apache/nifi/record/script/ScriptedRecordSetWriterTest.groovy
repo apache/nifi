@@ -25,12 +25,12 @@ import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordSetWriter
+import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSet
-import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
@@ -100,11 +100,10 @@ class ScriptedRecordSetWriterTest {
         recordSetWriterFactory.initialize initContext
         recordSetWriterFactory.onEnabled configurationContext
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
-		def schema = recordSetWriterFactory.getSchema(mockFlowFile, null)
+		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), RecordSetWriterFactory.EMPTY_INPUT_STREAM, null)
         
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, mockFlowFile, outputStream)
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream)
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(

@@ -57,6 +57,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
 
+import static org.apache.nifi.serialization.RecordSetWriterFactory.EMPTY_INPUT_STREAM;
+
 /**
  * Base processor for reading a data from HDFS that can be fetched into records.
  */
@@ -190,16 +192,16 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 // use a child FlowFile so that if any error occurs we can route the original untouched FlowFile to retry/failure
                 child = session.create(originalFlowFile);
 
-                final FlowFile writableFlowFile = child;
                 final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                 child = session.write(child, (final OutputStream rawOut) -> {
                     try (final BufferedOutputStream out = new BufferedOutputStream(rawOut);
                          final HDFSRecordReader recordReader = createHDFSRecordReader(context, originalFlowFile, configuration, path)) {
 
                         Record record = recordReader.nextRecord();
-                        final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile, record == null ? null : record.getSchema());
+                        final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile.getAttributes(),
+                                EMPTY_INPUT_STREAM, record == null ? null : record.getSchema());
 
-                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, writableFlowFile, out)) {
+                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out)) {
                             recordSetWriter.beginRecordSet();
                             if (record != null) {
                                 recordSetWriter.write(record);
