@@ -25,6 +25,8 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -38,7 +40,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.HashMap;
+import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -73,6 +77,10 @@ public class TestPutElasticsearchHttpRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertNotNull(provEvents);
+        assertEquals(1, provEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
     }
 
     @Test
@@ -418,6 +426,10 @@ public class TestPutElasticsearchHttpRecord {
         runner.enqueue(new byte[0]);
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertNotNull(provEvents);
+        assertEquals(1, provEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
     }
 
     @Test

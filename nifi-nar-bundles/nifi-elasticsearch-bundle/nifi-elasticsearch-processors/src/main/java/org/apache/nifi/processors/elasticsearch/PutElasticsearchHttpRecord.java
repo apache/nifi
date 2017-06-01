@@ -83,8 +83,10 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @EventDriven
 @Tags({"elasticsearch", "insert", "update", "upsert", "delete", "write", "put", "http", "record"})
-@CapabilityDescription("Writes the contents of a FlowFile to Elasticsearch, using the specified parameters such as "
-        + "the index to insert into and the type of the document.")
+@CapabilityDescription("Writes the records from a FlowFile into to Elasticsearch, using the specified parameters such as "
+        + "the index to insert into and the type of the document, as well as the operation type (index, upsert, delete, etc.). Note: The Bulk API is used to "
+        + "send the records. This means that the entire contents of the incoming flow file are read into memory, and each record is transformed into a JSON document "
+        + "which is added to a single HTTP request body. For very large flow files (files with a large number of records, e.g.), this could cause memory usage issues.")
 public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -98,7 +100,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("put-db-record-record-reader")
+            .name("put-es-record-record-reader")
             .displayName("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
@@ -352,7 +354,10 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             return;
 
         } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
-            throw new ProcessException("Could not parse incoming data", e);
+            logger.error("Could not parse incoming data", e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), sb.toString());
@@ -393,6 +398,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     session.transfer(flowFile, REL_FAILURE);
                 } else {
                     session.transfer(flowFile, REL_SUCCESS);
+                    session.getProvenanceReporter().send(flowFile, url.toString());
                 }
 
             } catch (IOException ioe) {
