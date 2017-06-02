@@ -30,7 +30,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -56,40 +55,22 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends the contents of a FlowFile to a Windows Azure Event Hub. Note: the content of the FlowFile will be buffered into memory before being sent, "
         + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available.")
-public class PutAzureEventHub extends AbstractProcessor {
-    static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
-            .name("Event Hub Name")
-            .description("The name of the Azure Event Hub to send to")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .build();
-    static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
-            .name("Event Hub Namespace")
-            .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .required(true)
-            .build();
+public class PutAzureEventHub extends AbstractAzureEventHub {
+    
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Name")
+            .name("shared-access-send-policy-name")
+            .displayName("Shared Access Send Policy Name")
             .description("The name of the Event Hub Shared Access Policy. This Policy must have Send permissions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .required(true)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Primary Key")
-            .description("The primary key of the Event Hub Shared Access Policy")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .sensitive(true)
-            .required(true)
-            .build();
-
+    
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Any FlowFile that is successfully sent to the Azure Event Hub will be transferred to this Relationship.")
             .build();
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Any FlowFile that could not be sent to the Azure Event Hub will be transferred to this Relationship.")

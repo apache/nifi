@@ -31,7 +31,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -68,23 +67,11 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "eventhub.name", description = "The name of the Event Hub from which the message was pulled"),
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
-public class GetAzureEventHub extends AbstractProcessor {
+public class GetAzureEventHub extends AbstractAzureEventHub {
 
-    static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
-            .name("Event Hub Name")
-            .description("The name of the Azure Event Hub to pull messages from")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .build();
-    static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
-            .name("Event Hub Namespace")
-            .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .required(true)
-            .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Service Bus Endpoint")
+            .name("service-bus-endpoint")
+            .displayName("Service Bus Endpoint")
             .description("To support Namespaces in non-standard Host URIs ( not .servicebus.windows.net,  ie .servicebus.chinacloudapi.cn) select from the drop down acceptable options ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
@@ -92,32 +79,29 @@ public class GetAzureEventHub extends AbstractProcessor {
             .defaultValue(".servicebus.windows.net")
             .required(true)
             .build();
+
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Name")
+            .name("shared-access-listen-policy-name")
+            .displayName("Shared Access Listen Policy Name")
             .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .required(true)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .name("Shared Access Policy Primary Key")
-            .description("The primary key of the Event Hub Shared Access Policy")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .sensitive(true)
-            .required(true)
-            .build();
 
     static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
-            .name("Number of Event Hub Partitions")
+            .name("num-event-hub-partitions")
+            .displayName("Number of Event Hub Partitions")
             .description("The number of partitions that the Event Hub has. Only this number of partitions will be used, "
                     + "so it is important to ensure that if the number of partitions changes that this value be updated. Otherwise, some messages may not be consumed.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(false)
             .required(true)
             .build();
+
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
-            .name("Event Hub Consumer Group")
+            .name("event-hub-consumer-group")
+            .displayName("Event Hub Consumer Group")
             .description("The name of the Event Hub Consumer Group to use when pulling events")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
@@ -126,22 +110,27 @@ public class GetAzureEventHub extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ENQUEUE_TIME = new PropertyDescriptor.Builder()
-            .name("Event Hub Message Enqueue Time")
+            .name("event-hub-msg-enqueue-time")
+            .displayName("Event Hub Message Enqueue Time")
             .description("A timestamp (ISO-8061 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
                     + "should have been enqueued in the EventHub to start reading from")
             .addValidator(StandardValidators.ISO8061_INSTANT_VALIDATOR)
             .expressionLanguageSupported(false)
             .required(false)
             .build();
+
     static final PropertyDescriptor RECEIVER_FETCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Partition Recivier Fetch Size")
+            .name("partition-receiver-fetch-size")
+            .displayName("Partition Receiver Fetch Size")
             .description("The number of events that a receiver should fetch from an EventHubs partition before returning. Default(100)")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(false)
             .required(false)
             .build();
+
     static final PropertyDescriptor RECEIVER_FETCH_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Partiton Receiver Timeout (millseconds)")
+            .name("partition-receiver-timeout-ms")
+            .displayName("Partiton Receiver Timeout (millseconds)")
             .description("The amount of time a Partition Receiver should wait to receive the Fetch Size before returning. Default(60000)")
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .expressionLanguageSupported(false)
@@ -243,7 +232,7 @@ public class GetAzureEventHub extends AbstractProcessor {
     /**
      * This method is here to try and isolate the Azure related code as the PartitionReceiver cannot be mocked
      * with PowerMock due to it being final. Unfortunately it extends a base class and does not implement an interface
-     * so even if we create a MockPartitionReciver, it will not work as the two classes are orthogonal.
+     * so even if we create a MockPartitionReceiver, it will not work as the two classes are orthogonal.
      *
      * @param context     - The processcontext for this processor
      * @param partitionId - The partition ID to retrieve a receiver by.
