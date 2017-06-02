@@ -88,7 +88,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canCreateTemplate = function (selection) {
-        return nfCanvasUtils.canWrite() && (selection.empty() && nfCanvasUtils.canRead(selection));
+        return nfCanvasUtils.canWrite() && (selection.empty() || nfCanvasUtils.canRead(selection));
     };
 
     /**
