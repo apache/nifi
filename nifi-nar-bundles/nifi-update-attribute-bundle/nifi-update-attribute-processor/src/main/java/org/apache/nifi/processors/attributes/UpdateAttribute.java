@@ -579,8 +579,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         try {
             // evaluate the expression for the given flow file
             return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
-        } catch (final ProcessException pe) {
-            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), pe), pe);
+        } catch (final Exception e) {
+            getLogger().error(String.format("Could not evaluate the condition '%s' while processing Flowfile '%s'", condition.getExpression(), flowfile));
+            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), e), e);
         }
     }
 
@@ -643,8 +644,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         // No point in updating if they will be removed
                         attributesToUpdate.keySet().removeAll(attributesToDelete);
                     }
-                } catch (final ProcessException pe) {
-                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, pe), pe);
+                } catch (final Exception e) {
+                    logger.error(String.format("Unable to delete attribute '%s' while processing FlowFile '%s' .", attribute, flowfile));
+                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, e), e);
                 }
             } else {
                 boolean notDeleted = !attributesToDelete.contains(attribute);
