@@ -92,7 +92,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         .name("s2s-prov-task-event-filter")
         .displayName("Event Type")
         .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
-                + "Available event types are " + ProvenanceEventType.values() + ". If no filter is set, all the events are sent. If "
+                + "Available event types are " + Arrays.deepToString(ProvenanceEventType.values()) + ". If no filter is set, all the events are sent. If "
                         + "multiple filters are set, the filters are cumulative.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
