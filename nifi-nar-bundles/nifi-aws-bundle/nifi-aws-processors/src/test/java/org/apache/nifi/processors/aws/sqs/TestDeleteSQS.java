@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -48,11 +45,6 @@ public class TestDeleteSQS {
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         mockDeleteSQS = new DeleteSQS() {
-
-            protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-                return Arrays.asList(RECEIPT_HANDLE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, QUEUE_URL, TIMEOUT, PROXY_HOST, PROXY_HOST_PORT);
-            }
-
             protected AmazonSQSClient getClient() {
                 actualSQSClient = client;
                 return mockSQSClient;
@@ -76,6 +68,26 @@ public class TestDeleteSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.getQueueUrl());
+        assertEquals("test-receipt-handle-1", deleteRequest.getEntries().get(0).getReceiptHandle());
+
+        runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testDeleteWithCustomReceiptHandle() {
+        runner.setProperty(DeleteSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+        runner.setProperty(DeleteSQS.RECEIPT_HANDLE, "${custom.receipt.handle}");
+        final Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put("filename", "1.txt");
+        ffAttributes.put("custom.receipt.handle", "test-receipt-handle-1");
+        runner.enqueue("TestMessageBody", ffAttributes);
+
+        runner.assertValid();
+        runner.run(1);
+
+        ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
+        Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
+        DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("test-receipt-handle-1", deleteRequest.getEntries().get(0).getReceiptHandle());
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
