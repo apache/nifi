@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -53,9 +54,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Caches a release signal identifier in the distributed cache, optionally along with "
         + "the FlowFile's attributes.  Any flow files held at a corresponding Wait processor will be "
         + "released once this signal in the cache is discovered.")
+@WritesAttribute(attribute = "notified", description = "All FlowFiles will have an attribute 'notified'. The value of this " +
+        "attribute is true, is the FlowFile is notified, otherwise false.")
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
         "org.apache.nifi.processors.standard.Wait"})
 public class Notify extends AbstractProcessor {
+
+    public static final String NOTIFIED_ATTRIBUTE_NAME = "notified";
 
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
@@ -210,7 +215,8 @@ public class Notify extends AbstractProcessor {
             // if the computed value is null, or empty, we transfer the flow file to failure relationship
             if (StringUtils.isBlank(signalId)) {
                 logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {flowFile});
-                session.transfer(flowFile, REL_FAILURE);
+                // set 'notified' attribute
+                session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                 continue;
             }
 
@@ -226,7 +232,7 @@ public class Notify extends AbstractProcessor {
                     delta = Integer.parseInt(deltaStr);
                 } catch (final NumberFormatException e) {
                     logger.error("Failed to calculate delta for FlowFile {} due to {}", new Object[] {flowFile, e}, e);
-                    session.transfer(flowFile, REL_FAILURE);
+                    session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                     continue;
                 }
             }
@@ -256,7 +262,8 @@ public class Notify extends AbstractProcessor {
             // retry after yielding for a while.
             try {
                 protocol.notify(signalId, signalBuffer.deltas, signalBuffer.attributesToCache);
-                session.transfer(signalBuffer.flowFiles, REL_SUCCESS);
+                signalBuffer.flowFiles.forEach(flowFile ->
+                        session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(true)), REL_SUCCESS));
             } catch (IOException e) {
                 throw new RuntimeException(String.format("Unable to communicate with cache when processing %s due to %s", signalId, e), e);
             }
