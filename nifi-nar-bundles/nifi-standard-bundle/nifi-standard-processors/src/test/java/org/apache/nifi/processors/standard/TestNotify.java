@@ -72,6 +72,7 @@ public class TestNotify {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).get(0).assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true");
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
@@ -107,6 +108,7 @@ public class TestNotify {
         runner.run(3);
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -146,6 +148,7 @@ public class TestNotify {
 
         // Limited by the buffer count
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -158,6 +161,7 @@ public class TestNotify {
         // Run it again, and it should process remaining one flow file.
         runner.run();
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -201,6 +205,7 @@ public class TestNotify {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -244,7 +249,9 @@ public class TestNotify {
 
         // Only failed records should be transferred to failure.
         runner.assertTransferCount(Notify.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.assertTransferCount(Notify.REL_FAILURE, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_FAILURE).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "false"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
