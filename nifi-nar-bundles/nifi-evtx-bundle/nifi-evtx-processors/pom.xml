@@ -20,7 +20,7 @@
     <parent>
         <artifactId>nifi-evtx-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.3.0</version>
+        <version>1.3.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-evtx-processors</artifactId>
