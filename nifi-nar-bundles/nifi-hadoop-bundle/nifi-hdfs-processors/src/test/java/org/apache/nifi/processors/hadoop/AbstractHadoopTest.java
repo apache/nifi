@@ -137,6 +137,30 @@ public class AbstractHadoopTest {
     }
 
     @Test
+    public void testKerberosOptionsWithEL() throws Exception {
+        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        // initialize the runner with EL for the kerberos properties
+        runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "${variableHadoopConfigResources}");
+        runner.setProperty(kerberosProperties.getKerberosPrincipal(), "${variablePrincipal}");
+        runner.setProperty(AbstractHadoopProcessor.KERBEROS_RELOGIN_PERIOD, "${variableReloginPeriod}");
+        runner.setProperty(kerberosProperties.getKerberosKeytab(), "${variableKeytab}");
+
+        // add variables for all the kerberos properties except for the keytab
+        runner.setVariable("variableHadoopConfigResources", "src/test/resources/core-site-security.xml");
+        runner.setVariable("variablePrincipal", "principal");
+        runner.setVariable("variableReloginPeriod", "4m");
+        // test that the config is not valid, since the EL for keytab will return nothing, no keytab
+        runner.assertNotValid();
+
+        // add variable for the keytab
+        runner.setVariable("variableKeytab", temporaryFile.getAbsolutePath());
+        // test that the config is valid
+        runner.assertValid();
+    }
+
+    @Test
     public void testKerberosOptionsWithBadKerberosConfigFile() throws Exception {
         // invalid since the kerberos configuration was changed to a non-existent file
         kerberosProperties = new KerberosProperties(new File("BAD_KERBEROS_PATH"));
