@@ -112,6 +112,11 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
         numScans++;
     }
+    
+    @Override
+    public void get(String tableName, byte[] row, Collection<Column> columns, ResultHandler handler) throws IOException {
+       throw new UnsupportedOperationException();
+    }
 
     public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
         final byte[] rowArray = rowKey.getBytes(StandardCharsets.UTF_8);
