@@ -37,14 +37,16 @@ import spock.lang.Unroll
 class StandardFlowSynchronizerSpec extends Specification {
 
     @Shared
-    def systemBundle;
+    def systemBundle
+    @Shared
+    def nifiProperties
 
     def setupSpec() {
         def propFile = StandardFlowSynchronizerSpec.class.getResource("/standardflowsynchronizerspec.nifi.properties").getFile()
 
-        def niFiProperties = NiFiProperties.createBasicNiFiProperties(propFile, null);
-        systemBundle = SystemBundle.create(niFiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(propFile, null)
+        systemBundle = SystemBundle.create(nifiProperties)
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet())
     }
 
     def teardownSpec() {
@@ -75,8 +77,7 @@ class StandardFlowSynchronizerSpec extends Specification {
         def Map<String, Connection> connectionMocksById = [:]
         def Map<String, List<Position>> bendPointPositionsByConnectionId = [:]
         // the unit under test
-        def nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null)
-        def flowSynchronizer = new StandardFlowSynchronizer(null,nifiProperties)
+        def flowSynchronizer = new StandardFlowSynchronizer(null, nifiProperties)
         def firstRootGroup = Mock ProcessGroup
 
         when: "the flow is synchronized with the current state of the controller"
