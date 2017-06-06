@@ -66,7 +66,7 @@ public class NotificationTool extends AbstractAdminTool {
 
     @Override
     protected Logger getLogger() {
-        LoggerFactory.getLogger(NotificationTool.class)
+        LoggerFactory.getLogger(NotificationTool)
     }
 
     protected Options getOptions(){
@@ -140,7 +140,7 @@ public class NotificationTool extends AbstractAdminTool {
             if(commandLine.hasOption(BOOTSTRAP_CONF) && commandLine.hasOption(NOTIFICATION_MESSAGE) && commandLine.hasOption(NIFI_INSTALL_DIR)) {
 
                 if(commandLine.hasOption(VERBOSE_ARG)){
-                    this.isVerbose = true;
+                    this.isVerbose = true
                 }
 
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
@@ -186,8 +186,8 @@ public class NotificationTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | UnsupportedOperationException | RuntimeException e) {
-            tool.printUsage(e.message);
+        } catch (Exception e) {
+            tool.printUsage(e.message)
             System.exit(1)
         }
 

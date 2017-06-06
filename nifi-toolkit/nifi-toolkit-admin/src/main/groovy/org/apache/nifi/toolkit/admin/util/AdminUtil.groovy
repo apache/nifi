@@ -65,7 +65,7 @@ class AdminUtil {
         if(StringUtils.isEmpty(nifiVersion)){
             nifiVersion = getNiFiVersionFromNar(nifiLibDir)
         }
-        return nifiVersion.replace("-SNAPSHOT","")
+        nifiVersion.replace("-SNAPSHOT","")
 
     }
 
@@ -73,12 +73,12 @@ class AdminUtil {
         Properties bootstrapProperties = new Properties()
         File bootstrapConf = bootstrapConfFileName.toFile()
         bootstrapProperties.load(new FileInputStream(bootstrapConf))
-        return bootstrapProperties
+        bootstrapProperties
     }
 
     public static String getRelativeDirectory(String directory, String rootDirectory) {
         if (directory.startsWith("./")) {
-            final String directoryUpdated =  SystemUtils.IS_OS_WINDOWS ? File.separator + directory.substring(2,directory.length()) : directory.substring(1,directory.length())
+            final String directoryUpdated =  SystemUtils.IS_OS_WINDOWS ? File.separator + directory[2..-1] : directory[1..-1]
             rootDirectory + directoryUpdated
         } else {
             directory
@@ -95,7 +95,7 @@ class AdminUtil {
             Version minVersion = new Version(supportedMinimumVersion,".")
             Version.VERSION_COMPARATOR.compare(version,minVersion) >= 0
         }else{
-            return false
+            false
         }
     }
 
@@ -103,7 +103,7 @@ class AdminUtil {
         Version version = new Version(incomingVersion,incomingVersion[1])
         Version supportedMinimum = new Version(minimumVersion,minimumVersion[1])
         Version supportedMaximum = new Version(maximumVersion,maximumVersion[1])
-        return Version.VERSION_COMPARATOR.compare(version,supportedMinimum) >= 0 && Version.VERSION_COMPARATOR.compare(version,supportedMaximum) <= 0
+        Version.VERSION_COMPARATOR.compare(version,supportedMinimum) >= 0 && Version.VERSION_COMPARATOR.compare(version,supportedMaximum) <= 0
     }
 
 

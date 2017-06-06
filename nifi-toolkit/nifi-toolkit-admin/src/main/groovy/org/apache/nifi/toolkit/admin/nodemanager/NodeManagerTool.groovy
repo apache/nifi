@@ -73,7 +73,7 @@ public class NodeManagerTool extends AbstractAdminTool {
 
     @Override
     protected Logger getLogger() {
-        LoggerFactory.getLogger(NodeManagerTool.class)
+        LoggerFactory.getLogger(NodeManagerTool)
     }
 
     protected Options getOptions(){
@@ -260,7 +260,7 @@ public class NodeManagerTool extends AbstractAdminTool {
             if(commandLine.hasOption(BOOTSTRAP_CONF) && commandLine.hasOption(NIFI_INSTALL_DIR) && commandLine.hasOption(OPERATION)) {
 
                 if(commandLine.hasOption(VERBOSE_ARG)){
-                    this.isVerbose = true;
+                    this.isVerbose = true
                 }
 
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
@@ -345,8 +345,8 @@ public class NodeManagerTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | RuntimeException e ) {
-            tool.printUsage(e.getLocalizedMessage());
+        } catch (Exception e ) {
+            tool.printUsage(e.getLocalizedMessage())
             System.exit(1)
         }
 

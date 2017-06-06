@@ -31,10 +31,10 @@ import java.nio.file.Paths
 
 public class ConfigMigrator {
 
-    private final static String SUPPORTED_MINIMUM_VERSION = "1.0.0"
+    private final static String SUPPORTED_MINIMUM_VERSION = '1.0.0'
     private final String RULES_DIR = getRulesDirectory()
     private final Boolean overwrite
-    protected Logger logger =  LoggerFactory.getLogger(ConfigMigrator.class)
+    protected Logger logger =  LoggerFactory.getLogger(ConfigMigrator)
     protected final Boolean isVerbose
 
     public ConfigMigrator(Boolean verbose, Boolean overwrite) {
@@ -44,15 +44,15 @@ public class ConfigMigrator {
 
     String getRulesDirectory() {
         final ClassLoader cl = this.getClass().getClassLoader()
-        cl.getResource("rules").path.replaceAll("%20"," ");
+        cl.getResource('rules').path.replaceAll('%20',' ')
     }
 
     List<String> getRulesDirectoryName(final String currentVersion, final String upgradeVersion) {
-        Version current = new Version(currentVersion.take(5).toString(),".")
-        Version upgrade = new Version(upgradeVersion.take(5).toString(),".")
+        Version current = new Version(currentVersion.take(5).toString(),'.')
+        Version upgrade = new Version(upgradeVersion.take(5).toString(),'.')
         File rulesDir = new File(rulesDirectory)
         List<File> rules = Lists.newArrayList(rulesDir.listFiles())
-        List<Version> versions = rules.collect { new Version(it.name.substring(1,it.name.length()),"_")}
+        List<Version> versions = rules.collect { new Version(it.name[1..-1],'_')}
         versions.sort(Version.VERSION_COMPARATOR)
         List<Version> matches = versions.findAll { Version.VERSION_COMPARATOR.compare(it,upgrade) <= 0 && Version.VERSION_COMPARATOR.compare(it,current) == 1}
 
@@ -61,36 +61,30 @@ public class ConfigMigrator {
         }else{
             matches.sort(Version.VERSION_COMPARATOR)
             List<String> directoryNames = []
-            matches.each { directoryNames.add(RULES_DIR + File.separator + "v" + it.toString()) }
-            return directoryNames
+            matches.each { directoryNames.add(RULES_DIR + File.separator + 'v' + it.toString()) }
+            directoryNames
         }
     }
 
     Boolean supportedVersion(final File script, final String currentVersion) {
-        final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script);
-        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance();
-        ruleObject.invokeMethod("supportedVersion", [currentVersion])
+        final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script)
+        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance()
+        ruleObject.invokeMethod('supportedVersion', [currentVersion])
     }
 
     byte[] migrateContent(final File script, final byte[] content, final byte[] upgradeContent) {
-        final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script);
-        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance();
-        ruleObject.invokeMethod("migrate", [content, upgradeContent])
+        final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script)
+        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance()
+        ruleObject.invokeMethod('migrate', [content, upgradeContent])
     }
 
     String getScriptRuleName(final String fileName) {
-        fileName.replace(".", "-") + ".groovy"
+        fileName.replace('.', '-') + '.groovy'
     }
 
-    File getUpgradeFile(File upgradeDir, String fileName){
+    File getUpgradeFile(final File upgradeDir, final String fileName){
 
-        final File[] upgradeFiles = upgradeDir.listFiles(new FilenameFilter() {
-            @Override
-            boolean accept(File dir, String name) {
-                name.equals(fileName)
-            }
-        })
-
+        final File[] upgradeFiles = upgradeDir.listFiles({dir, name -> name == fileName }as FilenameFilter)
         upgradeFiles.size() == 1 ? upgradeFiles[0] : new File(upgradeDir.path + File.separator + fileName)
     }
 
@@ -100,11 +94,11 @@ public class ConfigMigrator {
         final String nifiUpgradeVersion = AdminUtil.getNiFiVersion(nifiUpgradeConfigDir,nifiUpgradeLibDir)
 
         if (nifiCurrentVersion == null) {
-            throw new IllegalArgumentException("Could not determine current nifi version")
+            throw new IllegalArgumentException('Could not determine current nifi version')
         }
 
         if (nifiUpgradeVersion == null) {
-            throw new IllegalArgumentException("Could not determine upgrade nifi version")
+            throw new IllegalArgumentException('Could not determine upgrade nifi version')
         }
 
         final List<File> nifiConfigFiles = Lists.newArrayList(nifiConfDir.listFiles())
@@ -131,14 +125,14 @@ public class ConfigMigrator {
                         if (script.exists() && supportedVersion(script, nifiCurrentVersion)) {
 
                             if (isVerbose) {
-                                logger.info("Applying rules to {} from directory {} ", file.name, ruleDir)
+                                logger.info('Applying rules to {} from directory {} ', file.name, ruleDir)
                             }
 
                             content = migrateContent(script, content, upgradeFile.exists() ? upgradeFile.bytes : new byte[0])
 
                         } else {
                             if (isVerbose) {
-                                logger.info("No migration rule exists in {} for file {}. ",ruleDir,file.getName())
+                                logger.info('No migration rule exists in {} for file {}. ',ruleDir,file.getName())
                             }
                         }
 
@@ -161,12 +155,12 @@ public class ConfigMigrator {
 
         }else{
             if(isVerbose) {
-                logger.info("No upgrade rules are required for these configurations.")
+                logger.info('No upgrade rules are required for these configurations.')
             }
             if(!this.overwrite){
 
                 if(isVerbose) {
-                    logger.info("Copying configurations over to upgrade directory")
+                    logger.info('Copying configurations over to upgrade directory')
                 }
 
                 nifiConfigFiles.each { file ->
@@ -187,40 +181,42 @@ public class ConfigMigrator {
         File bootstrapConf = Paths.get(bootstrapConfFile).toFile()
 
         if (!bootstrapConf.exists()) {
-            throw new IllegalArgumentException("NiFi Bootstrap File provided does not exist: " + bootstrapConfFile)
+            throw new IllegalArgumentException('NiFi Bootstrap File provided does not exist: ' + bootstrapConfFile)
         }
 
-        Properties bootstrapProperties = AdminUtil.getBootstrapConf(bootstrapConfPath)
-        File nifiConfDir = new File(AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"), nifiCurrentDir))
-        File nifiLibDir = new File(AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"), nifiCurrentDir))
-        final File nifiUpgradeConfDir = Paths.get(nifiUpgDirString,"conf").toFile()
-        final File nifiUpgradeLibDir = Paths.get(nifiUpgDirString,"lib").toFile()
+        AdminUtil.with{
 
-        if(AdminUtil.supportedNiFiMinimumVersion(nifiConfDir.canonicalPath, nifiLibDir.canonicalPath, SUPPORTED_MINIMUM_VERSION) &&
-                AdminUtil.supportedNiFiMinimumVersion(nifiUpgradeConfDir.canonicalPath, nifiUpgradeLibDir.canonicalPath, SUPPORTED_MINIMUM_VERSION)) {
+            Properties bootstrapProperties = getBootstrapConf(bootstrapConfPath)
+            File nifiConfDir = new File(getRelativeDirectory(bootstrapProperties.getProperty('conf.dir'), nifiCurrentDir))
+            File nifiLibDir = new File(getRelativeDirectory(bootstrapProperties.getProperty('lib.dir'), nifiCurrentDir))
+            final File nifiUpgradeConfDir = Paths.get(nifiUpgDirString,'conf').toFile()
+            final File nifiUpgradeLibDir = Paths.get(nifiUpgDirString,'lib').toFile()
 
-            if (!nifiConfDir.exists() || !nifiConfDir.isDirectory()) {
-                throw new IllegalArgumentException("NiFi Configuration Directory provided is not valid: " + nifiConfDir.absolutePath)
+            if(supportedNiFiMinimumVersion(nifiConfDir.canonicalPath, nifiLibDir.canonicalPath, SUPPORTED_MINIMUM_VERSION) &&
+               supportedNiFiMinimumVersion(nifiUpgradeConfDir.canonicalPath, nifiUpgradeLibDir.canonicalPath, SUPPORTED_MINIMUM_VERSION)) {
+
+                if (!nifiConfDir.exists() || !nifiConfDir.isDirectory()) {
+                    throw new IllegalArgumentException('NiFi Configuration Directory provided is not valid: ' + nifiConfDir.absolutePath)
+                }
+
+                if (!nifiUpgradeConfDir.exists() || !nifiUpgradeConfDir.isDirectory()) {
+                    throw new IllegalArgumentException('Upgrade Configuration Directory provided is not valid: ' + nifiUpgradeConfDir)
+                }
+
+                if (isVerbose) {
+                    logger.info('Migrating configurations from {} to {}', nifiConfDir.absolutePath, nifiUpgradeConfDir.absolutePath)
+                }
+
+                migrate(nifiConfDir,nifiLibDir,nifiUpgradeConfDir,nifiUpgradeLibDir,bootstrapConf,nifiCurrentDir)
+
+                if (isVerbose) {
+                    logger.info('Migration completed.')
+                }
+
+            }else{
+                throw new UnsupportedOperationException('Config Migration Tool only supports NiFi version 1.0.0 and above')
             }
-
-            if (!nifiUpgradeConfDir.exists() || !nifiUpgradeConfDir.isDirectory()) {
-                throw new IllegalArgumentException("Upgrade Configuration Directory provided is not valid: " + nifiUpgradeConfDir)
-            }
-
-            if (isVerbose) {
-                logger.info("Migrating configurations from {} to {}", nifiConfDir.absolutePath, nifiUpgradeConfDir.absolutePath)
-            }
-
-            migrate(nifiConfDir,nifiLibDir,nifiUpgradeConfDir,nifiUpgradeLibDir,bootstrapConf,nifiCurrentDir)
-
-            if (isVerbose) {
-                logger.info("Migration completed.")
-            }
-
-        }else{
-            throw new UnsupportedOperationException("Config Migration Tool only supports NiFi version 1.0.0 and above")
         }
-
     }
 
 
