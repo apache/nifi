@@ -147,7 +147,7 @@ public class FileManagerTool extends AbstractAdminTool{
     void moveRepository(final String dirName, final String installDirName){
 
         if(isVerbose){
-            logger.info('Moving repositories from {} to {}:',dirName,installDirName)
+            logger.info('Moving repositories from {} to {}. Please note that repositories may be upgraded during install and become incompatible with a previous version. ',dirName,installDirName)
         }
 
         final String bootstrapConfFileName = dirName + File.separator + 'conf' + File.separator + 'bootstrap.conf'
@@ -239,7 +239,7 @@ public class FileManagerTool extends AbstractAdminTool{
     void backup(String backupNiFiDirName, String currentNiFiDirName, String bootstrapConfFileName){
 
         if(isVerbose){
-            logger.info('Creating backup in directory:' + backupNiFiDirName)
+            logger.info('Creating backup in directory {}. Please note that repositories are not included in backup operation.',backupNiFiDirName)
         }
 
         final File backupNiFiDir = new File(backupNiFiDirName)
