@@ -53,7 +53,7 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
+    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
         if (this.context == null) {
             throw new SchemaNotFoundException("Schema Access Strategy intended only for validation purposes and cannot obtain schema");
         }

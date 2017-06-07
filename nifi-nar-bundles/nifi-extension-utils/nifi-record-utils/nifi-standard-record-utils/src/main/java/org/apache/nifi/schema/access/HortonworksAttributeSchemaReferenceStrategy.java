@@ -47,7 +47,7 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final String schemaIdentifier = flowFile.getAttribute(SCHEMA_ID_ATTRIBUTE);
         final String schemaVersion = flowFile.getAttribute(SCHEMA_VERSION_ATTRIBUTE);
         final String schemaProtocol = flowFile.getAttribute(SCHEMA_PROTOCOL_VERSION_ATTRIBUTE);

@@ -45,7 +45,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -217,7 +216,7 @@ public class FetchParquetTest {
         configure(proc);
 
         final RecordSetWriter recordSetWriter = Mockito.mock(RecordSetWriter.class);
-        when(recordSetWriter.write(any(RecordSet.class))).thenThrow(new IOException("IOException"));
+        when(recordSetWriter.write(any(Record.class))).thenThrow(new IOException("IOException"));
 
         final RecordSetWriterFactory recordSetWriterFactory = Mockito.mock(RecordSetWriterFactory.class);
         when(recordSetWriterFactory.getIdentifier()).thenReturn("mock-writer-factory");

@@ -56,7 +56,7 @@ public class TestCSVHeaderSchemaStrategy {
 
         final RecordSchema schema;
         try (final InputStream bais = new ByteArrayInputStream(headerBytes)) {
-            schema = strategy.getSchema(null, bais);
+            schema = strategy.getSchema(null, bais, null);
         }
 
         final List<String> expectedFieldNames = Arrays.asList("a", "b", "c", "d", "e,z", "f");

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -175,15 +174,6 @@ public class PartitionRecord extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSchema writeSchema;
-        try (final InputStream rawIn = session.read(flowFile);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            writeSchema = writerFactory.getSchema(flowFile, in);
-        } catch (final Exception e) {
-            getLogger().error("Failed to partition records for {}; will route to failure", new Object[] {flowFile, e});
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
 
         final Map<String, RecordPath> recordPaths;
         try {
@@ -202,6 +192,8 @@ public class PartitionRecord extends AbstractProcessor {
 
         try (final InputStream in = session.read(flowFile)) {
             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+
+            final RecordSchema writeSchema = writerFactory.getSchema(flowFile, reader.getSchema());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {

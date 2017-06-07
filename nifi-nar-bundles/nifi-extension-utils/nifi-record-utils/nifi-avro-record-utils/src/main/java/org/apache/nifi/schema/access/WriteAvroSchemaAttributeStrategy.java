@@ -17,44 +17,36 @@
 
 package org.apache.nifi.schema.access;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-public class SchemaTextAsAttribute implements SchemaAccessWriter {
-    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
+public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
 
     @Override
-    public void writeHeader(final RecordSchema schema, final OutputStream out) {
+    public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
     }
 
     @Override
     public Map<String, String> getAttributes(final RecordSchema schema) {
-        final Optional<String> textFormatOption = schema.getSchemaFormat();
-        final Optional<String> textOption = schema.getSchemaText();
-        return Collections.singletonMap(textFormatOption.get() + ".schema", textOption.get());
+        final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
+        final String schemaText = avroSchema.toString();
+        return Collections.singletonMap("avro.schema", schemaText);
     }
 
     @Override
     public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
-        final Optional<String> textFormatOption = schema.getSchemaFormat();
-        if (!textFormatOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Schema Text as Attribute because the Schema's Text Format is not present");
-        }
-
-        final Optional<String> textOption = schema.getSchemaText();
-        if (!textOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Schema Text as Attribute because the Schema's Text is not present");
-        }
     }
 
     @Override
     public Set<SchemaField> getRequiredSchemaFields() {
-        return schemaFields;
+        return EnumSet.noneOf(SchemaField.class);
     }
 }

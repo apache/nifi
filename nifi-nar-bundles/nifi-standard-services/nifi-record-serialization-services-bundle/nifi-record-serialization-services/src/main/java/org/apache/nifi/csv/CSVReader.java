@@ -89,7 +89,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
         final BufferedInputStream bufferedIn = new BufferedInputStream(in);
         bufferedIn.mark(1024 * 1024);
-        final RecordSchema schema = getSchema(flowFile, new NonCloseableInputStream(bufferedIn));
+        final RecordSchema schema = getSchema(flowFile, new NonCloseableInputStream(bufferedIn), null);
         bufferedIn.reset();
 
         return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, dateFormat, timeFormat, timestampFormat);

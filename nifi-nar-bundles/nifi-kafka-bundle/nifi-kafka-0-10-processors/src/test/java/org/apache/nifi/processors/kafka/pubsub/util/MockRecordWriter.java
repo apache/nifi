@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.kafka.pubsub.util;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 
@@ -53,7 +52,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSchema getSchema(FlowFile flowFile, InputStream content) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(FlowFile flowFile, RecordSchema schema) throws SchemaNotFoundException, IOException {
         return null;
     }
 

@@ -53,11 +53,12 @@ public interface RecordSetWriterFactory extends ControllerService {
      * </p>
      *
      * @param flowFile the FlowFile from which the schema should be determined.
-     * @param content the contents of the FlowFile from which to determine the schema
+     * @param readSchema the schema that was read from the incoming FlowFile, or <code>null</code> if there is no input schema
+     *
      * @return the Schema that should be used for writing Records
      * @throws SchemaNotFoundException if unable to find the schema
      */
-    RecordSchema getSchema(FlowFile flowFile, InputStream content) throws SchemaNotFoundException, IOException;
+    RecordSchema getSchema(FlowFile flowFile, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
 
     /**
      * <p>

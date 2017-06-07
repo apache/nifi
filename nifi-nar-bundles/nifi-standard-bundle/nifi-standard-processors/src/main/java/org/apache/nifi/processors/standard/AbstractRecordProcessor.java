@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -100,15 +99,6 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSchema writeSchema;
-        try (final InputStream rawIn = session.read(flowFile);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            writeSchema = writerFactory.getSchema(flowFile, in);
-        } catch (final Exception e) {
-            getLogger().error("Failed to process records for {}; will route to failure", new Object[] {flowFile, e});
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -119,30 +109,31 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger());
-                        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out)) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
 
-                        writer.beginRecordSet();
+                        final RecordSchema writeSchema = writerFactory.getSchema(original, reader.getSchema());
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out)) {
+                            writer.beginRecordSet();
 
-                        Record record;
-                        while ((record = reader.nextRecord()) != null) {
-                            final Record processed = AbstractRecordProcessor.this.process(record, writeSchema, original, context);
-                            writer.write(processed);
+                            Record record;
+                            while ((record = reader.nextRecord()) != null) {
+                                final Record processed = AbstractRecordProcessor.this.process(record, writeSchema, original, context);
+                                writer.write(processed);
+                            }
+
+                            final WriteResult writeResult = writer.finishRecordSet();
+                            attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                            attributes.putAll(writeResult.getAttributes());
+                            recordCount.set(writeResult.getRecordCount());
                         }
-
-                        final WriteResult writeResult = writer.finishRecordSet();
-                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                        attributes.putAll(writeResult.getAttributes());
-                        recordCount.set(writeResult.getRecordCount());
-
                     } catch (final SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
                     }
                 }
             });
         } catch (final Exception e) {
-            getLogger().error("Failed to process {}", new Object[] {flowFile, e});
+            getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,9 +71,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
@@ -241,19 +241,19 @@ public class QueryRecord extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
 
-        final RecordSetWriterFactory resultSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY)
-            .asControllerService(RecordSetWriterFactory.class);
-        final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY)
-            .asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
 
         final Map<FlowFile, Relationship> transformedFlowFiles = new HashMap<>();
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
 
+        // Determine the schema for writing the data
         final RecordSchema recordSchema;
+        try (final InputStream rawIn = session.read(original)) {
+            final RecordReader reader = recordReaderFactory.createRecordReader(original, rawIn, getLogger());
+            final RecordSchema inputSchema = reader.getSchema();
 
-        try (final InputStream rawIn = session.read(original);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            recordSchema = resultSetWriterFactory.getSchema(original, in);
+            recordSchema = recordSetWriterFactory.getSchema(original, inputSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -281,9 +281,9 @@ public class QueryRecord extends AbstractProcessor {
                     final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
                     final QueryResult queryResult;
                     if (context.getProperty(CACHE_SCHEMA).asBoolean()) {
-                        queryResult = queryWithCache(session, original, sql, context, recordParserFactory);
+                        queryResult = queryWithCache(session, original, sql, context, recordReaderFactory);
                     } else {
-                        queryResult = query(session, original, sql, context, recordParserFactory);
+                        queryResult = query(session, original, sql, context, recordReaderFactory);
                     }
 
                     final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
@@ -293,7 +293,7 @@ public class QueryRecord extends AbstractProcessor {
                         transformed = session.write(transformed, new OutputStreamCallback() {
                             @Override
                             public void process(final OutputStream out) throws IOException {
-                                try (final RecordSetWriter resultSetWriter = resultSetWriterFactory.createWriter(getLogger(), recordSchema, outFlowFile, out)) {
+                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, outFlowFile, out)) {
                                     final ResultSetRecordSet resultSet = new ResultSetRecordSet(rs);
                                     writeResultRef.set(resultSetWriter.write(resultSet));
                                     mimeTypeRef.set(resultSetWriter.getMimeType());
@@ -361,6 +361,7 @@ public class QueryRecord extends AbstractProcessor {
 
         session.adjustCounter("Records Read", recordsRead, false);
     }
+
 
     private synchronized CachedStatement getStatement(final String sql, final Supplier<CalciteConnection> connectionSupplier, final ProcessSession session,
         final FlowFile flowFile, final RecordReaderFactory recordReaderFactory) throws SQLException {

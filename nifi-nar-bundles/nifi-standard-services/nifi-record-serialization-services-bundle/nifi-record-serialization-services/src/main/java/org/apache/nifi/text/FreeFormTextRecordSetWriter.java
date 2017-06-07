@@ -18,11 +18,9 @@
 package org.apache.nifi.text;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,7 +36,6 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 @Tags({"text", "freeform", "expression", "language", "el", "record", "recordset", "resultset", "writer", "serialize"})
@@ -46,8 +43,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
     + "text is able to make use of the Expression Language to reference each of the fields that are available "
     + "in a Record. Each record in the RecordSet will be separated by a single newline character.")
 public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
-    private static final RecordSchema EMPTY_SCHEMA = new SimpleRecordSchema(Collections.emptyList());
-
     static final PropertyDescriptor TEXT = new PropertyDescriptor.Builder()
         .name("Text")
         .description("The text to use when writing the results. This property will evaluate the Expression Language using any of the fields available in a Record.")
@@ -87,7 +82,7 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException, IOException {
-        return EMPTY_SCHEMA;
+    public RecordSchema getSchema(final FlowFile flowFile, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        return readSchema;
     }
 }

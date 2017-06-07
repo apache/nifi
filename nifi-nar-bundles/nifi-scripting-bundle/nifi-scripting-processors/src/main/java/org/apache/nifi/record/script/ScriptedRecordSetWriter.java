@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.record.script;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.Collection;
+import java.util.HashSet;
+
+import javax.script.Invocable;
+import javax.script.ScriptException;
+
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -29,15 +38,6 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import javax.script.Invocable;
-import javax.script.ScriptException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Collection;
-import java.util.HashSet;
 
 /**
  * A RecordSetWriter implementation that allows the user to script the RecordWriter instance
@@ -149,14 +149,14 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     }
 
     @Override
-    public RecordSchema getSchema(FlowFile flowFile, InputStream in) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(FlowFile flowFile, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final RecordSetWriterFactory writerFactory = recordFactory.get();
         if (writerFactory == null) {
             return null;
         }
 
         try {
-            return writerFactory.getSchema(flowFile, in);
+            return writerFactory.getSchema(flowFile, readSchema);
         } catch (UndeclaredThrowableException ute) {
             throw new IOException(ute.getCause());
         }
