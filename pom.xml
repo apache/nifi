@@ -1103,6 +1103,18 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kudu-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kudu-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-nar</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
                 <type>nar</type>
