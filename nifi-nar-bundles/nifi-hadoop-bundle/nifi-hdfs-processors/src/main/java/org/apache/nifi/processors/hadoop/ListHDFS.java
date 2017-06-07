@@ -215,7 +215,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 if (latestListingTimestamp == latestTimestampEmitted) {
                     return Collections.emptySet();
                 }
-            } else {
+            } else if (latestListingTimestamp >= lastRunTimestamp - LISTING_LAG_NANOS) {
                 // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
                 orderedEntries.remove(latestListingTimestamp);
             }

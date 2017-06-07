@@ -266,10 +266,10 @@ public class TestListHDFS {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
         Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
         assertEquals("2000", newState.get(ListHDFS.LISTING_TIMESTAMP_KEY));
-        assertEquals("1999", newState.get(ListHDFS.EMITTED_TIMESTAMP_KEY));
+        assertEquals("2000", newState.get(ListHDFS.EMITTED_TIMESTAMP_KEY));
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
@@ -291,26 +291,33 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/2.txt")));
 
-        // The first iteration should pick up 2 files with the smaller timestamps.
+        // The first iteration should pick up all 4 files
         runner.run();
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run();
-
-        // Next iteration should pick up the other 2 files, since nothing else was added.
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
 
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 110L, 0L, create777(), "owner", "group", new Path("/test/testDir/3.txt")));
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
+        // Should pick up the file that was added
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 5);
+
+        // Add a file with a modification time > currentTime - lag
+        long modificationTime = System.nanoTime() + 10 * ListHDFS.LISTING_LAG_NANOS;
+        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, modificationTime, 0L, create777(), "owner", "group", new Path("/test/testDir/4.txt")));
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
+        // Shouldn't have picked up the file
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 5);
+
+        // Keep waiting and run again
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(10 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        // Shouldn't have picked up the file
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 6);
     }
 
 
