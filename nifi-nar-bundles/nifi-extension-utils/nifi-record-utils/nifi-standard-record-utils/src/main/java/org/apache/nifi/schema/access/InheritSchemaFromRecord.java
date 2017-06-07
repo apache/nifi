@@ -17,26 +17,28 @@
 
 package org.apache.nifi.schema.access;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.EnumSet;
+import java.util.Set;
+
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Set;
+public class InheritSchemaFromRecord implements SchemaAccessStrategy {
 
-public interface SchemaAccessStrategy {
-    /**
-     * Returns the schema for the given FlowFile using the supplied stream of content and configuration
-     *
-     * @param flowFile flowfile
-     * @param contentStream content of flowfile
-     * @param readSchema the schema that was read from the input FlowFile, or <code>null</code> if there was none
-     * @return the RecordSchema for the FlowFile
-     */
-    RecordSchema getSchema(FlowFile flowFile, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
+    @Override
+    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        if (readSchema == null) {
+            throw new SchemaNotFoundException("Cannot inherit Schema from Record because no schema was found");
+        }
 
-    /**
-     * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #getSchema(FlowFile, InputStream)}.
-     */
-    Set<SchemaField> getSuppliedSchemaFields();
+        return readSchema;
+    }
+
+    @Override
+    public Set<SchemaField> getSuppliedSchemaFields() {
+        return EnumSet.allOf(SchemaField.class);
+    }
+
 }

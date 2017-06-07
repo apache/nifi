@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import java.io.BufferedInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -28,8 +43,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -42,42 +55,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.exception.RecordReaderFactoryException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
-import org.apache.nifi.schema.access.SchemaAccessStrategy;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 
 /**
  * Base class for processors that write Records to HDFS.
@@ -156,17 +140,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     private volatile String remoteOwner;
     private volatile String remoteGroup;
-    private volatile SchemaAccessStrategy schemaAccessStrategy;
 
     private volatile Set<Relationship> putHdfsRecordRelationships;
     private volatile List<PropertyDescriptor> putHdfsRecordProperties;
-
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
-            SCHEMA_NAME_PROPERTY,
-            SCHEMA_TEXT_PROPERTY,
-            HWX_SCHEMA_REF_ATTRIBUTES,
-            HWX_CONTENT_ENCODED_SCHEMA
-    ));
 
 
     @Override
@@ -187,19 +163,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 .description("The parent directory to which files should be written. Will be created if it doesn't exist.")
                 .build());
 
-        final AllowableValue[] strategies = getSchemaAccessStrategyValues().toArray(new AllowableValue[0]);
-
-        props.add(new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
-                .description("Specifies how to obtain the schema that is to be used for writing the data.")
-                .allowableValues(strategies)
-                .defaultValue(getDefaultSchemaAccessStrategy().getValue())
-                .build());
-
-        props.add(SCHEMA_REGISTRY);
-        props.add(SCHEMA_NAME);
-        props.add(SCHEMA_TEXT);
-
         final AllowableValue[] compressionTypes = getCompressionTypes(context).toArray(new AllowableValue[0]);
 
         props.add(new PropertyDescriptor.Builder()
@@ -214,18 +177,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.addAll(getAdditionalProperties());
         this.putHdfsRecordProperties = Collections.unmodifiableList(props);
-    }
-
-    protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        return strategyList;
-    }
-
-    protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return SCHEMA_NAME_PROPERTY;
-    }
-
-    private PropertyDescriptor getSchemaAcessStrategyDescriptor() {
-        return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
     }
 
     /**
@@ -259,21 +210,10 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
        return putHdfsRecordProperties;
     }
 
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String schemaAccessStrategy = validationContext.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
-        return SchemaAccessUtils.validateSchemaAccessStrategy(validationContext, schemaAccessStrategy, getSchemaAccessStrategyValues());
-    }
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
         super.abstractOnScheduled(context);
-
-        final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
-
-        final PropertyDescriptor descriptor = getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
-        final String schemaAccess = context.getProperty(descriptor).getValue();
-        this.schemaAccessStrategy = SchemaAccessUtils.getSchemaAccessStrategy(schemaAccess, schemaRegistry, context);
 
         this.remoteOwner = context.getProperty(REMOTE_OWNER).getValue();
         this.remoteGroup = context.getProperty(REMOTE_GROUP).getValue();
@@ -365,8 +305,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                     HDFSRecordWriter recordWriter = null;
 
                     try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                        final RecordSchema destRecordSchema = schemaAccessStrategy.getSchema(flowFile, in);
-                        recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, destRecordSchema);
 
                         // if we fail to create the RecordReader then we want to route to failure, so we need to
                         // handle this separately from the other IOExceptions which normally route to retry
@@ -379,8 +317,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                         }
 
                         final RecordSet recordSet = recordReader.createRecordSet();
-                        writeResult.set(recordWriter.write(recordSet));
 
+                        recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, recordReader.getSchema());
+                        writeResult.set(recordWriter.write(recordSet));
                     } catch (Exception e) {
                         exceptionHolder.set(e);
                     } finally {

@@ -59,6 +59,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "0.10.x"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 0.10.x Producer API. "
@@ -309,6 +310,8 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
 
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
@@ -323,24 +326,16 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                 final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
                 final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
 
-                final RecordSchema schema;
-                final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-                try (final InputStream in = new BufferedInputStream(session.read(flowFile))) {
-                    schema = writerFactory.getSchema(flowFile, in);
-                } catch (final Exception e) {
-                    getLogger().error("Failed to determine Schema for writing messages to Kafka for {}; routing to failure", new Object[] {flowFile, e});
-                    session.transfer(flowFile, REL_FAILURE);
-                    continue;
-                }
-
                 try {
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
                         public void process(final InputStream rawIn) throws IOException {
                             try (final InputStream in = new BufferedInputStream(rawIn)) {
-                                final RecordReader reader = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class).createRecordReader(flowFile, in, getLogger());
-                                lease.publish(flowFile, reader, writerFactory, schema, messageKeyField, topic);
+                                final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+                                final RecordSet recordSet = reader.createRecordSet();
+
+                                final RecordSchema schema = writerFactory.getSchema(flowFile, recordSet.getSchema());
+                                lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic);
                             } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                 throw new ProcessException(e);
                             }

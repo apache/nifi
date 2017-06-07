@@ -101,9 +101,7 @@ class ScriptedRecordSetWriterTest {
         recordSetWriterFactory.onEnabled configurationContext
 
         MockFlowFile mockFlowFile = new MockFlowFile(1L)
-        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
-
-		def schema = recordSetWriterFactory.getSchema(mockFlowFile, inStream)
+		def schema = recordSetWriterFactory.getSchema(mockFlowFile, null)
         
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, mockFlowFile, outputStream)

@@ -465,7 +465,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
                     final RecordSchema writeSchema;
                     try {
-                        writeSchema = writerFactory.getSchema(flowFile, new ByteArrayInputStream(records.get(0).value()));
+                        writeSchema = writerFactory.getSchema(flowFile, recordSchema);
                     } catch (final Exception e) {
                         logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
 

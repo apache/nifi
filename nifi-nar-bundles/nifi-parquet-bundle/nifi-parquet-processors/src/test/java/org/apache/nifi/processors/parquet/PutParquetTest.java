@@ -16,12 +16,25 @@
  */
 package org.apache.nifi.processors.parquet;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -32,7 +45,6 @@ import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -49,20 +61,9 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
 
 
 public class PutParquetTest {
@@ -76,6 +77,10 @@ public class PutParquetTest {
     private MockRecordParser readerFactory;
     private TestRunner testRunner;
 
+    @BeforeClass
+    public static void setupLogging() {
+        BasicConfigurator.configure();
+    }
 
     @Before
     public void setup() throws IOException, InitializationException {
@@ -108,8 +113,6 @@ public class PutParquetTest {
         testRunner.enableControllerService(readerFactory);
 
         testRunner.setProperty(PutParquet.RECORD_READER, "mock-reader-factory");
-        testRunner.setProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
-        testRunner.setProperty(SchemaAccessUtils.SCHEMA_TEXT, schema.toString());
     }
 
     @Test
@@ -325,7 +328,6 @@ public class PutParquetTest {
     @Test
     public void testValidSchemaWithELShouldBeSuccessful() throws InitializationException, IOException {
         configure(proc, 10);
-        testRunner.setProperty(SchemaAccessUtils.SCHEMA_TEXT, "${my.schema}");
 
         final String filename = "testValidSchemaWithELShouldBeSuccessful-" + System.currentTimeMillis();
 
@@ -337,39 +339,6 @@ public class PutParquetTest {
         testRunner.enqueue("trigger", flowFileAttributes);
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(PutParquet.REL_SUCCESS, 1);
-    }
-
-    @Test
-    public void testSchemaWithELMissingShouldRouteToFailure() throws InitializationException, IOException {
-        configure(proc, 10);
-        testRunner.setProperty(SchemaAccessUtils.SCHEMA_TEXT, "${my.schema}");
-
-        final String filename = "testSchemaWithELMissingShouldRouteToFailure-" + System.currentTimeMillis();
-
-        // don't provide my.schema as an attribute
-        final Map<String,String> flowFileAttributes = new HashMap<>();
-        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
-
-        testRunner.enqueue("trigger", flowFileAttributes);
-        testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(PutParquet.REL_FAILURE, 1);
-    }
-
-    @Test
-    public void testInvalidSchemaShouldRouteToFailure() throws InitializationException, IOException {
-        configure(proc, 10);
-        testRunner.setProperty(SchemaAccessUtils.SCHEMA_TEXT, "${my.schema}");
-
-        final String filename = "testInvalidSchemaShouldRouteToFailure-" + System.currentTimeMillis();
-
-        // don't provide my.schema as an attribute
-        final Map<String,String> flowFileAttributes = new HashMap<>();
-        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
-        flowFileAttributes.put("my.schema", "NOT A SCHEMA");
-
-        testRunner.enqueue("trigger", flowFileAttributes);
-        testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(PutParquet.REL_FAILURE, 1);
     }
 
     @Test
@@ -427,6 +396,7 @@ public class PutParquetTest {
 
         final RecordReader recordReader = Mockito.mock(RecordReader.class);
         when(recordReader.createRecordSet()).thenReturn(recordSet);
+        when(recordReader.getSchema()).thenReturn(AvroTypeUtil.createSchema(schema));
 
         final RecordReaderFactory readerFactory = Mockito.mock(RecordReaderFactory.class);
         when(readerFactory.getIdentifier()).thenReturn("mock-reader-factory");

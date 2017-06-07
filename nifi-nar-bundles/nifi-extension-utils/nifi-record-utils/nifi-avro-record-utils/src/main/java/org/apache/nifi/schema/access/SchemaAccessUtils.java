@@ -43,6 +43,10 @@ public class SchemaAccessUtils {
                     + "found at https://github.com/hortonworks/registry");
     public static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
             "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
+    public static final AllowableValue INHERIT_RECORD_SCHEMA = new AllowableValue("inherit-record-schema", "Inherit Record Schema",
+        "The schema used to write records will be the same schema that was given to the Record when the Record was created.");
+
+
 
     public  static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
             .name("schema-registry")
@@ -117,6 +121,8 @@ public class SchemaAccessUtils {
     public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ProcessContext context) {
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
             return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
+            return new InheritSchemaFromRecord();
         } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
@@ -131,6 +137,8 @@ public class SchemaAccessUtils {
     public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
             return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
+            return new InheritSchemaFromRecord();
         } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
@@ -145,6 +153,8 @@ public class SchemaAccessUtils {
     public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
             return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
+        } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
+            return new InheritSchemaFromRecord();
         } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
         } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {

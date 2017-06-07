@@ -17,33 +17,6 @@
 
 package org.apache.nifi.avro;
 
-import org.apache.avro.Conversions;
-import org.apache.avro.LogicalType;
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
-import org.apache.avro.Schema.Type;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericData.Array;
-import org.apache.avro.generic.GenericFixed;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.specific.SpecificRecord;
-import org.apache.avro.util.Utf8;
-import org.apache.avro.JsonProperties;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -61,6 +34,36 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.avro.Conversions;
+import org.apache.avro.JsonProperties;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
+import org.apache.avro.Schema.Type;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Array;
+import org.apache.avro.generic.GenericFixed;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.specific.SpecificRecord;
+import org.apache.avro.util.Utf8;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AvroTypeUtil {
     private static final Logger logger = LoggerFactory.getLogger(AvroTypeUtil.class);
     public static final String AVRO_SCHEMA_FORMAT = "avro";
@@ -72,28 +75,140 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
 
-    public static Schema extractAvroSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
+    public static Schema extractAvroSchema(final RecordSchema recordSchema) {
         if (recordSchema == null) {
             throw new IllegalArgumentException("RecordSchema cannot be null");
         }
 
         final Optional<String> schemaFormatOption = recordSchema.getSchemaFormat();
         if (!schemaFormatOption.isPresent()) {
-            throw new SchemaNotFoundException("No Schema Format was present in the RecordSchema");
+            return buildAvroSchema(recordSchema);
         }
 
         final String schemaFormat = schemaFormatOption.get();
         if (!schemaFormat.equals(AVRO_SCHEMA_FORMAT)) {
-            throw new SchemaNotFoundException("Schema provided is not in Avro format");
+            return buildAvroSchema(recordSchema);
         }
 
         final Optional<String> textOption = recordSchema.getSchemaText();
         if (!textOption.isPresent()) {
-            throw new SchemaNotFoundException("No Schema text was present in the RecordSchema");
+            return buildAvroSchema(recordSchema);
         }
 
         final String text = textOption.get();
         return new Schema.Parser().parse(text);
+    }
+
+    private static Schema buildAvroSchema(final RecordSchema recordSchema) {
+        final List<Field> avroFields = new ArrayList<>(recordSchema.getFieldCount());
+        for (final RecordField recordField : recordSchema.getFields()) {
+            avroFields.add(buildAvroField(recordField));
+        }
+
+        final Schema avroSchema = Schema.createRecord("nifiRecord", null, "org.apache.nifi", false, avroFields);
+        return avroSchema;
+    }
+
+    private static Field buildAvroField(final RecordField recordField) {
+        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName());
+        final Field field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+        for (final String alias : recordField.getAliases()) {
+            field.addAlias(alias);
+        }
+
+        return field;
+    }
+
+    private static Schema buildAvroSchema(final DataType dataType, final String fieldName) {
+        final Schema schema;
+
+        switch (dataType.getFieldType()) {
+            case ARRAY:
+                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                final DataType elementDataType = arrayDataType.getElementType();
+                if (RecordFieldType.BYTE.equals(elementDataType.getFieldType())) {
+                    schema = Schema.create(Type.BYTES);
+                } else {
+                    final Schema elementType = buildAvroSchema(elementDataType, fieldName);
+                    schema = Schema.createArray(elementType);
+                }
+                break;
+            case BIGINT:
+                schema = Schema.create(Type.STRING);
+                break;
+            case BOOLEAN:
+                schema = Schema.create(Type.BOOLEAN);
+                break;
+            case BYTE:
+                schema = Schema.create(Type.INT);
+                break;
+            case CHAR:
+                schema = Schema.create(Type.STRING);
+                break;
+            case CHOICE:
+                final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+                final List<DataType> options = choiceDataType.getPossibleSubTypes();
+
+                final List<Schema> unionTypes = new ArrayList<>(options.size());
+                for (final DataType option : options) {
+                    unionTypes.add(buildAvroSchema(option, fieldName));
+                }
+
+                schema = Schema.createUnion(unionTypes);
+                break;
+            case DATE:
+                schema = Schema.create(Type.INT);
+                LogicalTypes.date().addToSchema(schema);
+                break;
+            case DOUBLE:
+                schema = Schema.create(Type.DOUBLE);
+                break;
+            case FLOAT:
+                schema = Schema.create(Type.FLOAT);
+                break;
+            case INT:
+                schema = Schema.create(Type.INT);
+                break;
+            case LONG:
+                schema = Schema.create(Type.LONG);
+                break;
+            case MAP:
+                schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName));
+                break;
+            case RECORD:
+                final RecordDataType recordDataType = (RecordDataType) dataType;
+                final RecordSchema childSchema = recordDataType.getChildSchema();
+
+                final List<Field> childFields = new ArrayList<>(childSchema.getFieldCount());
+                for (final RecordField field : childSchema.getFields()) {
+                    childFields.add(buildAvroField(field));
+                }
+
+                schema = Schema.createRecord(fieldName + "Type", null, "org.apache.nifi", false, childFields);
+                break;
+            case SHORT:
+                schema = Schema.create(Type.INT);
+                break;
+            case STRING:
+                schema = Schema.create(Type.STRING);
+                break;
+            case TIME:
+                schema = Schema.create(Type.INT);
+                LogicalTypes.timeMillis().addToSchema(schema);
+                break;
+            case TIMESTAMP:
+                schema = Schema.create(Type.LONG);
+                LogicalTypes.timestampMillis().addToSchema(schema);
+                break;
+            default:
+                return null;
+        }
+
+        return nullable(schema);
+    }
+
+    private static Schema nullable(final Schema schema) {
+        return Schema.createUnion(Schema.create(Type.NULL), schema);
     }
 
     /**

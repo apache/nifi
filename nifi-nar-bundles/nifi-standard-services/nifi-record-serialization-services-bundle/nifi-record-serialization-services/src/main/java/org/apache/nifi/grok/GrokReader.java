@@ -222,7 +222,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
             @Override
-            public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
+            public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
                 return recordSchema;
             }
 
@@ -235,7 +235,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     @Override
     public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = getSchema(flowFile, in);
+        final RecordSchema schema = getSchema(flowFile, in, null);
         return new GrokRecordReader(in, grok, schema, appendUnmatchedLine);
     }
 }

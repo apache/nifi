@@ -89,7 +89,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
         if (EMBEDDED_AVRO_SCHEMA.getValue().equals(schemaAccessStrategy)) {
             return new AvroReaderWithEmbeddedSchema(in);
         } else {
-            final RecordSchema recordSchema = getSchema(flowFile, in);
+            final RecordSchema recordSchema = getSchema(flowFile, in, null);
 
             final Schema avroSchema;
             try {

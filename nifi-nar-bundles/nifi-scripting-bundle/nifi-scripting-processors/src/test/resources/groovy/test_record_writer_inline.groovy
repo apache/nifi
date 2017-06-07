@@ -102,7 +102,7 @@ class GroovyRecordSetWriter implements RecordSetWriter {
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
 
     @Override
-    public RecordSchema getSchema(FlowFile flowFile, InputStream inStream) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(FlowFile flowFile, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return null;
     }
     
