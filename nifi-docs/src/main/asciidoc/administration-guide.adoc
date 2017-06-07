@@ -1392,8 +1392,8 @@ folder of the current installation) to the new installation as well as migrate c
 Restore:
 
 The restore operation allows an existing installation to revert back to a previous installation.  Using an existing backup directory (created from the backup operation)
-the FileManager utility will restore libraries, scripts and documents as well as revert to previous configurations. NOTE: If repositories were changed due to the installation
-of a newer version of NiFi these may no longer be compatible during restore.  In that scenario exclude the -m option to ensure new repositories will be created or, if repositories
+the FileManager utility will restore libraries, scripts and documents as well as revert to previous configurations. *If repositories were changed due to the installation
+of a newer version of NiFi these may no longer be compatible during restore.*  In that scenario exclude the -m option to ensure new repositories will be created or, if repositories
 live outside of the NiFi directory, remove them so they can be recreated on startup after restore.
 
 
