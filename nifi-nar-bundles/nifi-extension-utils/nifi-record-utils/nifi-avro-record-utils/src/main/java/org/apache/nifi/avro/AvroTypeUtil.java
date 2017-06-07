@@ -152,7 +152,11 @@ public class AvroTypeUtil {
                     final Schema fieldSchema = field.schema();
                     final DataType fieldType = determineDataType(fieldSchema);
 
-                    recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
+                    if (field.defaultVal() == JsonProperties.NULL_VALUE) {
+                        recordFields.add(new RecordField(fieldName, fieldType, field.aliases()));
+                    } else {
+                        recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
+                    }
                 }
 
                 final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
