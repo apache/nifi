@@ -396,7 +396,8 @@ public class SFTPTransfer implements FileTransfer {
 
         final JSch jsch = new JSch();
         try {
-            final Session session = jsch.getSession(ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue(),
+            final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+            final Session session = jsch.getSession(username,
                 ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                 ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
@@ -441,10 +442,16 @@ public class SFTPTransfer implements FileTransfer {
             if (!ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean()) {
                 session.setServerAliveCountMax(0); // do not send keepalive message on SocketTimeoutException
             }
-            this.homeDir = sftp.getHome();
+            try {
+                this.homeDir = sftp.getHome();
+            } catch (SftpException e) {
+                // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
+                // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
+                logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
+            }
             return sftp;
 
-        } catch (final SftpException | JSchException e) {
+        } catch (JSchException e) {
             throw new IOException("Failed to obtain connection to remote host due to " + e.toString(), e);
         }
     }
