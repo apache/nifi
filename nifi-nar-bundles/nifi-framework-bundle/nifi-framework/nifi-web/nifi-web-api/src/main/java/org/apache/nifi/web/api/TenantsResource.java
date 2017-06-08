@@ -194,7 +194,7 @@ public class TenantsResource extends ApplicationResource {
                     populateRemainingUserEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -252,7 +252,7 @@ public class TenantsResource extends ApplicationResource {
         final UserEntity entity = serviceFacade.getUser(id);
         populateRemainingUserEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -307,7 +307,7 @@ public class TenantsResource extends ApplicationResource {
         entity.setUsers(populateRemainingUserEntitiesContent(users));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -391,7 +391,7 @@ public class TenantsResource extends ApplicationResource {
                     final UserEntity entity = serviceFacade.updateUser(revision, userEntity.getComponent());
                     populateRemainingUserEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -473,7 +473,7 @@ public class TenantsResource extends ApplicationResource {
                 (revision, userEntity) -> {
                     // delete the specified user
                     final UserEntity entity = serviceFacade.deleteUser(revision, userEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -583,7 +583,7 @@ public class TenantsResource extends ApplicationResource {
                     populateRemainingUserGroupEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -641,7 +641,7 @@ public class TenantsResource extends ApplicationResource {
         final UserGroupEntity entity = serviceFacade.getUserGroup(id);
         populateRemainingUserGroupEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -695,7 +695,7 @@ public class TenantsResource extends ApplicationResource {
         entity.setUserGroups(populateRemainingUserGroupEntitiesContent(users));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -779,7 +779,7 @@ public class TenantsResource extends ApplicationResource {
                     final UserGroupEntity entity = serviceFacade.updateUserGroup(revision, userGroupEntity.getComponent());
                     populateRemainingUserGroupEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -861,7 +861,7 @@ public class TenantsResource extends ApplicationResource {
                 (revision, userGroupEntity) -> {
                     // delete the specified user group
                     final UserGroupEntity entity = serviceFacade.deleteUserGroup(revision, userGroupEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

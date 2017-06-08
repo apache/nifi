@@ -300,7 +300,7 @@ public class ProvenanceEventResource extends ApplicationResource {
         entity.setProvenanceEvent(event);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -376,7 +376,7 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // generate the response
         URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
-        return clusterContext(generateCreatedResponse(uri, entity)).build();
+        return generateCreatedResponse(uri, entity).build();
     }
 
     // setters

@@ -123,7 +123,7 @@ public class ResourceResource extends ApplicationResource {
         entity.setResources(resources);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // setters

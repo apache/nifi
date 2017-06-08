@@ -205,7 +205,7 @@ public class CountersResource extends ApplicationResource {
         entity.setCounters(countersReport);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -266,7 +266,7 @@ public class CountersResource extends ApplicationResource {
                     entity.setCounter(counter);
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
