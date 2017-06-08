@@ -2432,6 +2432,7 @@ public final class DtoFactory {
                 if (uuids.size() == 1) {
                     requestDto.setUuid(uuids.iterator().next());
                 }
+                requestDto.setEventId(computeLineageSubmission.getExpandedEventId());
                 requestDto.setLineageRequestType(LineageRequestType.FLOWFILE);
                 break;
         }

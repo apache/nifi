@@ -485,7 +485,7 @@ public class ProvenanceResource extends ApplicationResource {
                 }
                 break;
             case FLOWFILE:
-                // ensure the uuid has been specified
+                // ensure the uuid or event id has been specified
                 if (requestDto.getUuid() == null && requestDto.getEventId() == null) {
                     throw new IllegalArgumentException("The flowfile uuid or event id must be specified when the event type is FLOWFILE.");
                 }
