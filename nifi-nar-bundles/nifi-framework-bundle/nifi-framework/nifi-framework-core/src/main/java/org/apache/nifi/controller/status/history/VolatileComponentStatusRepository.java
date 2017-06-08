@@ -74,9 +74,10 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     }
 
     @Override
-    public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints) {
+    public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
         final StandardStatusHistory history = new StandardStatusHistory();
         history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
+        history.setIncludeCounters(includeCounters);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -100,16 +101,18 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     }
                 }
 
-                final Map<String, Long> counters = status.getCounters();
-                if (counters != null) {
-                    for (final Map.Entry<String, Long> entry : counters.entrySet()) {
-                        final String counterName = entry.getKey();
+                if (includeCounters) {
+                    final Map<String, Long> counters = status.getCounters();
+                    if (counters != null) {
+                        for (final Map.Entry<String, Long> entry : counters.entrySet()) {
+                            final String counterName = entry.getKey();
 
-                        final String label = entry.getKey() + " (5 mins)";
-                        final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(entry.getKey(), label, label, Formatter.COUNT,
-                            s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
+                            final String label = entry.getKey() + " (5 mins)";
+                            final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(entry.getKey(), label, label, Formatter.COUNT,
+                                s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
 
-                        snapshot.addStatusMetric(metricDescriptor, entry.getValue());
+                            snapshot.addStatusMetric(metricDescriptor, entry.getValue());
+                        }
                     }
                 }
 

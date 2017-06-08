@@ -17,6 +17,9 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import java.util.Objects;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -100,5 +103,25 @@ public class StatusDescriptorDTO {
 
     public void setFormatter(String formatter) {
         this.formatter = formatter;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 + 41 * (field == null ? 0 : field.hashCode());
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof StatusDescriptorDTO)) {
+            return false;
+        }
+        final StatusDescriptorDTO other = (StatusDescriptorDTO) obj;
+        return Objects.equals(field, other.field);
     }
 }

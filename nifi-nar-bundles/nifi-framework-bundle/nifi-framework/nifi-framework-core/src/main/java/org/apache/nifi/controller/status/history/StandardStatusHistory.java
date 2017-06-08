@@ -28,6 +28,7 @@ public class StandardStatusHistory implements StatusHistory {
     private final List<StatusSnapshot> snapshots = new ArrayList<>();
     private final Date generated = new Date();
     private final Map<String, String> componentDetails = new LinkedHashMap<>();
+    private boolean includeCounters;
 
     @Override
     public Date getDateGenerated() {
@@ -50,5 +51,14 @@ public class StandardStatusHistory implements StatusHistory {
 
     public void addStatusSnapshot(final StatusSnapshot snapshot) {
         snapshots.add(snapshot);
+    }
+
+    @Override
+    public boolean isIncludeCounters() {
+        return includeCounters;
+    }
+
+    public void setIncludeCounters(final boolean include) {
+        includeCounters = include;
     }
 }

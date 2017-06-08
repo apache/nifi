@@ -4483,12 +4483,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return StatusHistoryUtil.createStatusHistoryDTO(componentStatusRepository.getConnectionStatusHistory(connectionId, startTime, endTime, preferredDataPoints));
     }
 
-    public StatusHistoryDTO getProcessorStatusHistory(final String processorId) {
-        return getProcessorStatusHistory(processorId, null, null, Integer.MAX_VALUE);
+    public StatusHistoryDTO getProcessorStatusHistory(final String processorId, final boolean includeCounters) {
+        return getProcessorStatusHistory(processorId, null, null, Integer.MAX_VALUE, includeCounters);
     }
 
-    public StatusHistoryDTO getProcessorStatusHistory(final String processorId, final Date startTime, final Date endTime, final int preferredDataPoints) {
-        return StatusHistoryUtil.createStatusHistoryDTO(componentStatusRepository.getProcessorStatusHistory(processorId, startTime, endTime, preferredDataPoints));
+    public StatusHistoryDTO getProcessorStatusHistory(final String processorId, final Date startTime, final Date endTime, final int preferredDataPoints, final boolean includeCounters) {
+        return StatusHistoryUtil.createStatusHistoryDTO(componentStatusRepository.getProcessorStatusHistory(processorId, startTime, endTime, preferredDataPoints, includeCounters));
     }
 
     public StatusHistoryDTO getProcessGroupStatusHistory(final String processGroupId) {

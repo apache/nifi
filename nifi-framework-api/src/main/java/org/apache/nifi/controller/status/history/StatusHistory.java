@@ -41,4 +41,9 @@ public interface StatusHistory {
      * @return List of snapshots for a given component
      */
     List<StatusSnapshot> getStatusSnapshots();
+
+    /**
+     * @return <code>true</code> if counter values are included in the Status History
+     */
+    boolean isIncludeCounters();
 }
