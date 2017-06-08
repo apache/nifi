@@ -135,7 +135,7 @@ public class FunnelResource extends ApplicationResource {
         final FunnelEntity entity = serviceFacade.getFunnel(id);
         populateRemainingFunnelEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -220,7 +220,7 @@ public class FunnelResource extends ApplicationResource {
                     final FunnelEntity entity = serviceFacade.updateFunnel(revision, funnelEntity.getComponent());
                     populateRemainingFunnelEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -302,7 +302,7 @@ public class FunnelResource extends ApplicationResource {
                 (revision, funnelEntity) -> {
                     // delete the specified funnel
                     final FunnelEntity entity = serviceFacade.deleteFunnel(revision, funnelEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

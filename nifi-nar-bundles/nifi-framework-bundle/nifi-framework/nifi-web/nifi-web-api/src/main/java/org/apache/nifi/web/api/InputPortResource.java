@@ -135,7 +135,7 @@ public class InputPortResource extends ApplicationResource {
         final PortEntity entity = serviceFacade.getInputPort(id);
         populateRemainingInputPortEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -222,7 +222,7 @@ public class InputPortResource extends ApplicationResource {
                     final PortEntity entity = serviceFacade.updateInputPort(revision, portDTO);
                     populateRemainingInputPortEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -301,7 +301,7 @@ public class InputPortResource extends ApplicationResource {
                 (revision, portEntity) -> {
                     // delete the specified input port
                     final PortEntity entity = serviceFacade.deleteInputPort(revision, portEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

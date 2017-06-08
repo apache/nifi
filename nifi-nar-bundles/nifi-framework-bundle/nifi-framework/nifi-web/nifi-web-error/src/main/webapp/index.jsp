@@ -17,7 +17,18 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
 <html>
-    <% String contextPath = "/".equals(request.getContextPath()) ? "" : request.getContextPath(); %>
+    <%
+        String contextPath = request.getHeader("X-ProxyContextPath");
+        if (contextPath == null) {
+            contextPath = request.getHeader("X-Forwarded-Context");
+        }
+        if (contextPath == null) {
+            contextPath = "";
+        }
+        if (contextPath.endsWith("/")) {
+            contextPath = contextPath.substring(0, contextPath.length() - 1);
+        }
+    %>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>

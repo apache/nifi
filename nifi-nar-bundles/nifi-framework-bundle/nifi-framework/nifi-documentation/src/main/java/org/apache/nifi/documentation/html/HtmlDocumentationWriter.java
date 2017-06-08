@@ -100,7 +100,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         xmlStreamWriter.writeStartElement("link");
         xmlStreamWriter.writeAttribute("rel", "stylesheet");
-        xmlStreamWriter.writeAttribute("href", "/nifi-docs/css/component-usage.css");
+        xmlStreamWriter.writeAttribute("href", "../../../../../css/component-usage.css");
         xmlStreamWriter.writeAttribute("type", "text/css");
         xmlStreamWriter.writeEndElement();
         xmlStreamWriter.writeEndElement();
@@ -438,7 +438,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     xmlStreamWriter.writeCharacters(", ");
                 }
                 xmlStreamWriter.writeCharacters("whether a property supports the ");
-                writeLink(xmlStreamWriter, "NiFi Expression Language", "/nifi-docs/html/expression-language-guide.html");
+                writeLink(xmlStreamWriter, "NiFi Expression Language", "../../../../../html/expression-language-guide.html");
             }
             if (containsSensitiveProperties) {
                 xmlStreamWriter.writeCharacters(", and whether a property is considered " + "\"sensitive\", meaning that its value will be encrypted. Before entering a "
@@ -596,7 +596,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             throws XMLStreamException {
         xmlStreamWriter.writeCharacters(" ");
         xmlStreamWriter.writeStartElement("img");
-        xmlStreamWriter.writeAttribute("src", "/nifi-docs/html/images/iconInfo.png");
+        xmlStreamWriter.writeAttribute("src", "../../../../../html/images/iconInfo.png");
         xmlStreamWriter.writeAttribute("alt", description);
         xmlStreamWriter.writeAttribute("title", description);
         xmlStreamWriter.writeEndElement();
@@ -799,7 +799,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                         xmlStreamWriter.writeCharacters(separator);
                     }
                 }
-                writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + linkedComponent.getCanonicalName() + "/index.html");
+                writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), "../../../../../components/" + group + "/" + id + "/" + version + "/" + linkedComponent.getCanonicalName() + "/index.html");
 
                 ++index;
             } else {
@@ -827,7 +827,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     final String id = firstCoordinate.getId();
                     final String version = firstCoordinate.getVersion();
 
-                    final String link = "/nifi-docs/components/" + group + "/" + id + "/" + version + "/" + className + "/index.html";
+                    final String link = "../../../../../components/" + group + "/" + id + "/" + version + "/" + className + "/index.html";
 
                     final int indexOfLastPeriod = className.lastIndexOf(".") + 1;
 

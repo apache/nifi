@@ -256,7 +256,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response generateClientId() {
         authorizeFlow();
-        return clusterContext(generateOkResponse(generateUuid())).build();
+        return generateOkResponse(generateUuid()).build();
     }
 
     /**
@@ -292,7 +292,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         final FlowConfigurationEntity entity = serviceFacade.getFlowConfiguration();
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -329,7 +329,7 @@ public class FlowResource extends ApplicationResource {
         final CurrentUserEntity entity = serviceFacade.getCurrentUser();
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -375,7 +375,7 @@ public class FlowResource extends ApplicationResource {
         // get this process group flow
         final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -------------------
@@ -424,7 +424,7 @@ public class FlowResource extends ApplicationResource {
         entity.setControllerServices(controllerServices);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -475,7 +475,7 @@ public class FlowResource extends ApplicationResource {
         entity.setControllerServices(controllerServices);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ---------------
@@ -523,7 +523,7 @@ public class FlowResource extends ApplicationResource {
         entity.setReportingTasks(reportingTasks);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -669,7 +669,7 @@ public class FlowResource extends ApplicationResource {
 
                     // update the process group
                     final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -716,7 +716,7 @@ public class FlowResource extends ApplicationResource {
         entity.setSearchResultsDTO(results);
 
         // generate the response
-        return clusterContext(noCache(Response.ok(entity))).build();
+        return noCache(Response.ok(entity)).build();
     }
 
     /**
@@ -759,7 +759,7 @@ public class FlowResource extends ApplicationResource {
         entity.setControllerStatus(controllerStatus);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -816,7 +816,7 @@ public class FlowResource extends ApplicationResource {
         entity.setClusterSummary(clusterConfiguration);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -856,7 +856,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         final ControllerBulletinsEntity entity = serviceFacade.getControllerBulletins();
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -900,7 +900,7 @@ public class FlowResource extends ApplicationResource {
         entity.setBanners(bannerDTO);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -957,7 +957,7 @@ public class FlowResource extends ApplicationResource {
         entity.setProcessorTypes(serviceFacade.getProcessorTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1042,7 +1042,7 @@ public class FlowResource extends ApplicationResource {
                 bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1099,7 +1099,7 @@ public class FlowResource extends ApplicationResource {
         entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1140,7 +1140,7 @@ public class FlowResource extends ApplicationResource {
         entity.setPrioritizerTypes(serviceFacade.getWorkQueuePrioritizerTypes());
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1199,7 +1199,7 @@ public class FlowResource extends ApplicationResource {
         entity.setAbout(aboutDTO);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // --------------
@@ -1308,7 +1308,7 @@ public class FlowResource extends ApplicationResource {
         entity.setBulletinBoard(bulletinBoard);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ------
@@ -1385,7 +1385,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified processor status
         final ProcessorStatusEntity entity = serviceFacade.getProcessorStatus(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1458,7 +1458,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified input port status
         final PortStatusEntity entity = serviceFacade.getInputPortStatus(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1531,7 +1531,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified output port status
         final PortStatusEntity entity = serviceFacade.getOutputPortStatus(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1604,7 +1604,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified remote process group status
         final RemoteProcessGroupStatusEntity entity = serviceFacade.getRemoteProcessGroupStatus(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1685,7 +1685,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the status
         final ProcessGroupStatusEntity entity = serviceFacade.getProcessGroupStatus(groupId, recursive);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1758,7 +1758,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified connection status
         final ConnectionStatusEntity entity = serviceFacade.getConnectionStatus(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // --------------
@@ -1808,7 +1808,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified processor status history
         final StatusHistoryEntity entity = serviceFacade.getProcessorStatusHistory(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1854,7 +1854,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified processor status history
         final StatusHistoryEntity entity = serviceFacade.getProcessGroupStatusHistory(groupId);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1900,7 +1900,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified processor status history
         final StatusHistoryEntity entity = serviceFacade.getRemoteProcessGroupStatusHistory(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -1946,7 +1946,7 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified processor status history
         final StatusHistoryEntity entity = serviceFacade.getConnectionStatusHistory(id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -------
@@ -2308,7 +2308,7 @@ public class FlowResource extends ApplicationResource {
         entity.setGenerated(new Date());
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // --------------------

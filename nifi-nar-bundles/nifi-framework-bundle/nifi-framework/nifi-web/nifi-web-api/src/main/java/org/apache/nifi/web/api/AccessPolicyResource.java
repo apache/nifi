@@ -162,7 +162,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(requestAction, resource);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -----------------------
@@ -255,7 +255,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     populateRemainingAccessPolicyEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -312,7 +312,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(id);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -397,7 +397,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     final AccessPolicyEntity entity = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
                     populateRemainingAccessPolicyEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -484,7 +484,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 (revision, accessPolicyEntity) -> {
                     // delete the specified access policy
                     final AccessPolicyEntity entity = serviceFacade.deleteAccessPolicy(revision, accessPolicyEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

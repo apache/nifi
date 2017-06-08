@@ -143,7 +143,7 @@ public class ConnectionResource extends ApplicationResource {
         populateRemainingConnectionEntityContent(entity);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -272,7 +272,7 @@ public class ConnectionResource extends ApplicationResource {
                     populateRemainingConnectionEntityContent(entity);
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 });
     }
 
@@ -358,7 +358,7 @@ public class ConnectionResource extends ApplicationResource {
                     final ConnectionEntity entity = serviceFacade.deleteConnection(revision, connectionEntity.getId());
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

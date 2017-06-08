@@ -18,12 +18,12 @@
         <meta charset="utf-8" />
         <title>UpdateRecord</title>
 
-        <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
     </head>
 
     <body>
     	<p>
-    		UpdateRecord makes use of the NiFi <a href="/nifi-docs/html/record-path-guide.html">
+    		UpdateRecord makes use of the NiFi <a href="../../../../../html/record-path-guide.html">
     		RecordPath Domain-Specific Language (DSL)</a> to allow the user
     		to indicate which field(s) in the Record should be updated. Users do this by adding a User-defined
     		Property to the Processor's configuration. The name of the User-defined Property must be the
@@ -47,7 +47,7 @@
     		match will be updated. If the replacement value is itself a RecordPath that does not match, then a
     		<code>null</code> value will be set for the field. For instances where this is not the desired behavior,
     		RecordPath predicates can be used to filter the fields that match so that no fields will be selected.
-    		See <a href="/nifi-docs/html/record-path-guide.html#predicates">RecordPath Predicates</a> for more information.
+    		See <a href="../../../../../html/record-path-guide.html#predicates">RecordPath Predicates</a> for more information.
     	</p>
     	
     	<p>
