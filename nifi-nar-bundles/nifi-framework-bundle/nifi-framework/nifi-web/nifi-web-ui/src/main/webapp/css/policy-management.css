@@ -35,12 +35,14 @@
 
 #delete-policy-button {
     margin-top: -4px;
+    display: none;
 }
 
 #new-policy-user-button {
     margin-top: -4px;
     margin-right: 5px;
     padding-left: 5px;
+    display: none;
 }
 
 button.policy-button {

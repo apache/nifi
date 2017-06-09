@@ -21,10 +21,10 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -46,6 +46,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -188,8 +189,44 @@ public class FileAuthorizerTest {
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null));
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null));
+        when(configurationContext.getProperty(Mockito.eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
+        when(configurationContext.getProperties()).then((invocation) -> {
+            final Map<String, String> properties = new HashMap<>();
+
+            final PropertyValue authFile = configurationContext.getProperty(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE);
+            if (authFile != null) {
+                properties.put(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE, authFile.getValue());
+            }
+
+            final PropertyValue tenantFile = configurationContext.getProperty(FileUserGroupProvider.PROP_TENANTS_FILE);
+            if (tenantFile != null) {
+                properties.put(FileUserGroupProvider.PROP_TENANTS_FILE, tenantFile.getValue());
+            }
+
+            final PropertyValue legacyAuthFile = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
+            if (legacyAuthFile != null) {
+                properties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, legacyAuthFile.getValue());
+            }
+
+            final PropertyValue initialAdmin = configurationContext.getProperty(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY);
+            if (initialAdmin != null) {
+                properties.put(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY, initialAdmin.getValue());
+            }
+
+            int i = 1;
+            while (true) {
+                final String key = FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + i++;
+                final PropertyValue value = configurationContext.getProperty(key);
+                if (value == null) {
+                    break;
+                } else {
+                    properties.put(key, value.getValue());
+                }
+            }
+
+            return properties;
+        });
 
         authorizer = new FileAuthorizer();
         authorizer.setNiFiProperties(properties);
@@ -464,7 +501,7 @@ public class FileAuthorizerTest {
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
@@ -492,7 +529,7 @@ public class FileAuthorizerTest {
     public void testOnConfiguredWhenInitialAdminProvided() throws Exception {
         final String adminIdentity = "admin-user";
 
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
@@ -530,7 +567,7 @@ public class FileAuthorizerTest {
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "admin-user";
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
@@ -568,7 +605,7 @@ public class FileAuthorizerTest {
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "admin-user";
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
@@ -609,7 +646,7 @@ public class FileAuthorizerTest {
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
@@ -626,18 +663,15 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenNodeIdentitiesProvided() throws Exception {
         final String adminIdentity = "admin-user";
-
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
-
         final String nodeIdentity1 = "node1";
         final String nodeIdentity2 = "node2";
 
-        final Map<String,String> props = new HashMap<>();
-        props.put("Node Identity 1", nodeIdentity1);
-        props.put("Node Identity 2", nodeIdentity2);
-
-        when(configurationContext.getProperties()).thenReturn(props);
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -662,18 +696,15 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenNodeIdentitiesProvidedAndUsersAlreadyExist() throws Exception {
         final String adminIdentity = "admin-user";
-
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
-
         final String nodeIdentity1 = "node1";
         final String nodeIdentity2 = "node2";
 
-        final Map<String,String> props = new HashMap<>();
-        props.put("Node Identity 1", nodeIdentity1);
-        props.put("Node Identity 2", nodeIdentity2);
-
-        when(configurationContext.getProperties()).thenReturn(props);
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODES);
@@ -709,17 +740,15 @@ public class FileAuthorizerTest {
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "CN=user1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
-
         final String nodeIdentity1 = "CN=node1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
         final String nodeIdentity2 = "CN=node2, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
 
-        final Map<String,String> nodeProps = new HashMap<>();
-        nodeProps.put("Node Identity 1", nodeIdentity1);
-        nodeProps.put("Node Identity 2", nodeIdentity2);
-
-        when(configurationContext.getProperties()).thenReturn(nodeProps);
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -735,9 +764,12 @@ public class FileAuthorizerTest {
         assertNotNull(nodeUser2);
     }
 
+    @Test
     public void testOnConfiguredWhenTenantsAndAuthorizationsFileDoesNotExist() {
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
+        assertEquals(0, authorizer.getUsers().size());
+        assertEquals(0, authorizer.getGroups().size());
     }
 
     @Test
@@ -745,6 +777,8 @@ public class FileAuthorizerTest {
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
+        assertEquals(0, authorizer.getUsers().size());
+        assertEquals(0, authorizer.getGroups().size());
     }
 
     @Test
@@ -752,6 +786,8 @@ public class FileAuthorizerTest {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
+        assertEquals(0, authorizer.getUsers().size());
+        assertEquals(0, authorizer.getGroups().size());
     }
 
     @Test
@@ -1007,9 +1043,6 @@ public class FileAuthorizerTest {
         final User user = authorizer.getUser("user-1");
         assertEquals("user-1", user.getIdentifier());
 
-        final AccessPolicy policy1 = authorizer.getAccessPolicy("policy-1");
-        assertTrue(policy1.getUsers().contains("user-1"));
-
         // delete user-1
         final User deletedUser = authorizer.deleteUser(user);
         assertNotNull(deletedUser);
@@ -1018,10 +1051,6 @@ public class FileAuthorizerTest {
         // should be one less user
         assertEquals(1, authorizer.getUsers().size());
         assertNull(authorizer.getUser(user.getIdentifier()));
-
-        // verify policy-1 no longer has a reference to user-1
-        final AccessPolicy updatedPolicy1 = authorizer.getAccessPolicy("policy-1");
-        assertFalse(updatedPolicy1.getUsers().contains("user-1"));
     }
 
     @Test
@@ -1121,7 +1150,6 @@ public class FileAuthorizerTest {
         assertEquals(3, groups.size());
     }
 
-
     @Test(expected = IllegalStateException.class)
     public void testAddGroupWhenUserDoesNotExist() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
@@ -1170,9 +1198,6 @@ public class FileAuthorizerTest {
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
-        final AccessPolicy policy1 = authorizer.getAccessPolicy("policy-1");
-        assertTrue(policy1.getGroups().contains("group-1"));
-
         // retrieve group-1
         final Group group = authorizer.getGroup("group-1");
         assertEquals("group-1", group.getIdentifier());
@@ -1187,10 +1212,6 @@ public class FileAuthorizerTest {
 
         // verify we can no longer retrieve group-1 by identifier
         assertNull(authorizer.getGroup(group.getIdentifier()));
-
-        // verify group-1 is no longer in policy-1
-        final AccessPolicy updatedPolicy1 = authorizer.getAccessPolicy("policy-1");
-        assertFalse(updatedPolicy1.getGroups().contains("group-1"));
     }
 
     @Test
@@ -1289,9 +1310,11 @@ public class FileAuthorizerTest {
                 .action(RequestAction.READ)
                 .build();
 
+        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) AuthorizerFactory.installIntegrityChecks(authorizer);
+        final ConfigurableAccessPolicyProvider accessPolicyProviderWithChecks = (ConfigurableAccessPolicyProvider) managedAuthorizer.getAccessPolicyProvider();
         try {
-            final AccessPolicy returnedPolicy2 = authorizer.addAccessPolicy(policy2);
-            Assert.fail("Should have thrown exception");
+            final AccessPolicy returnedPolicy2 = accessPolicyProviderWithChecks.addAccessPolicy(policy2);
+            fail("Should have thrown exception");
         } catch (Exception e) {
         }
 

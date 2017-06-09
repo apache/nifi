@@ -27,6 +27,7 @@ import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -157,9 +158,9 @@ public class TestThreadPoolRequestReplicator {
             final Entity entity = new ProcessorEntity();
 
             // set the user
-            final NiFiUser proxy2 = new StandardNiFiUser(proxyIdentity2);
-            final NiFiUser proxy1 = new StandardNiFiUser(proxyIdentity1, proxy2);
-            final NiFiUser user = new StandardNiFiUser(userIdentity, proxy1);
+            final NiFiUser proxy2 = new Builder().identity(proxyIdentity2).build();
+            final NiFiUser proxy1 = new Builder().identity(proxyIdentity1).chain(proxy2).build();
+            final NiFiUser user = new Builder().identity(userIdentity).chain(proxy1).build();
             final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(user));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 

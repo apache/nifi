@@ -14,7 +14,25 @@
   limitations under the License.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <!-- role -->
+    <!-- user group providers type -->
+    <xs:complexType name="UserGroupProvider">
+        <xs:sequence>
+            <xs:element name="identifier" type="NonEmptyStringType"/>
+            <xs:element name="class" type="NonEmptyStringType"/>
+            <xs:element name="property" type="Property" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- access policy provider type -->
+    <xs:complexType name="AccessPolicyProvider">
+        <xs:sequence>
+            <xs:element name="identifier" type="NonEmptyStringType"/>
+            <xs:element name="class" type="NonEmptyStringType"/>
+            <xs:element name="property" type="Property" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- authorizers type -->
     <xs:complexType name="Authorizer">
         <xs:sequence>
             <xs:element name="identifier" type="NonEmptyStringType"/>
@@ -38,10 +56,12 @@
         </xs:restriction>
     </xs:simpleType>
 
-    <!-- users -->
+    <!-- authorizers -->
     <xs:element name="authorizers">
         <xs:complexType>
             <xs:sequence>
+                <xs:element name="userGroupProvider" type="UserGroupProvider" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="accessPolicyProvider" type="AccessPolicyProvider" minOccurs="0" maxOccurs="unbounded"/>
                 <xs:element name="authorizer" type="Authorizer" minOccurs="0" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:complexType>

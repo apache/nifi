@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.provenance.index.lucene;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
@@ -56,7 +39,6 @@ import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.store.StorageResult;
-import static org.junit.Assume.assumeFalse;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,6 +46,25 @@ import org.junit.rules.TestName;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 public class TestLuceneEventIndex {
 
@@ -341,6 +342,11 @@ public class TestLuceneEventIndex {
             @Override
             public String getIdentity() {
                 return "unit test";
+            }
+
+            @Override
+            public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
             }
 
             @Override

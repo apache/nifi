@@ -1726,10 +1726,24 @@
         },
 
         /**
+         * Returns whether the authorizer is managed.
+         */
+        isManagedAuthorizer: function () {
+            return nfCanvas.isManagedAuthorizer();
+        },
+
+        /**
          * Returns whether the authorizer is configurable.
          */
         isConfigurableAuthorizer: function () {
             return nfCanvas.isConfigurableAuthorizer();
+        },
+
+        /**
+         * Returns whether the authorizer support configurable users and groups.
+         */
+        isConfigurableUsersAndGroups: function () {
+            return nfCanvas.isConfigurableUsersAndGroups();
         },
 
         /**

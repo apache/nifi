@@ -23,8 +23,8 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -149,8 +149,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserEntity requestUserEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserEntity == null || requestUserEntity.getComponent() == null) {
@@ -234,8 +234,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -284,8 +284,8 @@ public class TenantsResource extends ApplicationResource {
     public Response getUsers() {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -352,8 +352,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserEntity requestUserEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserEntity == null || requestUserEntity.getComponent() == null) {
@@ -448,8 +448,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (isReplicateRequest()) {
@@ -538,8 +538,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserGroupEntity requestUserGroupEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserGroupEntity == null || requestUserGroupEntity.getComponent() == null) {
@@ -623,8 +623,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -673,8 +673,8 @@ public class TenantsResource extends ApplicationResource {
     public Response getUserGroups() {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -740,8 +740,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserGroupEntity requestUserGroupEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserGroupEntity == null || requestUserGroupEntity.getComponent() == null) {
@@ -836,8 +836,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (isReplicateRequest()) {
@@ -897,7 +897,7 @@ public class TenantsResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response searchCluster(
+    public Response searchTenants(
             @ApiParam(
                     value = "Identity to search for.",
                     required = true
@@ -905,8 +905,8 @@ public class TenantsResource extends ApplicationResource {
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
