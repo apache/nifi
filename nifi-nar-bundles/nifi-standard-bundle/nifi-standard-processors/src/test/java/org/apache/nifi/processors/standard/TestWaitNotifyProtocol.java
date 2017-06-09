@@ -56,7 +56,7 @@ public class TestWaitNotifyProtocol {
     @SuppressWarnings("unchecked")
     private final Answer successfulReplace = invocation -> {
         final AtomicCacheEntry<String, String, Long> entry = invocation.getArgumentAt(0, AtomicCacheEntry.class);
-        cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getCachedRevision().orElse(0L) + 1));
+        cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getRevision().orElse(0L) + 1));
         return true;
     };
 
@@ -103,7 +103,7 @@ public class TestWaitNotifyProtocol {
 
         final AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
 
-        assertEquals(1, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(1, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
     }
 
@@ -120,20 +120,20 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, null);
 
         AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(2, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(2, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         protocol.notify(signalId, "a", 10, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(3, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(3, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         protocol.notify(signalId, "b", 2, null);
         protocol.notify(signalId, "c", 3, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(5, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(5, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         final Map<String, Integer> deltas = new HashMap<>();
@@ -142,13 +142,13 @@ public class TestWaitNotifyProtocol {
         protocol.notify("signal-id", deltas, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(6, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(6, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         // Zero clear 'b'.
         protocol.notify("signal-id", "b", 0, null);
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(7, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(7, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
     }
@@ -168,7 +168,7 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, attributeA1);
 
         AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(1L, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(1L, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}", cacheEntry.getValue());
 
         final Map<String, String> attributeA2 = new HashMap<>();
@@ -179,7 +179,7 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, attributeA2);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(2L, cacheEntry.getCachedRevision().orElse(-1L).longValue());
+        assertEquals(2L, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("Updated attributes should be merged correctly",
                 "{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}", cacheEntry.getValue());
 

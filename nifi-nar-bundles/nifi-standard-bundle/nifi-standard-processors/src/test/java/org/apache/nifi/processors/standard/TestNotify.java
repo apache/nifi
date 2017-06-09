@@ -359,7 +359,7 @@ public class TestNotify {
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            final CacheEntry entry = values.get(key);
+            final AtomicCacheEntry entry = values.get(key);
             if (entry == null) {
                 return null;
             }
@@ -397,24 +397,10 @@ public class TestNotify {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            return values.get(key);
-        }
-
-        @Override
-        public <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
-            verifyNotFail();
-
-            final CacheEntry existing = values.get(key);
-            if (existing != null && existing.getRevision() != revision) {
-                return false;
-            }
-
-            values.put(key, new AtomicCacheEntry<>(key, value, revision + 1));
-
-            return true;
+            return (AtomicCacheEntry<K, V, Long>) values.get(key);
         }
 
         @Override
@@ -423,11 +409,11 @@ public class TestNotify {
 
             final K key = entry.getKey();
             final AtomicCacheEntry<Object, Object, Long> existing = values.get(key);
-            if (existing != null && !existing.getCachedRevision().equals(entry.getCachedRevision())) {
+            if (existing != null && !existing.getRevision().equals(entry.getRevision())) {
                 return false;
             }
 
-            values.put(key, new AtomicCacheEntry<>(key, entry.getValue(), entry.getCachedRevision().orElse(0L) + 1));
+            values.put(key, new AtomicCacheEntry<>(key, entry.getValue(), entry.getRevision().orElse(0L) + 1));
 
             return true;
         }

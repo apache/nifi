@@ -39,23 +39,6 @@ import java.io.IOException;
 public interface AtomicDistributedMapCacheClient<R> extends DistributedMapCacheClient {
 
     /**
-     * @deprecated use {@link AtomicCacheEntry} instead.
-     */
-    interface CacheEntry<K, V> {
-
-        /**
-         * @deprecated use {@link AtomicCacheEntry#getCachedRevision()} instead.
-         * @return the latest revision stored in a cache server
-         */
-        long getRevision();
-
-        K getKey();
-
-        V getValue();
-
-    }
-
-    /**
      * Fetch a CacheEntry with a key.
      * @param <K> the key type
      * @param <V> the value type
@@ -63,38 +46,16 @@ public interface AtomicDistributedMapCacheClient<R> extends DistributedMapCacheC
      * @param keySerializer key serializer
      * @param valueDeserializer value deserializer
      * @return A CacheEntry instance if one exists, otherwise <cod>null</cod>.
-     *          Although the return type is {@link CacheEntry}, it should be able to cast to {@link AtomicCacheEntry}.
-     *          This is only for keeping the old method signature. In the future, return value will be changed to AtomicCacheEntry.
-     *          Implementation of this method should return AtomicCacheEntry.
      * @throws IOException if unable to communicate with the remote instance
      */
-    <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
-
-    /**
-     * Replace an existing key with new value.
-     * @param <K> the key type
-     * @param <V> the value type
-     * @param key the key to replace
-     * @param value the new value for the key
-     * @param keySerializer key serializer
-     * @param valueSerializer value serializer
-     * @param revision a revision that was retrieved by a preceding fetch operation, if the key is already updated by other client,
-     *                 this doesn't match with the one on server, therefore the replace operation will not be performed.
-     *                 If there's no existing entry for the key, any revision can replace the key.
-     * @return true only if the key is replaced.
-     * @throws IOException if unable to communicate with the remote instance
-     * @deprecated use {@link #replace(AtomicCacheEntry, Serializer, Serializer)} instead
-     */
-    default <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
-        throw new UnsupportedOperationException();
-    }
+    <K, V> AtomicCacheEntry<K, V, R> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
 
     /**
      * Replace an existing key with new value.
      * @param <K> the key type
      * @param <V> the value type
      * @param entry should provide the new value for {@link AtomicCacheEntry#getValue()},
-     *              and the same revision in the cache storage for {@link AtomicCacheEntry#getCachedRevision()},
+     *              and the same revision in the cache storage for {@link AtomicCacheEntry#getRevision()},
      *              if the revision does not match with the one in the cache storage, value will not be replaced.
      * @param keySerializer key serializer
      * @param valueSerializer value serializer

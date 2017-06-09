@@ -238,7 +238,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
         return withCommsSession(session -> {
             validateProtocolVersion(session, 2);
 
@@ -269,11 +269,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
-    public <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
-        return replace(new AtomicCacheEntry<>(key, value, revision), keySerializer, valueSerializer);
-    }
-
-    @Override
     public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
         return withCommsSession(session -> {
             validateProtocolVersion(session, 2);
@@ -282,7 +277,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             dos.writeUTF("replace");
 
             serialize(entry.getKey(), keySerializer, dos);
-            dos.writeLong(entry.getCachedRevision().orElse(0L));
+            dos.writeLong(entry.getRevision().orElse(0L));
             serialize(entry.getValue(), valueSerializer, dos);
 
             dos.flush();

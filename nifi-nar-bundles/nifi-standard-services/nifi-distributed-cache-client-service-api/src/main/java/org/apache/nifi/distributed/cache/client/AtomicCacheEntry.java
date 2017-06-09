@@ -18,7 +18,7 @@ package org.apache.nifi.distributed.cache.client;
 
 import java.util.Optional;
 
-public class AtomicCacheEntry<K, V, R> implements AtomicDistributedMapCacheClient.CacheEntry {
+public class AtomicCacheEntry<K, V, R> {
 
     private final K key;
     private V value;
@@ -39,7 +39,7 @@ public class AtomicCacheEntry<K, V, R> implements AtomicDistributedMapCacheClien
     /**
      * @return the latest revision stored in a cache server
      */
-    public Optional<R> getCachedRevision() {
+    public Optional<R> getRevision() {
         return Optional.ofNullable(revision);
     }
 
@@ -55,11 +55,4 @@ public class AtomicCacheEntry<K, V, R> implements AtomicDistributedMapCacheClien
         this.value = value;
     }
 
-    /**
-     * @deprecated use {@link #getCachedRevision()} instead.
-     */
-    @Override
-    public long getRevision() {
-        return revision instanceof Long ? (Long) revision : -1;
-    }
 }
