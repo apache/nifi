@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -310,8 +310,8 @@ public class TestNotify {
 
     }
 
-    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient {
-        private final ConcurrentMap<Object, CacheEntry> values = new ConcurrentHashMap<>();
+    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
+        private final ConcurrentMap<Object, AtomicCacheEntry<Object, Object, Long>> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
         void setFailOnCalls(boolean failOnCalls){
@@ -412,7 +412,22 @@ public class TestNotify {
                 return false;
             }
 
-            values.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+            values.put(key, new AtomicCacheEntry<>(key, value, revision + 1));
+
+            return true;
+        }
+
+        @Override
+        public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+            verifyNotFail();
+
+            final K key = entry.getKey();
+            final AtomicCacheEntry<Object, Object, Long> existing = values.get(key);
+            if (existing != null && !existing.getCachedRevision().equals(entry.getCachedRevision())) {
+                return false;
+            }
+
+            values.put(key, new AtomicCacheEntry<>(key, entry.getValue(), entry.getCachedRevision().orElse(0L) + 1));
 
             return true;
         }
