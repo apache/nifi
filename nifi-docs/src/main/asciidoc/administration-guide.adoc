@@ -2553,6 +2553,7 @@ Configure these properties for cluster nodes.
 |nifi.cluster.node.protocol.port|The node's protocol port. It is blank by default.
 |nifi.cluster.node.protocol.threads|The number of threads that should be used to communicate with other nodes
 in the cluster. This property defaults to `10`, but for large clusters, this value may need to be larger.
+|nifi.cluster.node.protocol.max.threads|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`.
 |nifi.cluster.node.event.history.size|When the state of a node in the cluster is changed, an event is generated
 and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is `25`.
 |nifi.cluster.node.connection.timeout|When connecting to another node in the cluster, specifies how long this node should wait before considering
