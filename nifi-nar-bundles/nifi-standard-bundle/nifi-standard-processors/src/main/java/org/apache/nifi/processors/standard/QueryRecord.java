@@ -472,7 +472,7 @@ public class QueryRecord extends AbstractProcessor {
         final RecordReaderFactory recordParserFactory) throws SQLException {
 
         final Properties properties = new Properties();
-        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.JAVA.name());
+        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
 
         Connection connection = null;
         ResultSet resultSet = null;
