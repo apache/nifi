@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -310,8 +310,8 @@ public class TestNotify {
 
     }
 
-    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient {
-        private final ConcurrentMap<Object, CacheEntry> values = new ConcurrentHashMap<>();
+    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
+        private final ConcurrentMap<Object, AtomicCacheEntry<Object, Object, Long>> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
         void setFailOnCalls(boolean failOnCalls){
@@ -359,7 +359,7 @@ public class TestNotify {
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            final CacheEntry entry = values.get(key);
+            final AtomicCacheEntry entry = values.get(key);
             if (entry == null) {
                 return null;
             }
@@ -397,22 +397,23 @@ public class TestNotify {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            return values.get(key);
+            return (AtomicCacheEntry<K, V, Long>) values.get(key);
         }
 
         @Override
-        public <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
+        public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
             verifyNotFail();
 
-            final CacheEntry existing = values.get(key);
-            if (existing != null && existing.getRevision() != revision) {
+            final K key = entry.getKey();
+            final AtomicCacheEntry<Object, Object, Long> existing = values.get(key);
+            if (existing != null && !existing.getRevision().equals(entry.getRevision())) {
                 return false;
             }
 
-            values.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+            values.put(key, new AtomicCacheEntry<>(key, entry.getValue(), entry.getRevision().orElse(0L) + 1));
 
             return true;
         }

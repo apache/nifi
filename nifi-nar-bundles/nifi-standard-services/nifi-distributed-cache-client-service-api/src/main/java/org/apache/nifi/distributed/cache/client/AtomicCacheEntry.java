@@ -16,31 +16,43 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-public class StandardCacheEntry<K,V> implements AtomicDistributedMapCacheClient.CacheEntry<K,V> {
+import java.util.Optional;
+
+public class AtomicCacheEntry<K, V, R> {
 
     private final K key;
-    private final V value;
-    private final long revision;
+    private V value;
+    private final R revision;
 
-
-    public StandardCacheEntry(final K key, final V value, final long revision) {
+    /**
+     * Create new cache entry.
+     * @param key cache key
+     * @param value cache value
+     * @param revision cache revision, can be null with a brand new entry
+     */
+    public AtomicCacheEntry(final K key, final V value, final R revision) {
         this.key = key;
         this.value = value;
         this.revision = revision;
     }
 
-    @Override
-    public long getRevision() {
-        return revision;
+    /**
+     * @return the latest revision stored in a cache server
+     */
+    public Optional<R> getRevision() {
+        return Optional.ofNullable(revision);
     }
 
-    @Override
     public K getKey() {
         return key;
     }
 
-    @Override
     public V getValue() {
         return value;
     }
+
+    public void setValue(V value) {
+        this.value = value;
+    }
+
 }
