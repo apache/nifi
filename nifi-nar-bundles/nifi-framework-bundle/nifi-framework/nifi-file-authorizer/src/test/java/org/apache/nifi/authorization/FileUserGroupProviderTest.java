@@ -264,9 +264,9 @@ public class FileUserGroupProviderTest {
         final Set<User> users = userGroupProvider.getUsers();
         assertEquals(3, users.size());
 
-        assertTrue(users.contains(new User.Builder().identifier(IdentifierUtil.getIdentifier(adminIdentity)).identity(adminIdentity).build()));
-        assertTrue(users.contains(new User.Builder().identifier(IdentifierUtil.getIdentifier(nodeIdentity1)).identity(nodeIdentity1).build()));
-        assertTrue(users.contains(new User.Builder().identifier(IdentifierUtil.getIdentifier(nodeIdentity2)).identity(nodeIdentity2).build()));
+        assertTrue(users.contains(new User.Builder().identifierGenerateFromSeed(adminIdentity).identity(adminIdentity).build()));
+        assertTrue(users.contains(new User.Builder().identifierGenerateFromSeed(nodeIdentity1).identity(nodeIdentity1).build()));
+        assertTrue(users.contains(new User.Builder().identifierGenerateFromSeed(nodeIdentity2).identity(nodeIdentity2).build()));
     }
 
     @Test

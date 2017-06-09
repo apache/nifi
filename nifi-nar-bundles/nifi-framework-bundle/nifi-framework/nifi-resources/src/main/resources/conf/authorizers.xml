@@ -59,7 +59,7 @@
         - User Group Provider - The identifier for an User Group Provider defined above that will be used to access
             users and groups for use in the managed access policies.
 
-        - Authorizations File - The file where the FileAuthorizer will store policies.
+        - Authorizations File - The file where the FileAccessPolicyProvider will store policies.
 
         - Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and
             given the ability to create additional users, groups, and policies. The value of this property could be

@@ -1424,7 +1424,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     managedAuthorizer.checkInheritability(new String(proposed, StandardCharsets.UTF_8));
                     return AuthorizerInheritability.inheritable();
                 } catch (final UninheritableAuthorizationsException e) {
-                    return AuthorizerInheritability.uninheritable(e.getMessage());
+                    return AuthorizerInheritability.uninheritable("Proposed Authorizations do not match current Authorizations: " + e.getMessage());
                 }
             } else {
                 // should never hit since the existing is only null when authorizer is not managed

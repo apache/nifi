@@ -560,31 +560,31 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         }
 
         // grant the user read access to the /flow resource
-        addAccessPolicy(authorizations, ResourceType.Flow.getValue(), initialAdmin.getIdentifier(), READ_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Flow.getValue(), initialAdmin.getIdentifier(), READ_CODE);
 
         // grant the user read access to the root process group resource
         if (rootGroupId != null) {
-            addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), READ_CODE);
-            addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), WRITE_CODE);
+            addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), READ_CODE);
+            addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), WRITE_CODE);
 
-            addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), READ_CODE);
-            addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), WRITE_CODE);
+            addUserToAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), READ_CODE);
+            addUserToAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), WRITE_CODE);
         }
 
         // grant the user write to restricted components
-        addAccessPolicy(authorizations, ResourceType.RestrictedComponents.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.RestrictedComponents.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
 
         // grant the user read/write access to the /tenants resource
-        addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), READ_CODE);
-        addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), READ_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
 
         // grant the user read/write access to the /policies resource
-        addAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdmin.getIdentifier(), READ_CODE);
-        addAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdmin.getIdentifier(), READ_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Policy.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
 
         // grant the user read/write access to the /controller resource
-        addAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), READ_CODE);
-        addAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), READ_CODE);
+        addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
     }
 
     /**
@@ -600,12 +600,12 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             }
 
             // grant access to the proxy resource
-            addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
+            addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
 
             // grant the user read/write access data of the root group
             if (rootGroupId != null) {
-                addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), READ_CODE);
-                addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), WRITE_CODE);
+                addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), READ_CODE);
+                addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), WRITE_CODE);
             }
         }
     }
@@ -750,10 +750,10 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      *
      * @param authorizations the Authorizations instance to add the policy to
      * @param resource the resource for the policy
-     * @param identity the identity for the policy
+     * @param userIdentifier the identifier for the user to add to the policy
      * @param action the action for the policy
      */
-    private void addAccessPolicy(final Authorizations authorizations, final String resource, final String identity, final String action) {
+    private void addUserToAccessPolicy(final Authorizations authorizations, final String resource, final String userIdentifier, final String action) {
         // first try to find an existing policy for the given resource and action
         Policy foundPolicy = null;
         for (Policy policy : authorizations.getPolicies().getPolicy()) {
@@ -765,13 +765,12 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         if (foundPolicy == null) {
             // if we didn't find an existing policy create a new one
-            final String uuidSeed = resource + identity + action;
-            final String policyIdentifier = IdentifierUtil.getIdentifier(uuidSeed);
+            final String uuidSeed = resource + action;
 
             final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                    .identifier(policyIdentifier)
+                    .identifierGenerateFromSeed(uuidSeed)
                     .resource(resource)
-                    .addUser(identity);
+                    .addUser(userIdentifier);
 
             if (action.equals(READ_CODE)) {
                 builder.action(RequestAction.READ);
@@ -787,7 +786,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         } else {
             // otherwise add the user to the existing policy
             Policy.User policyUser = new Policy.User();
-            policyUser.setIdentifier(identity);
+            policyUser.setIdentifier(userIdentifier);
             foundPolicy.getUser().add(policyUser);
         }
     }
