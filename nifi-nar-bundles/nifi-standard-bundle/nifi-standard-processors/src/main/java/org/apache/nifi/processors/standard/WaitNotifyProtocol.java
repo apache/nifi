@@ -49,8 +49,14 @@ public class WaitNotifyProtocol {
     private static final int REPLACE_RETRY_WAIT_MILLIS = 10;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final Serializer<String> stringSerializer = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
-    private final Deserializer<String> stringDeserializer = input -> new String(input, StandardCharsets.UTF_8);
+
+    private static final Serializer<String> stringSerializer = (value, output) -> {
+        if (value != null ) {
+            output.write(value.getBytes(StandardCharsets.UTF_8));
+        }
+    };
+
+    private final Deserializer<String> stringDeserializer = input -> input == null ? null : new String(input, StandardCharsets.UTF_8);
 
     public static class Signal {
 
