@@ -53,6 +53,106 @@
     </userGroupProvider>
 
     <!--
+        The LdapUserGroupProvider will retrieve users and groups from an LDAP server. The users and groups
+        are not configurable.
+
+        'Authentication Strategy' - How the connection to the LDAP server is authenticated. Possible
+            values are ANONYMOUS, SIMPLE, LDAPS, or START_TLS.
+
+        'Manager DN' - The DN of the manager that is used to bind to the LDAP server to search for users.
+        'Manager Password' - The password of the manager that is used to bind to the LDAP server to
+            search for users.
+
+        'TLS - Keystore' - Path to the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+        'TLS - Keystore Password' - Password for the Keystore that is used when connecting to LDAP
+            using LDAPS or START_TLS.
+        'TLS - Keystore Type' - Type of the Keystore that is used when connecting to LDAP using
+            LDAPS or START_TLS (i.e. JKS or PKCS12).
+        'TLS - Truststore' - Path to the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+        'TLS - Truststore Password' - Password for the Truststore that is used when connecting to
+            LDAP using LDAPS or START_TLS.
+        'TLS - Truststore Type' - Type of the Truststore that is used when connecting to LDAP using
+            LDAPS or START_TLS (i.e. JKS or PKCS12).
+        'TLS - Client Auth' - Client authentication policy when connecting to LDAP using LDAPS or START_TLS.
+            Possible values are REQUIRED, WANT, NONE.
+        'TLS - Protocol' - Protocol to use when connecting to LDAP using LDAPS or START_TLS. (i.e. TLS,
+            TLSv1.1, TLSv1.2, etc).
+        'TLS - Shutdown Gracefully' - Specifies whether the TLS should be shut down gracefully
+            before the target context is closed. Defaults to false.
+
+        'Referral Strategy' - Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
+        'Connect Timeout' - Duration of connect timeout. (i.e. 10 secs).
+        'Read Timeout' - Duration of read timeout. (i.e. 10 secs).
+
+        'Url' - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
+        'Page Size' - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
+        'Sync Interval' - Duration of time between syncing users and groups. (i.e. 30 mins).
+
+        'User Search Base' - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
+        'User Object Class' - Object class for identifying users (i.e. person). Required if searching users.
+        'User Search Scope' - Search scope for searching users (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching users.
+        'User Search Filter' - Filter for searching for users against the 'User Search Base' (i.e. (memberof=cn=team1,ou=groups,o=nifi) ). Optional.
+        'User Identity Attribute' - Attribute to use to extract user identity (i.e. cn). Optional. If not set, the entire DN is used.
+        'User Group Name Attribute' - Attribute to use to define group membership (i.e. memberof). Optional. If not set
+            group membership will not be calculated through the users. Will rely on group membership being defined
+            through 'Group Member Attribute' if set.
+
+        'Group Search Base' - Base DN for searching for groups (i.e. ou=groups,o=nifi). Required to search groups.
+        'Group Object Class' - Object class for identifying groups (i.e. groupOfNames). Required if searching groups.
+        'Group Search Scope' - Search scope for searching groups (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching groups.
+        'Group Search Filter' - Filter for searching for groups against the 'Group Search Base'. Optional.
+        'Group Name Attribute' - Attribute to use to extract group name (i.e. cn). Optional. If not set, the entire DN is used.
+        'Group Member Attribute' - Attribute to use to define group membership (i.e. member). Optional. If not set
+            group membership will not be calculated through the groups. Will rely on group member being defined
+            through 'User Group Name Attribute' if set.
+
+        NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the user identities.
+            Group names are not mapped.
+    -->
+    <!-- To enable the ldap-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">START_TLS</property>
+
+        <property name="Manager DN"></property>
+        <property name="Manager Password"></property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password"></property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url"></property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base"></property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute"></property>
+        <property name="User Group Name Attribute"></property>
+
+        <property name="Group Search Base"></property>
+        <property name="Group Object Class">group</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute"></property>
+        <property name="Group Member Attribute"></property>
+    </userGroupProvider>
+    To enable the ldap-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
         The FileAccessPolicyProvider will provide support for managing access policies which is backed by a file
         on the local file system.
 

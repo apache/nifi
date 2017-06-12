@@ -395,6 +395,39 @@ The default UserGroupProvider is the FileUserGroupProvider, however, you can dev
 * Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically be used to load the users and groups into the Users File.
 * Initial User Identity - The identity of a users and systems to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
 
+Another option for the UserGroupProvider is the LdapUserGroupProvider. By default, this option is commented out but can be configured in lieu of the FileUserGroupProvider. This will sync users and groups from a directory server and will present them in NiFi UI in read only form. The LdapUserGroupProvider has the following properties:
+
+* Authentication Strategy - How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, LDAPS, or START_TLS
+* Manager DN - The DN of the manager that is used to bind to the LDAP server to search for users.
+* Manager Password - The password of the manager that is used to bind to the LDAP server to search for users.
+* TLS - Keystore - Path to the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Keystore Password - Password for the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Keystore Type - Type of the Keystore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+* TLS - Truststore - Path to the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Truststore Password - Password for the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Truststore Type - Type of the Truststore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+* TLS - Client Auth - Client authentication policy when connecting to LDAP using LDAPS or START_TLS. Possible values are REQUIRED, WANT, NONE.
+* TLS - Protocol - Protocol to use when connecting to LDAP using LDAPS or START_TLS. (i.e. TLS, TLSv1.1, TLSv1.2, etc).
+* TLS - Shutdown Gracefully - Specifies whether the TLS should be shut down gracefully before the target context is closed. Defaults to false.
+* Referral Strategy - Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
+* Connect Timeout - Duration of connect timeout. (i.e. 10 secs).
+* Read Timeout - Duration of read timeout. (i.e. 10 secs).
+* Url - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
+* Page Size - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
+* Sync Interval - Duration of time between syncing users and groups. (i.e. 30 mins).
+* User Search Base - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
+* User Object Class - Object class for identifying users (i.e. person). Required if searching users.
+* User Search Scope - Search scope for searching users (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching users.
+* User Search Filter - Filter for searching for users against the 'User Search Base' (i.e. (memberof=cn=team1,ou=groups,o=nifi) ). Optional.
+* User Identity Attribute - Attribute to use to extract user identity (i.e. cn). Optional. If not set, the entire DN is used.
+* User Group Name Attribute - Attribute to use to define group membership (i.e. memberof). Optional. If not set group membership will not be calculated through the users. Will rely on group membership being defined through 'Group Member Attribute' if set.
+* Group Search Base - Base DN for searching for groups (i.e. ou=groups,o=nifi). Required to search groups.
+* Group Object Class - Object class for identifying groups (i.e. groupOfNames). Required if searching groups.
+* Group Search Scope - Search scope for searching groups (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching groups.
+* Group Search Filter - Filter for searching for groups against the 'Group Search Base'. Optional.
+* Group Name Attribute - Attribute to use to extract group name (i.e. cn). Optional. If not set, the entire DN is used.
+* Group Member Attribute - Attribute to use to define group membership (i.e. member). Optional. If not set group membership will not be calculated through the groups. Will rely on group member being defined through 'User Group Name Attribute' if set.
+
 The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you can develop additional AccessPolicyProvider as extensions.  The FileAccessPolicyProvider has the following properties:
 
 * User Group Provider - The identifier for an User Group Provider defined above that will be used to access users and groups for use in the managed access policies.
@@ -487,6 +520,71 @@ Here is an example Kerberos entry using the name John Smith and realm `NIFI.APAC
 After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'users.xml' and 'authorizations.xml' files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
 NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the flow.xml.gz is generated.  If the NiFi instance is an upgrade from an existing flow.xml.gz or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
+
+Here is an example loading users and groups from LDAP but still using file based access policies:
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">ANONYMOUS</property>
+
+        <property name="Manager DN"></property>
+        <property name="Manager Password"></property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password"></property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url">ldap://localhost:10389</property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base">ou=users,o=nifi</property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute">cn</property>
+        <property name="User Group Name Attribute"></property>
+
+        <property name="Group Search Base">ou=groups,o=nifi</property>
+        <property name="Group Object Class">groupOfNames</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute">cn</property>
+        <property name="Group Member Attribute">member</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">ldap-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">John Smith</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Node Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+</authorizers>
+----
+
+The 'Initial Admin Identity' value would have loaded from the cn from John Smith's entry based on the 'User Identity Attribute' value.
+
 
 [[legacy-authorized-users]]
 Legacy Authorized Users (NiFi Instance Upgrade)
