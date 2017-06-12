@@ -249,6 +249,23 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
+    public MapPutResult replace(ByteBuffer key, ByteBuffer previousValue, ByteBuffer newValue) throws IOException {
+        writeLock.lock();
+        try {
+            final MapCacheRecord existing = fetch(key);
+
+            // if there is an existing record for the key, and it's value is not the passed in previousValue, then don't replace
+            if (existing != null && !existing.getValue().equals(previousValue)) {
+                return new MapPutResult(false, new MapCacheRecord(key, previousValue), existing, null);
+            }
+
+            return put(key, newValue, existing);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void shutdown() throws IOException {
     }
 }

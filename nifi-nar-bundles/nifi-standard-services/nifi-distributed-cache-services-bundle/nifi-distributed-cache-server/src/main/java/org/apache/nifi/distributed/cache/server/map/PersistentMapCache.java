@@ -111,6 +111,13 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
+    public MapPutResult replace(ByteBuffer key, ByteBuffer previousValue, ByteBuffer newValue) throws IOException {
+        final MapPutResult putResult = wrapped.replace(key, previousValue, newValue);
+        putWriteAheadLog(key, newValue, putResult);
+        return putResult;
+    }
+
+    @Override
     public ByteBuffer remove(final ByteBuffer key) throws IOException {
         final ByteBuffer removeResult = wrapped.remove(key);
         if (removeResult != null) {

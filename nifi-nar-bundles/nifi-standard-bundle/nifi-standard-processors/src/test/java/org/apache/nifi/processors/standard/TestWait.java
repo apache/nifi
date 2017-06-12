@@ -598,7 +598,7 @@ public class TestWait {
         testIteration.expectedWaiting.addAll(Arrays.asList("1", "2"));
         testIteration.run();
 
-        WaitNotifyProtocol.Signal signal = protocol.getSignal("key");
+        WaitNotifyProtocol.SignalHolder signal = protocol.getSignal("key");
         assertNull(signal);
 
         /*
@@ -610,8 +610,8 @@ public class TestWait {
         testIteration.run();
 
         signal = protocol.getSignal("key");
-        assertEquals(0, signal.getCount("count"));
-        assertEquals(4, signal.getReleasableCount());
+        assertEquals(0, signal.getSignal().getCount("count"));
+        assertEquals(4, signal.getSignal().getReleasableCount());
 
         /*
          * 3rd run
@@ -621,8 +621,8 @@ public class TestWait {
         testIteration.run();
 
         signal = protocol.getSignal("key");
-        assertEquals(0, signal.getCount("count"));
-        assertEquals(2, signal.getReleasableCount());
+        assertEquals(0, signal.getSignal().getCount("count"));
+        assertEquals(2, signal.getSignal().getReleasableCount());
     }
 
     @Test
@@ -655,7 +655,7 @@ public class TestWait {
         testIteration.expectedWaiting.addAll(Arrays.asList("1", "2"));
         testIteration.run();
 
-        WaitNotifyProtocol.Signal signal = protocol.getSignal("key");
+        WaitNotifyProtocol.SignalHolder signal = protocol.getSignal("key");
         assertNull(signal);
 
         /*
@@ -667,8 +667,8 @@ public class TestWait {
         testIteration.run();
 
         signal = protocol.getSignal("key");
-        assertEquals(3, signal.getCount("counter"));
-        assertEquals(0, signal.getReleasableCount());
+        assertEquals(3, signal.getSignal().getCount("counter"));
+        assertEquals(0, signal.getSignal().getReleasableCount());
 
         /*
          * 3rd run
@@ -678,7 +678,7 @@ public class TestWait {
         testIteration.run();
 
         signal = protocol.getSignal("key");
-        assertEquals(3, signal.getCount("counter"));
-        assertEquals(0, signal.getReleasableCount());
+        assertEquals(3, signal.getSignal().getCount("counter"));
+        assertEquals(0, signal.getSignal().getReleasableCount());
     }
 }
