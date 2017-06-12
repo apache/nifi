@@ -31,6 +31,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
+import org.apache.nifi.toolkit.admin.util.AdminUtil
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
@@ -65,7 +66,7 @@ public class NotificationTool extends AbstractAdminTool {
 
     @Override
     protected Logger getLogger() {
-        LoggerFactory.getLogger(NotificationTool.class)
+        LoggerFactory.getLogger(NotificationTool)
     }
 
     protected Options getOptions(){
@@ -139,22 +140,22 @@ public class NotificationTool extends AbstractAdminTool {
             if(commandLine.hasOption(BOOTSTRAP_CONF) && commandLine.hasOption(NOTIFICATION_MESSAGE) && commandLine.hasOption(NIFI_INSTALL_DIR)) {
 
                 if(commandLine.hasOption(VERBOSE_ARG)){
-                    this.isVerbose = true;
+                    this.isVerbose = true
                 }
 
                 final String bootstrapConfFileName = commandLine.getOptionValue(BOOTSTRAP_CONF)
                 final File bootstrapConf = new File(bootstrapConfFileName)
-                final Properties bootstrapProperties = getBootstrapConf(Paths.get(bootstrapConfFileName))
+                final Properties bootstrapProperties = AdminUtil.getBootstrapConf(Paths.get(bootstrapConfFileName))
                 final String proxyDN = commandLine.getOptionValue(PROXY_DN)
                 final String parentPathName = bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath()
-                final String nifiConfDir = getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"),parentPathName)
-                final String nifiLibDir = getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"),parentPathName)
+                final String nifiConfDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"),parentPathName)
+                final String nifiLibDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"),parentPathName)
                 final String nifiPropertiesFileName = nifiConfDir + File.separator +"nifi.properties"
                 final String notificationMessage = commandLine.getOptionValue(NOTIFICATION_MESSAGE)
                 final String notificationLevel = commandLine.getOptionValue(NOTIFICATION_LEVEL)
                 final String nifiInstallDir = commandLine.getOptionValue(NIFI_INSTALL_DIR)
 
-                if(supportedNiFiMinimumVersion(nifiConfDir, nifiLibDir, SUPPORTED_MINIMUM_VERSION)){
+                if(AdminUtil.supportedNiFiMinimumVersion(nifiConfDir, nifiLibDir, SUPPORTED_MINIMUM_VERSION)){
                     if(isVerbose){
                         logger.info("Attempting to connect with nifi using properties:", nifiPropertiesFileName)
                     }
@@ -185,8 +186,8 @@ public class NotificationTool extends AbstractAdminTool {
 
         try{
             tool.parse(clientFactory,args)
-        } catch (ParseException | UnsupportedOperationException | RuntimeException e) {
-            tool.printUsage(e.message);
+        } catch (Exception e) {
+            tool.printUsage(e.message)
             System.exit(1)
         }
 

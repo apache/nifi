@@ -51,4 +51,35 @@ class AdminUtilSpec extends Specification{
     }
 
 
+    def "get bootstrap properties"(){
+
+        given:
+
+        def bootstrapConf = new File("src/test/resources/conf/bootstrap.conf")
+
+        when:
+
+        def properties = AdminUtil.getBootstrapConf(bootstrapConf.toPath())
+
+        then:
+        properties.get("conf.dir") == "./conf"
+
+    }
+
+    def "supported version should be true"(){
+
+        expect:
+        AdminUtil.supportedVersion("1.0.0","1.2.0","1.1.0")
+
+    }
+
+    def "supported version should be false"(){
+
+        expect:
+        !AdminUtil.supportedVersion("1.0.0","1.2.0","1.3.0")
+
+    }
+
+
+
 }
