@@ -83,6 +83,7 @@
         <module>nifi-cybersecurity-bundle</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
+	<module>nifi-redis-bundle</module>
   </modules>
 
     <build>

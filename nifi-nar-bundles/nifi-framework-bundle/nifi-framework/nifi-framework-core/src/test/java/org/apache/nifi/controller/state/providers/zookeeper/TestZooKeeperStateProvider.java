@@ -18,6 +18,7 @@ package org.apache.nifi.controller.state.providers.zookeeper;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -71,6 +72,15 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
                     propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                }
+                return propValueMap;
+            }
+
+            @Override
+            public Map<String,String> getAllProperties() {
+                final Map<String,String> propValueMap = new LinkedHashMap<>();
+                for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
+                    propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
                 }
                 return propValueMap;
             }

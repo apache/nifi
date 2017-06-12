@@ -32,6 +32,11 @@ public class MockConfigurationContext implements ConfigurationContext {
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        return Collections.emptyMap();
+    }
+
+    @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return Collections.emptyMap();
     }

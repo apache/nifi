@@ -65,6 +65,11 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        return Collections.emptyMap();
+    }
+
+    @Override
     public String encrypt(String unencrypted) {
         return unencrypted;
     }
