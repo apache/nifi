@@ -403,7 +403,7 @@ public class TestServerAndClient {
         runner.addControllerService("server", server);
         runner.enableControllerService(server);
 
-        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        DistributedMapCacheClientService<String, String> client = new DistributedMapCacheClientService<>();
         MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext);
 
@@ -500,7 +500,7 @@ public class TestServerAndClient {
         final MockConfigurationContext serverContext = new MockConfigurationContext(serverProperties, serverInitContext.getControllerServiceLookup());
         server.startServer(serverContext);
 
-        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        DistributedMapCacheClientService<String, String> client = new DistributedMapCacheClientService<>();
         MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext);
 

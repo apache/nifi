@@ -18,8 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient.CacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
@@ -59,7 +59,7 @@ public class WaitNotifyProtocol {
          */
 
         transient private String identifier;
-        transient private long revision = -1;
+        transient private AtomicCacheEntry<String, String, Object> cachedEntry;
         private Map<String, Long> counts = new HashMap<>();
         private Map<String, String> attributes = new HashMap<>();
         private int releasableCount = 0;
@@ -225,9 +225,10 @@ public class WaitNotifyProtocol {
      * @throws IOException thrown when it failed interacting with the cache engine
      * @throws DeserializationException thrown if the cache found is not in expected serialized format
      */
+    @SuppressWarnings("unchecked")
     public Signal getSignal(final String signalId) throws IOException, DeserializationException {
 
-        final CacheEntry<String, String> entry = cache.fetch(signalId, stringSerializer, stringDeserializer);
+        final AtomicCacheEntry<String, String, Object> entry = (AtomicCacheEntry<String, String, Object>) cache.fetch(signalId, stringSerializer, stringDeserializer);
 
         if (entry == null) {
             // No signal found.
@@ -239,7 +240,7 @@ public class WaitNotifyProtocol {
         try {
             final Signal signal = objectMapper.readValue(value, Signal.class);
             signal.identifier = signalId;
-            signal.revision = entry.getRevision();
+            signal.cachedEntry = entry;
             return signal;
         } catch (final JsonParseException jsonE) {
             // Try to read it as FlowFileAttributes for backward compatibility.
@@ -270,7 +271,12 @@ public class WaitNotifyProtocol {
     public boolean replace(final Signal signal) throws IOException {
 
         final String signalJson = objectMapper.writeValueAsString(signal);
-        return cache.replace(signal.identifier, signalJson, stringSerializer, stringSerializer, signal.revision);
+        if (signal.cachedEntry == null) {
+            signal.cachedEntry = new AtomicCacheEntry<>(signal.identifier, signalJson, null);
+        } else {
+            signal.cachedEntry.setValue(signalJson);
+        }
+        return cache.replace(signal.cachedEntry, stringSerializer, stringSerializer);
 
     }
 }

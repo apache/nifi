@@ -17,9 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.activemq.util.ByteArrayOutputStream;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient.CacheEntry;
-import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
@@ -46,33 +45,29 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class TestWaitNotifyProtocol {
 
-    private final Map<String, CacheEntry<String, String>> cacheEntries = new HashMap<>();
+    private final Map<String, AtomicCacheEntry<String, String, Long>> cacheEntries = new HashMap<>();
 
-    private AtomicDistributedMapCacheClient cache;
+    private AtomicDistributedMapCacheClient<Long> cache;
+    @SuppressWarnings("unchecked")
     private final Answer successfulReplace = invocation -> {
-        final String key = invocation.getArgumentAt(0, String.class);
-        final String value = invocation.getArgumentAt(1, String.class);
-        final Long revision = invocation.getArgumentAt(4, Long.class);
-        cacheEntries.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+        final AtomicCacheEntry<String, String, Long> entry = invocation.getArgumentAt(0, AtomicCacheEntry.class);
+        cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getRevision().orElse(0L) + 1));
         return true;
     };
 
     @Before
+    @SuppressWarnings("unchecked")
     public void before() throws Exception {
         cacheEntries.clear();
 
         // Default mock implementations.
         cache = mock(AtomicDistributedMapCacheClient.class);
-        doAnswer(invocation -> {
-            final CacheEntry<String, String> entry = cacheEntries.get(invocation.getArguments()[0]);
-            return entry;
-        }).when(cache).fetch(any(), any(), any());
+        doAnswer(invocation -> cacheEntries.get(invocation.getArguments()[0])).when(cache).fetch(any(), any(), any());
     }
 
     @Test
@@ -80,7 +75,7 @@ public class TestWaitNotifyProtocol {
 
         // replace always return false.
         doAnswer(invocation -> false)
-                .when(cache).replace(any(), any(), any(), any(), anyLong());
+                .when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -95,7 +90,7 @@ public class TestWaitNotifyProtocol {
     @Test
     public void testNotifyFirst() throws Exception {
 
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -106,16 +101,16 @@ public class TestWaitNotifyProtocol {
         assertEquals(Long.valueOf(1), signal.getCounts().get("a"));
         assertTrue(cacheEntries.containsKey("signal-id"));
 
-        final CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
+        final AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
 
-        assertEquals(0, cacheEntry.getRevision());
+        assertEquals(1, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
     }
 
     @Test
     public void testNotifyCounters() throws Exception {
 
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -124,21 +119,21 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, null);
         protocol.notify(signalId, "a", 1, null);
 
-        CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(1, cacheEntry.getRevision());
+        AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
+        assertEquals(2, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         protocol.notify(signalId, "a", 10, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(2, cacheEntry.getRevision());
+        assertEquals(3, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         protocol.notify(signalId, "b", 2, null);
         protocol.notify(signalId, "c", 3, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(4, cacheEntry.getRevision());
+        assertEquals(5, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         final Map<String, Integer> deltas = new HashMap<>();
@@ -147,20 +142,20 @@ public class TestWaitNotifyProtocol {
         protocol.notify("signal-id", deltas, null);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(5, cacheEntry.getRevision());
+        assertEquals(6, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
         // Zero clear 'b'.
         protocol.notify("signal-id", "b", 0, null);
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(6, cacheEntry.getRevision());
+        assertEquals(7, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
 
     }
 
     @Test
     public void testNotifyAttributes() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -172,8 +167,8 @@ public class TestWaitNotifyProtocol {
 
         protocol.notify(signalId, "a", 1, attributeA1);
 
-        CacheEntry<String, String> cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(0, cacheEntry.getRevision());
+        AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
+        assertEquals(1L, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}", cacheEntry.getValue());
 
         final Map<String, String> attributeA2 = new HashMap<>();
@@ -184,7 +179,7 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, attributeA2);
 
         cacheEntry = cacheEntries.get("signal-id");
-        assertEquals(1, cacheEntry.getRevision());
+        assertEquals(2L, cacheEntry.getRevision().orElse(-1L).longValue());
         assertEquals("Updated attributes should be merged correctly",
                 "{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}", cacheEntry.getValue());
 
@@ -192,7 +187,7 @@ public class TestWaitNotifyProtocol {
 
     @Test
     public void testSignalCount() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
@@ -233,7 +228,7 @@ public class TestWaitNotifyProtocol {
      */
     @Test
     public void testNiFiVersionUpgrade() throws Exception {
-        doAnswer(successfulReplace).when(cache).replace(any(), any(), any(), any(), anyLong());
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         // Simulate old cache entry.
         final FlowFileAttributesSerializer attributesSerializer = new FlowFileAttributesSerializer();
@@ -245,7 +240,7 @@ public class TestWaitNotifyProtocol {
         attributesSerializer.serialize(cachedAttributes, bos);
 
         final String signalId = "old-entry";
-        cacheEntries.put(signalId, new StandardCacheEntry<>(signalId, new String(bos.toByteArray(), StandardCharsets.UTF_8), 0));
+        cacheEntries.put(signalId, new AtomicCacheEntry<>(signalId, new String(bos.toByteArray(), StandardCharsets.UTF_8), 0L));
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
         final Signal signal = protocol.getSignal(signalId);
@@ -255,7 +250,7 @@ public class TestWaitNotifyProtocol {
         assertEquals("value2", signal.getAttributes().get("key2"));
         assertEquals("value3", signal.getAttributes().get("key3"));
 
-        cacheEntries.put(signalId, new StandardCacheEntry<>(signalId, "UNSUPPORTED_FORMAT", 0));
+        cacheEntries.put(signalId, new AtomicCacheEntry<>(signalId, "UNSUPPORTED_FORMAT", 0L));
         try {
             protocol.getSignal(signalId);
             fail("Should fail since cached value was not in expected format.");

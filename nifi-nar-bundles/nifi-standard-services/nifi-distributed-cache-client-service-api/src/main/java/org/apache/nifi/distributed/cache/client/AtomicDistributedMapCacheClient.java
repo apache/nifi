@@ -29,21 +29,14 @@ import java.io.IOException;
  * this class provides methods for concurrent atomic updates those are added since Map Cache protocol version 2.
  *
  * <p>If a remote cache server doesn't support Map Cache protocol version 2, these methods throw UnsupportedOperationException.
+ * @param <R> The revision type.
+ *           If the underlying cache storage supports the concept of revision to implement optimistic locking, then a client implementation should use that.
+ *           Otherwise set the cached value and check if the key is not updated at {@link #replace(AtomicCacheEntry, Serializer, Serializer)}
  */
 @Tags({"distributed", "client", "cluster", "map", "cache"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This allows "
         + "multiple nodes to coordinate state with a single remote entity.")
-public interface AtomicDistributedMapCacheClient extends DistributedMapCacheClient {
-
-    interface CacheEntry<K, V> {
-
-        long getRevision();
-
-        K getKey();
-
-        V getValue();
-
-    }
+public interface AtomicDistributedMapCacheClient<R> extends DistributedMapCacheClient {
 
     /**
      * Fetch a CacheEntry with a key.
@@ -55,22 +48,20 @@ public interface AtomicDistributedMapCacheClient extends DistributedMapCacheClie
      * @return A CacheEntry instance if one exists, otherwise <cod>null</cod>.
      * @throws IOException if unable to communicate with the remote instance
      */
-    <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
+    <K, V> AtomicCacheEntry<K, V, R> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
 
     /**
      * Replace an existing key with new value.
      * @param <K> the key type
      * @param <V> the value type
-     * @param key the key to replace
-     * @param value the new value for the key
+     * @param entry should provide the new value for {@link AtomicCacheEntry#getValue()},
+     *              and the same revision in the cache storage for {@link AtomicCacheEntry#getRevision()},
+     *              if the revision does not match with the one in the cache storage, value will not be replaced.
      * @param keySerializer key serializer
      * @param valueSerializer value serializer
-     * @param revision a revision that was retrieved by a preceding fetch operation, if the key is already updated by other client,
-     *                 this doesn't match with the one on server, therefore the replace operation will not be performed.
-     *                 If there's no existing entry for the key, any revision can replace the key.
      * @return true only if the key is replaced.
      * @throws IOException if unable to communicate with the remote instance
      */
-    <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException;
+    <K, V> boolean replace(AtomicCacheEntry<K, V, R> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
 
 }
