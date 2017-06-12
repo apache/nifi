@@ -589,9 +589,9 @@ public class TestServerAndClient {
         // Client 1 and 2 fetch the key
         AtomicCacheEntry<String, String, Long> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
         AtomicCacheEntry<String, String, Long> c2 = client2.fetch(key, stringSerializer, stringDeserializer);
-        assertEquals(0, c1.getRevision());
+        assertEquals(new Long(0), c1.getRevision().orElse(0L));
         assertEquals("valueC1-0", c1.getValue());
-        assertEquals(0, c2.getRevision());
+        assertEquals(new Long(0), c2.getRevision().orElse(0L));
         assertEquals("valueC1-0", c2.getValue());
 
         // Client 1 replace
@@ -606,7 +606,7 @@ public class TestServerAndClient {
         // Client 2 fetch the key again
         c2 = client2.fetch(key, stringSerializer, stringDeserializer);
         assertEquals("valueC1-1", c2.getValue());
-        assertEquals(1, c2.getRevision());
+        assertEquals(new Long(1), c2.getRevision().orElse(0L));
 
         // Now, Client 2 knows the correct revision so it can replace the key
         c2.setValue("valueC2-2");
@@ -616,7 +616,7 @@ public class TestServerAndClient {
         // Assert the cache
         c2 = client2.fetch(key, stringSerializer, stringDeserializer);
         assertEquals("valueC2-2", c2.getValue());
-        assertEquals(2, c2.getRevision());
+        assertEquals(new Long(2), c2.getRevision().orElse(0L));
 
         client1.close();
         client2.close();
