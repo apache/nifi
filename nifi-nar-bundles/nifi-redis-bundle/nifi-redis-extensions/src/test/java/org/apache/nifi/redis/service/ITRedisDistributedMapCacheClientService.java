@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.redis;
+package org.apache.nifi.redis.service;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
@@ -30,17 +30,22 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import redis.embedded.RedisServer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,33 +56,53 @@ import java.util.Set;
 /**
  * This is an integration test that is meant to be run against a real Redis instance.
  */
-public class TestRedisDistributedMapCacheClientService {
+public class ITRedisDistributedMapCacheClientService {
 
     private TestRedisProcessor proc;
     private TestRunner testRunner;
+    private RedisServer redisServer;
     private RedisConnectionPoolService redisConnectionPool;
     private RedisDistributedMapCacheClientService redisMapCacheClientService;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
+        final int redisPort = getAvailablePort();
+
+        this.redisServer = new RedisServer(redisPort);
+        redisServer.start();
+
         proc = new TestRedisProcessor();
         testRunner = TestRunners.newTestRunner(proc);
     }
 
+    private int getAvailablePort() throws IOException {
+        try (SocketChannel socket = SocketChannel.open()) {
+            socket.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+            socket.bind(new InetSocketAddress("localhost", 0));
+            return socket.socket().getLocalPort();
+        }
+    }
+
+    @After
+    public void teardown() throws IOException {
+        if (redisServer != null) {
+            redisServer.stop();
+        }
+    }
+
     @Test
-    @Ignore
     public void testStandaloneRedis() throws InitializationException {
         try {
             // create, configure, and enable the RedisConnectionPool service
             redisConnectionPool = new RedisConnectionPoolService();
             testRunner.addControllerService("redis-connection-pool", redisConnectionPool);
-            testRunner.setProperty(redisConnectionPool, RedisConnectionPoolService.CONNECTION_STRING, "localhost:6379");
+            testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING, "localhost:6379");
 
             // uncomment this to test using a different database index than the default 0
-            //testRunner.setProperty(redisConnectionPool, RedisConnectionPoolService.DATABASE, "1");
+            //testRunner.setProperty(redisConnectionPool, RedisUtils.DATABASE, "1");
 
             // uncomment this to test using a password to authenticate to redis
-            //testRunner.setProperty(redisConnectionPool, RedisConnectionPoolService.PASSWORD, "foobared");
+            //testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, "foobared");
 
             testRunner.enableControllerService(redisConnectionPool);
 

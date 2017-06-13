@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.redis;
+package org.apache.nifi.redis.service;
 
+import org.apache.nifi.redis.RedisConnectionPool;
+import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,52 +43,52 @@ public class TestRedisConnectionPoolService {
     public void testValidateConnectionString() {
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, " ");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, " ");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "${redis.connection}");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "${redis.connection}");
         testRunner.assertNotValid(redisService);
 
         testRunner.setVariable("redis.connection", "localhost:6379");
         testRunner.assertValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:a");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:a");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:6379");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:6379");
         testRunner.assertValid(redisService);
 
         // standalone can only have one host:port pair
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:6379,localhost:6378");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:6379,localhost:6378");
         testRunner.assertNotValid(redisService);
 
         // cluster can have multiple host:port pairs
-        testRunner.setProperty(redisService, RedisConnectionPoolService.REDIS_MODE, RedisConnectionPoolService.REDIS_MODE_CLUSTER.getValue());
+        testRunner.setProperty(redisService, RedisUtils.REDIS_MODE, RedisUtils.REDIS_MODE_CLUSTER.getValue());
         testRunner.assertValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:6379,localhost");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:6379,localhost");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "local:host:6379,localhost:6378");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "local:host:6379,localhost:6378");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:a,localhost:b");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:a,localhost:b");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost  :6379,  localhost  :6378,    localhost:6377");
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost  :6379,  localhost  :6378,    localhost:6377");
         testRunner.assertValid(redisService);
     }
 
     @Test
     public void testValidateSentinelMasterRequiredInSentinelMode() {
-        testRunner.setProperty(redisService, RedisConnectionPoolService.REDIS_MODE, RedisConnectionPoolService.REDIS_MODE_SENTINEL.getValue());
-        testRunner.setProperty(redisService, RedisConnectionPoolService.CONNECTION_STRING, "localhost:6379,localhost:6378");
+        testRunner.setProperty(redisService, RedisUtils.REDIS_MODE, RedisUtils.REDIS_MODE_SENTINEL.getValue());
+        testRunner.setProperty(redisService, RedisUtils.CONNECTION_STRING, "localhost:6379,localhost:6378");
         testRunner.assertNotValid(redisService);
 
-        testRunner.setProperty(redisService, RedisConnectionPoolService.SENTINEL_MASTER, "mymaster");
+        testRunner.setProperty(redisService, RedisUtils.SENTINEL_MASTER, "mymaster");
         testRunner.assertValid(redisService);
     }
 

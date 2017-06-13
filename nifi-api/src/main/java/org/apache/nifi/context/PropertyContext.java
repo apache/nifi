@@ -14,42 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.nifi.components.state;
-
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
+package org.apache.nifi.context;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.logging.ComponentLog;
 
 /**
- * This interface defines an initialization context that is passed to a {@link StateProvider} when it
- * is initialized.
+ * A context for retrieving a PropertyValue from a PropertyDescriptor.
  */
-public interface StateProviderInitializationContext extends PropertyContext {
-    /**
-     * @return the identifier if the StateProvider
-     */
-    String getIdentifier();
+public interface PropertyContext {
 
     /**
-     * @return a Map of Property Descriptors to their configured values
+     * Retrieves the current value set for the given descriptor, if a value is
+     * set - else uses the descriptor to determine the appropriate default value
+     *
+     * @param descriptor to lookup the value of
+     * @return the property value of the given descriptor
      */
-    Map<PropertyDescriptor, PropertyValue> getProperties();
-
-    /**
-     * @return the SSL Context that should be used to communicate with remote resources,
-     *         or <code>null</code> if no SSLContext has been configured
-     */
-    SSLContext getSSLContext();
-
-    /**
-     * @return the logger for the given state provider
-     */
-    ComponentLog getLogger();
+    PropertyValue getProperty(PropertyDescriptor descriptor);
 
 }

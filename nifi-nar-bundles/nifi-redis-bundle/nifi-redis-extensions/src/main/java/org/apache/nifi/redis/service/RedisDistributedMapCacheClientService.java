@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.redis;
+package org.apache.nifi.redis.service;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -29,6 +29,9 @@ import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.redis.RedisConnectionPool;
+import org.apache.nifi.redis.RedisType;
+import org.apache.nifi.redis.util.RedisAction;
 import org.apache.nifi.util.Tuple;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
@@ -305,10 +308,6 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
                }
            }
         }
-    }
-
-    private static interface RedisAction<T> {
-        T execute(RedisConnection redisConnection) throws IOException;
     }
 
 }

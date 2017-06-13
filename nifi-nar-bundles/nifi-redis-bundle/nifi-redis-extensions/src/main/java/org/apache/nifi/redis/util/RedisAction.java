@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.bootstrap.notification;
+package org.apache.nifi.redis.util;
 
+import org.springframework.data.redis.connection.RedisConnection;
 
-import org.apache.nifi.context.PropertyContext;
+import java.io.IOException;
 
-public interface NotificationInitializationContext extends PropertyContext {
+/**
+ * An action to be executed with a RedisConnection.
+ */
+public interface RedisAction<T> {
 
-    /**
-     * @return the identifier for the NotificationService
-     */
-    String getIdentifier();
+    T execute(RedisConnection redisConnection) throws IOException;
 
 }

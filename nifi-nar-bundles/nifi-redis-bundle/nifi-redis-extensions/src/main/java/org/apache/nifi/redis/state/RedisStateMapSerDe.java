@@ -14,16 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.bootstrap.notification;
+package org.apache.nifi.redis.state;
 
+import java.io.IOException;
 
-import org.apache.nifi.context.PropertyContext;
-
-public interface NotificationInitializationContext extends PropertyContext {
+/**
+ * Provides serialization/deserialization of a RedisStateMap.
+ */
+public interface RedisStateMapSerDe {
 
     /**
-     * @return the identifier for the NotificationService
+     * Serializes the given RedisStateMap.
+     *
+     * @param stateMap the RedisStateMap to serialize
+     * @return the serialized bytes or null if stateMap is null
+     * @throws IOException if an error occurs when serializing
      */
-    String getIdentifier();
+    byte[] serialize(RedisStateMap stateMap) throws IOException;
+
+    /**
+     * Deserializes the given bytes to a RedisStateMap.
+     *
+     * @param data bytes previously stored by RedisStateProvider
+     * @return a RedisStateMap or null if data is null or length 0
+     * @throws IOException if an error occurs when deserializing
+     */
+    RedisStateMap deserialize(byte[] data) throws IOException;
 
 }
