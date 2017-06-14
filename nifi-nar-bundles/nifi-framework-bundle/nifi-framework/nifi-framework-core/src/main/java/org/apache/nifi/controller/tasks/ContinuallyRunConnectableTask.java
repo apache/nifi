@@ -67,10 +67,11 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         // 4. There is a connection for each relationship.
         final boolean triggerWhenEmpty = connectable.isTriggerWhenEmpty();
         boolean flowFilesQueued = true;
+        boolean funnelWithoutConnections = false;
         boolean relationshipAvailable = true;
         final boolean shouldRun = (connectable.getYieldExpiration() < System.currentTimeMillis())
                 && (triggerWhenEmpty || (flowFilesQueued = Connectables.flowFilesQueued(connectable)))
-                && (connectable.getConnectableType() != ConnectableType.FUNNEL || !connectable.getConnections().isEmpty())
+                && (connectable.getConnectableType() != ConnectableType.FUNNEL || !(funnelWithoutConnections = connectable.getConnections().isEmpty()))
             && (connectable.getRelationships().isEmpty() || (relationshipAvailable = Connectables.anyRelationshipAvailable(connectable)));
 
         if (shouldRun) {
@@ -100,8 +101,8 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 
                 scheduleState.decrementActiveThreadCount();
             }
-        } else if (!flowFilesQueued || !relationshipAvailable) {
-            // Either there are no FlowFiles queued, or the relationship is not available (i.e., backpressure is applied).
+        } else if (!flowFilesQueued || funnelWithoutConnections || !relationshipAvailable) {
+            // Either there are no FlowFiles queued, it's a funnel without outgoing connections, or the relationship is not available (i.e., backpressure is applied).
             // We will yield for just a bit.
             return true;
         }
