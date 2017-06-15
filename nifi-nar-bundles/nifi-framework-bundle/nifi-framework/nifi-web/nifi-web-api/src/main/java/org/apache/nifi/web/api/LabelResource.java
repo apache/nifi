@@ -135,7 +135,7 @@ public class LabelResource extends ApplicationResource {
         final LabelEntity entity = serviceFacade.getLabel(id);
         populateRemainingLabelEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -222,7 +222,7 @@ public class LabelResource extends ApplicationResource {
                     final LabelEntity entity = serviceFacade.updateLabel(revision, labelDTO);
                     populateRemainingLabelEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -301,7 +301,7 @@ public class LabelResource extends ApplicationResource {
                 (revision, labelEntity) -> {
                     // delete the specified label
                     final LabelEntity entity = serviceFacade.deleteLabel(revision, labelEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

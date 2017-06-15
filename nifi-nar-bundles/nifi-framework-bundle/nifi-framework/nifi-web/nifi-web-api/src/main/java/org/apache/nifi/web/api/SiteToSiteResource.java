@@ -173,7 +173,7 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         // generate the response
-        return clusterContext(noCache(Response.ok(entity))).build();
+        return noCache(Response.ok(entity)).build();
     }
 
     /**
@@ -263,7 +263,7 @@ public class SiteToSiteResource extends ApplicationResource {
         final PeersEntity entity = new PeersEntity();
         entity.setPeers(peers);
 
-        return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+        return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
     // setters

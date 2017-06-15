@@ -139,7 +139,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         final RemoteProcessGroupEntity entity = serviceFacade.getRemoteProcessGroup(id);
         populateRemainingRemoteProcessGroupEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -215,7 +215,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 () -> serviceFacade.verifyDeleteRemoteProcessGroup(id),
                 (revision, remoteProcessGroupEntity) -> {
                     final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(revision, remoteProcessGroupEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -316,7 +316,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     entity.setRevision(updatedRevision);
                     entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -418,7 +418,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     entity.setRevision(updatedRevision);
                     entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -539,7 +539,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, remoteProcessGroup);
                     populateRemainingRemoteProcessGroupEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

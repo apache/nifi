@@ -213,7 +213,7 @@ public class TemplateResource extends ApplicationResource {
                     // build the response entity
                     final TemplateEntity entity = new TemplateEntity();
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

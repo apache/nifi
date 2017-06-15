@@ -199,7 +199,7 @@ public class SnippetResource extends ApplicationResource {
                     populateRemainingSnippetEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity).build();
                 }
         );
     }
@@ -281,7 +281,7 @@ public class SnippetResource extends ApplicationResource {
                     // update the snippet
                     final SnippetEntity entity = serviceFacade.updateSnippet(revisions, snippetEntity.getSnippet());
                     populateRemainingSnippetEntityContent(entity);
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -347,7 +347,7 @@ public class SnippetResource extends ApplicationResource {
                 (revisions, entity) -> {
                     // delete the specified snippet
                     final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revisions, entity.getId());
-                    return clusterContext(generateOkResponse(snippetEntity)).build();
+                    return generateOkResponse(snippetEntity).build();
                 }
         );
     }

@@ -473,13 +473,13 @@ public class DataTransferResource extends ApplicationResource {
                 entity.setMessage(e.getMessage());
 
                 Response.ResponseBuilder builder = Response.status(Response.Status.BAD_REQUEST).entity(entity);
-                return clusterContext(noCache(builder)).build();
+                return noCache(builder).build();
             }
 
             return responseCreator.unexpectedErrorResponse(portId, transactionId, e);
         }
 
-        return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+        return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
 
@@ -579,7 +579,7 @@ public class DataTransferResource extends ApplicationResource {
                     // it's not clear if there is an issue at server side, or cancel operation has been accomplished.
                     // Above conditions can guarantee this is the latter case, we return 200 OK here.
                     entity.setResponseCode(ResponseCode.CANCEL_TRANSACTION.getCode());
-                    return clusterContext(noCache(Response.ok(entity))).build();
+                    return noCache(Response.ok(entity)).build();
                 } else {
                     return responseCreator.unexpectedErrorResponse(portId, transactionId, e);
                 }
@@ -592,7 +592,7 @@ public class DataTransferResource extends ApplicationResource {
             return responseCreator.unexpectedErrorResponse(portId, transactionId, e);
         }
 
-        return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+        return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
     private Response cancelTransaction(String transactionId, TransactionResultEntity entity) {
@@ -798,7 +798,7 @@ public class DataTransferResource extends ApplicationResource {
             final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.CONTINUE_TRANSACTION.getCode());
             entity.setMessage("Extended TTL.");
-            return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+            return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
 
         } catch (HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
