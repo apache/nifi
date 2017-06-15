@@ -182,7 +182,7 @@ public abstract class ApplicationResource {
             uri = new URI(
                     (StringUtils.isBlank(scheme)) ? uri.getScheme() : scheme,
                     uri.getUserInfo(),
-                    (StringUtils.isBlank(host)) ? uri.getHost() : host,
+                    (StringUtils.isBlank(host)) ? uri.getHost() : StringUtils.substringBefore(host, ":"),
                     uriPort,
                     resourcePath,
                     uri.getQuery(),
