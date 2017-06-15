@@ -61,7 +61,8 @@ import io.thekraken.grok.api.exception.GrokException;
     + "If a line in the input does not match the expected message pattern, the line of text is either considered to be part of the previous "
     + "message or is skipped, depending on the configuration, with the exception of stack traces. A stack trace that is found at the end of "
     + "a log message is considered to be part of the previous message but is added to the 'stackTrace' field of the Record. If a record has "
-    + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String).")
+    + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String). "
+    + "Assuming that the schema includes a '_raw' field of type String, the raw message will be included in the Record.")
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
     private volatile Grok grok;
     private volatile boolean appendUnmatchedLine;
@@ -150,6 +151,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         populateSchemaFieldNames(grok, grokExpression, fields);
 
         fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField(GrokRecordReader.RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
         return schema;
