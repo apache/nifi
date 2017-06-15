@@ -640,7 +640,7 @@ public class AvroTypeUtil {
                 }
                 break;
             case ARRAY:
-                if (value instanceof Array) {
+                if (value instanceof Array || value instanceof List) {
                     return true;
                 }
                 break;
