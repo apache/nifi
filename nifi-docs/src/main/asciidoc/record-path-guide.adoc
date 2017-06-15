@@ -449,6 +449,17 @@ and the replacement value. The replacement value may optionally use back-referen
 
 
 
+=== concat
+
+Concatenates all the arguments together.
+
+|==========================================================
+| RecordPath | Return value
+| `concat( /name, ' lives in ',  /homeAddress/city )` | John Doe lives in Jersey City
+|==========================================================
+
+
+
 [[filter_functions]]
 == Filter Functions
 
