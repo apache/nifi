@@ -21,6 +21,7 @@ import io.krakens.grok.api.Grok;
 import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.GrokUtils;
 import io.krakens.grok.api.exception.GrokException;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -31,6 +32,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.lookup.KeyValueLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaField;
@@ -95,6 +97,14 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         .required(false)
         .build();
 
+    static final PropertyDescriptor PATTERN_CONTROLLER = new PropertyDescriptor.Builder()
+        .name("grok-patterns-controller")
+        .displayName("Grok Patterns Controller")
+        .description("Controller service with dynamic properties to add custom patterns. It can be used in combination with the pattern file property.")
+        .identifiesControllerService(KeyValueLookupService.class)
+        .required(false)
+        .build();
+
     static final PropertyDescriptor GROK_EXPRESSION = new PropertyDescriptor.Builder()
         .name("Grok Expression")
         .description("Specifies the format of a log line in Grok format. This allows the Record Reader to understand how to parse each log line. "
@@ -118,6 +128,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PATTERN_FILE);
+        properties.add(PATTERN_CONTROLLER);
         properties.add(GROK_EXPRESSION);
         properties.add(NO_MATCH_BEHAVIOR);
         return properties;
@@ -136,6 +147,13 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             try (final InputStream in = new FileInputStream(context.getProperty(PATTERN_FILE)
                     .evaluateAttributeExpressions().getValue()); final Reader reader = new InputStreamReader(in)) {
                 grokCompiler.register(reader);
+            }
+        }
+
+        if(context.getProperty(PATTERN_CONTROLLER).isSet()) {
+            Map<String, String> patterns = context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
+            for(String name : patterns.keySet()) {
+                grokCompiler.register(name, patterns.get(name));
             }
         }
 

@@ -36,7 +36,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 @Tags({"lookup", "enrich", "key", "value"})
 @CapabilityDescription("Allows users to add key/value pairs as User-defined Properties. Each property that is added can be looked up by Property Name. "
     + "The coordinates that are passed to the lookup must contain the key 'key'.")
-public class SimpleKeyValueLookupService extends AbstractControllerService implements StringLookupService {
+public class SimpleKeyValueLookupService extends AbstractControllerService implements KeyValueLookupService {
     private static final String KEY = "key";
     private static final Set<String> REQUIRED_KEYS = Stream.of(KEY).collect(Collectors.toSet());
     private volatile Map<String, String> lookupValues = new HashMap<>();
@@ -70,6 +70,11 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
         }
 
         return Optional.ofNullable(lookupValues.get(key));
+    }
+
+    @Override
+    public Map<String, String> getAll() {
+        return lookupValues;
     }
 
     @Override

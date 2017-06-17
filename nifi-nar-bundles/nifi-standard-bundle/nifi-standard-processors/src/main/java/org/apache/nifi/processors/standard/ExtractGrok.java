@@ -22,6 +22,7 @@ import io.krakens.grok.api.Grok;
 import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.Match;
 import io.krakens.grok.api.exception.GrokException;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -36,6 +37,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.lookup.KeyValueLookupService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -101,6 +103,15 @@ public class ExtractGrok extends AbstractProcessor {
         + "patterns file.  If not set, then only the Grok Expression and the default Grok patterns will be used.")
         .required(false)
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor PATTERN_CONTROLLER = new PropertyDescriptor.Builder()
+        .name("grok-patterns-controller")
+        .displayName("Grok Patterns Controller")
+        .description("Controller service with dynamic properties to add custom patterns. "
+                + "It can be used in combination with the pattern file property.")
+        .identifiesControllerService(KeyValueLookupService.class)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor KEEP_EMPTY_CAPTURES = new PropertyDescriptor.Builder()
@@ -177,6 +188,7 @@ public class ExtractGrok extends AbstractProcessor {
         final List<PropertyDescriptor> _descriptors = new ArrayList<>();
         _descriptors.add(GROK_EXPRESSION);
         _descriptors.add(GROK_PATTERN_FILE);
+        _descriptors.add(PATTERN_CONTROLLER);
         _descriptors.add(DESTINATION);
         _descriptors.add(CHARACTER_SET);
         _descriptors.add(MAX_BUFFER_SIZE);
@@ -230,6 +242,14 @@ public class ExtractGrok extends AbstractProcessor {
                     grokCompiler.register(reader);
                 }
             }
+
+            if(validationContext.getProperty(PATTERN_CONTROLLER).isSet()) {
+                Map<String, String> patterns = validationContext.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
+                for(String name : patterns.keySet()) {
+                    grokCompiler.register(name, patterns.get(name));
+                }
+            }
+
             grok = grokCompiler.compile(input, namedCaptures);
         } catch (final Exception e) {
             problems.add(new ValidationResult.Builder()
@@ -242,6 +262,7 @@ public class ExtractGrok extends AbstractProcessor {
         }
 
         problems.add(new ValidationResult.Builder().subject(subject).input(input).valid(true).build());
+
         return problems;
     }
 
@@ -269,6 +290,14 @@ public class ExtractGrok extends AbstractProcessor {
                 grokCompiler.register(reader);
             }
         }
+
+        if(context.getProperty(PATTERN_CONTROLLER).isSet()) {
+            Map<String, String> patterns = context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
+            for(String name : patterns.keySet()) {
+                grokCompiler.register(name, patterns.get(name));
+            }
+        }
+
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue(), context.getProperty(NAMED_CAPTURES_ONLY).asBoolean());
 
     }

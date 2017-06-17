@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.lookup.SimpleKeyValueLookupService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -26,7 +28,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 
 public class TestExtractGrok {
 
@@ -139,4 +140,30 @@ public class TestExtractGrok {
         matched.assertAttributeNotExists("grok.BASE10NUM");
         matched.assertAttributeNotExists("grok.COMMONAPACHELOG");
     }
+
+    public void testExtractGrokWithPatternController() throws IOException, InitializationException {
+        final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
+        testRunner.addControllerService("grok-patterns-controller", service);
+        testRunner.setProperty(service, "GREEDYDATA", ".*");
+        testRunner.enableControllerService(service);
+        testRunner.assertValid(service);
+
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{GREEDYDATA:text}");
+        testRunner.setProperty(ExtractGrok.PATTERN_CONTROLLER, "grok-patterns-controller");
+
+        testRunner.enqueue(GROK_TEXT_INPUT);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+        matched.assertAttributeEquals("grok.text","simple text not an apache log");
+    }
+
+    @Test
+    public void testExtractGrokUnsetProperties() throws IOException {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{TEST}");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.assertNotValid();
+    }
+
 }
