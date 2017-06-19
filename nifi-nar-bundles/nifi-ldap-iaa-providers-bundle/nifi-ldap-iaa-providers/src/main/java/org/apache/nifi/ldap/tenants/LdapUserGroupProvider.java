@@ -583,7 +583,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
                 // any remaining groupDn's were referenced by a user but not found while searching groups
                 groupDnToUserIdentifierMappings.forEach((groupDn, userIdentifiers) -> {
-                    logger.warn(String.format("[%s] are members of %s but that group was not found while searching users. Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), groupDn));
+                    logger.warn(String.format("[%s] are members of %s but that group was not found while searching users. Ignoring group membership.",
+                            StringUtils.join(userIdentifiers, ", "), groupDn));
                 });
             } else {
                 // groups are not being searched so lookup any groups identified while searching users

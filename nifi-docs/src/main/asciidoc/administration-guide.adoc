@@ -395,7 +395,7 @@ The default UserGroupProvider is the FileUserGroupProvider, however, you can dev
 * Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically be used to load the users and groups into the Users File.
 * Initial User Identity - The identity of a users and systems to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
 
-Another option for the UserGroupProvider is the LdapUserGroupProvider. Be default, this option is commented out but can be configured in lieu of the FileUserGroupProvider. This will sync users and groups from a directory server and will present them in NiFi UI in read only form. The LdapUserGroupProvider has the following properties:
+Another option for the UserGroupProvider is the LdapUserGroupProvider. By default, this option is commented out but can be configured in lieu of the FileUserGroupProvider. This will sync users and groups from a directory server and will present them in NiFi UI in read only form. The LdapUserGroupProvider has the following properties:
 
 * Authentication Strategy - How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, LDAPS, or START_TLS
 * Manager DN - The DN of the manager that is used to bind to the LDAP server to search for users.
