@@ -72,6 +72,7 @@
             Redis Mode - The type of Redis instance:
                             - Standalone
                             - Sentinel
+                            - Cluster (currently not supported for state-management due to use of WATCH command which Redis does not support in clustered mode)
 
             Connection String - The connection string for Redis.
                         - In a standalone instance this value will be of the form hostname:port.
@@ -79,6 +80,9 @@
                         - In a clustered instance this value will be the comma-separated list of cluster masters, such as host1:port,host2:port,host3:port.
 
         This provider has the following optional properties:
+
+            Key Prefix - The prefix for each key stored by this state provider. When sharing a single Redis across multiple NiFi instances, setting a unique
+                        value for the Key Prefix will make it easier to identify which instances the keys came from (default nifi/components/).
 
             Database Index - The database index to be used by connections created from this connection pool.
                         See the databases property in redis.conf, by default databases 0-15 will be available.

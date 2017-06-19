@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -67,6 +68,15 @@ public class MockConfigurationContext implements ConfigurationContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return new HashMap<>(this.properties);
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     private PropertyDescriptor getActualDescriptor(final PropertyDescriptor property) {

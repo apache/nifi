@@ -19,7 +19,8 @@ package org.apache.nifi.redis.state;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
     public static final String FIELD_ENCODING = "encodingVersion";
     public static final String FIELD_STATE_VALUES = "stateValues";
 
-    private final JsonFactory jsonFactory = new JsonFactory();
+    private final JsonFactory jsonFactory = new JsonFactory(new ObjectMapper());
 
     @Override
     public byte[] serialize(final RedisStateMap stateMap) throws IOException {
@@ -70,31 +71,12 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
         final RedisStateMap.Builder builder = new RedisStateMap.Builder();
 
         try (final JsonParser jsonParser = jsonFactory.createParser(data)) {
-            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-                if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                    final String fieldName = jsonParser.getCurrentName();
+            final JsonNode rootNode = jsonParser.readValueAsTree();
+            builder.version(rootNode.get(FIELD_VERSION).asLong());
+            builder.encodingVersion(rootNode.get(FIELD_ENCODING).asInt());
 
-                    switch (fieldName) {
-                        case FIELD_VERSION:
-                            jsonParser.nextToken();
-                            builder.version(jsonParser.getLongValue());
-                            break;
-                        case FIELD_ENCODING:
-                            jsonParser.nextToken();
-                            builder.encodingVersion(jsonParser.getIntValue());
-                            break;
-                        case FIELD_STATE_VALUES:
-                            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-                                if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                                    final String stateValueField = jsonParser.getCurrentName();
-                                    jsonParser.nextToken();
-                                    builder.stateValue(stateValueField, jsonParser.getValueAsString());
-                                }
-                            }
-                            break;
-                    }
-                }
-            }
+            final JsonNode stateValuesNode = rootNode.get(FIELD_STATE_VALUES);
+            stateValuesNode.fields().forEachRemaining(e -> builder.stateValue(e.getKey(), e.getValue().asText()));
         }
 
         return builder.build();

@@ -37,6 +37,7 @@ import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -263,6 +264,15 @@ public class ITRedisStateProvider {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
                     propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                }
+                return propValueMap;
+            }
+
+            @Override
+            public Map<String,String> getAllProperties() {
+                final Map<String,String> propValueMap = new LinkedHashMap<>();
+                for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+                    propValueMap.put(entry.getKey().getName(), entry.getValue());
                 }
                 return propValueMap;
             }

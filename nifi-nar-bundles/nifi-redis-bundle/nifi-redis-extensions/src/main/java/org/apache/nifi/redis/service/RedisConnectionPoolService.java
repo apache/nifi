@@ -32,7 +32,6 @@ import org.apache.nifi.redis.util.RedisUtils;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -51,8 +50,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(RedisUtils.validate(validationContext));
-        return results;
+        return RedisUtils.validate(validationContext);
     }
 
     @OnEnabled

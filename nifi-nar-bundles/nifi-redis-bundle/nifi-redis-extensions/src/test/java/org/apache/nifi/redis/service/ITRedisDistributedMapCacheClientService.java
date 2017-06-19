@@ -63,10 +63,11 @@ public class ITRedisDistributedMapCacheClientService {
     private RedisServer redisServer;
     private RedisConnectionPoolService redisConnectionPool;
     private RedisDistributedMapCacheClientService redisMapCacheClientService;
+    private int redisPort;
 
     @Before
     public void setup() throws IOException {
-        final int redisPort = getAvailablePort();
+        this.redisPort = getAvailablePort();
 
         this.redisServer = new RedisServer(redisPort);
         redisServer.start();
@@ -96,7 +97,7 @@ public class ITRedisDistributedMapCacheClientService {
             // create, configure, and enable the RedisConnectionPool service
             redisConnectionPool = new RedisConnectionPoolService();
             testRunner.addControllerService("redis-connection-pool", redisConnectionPool);
-            testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING, "localhost:6379");
+            testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING, "localhost:" + redisPort);
 
             // uncomment this to test using a different database index than the default 0
             //testRunner.setProperty(redisConnectionPool, RedisUtils.DATABASE, "1");
@@ -229,12 +230,12 @@ public class ITRedisDistributedMapCacheClientService {
                 Assert.assertTrue(cacheClient.replace(entryDoesNotExist, stringSerializer, stringSerializer));
                 Assert.assertEquals(replacementValue, cacheClient.get(replaceKeyDoesntExist, stringSerializer, stringDeserializer));
 
-
-                for (int i=0; i < 50; i++) {
+                final int numToDelete = 2000;
+                for (int i=0; i < numToDelete; i++) {
                     cacheClient.put(key + "-" + i, value, stringSerializer, stringSerializer);
                 }
 
-                Assert.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") > 50);
+                Assert.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
                 Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
 
                 session.transfer(flowFile, REL_SUCCESS);

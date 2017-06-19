@@ -32,8 +32,6 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisShardInfo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -276,7 +274,7 @@ public class RedisUtils {
         } else if (RedisUtils.REDIS_MODE_SENTINEL.getValue().equals(redisMode)) {
             final String[] sentinels = connectionString.split("[,]");
             final String sentinelMaster = context.getProperty(RedisUtils.SENTINEL_MASTER).evaluateAttributeExpressions().getValue();
-            final RedisSentinelConfiguration sentinelConfiguration = new RedisSentinelConfiguration(sentinelMaster, new HashSet<>(Arrays.asList(sentinels)));
+            final RedisSentinelConfiguration sentinelConfiguration = new RedisSentinelConfiguration(sentinelMaster, new HashSet<>(getTrimmedValues(sentinels)));
             final JedisShardInfo jedisShardInfo = createJedisShardInfo(sentinels[0], timeout, password);
 
             logger.info("Connecting to Redis in sentinel mode...");
@@ -293,7 +291,7 @@ public class RedisUtils {
             final String[] clusterNodes = connectionString.split("[,]");
             final Integer maxRedirects = context.getProperty(RedisUtils.CLUSTER_MAX_REDIRECTS).asInteger();
 
-            final RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration(Arrays.asList(clusterNodes));
+            final RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration(getTrimmedValues(clusterNodes));
             clusterConfiguration.setMaxRedirects(maxRedirects);
 
             logger.info("Connecting to Redis in clustered mode...");
@@ -316,6 +314,14 @@ public class RedisUtils {
         // need to call this to initialize the pool/connections
         connectionFactory.afterPropertiesSet();
         return connectionFactory;
+    }
+
+    private static List<String> getTrimmedValues(final String[] values) {
+        final List<String> trimmedValues = new ArrayList<>();
+        for (final String value : values) {
+            trimmedValues.add(value.trim());
+        }
+        return trimmedValues;
     }
 
     private static JedisShardInfo createJedisShardInfo(final String hostAndPort, final Integer timeout, final String password) {
@@ -351,7 +357,7 @@ public class RedisUtils {
         return poolConfig;
     }
 
-    public static Collection<ValidationResult> validate(ValidationContext validationContext) {
+    public static List<ValidationResult> validate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
         final String redisMode = validationContext.getProperty(RedisUtils.REDIS_MODE).getValue();
@@ -366,7 +372,7 @@ public class RedisUtils {
                     .build());
         } else if (RedisUtils.REDIS_MODE_STANDALONE.getValue().equals(redisMode)) {
             final String[] hostAndPort = connectionString.split("[:]");
-            if (hostAndPort == null || hostAndPort.length != 2 || !isInteger(hostAndPort[1])) {
+            if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                 results.add(new ValidationResult.Builder()
                         .subject(RedisUtils.CONNECTION_STRING.getDisplayName())
                         .input(connectionString)
@@ -377,12 +383,12 @@ public class RedisUtils {
         } else {
             for (final String connection : connectionString.split("[,]")) {
                 final String[] hostAndPort = connection.split("[:]");
-                if (hostAndPort == null || hostAndPort.length != 2 || !isInteger(hostAndPort[1])) {
+                if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                     results.add(new ValidationResult.Builder()
                             .subject(RedisUtils.CONNECTION_STRING.getDisplayName())
                             .input(connection)
                             .valid(false)
-                            .explanation("Connection String must be in the form host:port")
+                            .explanation("Connection String must be in the form host:port,host:port,host:port,etc.")
                             .build());
                 }
             }

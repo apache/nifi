@@ -26,6 +26,7 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.redis.util.RedisAction;
 import org.apache.nifi.redis.util.RedisUtils;
@@ -47,9 +48,27 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
     static final int ENCODING_VERSION = 1;
 
+    public static final PropertyDescriptor KEY_PREFIX = new PropertyDescriptor.Builder()
+            .name("Key Prefix")
+            .displayName("Key Prefix")
+            .description("The prefix for each key stored by this state provider. When sharing a single Redis across multiple NiFi instances, " +
+                    "setting a unique value for the Key Prefix will make it easier to identify which instances the keys came from.")
+            .required(true)
+            .defaultValue("nifi/components/")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final List<PropertyDescriptor> STATE_PROVIDER_PROPERTIES;
+    static {
+        final List<PropertyDescriptor> props = new ArrayList<>(RedisUtils.REDIS_CONNECTION_PROPERTY_DESCRIPTORS);
+        props.add(KEY_PREFIX);
+        STATE_PROVIDER_PROPERTIES = Collections.unmodifiableList(props);
+    }
+
     private String identifier;
-    private PropertyContext context;
+    private String keyPrefix;
     private ComponentLog logger;
+    private PropertyContext context;
 
     private volatile boolean enabled;
     private volatile JedisConnectionFactory connectionFactory;
@@ -61,11 +80,17 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         this.context = context;
         this.identifier = context.getIdentifier();
         this.logger = context.getLogger();
+
+        String keyPrefix = context.getProperty(KEY_PREFIX).getValue();
+        if (!keyPrefix.endsWith("/")) {
+            keyPrefix = keyPrefix + "/";
+        }
+        this.keyPrefix = keyPrefix;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return RedisUtils.REDIS_CONNECTION_PROPERTY_DESCRIPTORS;
+        return STATE_PROVIDER_PROPERTIES;
     }
 
     @Override
@@ -135,7 +160,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     @Override
     public StateMap getState(final String componentId) throws IOException {
         return withConnection(redisConnection -> {
-            final byte[] key = getComponentPath(componentId).getBytes(StandardCharsets.UTF_8);
+            final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
             final byte[] value = redisConnection.get(key);
 
             final RedisStateMap stateMap = serDe.deserialize(value);
@@ -158,7 +183,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             boolean replaced = false;
 
             // start a watch on the key and retrieve the current value
-            final byte[] key = getComponentPath(componentId).getBytes(StandardCharsets.UTF_8);
+            final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
             redisConnection.watch(key);
 
             final long prevVersion = oldValue == null ? -1L : oldValue.getVersion();
@@ -222,7 +247,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     @Override
     public void onComponentRemoved(final String componentId) throws IOException {
         withConnection(redisConnection -> {
-            final byte[] key = getComponentPath(componentId).getBytes(StandardCharsets.UTF_8);
+            final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
             redisConnection.del(key);
             return true;
         });
@@ -233,8 +258,8 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         return new Scope[] {Scope.CLUSTER};
     }
 
-    private String getComponentPath(final String componentId) {
-        return "nifi/components/" + componentId;
+    private String getComponentKey(final String componentId) {
+        return keyPrefix + componentId;
     }
 
     private void verifyEnabled() throws IOException {

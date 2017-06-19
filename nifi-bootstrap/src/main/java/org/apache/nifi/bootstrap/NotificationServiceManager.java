@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -376,6 +377,11 @@ public class NotificationServiceManager {
                     }
 
                     return new StandardPropertyValue(value, null, variableRegistry);
+                }
+
+                @Override
+                public Map<String,String> getAllProperties() {
+                    return Collections.unmodifiableMap(propertyValues);
                 }
 
                 @Override

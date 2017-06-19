@@ -140,9 +140,12 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
                                 + firstResult.getClass().getName() + " with value " + firstResult.toString());
                     }
                 }
-            } while (true);
+            } while (isEnabled());
+
+            return null;
         });
     }
+
 
     @Override
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
@@ -187,28 +190,39 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     @Override
     public long removeByPattern(final String regex) throws IOException {
         return withConnection(redisConnection -> {
-            final List<byte[]> allKeys = new ArrayList<>();
+            long deletedCount = 0;
+            final List<byte[]> batchKeys = new ArrayList<>();
 
-            // perform a scan to get all the keys
-            long cursorId = 0;
-            do {
-                final Cursor<byte[]> cursor = redisConnection.scan(ScanOptions.scanOptions().match(regex).build());
-                while (cursor.hasNext()) {
-                    allKeys.add(cursor.next());
+            // delete keys in batches of 1000 using the cursor
+            final Cursor<byte[]> cursor = redisConnection.scan(ScanOptions.scanOptions().count(100).match(regex).build());
+            while (cursor.hasNext()) {
+                batchKeys.add(cursor.next());
+
+                if (batchKeys.size() == 1000) {
+                    deletedCount += redisConnection.del(getKeys(batchKeys));
+                    batchKeys.clear();
                 }
-
-                cursorId = cursor.getCursorId();
-            } while (cursorId > 0);
-
-            // convert the list of all keys to an array
-            final byte[][] allKeysArray = new byte[allKeys.size()][];
-            for (int i=0; i < allKeys.size(); i++) {
-                allKeysArray[i] = allKeys.get(i);
             }
 
-            // delete all the keys
-            return redisConnection.del(allKeysArray);
+            // delete any left-over keys if some were added to the batch but never reached 1000
+            if (batchKeys.size() > 0) {
+                deletedCount += redisConnection.del(getKeys(batchKeys));
+                batchKeys.clear();
+            }
+
+            return deletedCount;
         });
+    }
+
+    /**
+     *  Convert the list of all keys to an array.
+     */
+    private byte[][] getKeys(final List<byte[]> keys) {
+        final byte[][] allKeysArray = new byte[keys.size()][];
+        for (int i=0; i < keys.size(); i++) {
+            allKeysArray[i] = keys.get(i);
+        }
+        return  allKeysArray;
     }
 
     // ----------------- Methods from AtomicDistributedMapCacheClient ------------------------
