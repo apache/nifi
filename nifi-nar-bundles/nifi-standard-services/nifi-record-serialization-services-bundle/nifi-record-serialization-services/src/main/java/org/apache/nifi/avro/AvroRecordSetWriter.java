@@ -61,8 +61,9 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     }
 
     private static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-        .name("Compression Format")
-        .description("Compression type to use when writting Avro files. Default is None.")
+        .name("compression-format")
+        .displayName("Compression Format")
+        .description("Compression type to use when writing Avro files. Default is None.")
         .allowableValues(CodecType.values())
         .defaultValue(CodecType.NONE.toString())
         .required(true)
@@ -186,8 +187,8 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String writeStrategyValue = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final String compressionFormatValue = validationContext.getProperty(COMPRESSION_FORMAT).getValue();
-        if (!writeStrategyValue.equalsIgnoreCase(AVRO_EMBEDDED.getValue()) &&
-                !CodecType.NONE.toString().equals(compressionFormatValue)) {
+        if (!writeStrategyValue.equalsIgnoreCase(AVRO_EMBEDDED.getValue())
+                && !CodecType.NONE.toString().equals(compressionFormatValue)) {
             results.add(new ValidationResult.Builder()
                     .subject(COMPRESSION_FORMAT.getName())
                     .valid(false)
