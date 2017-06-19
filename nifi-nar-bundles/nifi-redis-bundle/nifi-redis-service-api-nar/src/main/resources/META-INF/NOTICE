@@ -1,0 +1,33 @@
+Apache NiFi
+Copyright 2014-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+    (ASLv2) Apache Commons Pool
+      The following NOTICE information applies:
+        Apache Commons Pool
+        Copyright 1999-2009 The Apache Software Foundation.
+
+************************
+The MIT License
+************************
+
+The following binary components are provided under the MIT License.  See project link for details.
+
+  (MIT License) Jedis (redis.clients:jedis:2.9.0 - https://github.com/xetorthio/jedis)
+
+
+*****************
+Public Domain
+*****************
+
+The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)

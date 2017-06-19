@@ -1435,6 +1435,18 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-redis-service-api-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-redis-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+	    <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
             </dependency>
