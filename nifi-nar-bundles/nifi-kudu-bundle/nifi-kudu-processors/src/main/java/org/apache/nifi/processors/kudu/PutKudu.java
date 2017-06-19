@@ -54,6 +54,7 @@ public class PutKudu extends AbstractKudu {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
         properties.add(TABLE_NAME);
+        properties.add(RECORD_READER);
         properties.add(BATCH_SIZE);
         return properties;
     }

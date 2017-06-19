@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+//import org.apache.nifi.serialization.RecordReaderFactory;
 
 import java.util.List;
 
@@ -52,6 +53,14 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .description("The name of the Kudu Table to put data into")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("The service for reading records from incoming flow files.")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
             .build();
 
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -109,6 +118,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
+            final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
             List<FlowFile> flowFiles = session.get(batchSize);
             if (flowFiles == null || flowFiles.size() == 0) {
                 return;
