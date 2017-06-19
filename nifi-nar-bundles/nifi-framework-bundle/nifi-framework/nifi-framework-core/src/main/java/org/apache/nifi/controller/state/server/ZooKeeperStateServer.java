@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZKDatabase;
@@ -47,6 +48,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private FileTxnSnapLog transactionLog;
     private ZooKeeperServer embeddedZkServer;
     private QuorumPeer quorumPeer;
+    private DatadirCleanupManager datadirCleanupManager;
 
     private ZooKeeperStateServer(final Properties zkProperties) throws IOException, ConfigException {
         quorumPeerConfig = new QuorumPeerConfig();
@@ -56,6 +58,13 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     public synchronized void start() throws IOException {
         if (started) {
             return;
+        }
+
+        if (quorumPeerConfig.isDistributed() && quorumPeerConfig.getPurgeInterval() > 0) {
+            datadirCleanupManager = new DatadirCleanupManager(quorumPeerConfig
+                    .getDataDir(), quorumPeerConfig.getDataLogDir(), quorumPeerConfig
+                    .getSnapRetainCount(), quorumPeerConfig.getPurgeInterval());
+            datadirCleanupManager.start();
         }
 
         if (quorumPeerConfig.isDistributed()) {
@@ -152,6 +161,10 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
             if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
                 embeddedZkServer.shutdown();
+            }
+
+            if (datadirCleanupManager != null) {
+                datadirCleanupManager.shutdown();
             }
         }
     }
