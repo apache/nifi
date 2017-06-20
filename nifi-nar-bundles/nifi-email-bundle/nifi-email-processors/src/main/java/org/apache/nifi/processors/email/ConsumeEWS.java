@@ -175,6 +175,16 @@ public class ConsumeEWS extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor INCLUDE_EMAIL_HEADERS = new PropertyDescriptor.Builder()
+            .name("ews-include-headers")
+            .displayName("Original Headers to Include")
+            .description("Comma delimited list specifying which headers from the original message to include in the exported email message. '*' means copy all headers. " +
+                    "Some headers can cause problems with message parsing, specifically the 'Content-Type' header.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("*")
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All messages that are the are successfully received from Email server and converted to FlowFiles are routed to this relationship")
@@ -195,7 +205,6 @@ public class ConsumeEWS extends AbstractProcessor {
     protected volatile boolean shouldSetDeleteFlag;
 
     protected volatile String folderName;
-    protected volatile int fetchSize;
 
     public ConsumeEWS(){
         final Set<Relationship> relationshipSet = new HashSet<>();
@@ -215,6 +224,7 @@ public class ConsumeEWS extends AbstractProcessor {
         descriptors.add(EWS_URL);
         descriptors.add(USE_AUTODISCOVER);
         descriptors.add(SHOULD_MARK_READ);
+        descriptors.add(INCLUDE_EMAIL_HEADERS);
 
         DESCRIPTORS = descriptors;
     }
@@ -304,6 +314,13 @@ public class ConsumeEWS extends AbstractProcessor {
             ExchangeService service = this.initializeIfNecessary(context);
             boolean deleteOnRead = context.getProperty(SHOULD_DELETE_MESSAGES).getValue().equals("true");
             boolean markAsRead = context.getProperty(SHOULD_MARK_READ).getValue().equals("true");
+            String includeHeaders = context.getProperty(INCLUDE_EMAIL_HEADERS).getValue();
+            String[] headersList;
+            if(includeHeaders.equals("")){
+                headersList = new String[1];
+                headersList[0] = "*";
+            }
+            headersList = includeHeaders.split(",");
 
             try {
                 //Get Folder
@@ -323,7 +340,7 @@ public class ConsumeEWS extends AbstractProcessor {
 
                 for (Item item : findResults) {
                     EmailMessage ewsMessage = (EmailMessage) item;
-                    messageQueue.add(parseMessage(ewsMessage));
+                    messageQueue.add(parseMessage(ewsMessage,Arrays.asList(headersList)));
 
                     if(deleteOnRead){
                         ewsMessage.delete(DeleteMode.HardDelete);
@@ -367,7 +384,7 @@ public class ConsumeEWS extends AbstractProcessor {
         return folder;
     }
 
-    public MimeMessage parseMessage(EmailMessage item) throws Exception {
+    public MimeMessage parseMessage(EmailMessage item, List<String> hdrList) throws Exception {
         EmailMessage ewsMessage = item;
         final String bodyText = ewsMessage.getBody().toString();
 
@@ -403,7 +420,12 @@ public class ConsumeEWS extends AbstractProcessor {
         //sent date
         mm.setSentDate(ewsMessage.getDateTimeSent());
         //add message headers
-        ewsMessage.getInternetMessageHeaders().forEach(x-> mm.addHeader(x.getName(), x.getValue()));
+        if(hdrList.size() > 0 && hdrList.get(0).equals("*"))
+            ewsMessage.getInternetMessageHeaders().forEach(x-> mm.addHeader(x.getName(), x.getValue()));
+        else if(hdrList.size() > 0)
+            ewsMessage.getInternetMessageHeaders().forEach(x-> {
+                if(hdrList.contains(x.getName())) mm.addHeader(x.getName(), x.getValue());
+            });
 
         //Any attachments
         if(ewsMessage.getHasAttachments()){
