@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.UnsupportedEncodingException;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -214,14 +213,6 @@ public class TestExtractText {
         out.assertAttributeEquals("regex.result5b", null);
         out.assertAttributeEquals("regex.result6", null);
         out.assertAttributeEquals("regex.result7", null);
-    }
-
-    @Test(expected = java.lang.AssertionError.class)
-    public void testNoCaptureGroups() throws UnsupportedEncodingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
-        testRunner.setProperty("regex.result1", ".*");
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
-        testRunner.run();
     }
 
     @Test
@@ -421,5 +412,40 @@ public class TestExtractText {
         // Ensure the zero capture group is not in the resultant attributes
         out.assertAttributeNotExists(attributeKey + ".0");
         out.assertAttributeEquals(attributeKey, SAMPLE_STRING);
+    }
+
+    @Test
+    public void testShouldAllowNoCaptureGroups() throws Exception {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        final String attributeKey = "regex.result";
+        testRunner.setProperty(attributeKey, "(?s).*");
+
+        // Act
+        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.run();
+
+        // Assert
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+
+        // There is no global capture group, so only "key.0" exists
+        out.assertAttributeNotExists(attributeKey);
+        out.assertAttributeEquals(attributeKey + ".0", SAMPLE_STRING);
+    }
+
+    @Test(expected = java.lang.AssertionError.class)
+    public void testShouldNotAllowNoCaptureGroupsIfZeroDisabled() throws Exception {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
+        final String attributeKey = "regex.result";
+        testRunner.setProperty(attributeKey, "(?s).*");
+
+        // Act
+        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+
+        // Validation should fail because nothing will match
+        testRunner.run();
     }
 }
