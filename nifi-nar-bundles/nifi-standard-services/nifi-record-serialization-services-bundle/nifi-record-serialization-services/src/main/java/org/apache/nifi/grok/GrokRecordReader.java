@@ -21,7 +21,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,19 +69,17 @@ public class GrokRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord() throws IOException, MalformedRecordException {
-        final String line = nextLine == null ? reader.readLine() : nextLine;
-        nextLine = null; // ensure that we don't process nextLine again
-        if (line == null) {
-            return null;
-        }
+        Map<String, Object> valueMap = null;
+        while (valueMap == null || valueMap.isEmpty()) {
+            final String line = nextLine == null ? reader.readLine() : nextLine;
+            nextLine = null; // ensure that we don't process nextLine again
+            if (line == null) {
+                return null;
+            }
 
-        final RecordSchema schema = getSchema();
-
-        final Match match = grok.match(line);
-        match.captures();
-        final Map<String, Object> valueMap = match.toMap();
-        if (valueMap.isEmpty()) {   // We were unable to match the pattern so return an empty Object array.
-            return new MapRecord(schema, Collections.emptyMap());
+            final Match match = grok.match(line);
+            match.captures();
+            valueMap = match.toMap();
         }
 
         // Read the next line to see if it matches the pattern (in which case we will simply leave it for
@@ -149,7 +146,7 @@ public class GrokRecordReader implements RecordReader {
 
             return new MapRecord(schema, values);
         } catch (final Exception e) {
-            throw new MalformedRecordException("Found invalid log record and will skip it. Record: " + line, e);
+            throw new MalformedRecordException("Found invalid log record and will skip it. Record: " + nextLine, e);
         }
     }
 
