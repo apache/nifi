@@ -41,6 +41,7 @@ import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.FolderView;
 import microsoft.exchange.webservices.data.search.ItemView;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.EmailAttachment;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.HtmlEmail;
@@ -50,6 +51,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -178,11 +180,18 @@ public class ConsumeEWS extends AbstractProcessor {
     public static final PropertyDescriptor INCLUDE_EMAIL_HEADERS = new PropertyDescriptor.Builder()
             .name("ews-include-headers")
             .displayName("Original Headers to Include")
-            .description("Comma delimited list specifying which headers from the original message to include in the exported email message. '*' means copy all headers. " +
+            .description("Comma delimited list specifying which headers from the original message to include in the exported email message. Blank means copy all headers. " +
                     "Some headers can cause problems with message parsing, specifically the 'Content-Type' header.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("*")
+            .defaultValue("")
+            .addValidator(Validator.VALID)
+            .build();
+
+    public static final PropertyDescriptor EXCLUDE_EMAIL_HEADERS = new PropertyDescriptor.Builder()
+            .name("ews-exclude-headers")
+            .displayName("Original Headers to Exclude")
+            .description("Comma delimited list specifying which headers from the original message to exclude in the exported email message. Blank means don't exclude any headers.")
+            .defaultValue("")
+            .addValidator(Validator.VALID)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -225,6 +234,7 @@ public class ConsumeEWS extends AbstractProcessor {
         descriptors.add(USE_AUTODISCOVER);
         descriptors.add(SHOULD_MARK_READ);
         descriptors.add(INCLUDE_EMAIL_HEADERS);
+        descriptors.add(EXCLUDE_EMAIL_HEADERS);
 
         DESCRIPTORS = descriptors;
     }
@@ -315,12 +325,18 @@ public class ConsumeEWS extends AbstractProcessor {
             boolean deleteOnRead = context.getProperty(SHOULD_DELETE_MESSAGES).getValue().equals("true");
             boolean markAsRead = context.getProperty(SHOULD_MARK_READ).getValue().equals("true");
             String includeHeaders = context.getProperty(INCLUDE_EMAIL_HEADERS).getValue();
-            String[] headersList;
-            if(includeHeaders.equals("")){
-                headersList = new String[1];
-                headersList[0] = "*";
+            String excludeHeaders = context.getProperty(EXCLUDE_EMAIL_HEADERS).getValue();
+
+            List<String> includeHeadersList = null;
+            List<String> excludeHeadersList = null;
+
+            if (!StringUtils.isEmpty(includeHeaders)) {
+                includeHeadersList = Arrays.asList(includeHeaders.split(","));
             }
-            headersList = includeHeaders.split(",");
+
+            if (!StringUtils.isEmpty(excludeHeaders)) {
+                excludeHeadersList = Arrays.asList(excludeHeaders.split(","));
+            }
 
             try {
                 //Get Folder
@@ -340,7 +356,7 @@ public class ConsumeEWS extends AbstractProcessor {
 
                 for (Item item : findResults) {
                     EmailMessage ewsMessage = (EmailMessage) item;
-                    messageQueue.add(parseMessage(ewsMessage,Arrays.asList(headersList)));
+                    messageQueue.add(parseMessage(ewsMessage,includeHeadersList,excludeHeadersList));
 
                     if(deleteOnRead){
                         ewsMessage.delete(DeleteMode.HardDelete);
@@ -384,7 +400,7 @@ public class ConsumeEWS extends AbstractProcessor {
         return folder;
     }
 
-    public MimeMessage parseMessage(EmailMessage item, List<String> hdrList) throws Exception {
+    public MimeMessage parseMessage(EmailMessage item, List<String> hdrIncludeList, List<String> hdrExcludeList) throws Exception {
         EmailMessage ewsMessage = item;
         final String bodyText = ewsMessage.getBody().toString();
 
@@ -420,12 +436,10 @@ public class ConsumeEWS extends AbstractProcessor {
         //sent date
         mm.setSentDate(ewsMessage.getDateTimeSent());
         //add message headers
-        if(hdrList.size() > 0 && hdrList.get(0).equals("*"))
-            ewsMessage.getInternetMessageHeaders().forEach(x-> mm.addHeader(x.getName(), x.getValue()));
-        else if(hdrList.size() > 0)
-            ewsMessage.getInternetMessageHeaders().forEach(x-> {
-                if(hdrList.contains(x.getName())) mm.addHeader(x.getName(), x.getValue());
-            });
+        ewsMessage.getInternetMessageHeaders().getItems().stream()
+                .filter(x -> (hdrIncludeList == null || hdrIncludeList.isEmpty() || hdrIncludeList.contains(x.getName()))
+                        && (hdrExcludeList == null || hdrExcludeList.isEmpty() || !hdrExcludeList.contains(x.getName())))
+                .forEach(x-> mm.addHeader(x.getName(), x.getValue()));
 
         //Any attachments
         if(ewsMessage.getHasAttachments()){
