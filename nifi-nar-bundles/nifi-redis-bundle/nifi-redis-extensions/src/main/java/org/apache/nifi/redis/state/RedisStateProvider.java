@@ -229,13 +229,16 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
     @Override
     public void clear(final String componentId) throws IOException {
-        final StateMap currStateMap = getState(componentId);
-
         int attempted = 0;
         boolean updated = false;
 
         while (!updated && attempted < 20) {
+            final StateMap currStateMap = getState(componentId);
             updated = replace(currStateMap, Collections.emptyMap(), componentId, true);
+
+            final String result = updated ? "successful" : "unsuccessful";
+            logger.debug("Attempt # {} to clear state for component {} was {}", new Object[] { attempted + 1, componentId, result});
+
             attempted++;
         }
 
