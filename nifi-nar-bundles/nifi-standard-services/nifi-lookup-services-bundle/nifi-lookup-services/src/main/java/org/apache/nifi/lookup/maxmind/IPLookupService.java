@@ -338,6 +338,10 @@ public class IPLookupService extends AbstractControllerService implements Record
             anonymousIpRecord = null;
         }
 
+        if (geoRecord == null && ispRecord == null && domainName == null && connectionType == null && anonymousIpRecord == null) {
+            return Optional.empty();
+        }
+
         return Optional.ofNullable(createContainerRecord(geoRecord, ispRecord, domainName, connectionType, anonymousIpRecord));
     }
 
