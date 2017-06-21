@@ -84,6 +84,8 @@ public class KerberosProperties {
                 .required(false)
                 .description("Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in your nifi.properties")
                 .addValidator(kerberosConfigValidator)
+                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                .expressionLanguageSupported(true)
                 .build();
 
         this.kerberosKeytab = new PropertyDescriptor.Builder()
@@ -91,6 +93,8 @@ public class KerberosProperties {
                 .description("Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be set in your nifi.properties")
                 .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
                 .addValidator(kerberosConfigValidator)
+                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                .expressionLanguageSupported(true)
                 .build();
     }
 
