@@ -433,4 +433,19 @@ public class TestExtractText {
         out.assertAttributeNotExists(attributeKey);
         out.assertAttributeEquals(attributeKey + ".0", SAMPLE_STRING);
     }
+
+    @Test(expected = java.lang.AssertionError.class)
+    public void testShouldNotAllowNoCaptureGroupsIfZeroDisabled() throws Exception {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
+        final String attributeKey = "regex.result";
+        testRunner.setProperty(attributeKey, "(?s).*");
+
+        // Act
+        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+
+        // Validation should fail because nothing will match
+        testRunner.run();
+    }
 }
