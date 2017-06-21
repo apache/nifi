@@ -44,6 +44,14 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
+  (ASLv2) Apache BVal Project
+    The following NOTICE information applies:
+      Apache BVal project
+     Copyright 2010-2016 The Apache Software Foundation.
+
+     This product includes software developed by Agimatec GmbH.
+     Copyright 2007-2010 Agimatec GmbH. All rights reserved.
+
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
       Apache Commons IO
@@ -255,7 +263,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
-      Copyright 2001-2015 The Apache Software Foundation
+      Copyright 2001-2017 The Apache Software Foundation
 
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
@@ -471,6 +479,12 @@ The following binary components are provided under the Apache Software License v
       OpenCSV: Copyright 2005 Bytecode Pty Ltd. Licensed under the Apache License, Version 2.0
 
       IPTC Photo Metadata descriptions Copyright 2010 International Press Telecommunications Council.
+
+
+  (ASLv2) Apache Calcite -- Avatica
+    The following NOTICE information applies:
+		Apache Calcite -- Avatica
+		Copyright 2012-2017 The Apache Software Foundation
 
   (ASLv2) Apache Calcite
     The following NOTICE information applies:
@@ -1431,6 +1445,14 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Hortonworks Schema Registry
       Copyright 2016-2017 Hortonworks, Inc.
+
+  (ASLv2) Aggregate Designer
+    The following NOTICE information applies:
+
+        Aggregate Designer
+
+        Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+        Copyright 2000-2005, 2014-2016 Julian Hyde
 
 ************************
 Common Development and Distribution License 1.1
