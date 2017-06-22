@@ -63,10 +63,11 @@ public class CSVUtils {
         .build();
     static final PropertyDescriptor SKIP_HEADER_LINE = new PropertyDescriptor.Builder()
         .name("Skip Header Line")
-        .description("Specifies whether or not the first line of CSV should be considered a Header and skipped. If the Schema Access Strategy "
+        .displayName("Treat First Line as Header")
+        .description("Specifies whether or not the first line of CSV should be considered a Header or should be considered a record. If the Schema Access Strategy "
             + "indicates that the columns must be defined in the header, then this property will be ignored, since the header must always be "
-            + "present and won't be processed as a Record. Otherwise, this property should be 'true' if the first non-comment line of CSV "
-            + "contains header information that needs to be ignored.")
+            + "present and won't be processed as a Record. Otherwise, if 'true', then the first line of CSV data will not be processed as a record and if 'false',"
+            + "then the first line will be interpreted as a record.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(false)
         .allowableValues("true", "false")

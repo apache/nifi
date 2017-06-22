@@ -16,12 +16,12 @@
 		<artifactId>nifi-nar-bundles</artifactId>
 		<version>1.4.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>nifi-registry-bundle</artifactId>
+	<artifactId>nifi-confluent-platform-bundle</artifactId>
 	<packaging>pom</packaging>
-	<description>A bundle of processors that rely on external service to obtain schema.</description>
+	<description>A bundle of components that interact with the Confluent Platform</description>
 
 	<modules>
-		<module>nifi-registry-service</module>
-		<module>nifi-registry-nar</module>
+		<module>nifi-confluent-schema-registry-service</module>
+		<module>nifi-confluent-platform-nar</module>
 	</modules>
 </project>
