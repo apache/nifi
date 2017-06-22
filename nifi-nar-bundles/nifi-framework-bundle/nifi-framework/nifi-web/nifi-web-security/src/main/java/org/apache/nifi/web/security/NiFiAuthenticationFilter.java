@@ -130,7 +130,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         }
 
         // log the failure
-        log.info(String.format("Rejecting access to web api: %s", ae.getMessage()));
+        log.warn(String.format("Rejecting access to web api: %s", ae.getMessage()));
 
         // optionally log the stack trace
         if (log.isDebugEnabled()) {
