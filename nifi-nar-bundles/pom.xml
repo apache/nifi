@@ -35,6 +35,7 @@
         <module>nifi-kafka-bundle</module>
         <module>nifi-kite-bundle</module>
         <module>nifi-solr-bundle</module>
+        <module>nifi-confluent-platform-bundle</module>
         <module>nifi-aws-bundle</module>
         <module>nifi-social-media-bundle</module>
         <module>nifi-enrich-bundle</module>

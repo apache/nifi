@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.ConfluentSchemaRegistryWriter;
 import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceWriter;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
 import org.apache.nifi.schema.access.NopSchemaAccessWriter;
@@ -63,6 +64,11 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
         "The FlowFile will be given a set of 3 attributes to describe the schema: 'schema.identifier', 'schema.version', and 'schema.protocol.version'. Note that if "
             + "the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
+    static final AllowableValue CONFLUENT_ENCODED_SCHEMA = new AllowableValue("confluent-encoded", "Confluent Schema Registry Reference",
+        "The content of the FlowFile will contain a reference to a schema in the Schema Registry service. The reference is encoded as a single "
+            + "'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. "
+            + "This will be prepended to each FlowFile. Note that if the schema for a record does not contain the necessary identifier and version, "
+            + "an Exception will be thrown when attempting to write the data. This is based on the encoding used by version 3.2.x of the Confluent Schema Registry.");
     static final AllowableValue NO_SCHEMA = new AllowableValue("no-schema", "Do Not Write Schema", "Do not add any schema-related information to the FlowFile.");
 
     /**
@@ -73,8 +79,6 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     private static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
         .name("Schema Write Strategy")
         .description("Specifies how the schema for a Record should be added to the data.")
-        .allowableValues(SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, NO_SCHEMA)
-        .defaultValue(SCHEMA_NAME_ATTRIBUTE.getValue())
         .required(true)
         .build();
 
@@ -83,7 +87,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     private volatile SchemaAccessWriter schemaAccessWriter;
 
     private final List<AllowableValue> schemaWriteStrategyList = Collections.unmodifiableList(Arrays.asList(
-        SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, NO_SCHEMA));
+        SCHEMA_NAME_ATTRIBUTE, AVRO_SCHEMA_ATTRIBUTE, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA, NO_SCHEMA));
     private final List<AllowableValue> schemaAccessStrategyList = Collections.unmodifiableList(Arrays.asList(
         SCHEMA_NAME_PROPERTY, INHERIT_RECORD_SCHEMA, SCHEMA_TEXT_PROPERTY));
 
@@ -156,6 +160,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             return new HortonworksEncodedSchemaReferenceWriter();
         } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
             return new HortonworksAttributeSchemaReferenceWriter();
+        } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
+            return new ConfluentSchemaRegistryWriter();
         } else if (allowableValue.equalsIgnoreCase(NO_SCHEMA.getValue())) {
             return new NopSchemaAccessWriter();
         }
