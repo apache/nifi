@@ -252,7 +252,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing);
             } catch (final IOException e) {
-                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
             }
         }
     }
