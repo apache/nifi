@@ -228,6 +228,9 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
             repo.registerEvent(record)
         }
 
+        // Ensure there is not a timing issue retrieving all records
+        Thread.sleep(1000)
+
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, RECORD_COUNT + 1)
 
         logger.info("Recovered ${recoveredRecords.size()} events: ")
