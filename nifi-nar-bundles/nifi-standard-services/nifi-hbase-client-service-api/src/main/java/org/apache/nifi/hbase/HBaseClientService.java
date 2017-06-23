@@ -149,6 +149,23 @@ public interface HBaseClientService extends ControllerService {
     byte[] toBytes(boolean b);
 
     /**
+     * Converts the given float to its byte representation.
+     *
+     * @param f a float
+     * @return the float represented as bytes
+     */
+    byte[] toBytes(float f);
+
+
+    /**
+     * Converts the given float to its byte representation.
+     *
+     * @param i an int
+     * @return the int represented as bytes
+     */
+    byte[] toBytes(int i);
+
+    /**
      * Converts the given long to it's byte representation.
      *
      * @param l a long

@@ -28,6 +28,8 @@ import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
 
 public class HBaseTestUtil {
 
@@ -84,5 +86,13 @@ public class HBaseTestUtil {
             }
         }
         assertTrue(foundEvent);
+    }
+
+    public static MockHBaseClientService getHBaseClientService(final TestRunner runner) throws InitializationException {
+        final MockHBaseClientService hBaseClient = new MockHBaseClientService();
+        runner.addControllerService("hbaseClient", hBaseClient);
+        runner.enableControllerService(hBaseClient);
+        runner.setProperty(PutHBaseCell.HBASE_CLIENT_SERVICE, "hbaseClient");
+        return hBaseClient;
     }
 }
