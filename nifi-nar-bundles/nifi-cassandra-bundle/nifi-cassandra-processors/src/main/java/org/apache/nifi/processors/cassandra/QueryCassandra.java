@@ -34,11 +34,15 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -58,15 +62,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -84,8 +80,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @WritesAttributes({@WritesAttribute(attribute = "executecql.row.count", description = "The number of rows returned by the CQL query")})
 public class QueryCassandra extends AbstractCassandraProcessor {
 
-    private static final long INIT_WATER_MARK_VALUE = -1;
-    private static final String CSV_FORMAT = "CSV";
+    public static final String CSV_FORMAT = "CSV";
     public static final String AVRO_FORMAT = "Avro";
     public static final String JSON_FORMAT = "JSON";
 
@@ -93,6 +88,29 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     public static final String CASSANDRA_WATERMARK_MAX_VALUE_ID = "CASSANDRA_WATERMARK_MAX_VALUE_ID";
 
     public static final String RESULT_ROW_COUNT = "executecql.row.count";
+
+    public static final PropertyDescriptor INIT_WATERMARK = new PropertyDescriptor.Builder().name("Initial Watermark Value")
+            .description("Use it only once.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor BACKOFF_PERIOD = new PropertyDescriptor.Builder()
+            .name("Backoff Period")
+            .description("Only records older than the backoff period will be eligible for pickup. This can be used in the ILM use case to define a retention period.")
+            .defaultValue("10 seconds")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .sensitive(false)
+            .build();
+
+    public static final PropertyDescriptor OVERLAP_TIME = new PropertyDescriptor.Builder()
+            .name("Overlap Period")
+            .description("Amount of time to overlap into the last load date to ensure long running transactions missed by previous load weren't missed. Recommended: >0s")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 seconds")
+            .build();
 
     public static final PropertyDescriptor DATE_FIELD = new PropertyDescriptor.Builder()
             .name("Date Field")
@@ -143,7 +161,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     + "contain an object with field 'results' containing an array of result rows. Each row in the array is a "
                     + "map of the named column to its value. For example: { \"results\": [{\"userid\":1, \"name\":\"Joe Smith\"}]}")
             .required(true)
-            .allowableValues(AVRO_FORMAT, JSON_FORMAT)
+            .allowableValues(AVRO_FORMAT, JSON_FORMAT, CSV_FORMAT)
             .defaultValue(AVRO_FORMAT)
             .build();
 
@@ -165,6 +183,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     private final static Set<Relationship> relationships;
 
+    private boolean isFisrt = true;
     /*
      * Will ensure that the list of property descriptors is build only once.
      * Will also create a Set of relationships
@@ -172,6 +191,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
+        _propertyDescriptors.add(INIT_WATERMARK);
+        _propertyDescriptors.add(BACKOFF_PERIOD);
+        _propertyDescriptors.add(OVERLAP_TIME);
+
         _propertyDescriptors.add(DATE_FIELD);
         _propertyDescriptors.add(TABLE_NAME);
         _propertyDescriptors.add(CQL_SELECT_QUERY);
@@ -224,6 +247,43 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final ComponentLog logger = getLogger();
+        // Step 1. prepare the values
+        // get properties from context
+        String initWaterMark = context.getProperty(INIT_WATERMARK).getValue();
+        Integer overlapTime = context.getProperty(OVERLAP_TIME).asTimePeriod(TimeUnit.SECONDS).intValue();
+        Integer backoffTime = context.getProperty(BACKOFF_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
+        long currentTime = System.currentTimeMillis();
+        String waterMark = "";
+
+        final StateManager stateManager = context.getStateManager();
+        final StateMap stateMap;
+
+        try {
+            stateMap = stateManager.getState(Scope.CLUSTER);
+        } catch (final IOException ioe) {
+            getLogger().error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
+                    + "query until this is accomplished.", ioe);
+            context.yield();
+            return;
+        }
+
+        //calculate the minBoundValue and the maxBoundValue
+        final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
+        waterMark = statePropertyMap.get(CASSANDRA_WATERMARK_MAX_VALUE_ID);
+        long minBoundValue = 0;
+        if (waterMark !=null && !StringUtils.isEmpty(waterMark)) {
+            minBoundValue = Long.valueOf(waterMark) - overlapTime.longValue() + 1;
+        }
+        if (isFisrt && initWaterMark != null && NumberUtils.isNumber(initWaterMark)) {
+            long initMinBoundValue = Long.valueOf(initWaterMark);
+            if (initMinBoundValue > 0) {
+                minBoundValue = initMinBoundValue;
+            }
+        }
+        long maxBoundValue = currentTime - backoffTime.longValue();
+
+        //Step 2. execute query
         FlowFile fileToProcess = null;
         if (context.hasIncomingConnection()) {
             fileToProcess = session.get();
@@ -235,8 +295,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 return;
             }
         }
-
-        final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
@@ -250,22 +308,11 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             throw new ProcessException(" TableName or Query is required");
         }
 
-        long minBoundValue = INIT_WATER_MARK_VALUE;
-        long maxBoundValue = INIT_WATER_MARK_VALUE;
+        String modifiedSelectQuery = addRangeQuery(tableName, keySpace, waterMarkDateField, selectQuery, minBoundValue, maxBoundValue);
 
         if (fileToProcess == null) {
             fileToProcess = session.create();
         }
-
-        String minValue = fileToProcess.getAttribute(CASSANDRA_WATERMARK_MIN_VALUE_ID);
-        String maxValue = fileToProcess.getAttribute(CASSANDRA_WATERMARK_MAX_VALUE_ID);
-        if (minValue != null && !StringUtils.isEmpty(minValue)) {
-            minBoundValue = Long.valueOf(minValue);
-        }
-        if (maxValue != null && !StringUtils.isEmpty(maxValue)) {
-            maxBoundValue = Long.valueOf(maxValue);
-        }
-        String modifiedSelectQuery = addRangeQuery(tableName, keySpace, waterMarkDateField, selectQuery, minBoundValue, maxBoundValue);
 
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
@@ -315,6 +362,11 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(fileToProcess, REL_SUCCESS);
 
+            //set state of min, max watermark
+            statePropertyMap.put(CASSANDRA_WATERMARK_MIN_VALUE_ID, Long.toString(minBoundValue));
+            statePropertyMap.put(CASSANDRA_WATERMARK_MAX_VALUE_ID, Long.toString(maxBoundValue));
+            stateManager.setState(statePropertyMap, Scope.CLUSTER);
+
         } catch (final NoHostAvailableException nhae) {
             getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
             // Log up to 10 error messages. Otherwise if a 1000-node cluster was specified but there was no connectivity,
@@ -356,7 +408,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 session.remove(fileToProcess);
                 context.yield();
             }
+        } catch (final IOException e) {
+            logger.error("Unable to set state{}",
+                    new Object[]{statePropertyMap});
+            session.remove(fileToProcess);
+            context.yield();
         }
+        isFisrt=false;
     }
 
     private String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
@@ -366,7 +424,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         if (!StringUtils.isEmpty(tableName)) {
             StringBuffer sb = new StringBuffer();
             // incremental data
-            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) && minBoundValue != INIT_WATER_MARK_VALUE && maxBoundValue != INIT_WATER_MARK_VALUE) {
+            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) ) {
                 sb.append("select * from ");
                 sb.append(keySpace);
                 sb.append(".");
@@ -393,7 +451,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         // based on query
         else {
             // incremental data
-            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) && minBoundValue != INIT_WATER_MARK_VALUE && maxBoundValue != INIT_WATER_MARK_VALUE) {
+            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) ) {
                 String sql = selectQuery.toLowerCase().replaceAll("allow filtering", "");
                 StringBuffer sb = new StringBuffer();
                 if (sql.indexOf("where") > 0) {
