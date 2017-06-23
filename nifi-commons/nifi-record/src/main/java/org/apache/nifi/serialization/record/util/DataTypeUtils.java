@@ -271,7 +271,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isArrayTypeCompatible(final Object value) {
-        return value != null && value instanceof Object[];
+        return value != null && (value instanceof Object[] || value instanceof List);
     }
 
     @SuppressWarnings("unchecked")
