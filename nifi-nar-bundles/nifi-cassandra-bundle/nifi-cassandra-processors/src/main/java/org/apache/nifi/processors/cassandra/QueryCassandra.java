@@ -75,18 +75,38 @@ import java.util.concurrent.atomic.AtomicLong;
 @Tags({"cassandra", "cql", "select"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Execute provided Cassandra Query Language (CQL) select query on a Cassandra 1.x, 2.x, or 3.0.x cluster. Query result "
-        + "may be converted to Avro or JSON format. Streaming is used so arbitrarily large result sets are supported. This processor can be "
+@CapabilityDescription("Executes provided Cassandra Query Language (CQL) select query on a Cassandra to fetch all rows whose values"
+        + "in the specified Maximum Value column(s) are larger than the previously-seen maxima.Query result"
+        + "may be converted to Avro, JSON or CSV format. Streaming is used so arbitrarily large result sets are supported. This processor can be "
         + "scheduled to run on a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query. FlowFile attribute 'executecql.row.count' indicates how many rows were selected.")
 @WritesAttributes({@WritesAttribute(attribute = "executecql.row.count", description = "The number of rows returned by the CQL query")})
 public class QueryCassandra extends AbstractCassandraProcessor {
 
+    private static final long INIT_WATER_MARK_VALUE = -1;
+    private static final String CSV_FORMAT = "CSV";
     public static final String AVRO_FORMAT = "Avro";
     public static final String JSON_FORMAT = "JSON";
 
+    public static final String CASSANDRA_WATERMARK_MIN_VALUE_ID = "CASSANDRA_WATERMARK_MIN_VALUE_ID";
+    public static final String CASSANDRA_WATERMARK_MAX_VALUE_ID = "CASSANDRA_WATERMARK_MAX_VALUE_ID";
+
     public static final String RESULT_ROW_COUNT = "executecql.row.count";
+
+    public static final PropertyDescriptor DATE_FIELD = new PropertyDescriptor.Builder()
+            .name("Date Field")
+            .description("Source field containing a modified date for tracking incremental load")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+            .name("Table Name")
+            .description("Load for Table Name")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor CQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("CQL select query")
@@ -152,6 +172,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
+        _propertyDescriptors.add(DATE_FIELD);
+        _propertyDescriptors.add(TABLE_NAME);
         _propertyDescriptors.add(CQL_SELECT_QUERY);
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
@@ -220,16 +242,36 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
+        final String waterMarkDateField = context.getProperty(DATE_FIELD).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).getValue();
+        final String keySpace = context.getProperty(KEYSPACE).getValue();
+
+        if ( StringUtils.isEmpty(selectQuery) && StringUtils.isEmpty(tableName) ) {
+            throw new ProcessException(" TableName or Query is required");
+        }
+
+        long minBoundValue = INIT_WATER_MARK_VALUE;
+        long maxBoundValue = INIT_WATER_MARK_VALUE;
 
         if (fileToProcess == null) {
             fileToProcess = session.create();
         }
 
+        String minValue = fileToProcess.getAttribute(CASSANDRA_WATERMARK_MIN_VALUE_ID);
+        String maxValue = fileToProcess.getAttribute(CASSANDRA_WATERMARK_MAX_VALUE_ID);
+        if (minValue != null && !StringUtils.isEmpty(minValue)) {
+            minBoundValue = Long.valueOf(minValue);
+        }
+        if (maxValue != null && !StringUtils.isEmpty(maxValue)) {
+            maxBoundValue = Long.valueOf(maxValue);
+        }
+        String modifiedSelectQuery = addRangeQuery(tableName, keySpace, waterMarkDateField, selectQuery, minBoundValue, maxBoundValue);
+
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
             final Session connectionSession = cassandraSession.get();
-            final ResultSetFuture queryFuture = connectionSession.executeAsync(selectQuery);
+            final ResultSetFuture queryFuture = connectionSession.executeAsync(modifiedSelectQuery);
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
             fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
@@ -244,6 +286,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                 nrOfRows.set(convertToAvroStream(resultSet, out, queryTimeout, TimeUnit.MILLISECONDS));
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+                            } else if (CSV_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
                             }
                         } else {
                             resultSet = queryFuture.getUninterruptibly();
@@ -251,6 +295,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                 nrOfRows.set(convertToAvroStream(resultSet, out, 0, null));
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
+                            } else if (CSV_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, 0, null));
                             }
                         }
 
@@ -313,6 +359,77 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         }
     }
 
+    private String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
+
+        String finalSelectQuery="";
+        // based on table
+        if (!StringUtils.isEmpty(tableName)) {
+            StringBuffer sb = new StringBuffer();
+            // incremental data
+            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) && minBoundValue != INIT_WATER_MARK_VALUE && maxBoundValue != INIT_WATER_MARK_VALUE) {
+                sb.append("select * from ");
+                sb.append(keySpace);
+                sb.append(".");
+                sb.append(tableName);
+                sb.append(" where ");
+                sb.append(waterMarkDateField);
+                sb.append(" >= ");
+                sb.append(minBoundValue);
+                sb.append(" and ");
+                sb.append(waterMarkDateField);
+                sb.append(" <= ");
+                sb.append(maxBoundValue);
+                sb.append(" allow filtering");
+            }
+            // full data
+            else {
+                sb.append("select * from ");
+                sb.append(keySpace);
+                sb.append(".");
+                sb.append(tableName);
+            }
+            finalSelectQuery = sb.toString();
+        }
+        // based on query
+        else {
+            // incremental data
+            if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) && minBoundValue != INIT_WATER_MARK_VALUE && maxBoundValue != INIT_WATER_MARK_VALUE) {
+                String sql = selectQuery.toLowerCase().replaceAll("allow filtering", "");
+                StringBuffer sb = new StringBuffer();
+                if (sql.indexOf("where") > 0) {
+                    sb.append(sql);
+                    sb.append(" and ");
+                    sb.append(waterMarkDateField);
+                    sb.append(" >= ");
+                    sb.append(minBoundValue);
+                    sb.append(" and ");
+                    sb.append(waterMarkDateField);
+                    sb.append(" <= ");
+                    sb.append(maxBoundValue);
+                    sb.append(" allow filtering");
+
+                } else {
+                    sb.append(sql);
+                    sb.append(" where ");
+                    sb.append(waterMarkDateField);
+                    sb.append(" >= ");
+                    sb.append(minBoundValue);
+                    sb.append(" and ");
+                    sb.append(waterMarkDateField);
+                    sb.append(" <= ");
+                    sb.append(maxBoundValue);
+                    sb.append(" allow filtering");
+                }
+                finalSelectQuery = sb.toString();
+            }
+            // full data
+            else {
+                finalSelectQuery = selectQuery;
+            }
+        }
+
+        return finalSelectQuery;
+    }
 
     @OnUnscheduled
     public void stop() {
@@ -482,6 +599,69 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             return nrOfRows;
         } finally {
             outStream.write("]}".getBytes());
+        }
+    }
+
+    /**
+     * Converts a result set into an CSV record and writes it to the given stream using the specified character set.
+     *
+     * @param rs        The result set to convert
+     * @param outStream The stream to which the CSV record will be written
+     * @param timeout   The max number of timeUnits to wait for a result set fetch to complete
+     * @param timeUnit  The unit of time (SECONDS, e.g.) associated with the timeout amount
+     * @return The number of rows from the result set written to the stream
+     * @throws IOException          If the CSV record cannot be written
+     * @throws InterruptedException If a result set fetch is interrupted
+     * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
+     * @throws ExecutionException   If any error occurs during the result set fetch
+     */
+    public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, Charset charset,
+                                          long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException, ExecutionException {
+
+        try {
+            // Write the initial object brace
+            final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
+            long nrOfRows = 0;
+
+            do {
+                // Grab the ones we have
+                int rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+                if (rowsAvailableWithoutFetching == 0) {
+                    // Get more
+                    if (timeout <= 0 || timeUnit == null) {
+                        rs.fetchMoreResults().get();
+                    } else {
+                        rs.fetchMoreResults().get(timeout, timeUnit);
+                    }
+                }
+
+                for (Row row : rs) {
+                    if (nrOfRows != 0) {
+                        outStream.write("\n".getBytes(charset));
+                    }
+
+                    for (int i = 0; i < columnDefinitions.size(); i++) {
+                        final DataType dataType = columnDefinitions.getType(i);
+                        if (i != 0) {
+                            outStream.write(",".getBytes(charset));
+                        }
+
+                        if (row.isNull(i)) {
+                            // skip data
+                        } else {
+                            Object value = getCassandraObject(row, i, dataType);
+                            String valueString = value.toString();
+                            outStream.write(valueString.getBytes(charset));
+                        }
+                    }
+                    nrOfRows += 1;
+                }
+            } while (!rs.isFullyFetched());
+            return nrOfRows;
+        }
+        finally {
+
         }
     }
 

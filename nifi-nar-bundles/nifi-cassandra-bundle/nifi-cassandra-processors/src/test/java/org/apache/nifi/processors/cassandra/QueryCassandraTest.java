@@ -361,6 +361,14 @@ public class QueryCassandraTest {
         assertEquals(2, numberOfRows);
     }
 
+    @Test
+    public void testConvertToCSVStream() throws Exception {
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null);
+        assertEquals(2, numberOfRows);
+    }
+
     private void setUpStandardProcessorConfig() {
         testRunner.setProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL, "ONE");
         testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "localhost:9042");
