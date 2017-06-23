@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
     private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
@@ -350,10 +351,25 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                     final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
                     final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
 
+                    final Consumer<String> addValidationError = explanation -> validationResults.add(new ValidationResult.Builder()
+                            .input(controllerServiceId)
+                            .subject(descriptor.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+
                     final Bundle controllerServiceApiBundle = ExtensionManager.getBundle(controllerServiceApiClassLoader);
+                    if (controllerServiceApiBundle == null) {
+                        addValidationError.accept(String.format("Unable to find bundle for ControllerService API class %s.", controllerServiceApiClass.getCanonicalName()));
+                        continue;
+                    }
                     final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
 
                     final Bundle controllerServiceBundle = ExtensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+                    if (controllerServiceBundle == null) {
+                        addValidationError.accept(String.format("Unable to find bundle for coordinate %s.", controllerServiceNode.getBundleCoordinate()));
+                        continue;
+                    }
                     final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
 
                     final boolean matchesApi = matchesApi(controllerServiceBundle, controllerServiceApiCoordinate);
@@ -369,12 +385,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                                 .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
                                 .toString();
 
-                        validationResults.add(new ValidationResult.Builder()
-                                .input(controllerServiceId)
-                                .subject(descriptor.getDisplayName())
-                                .valid(false)
-                                .explanation(explanation)
-                                .build());
+                        addValidationError.accept(explanation);
                     }
 
                 }
