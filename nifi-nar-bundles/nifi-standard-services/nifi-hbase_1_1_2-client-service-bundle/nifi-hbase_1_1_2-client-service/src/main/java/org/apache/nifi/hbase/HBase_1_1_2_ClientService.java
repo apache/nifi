@@ -490,6 +490,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
+    public byte[] toBytes(float f) {
+        return Bytes.toBytes(f);
+    }
+
+    @Override
+    public byte[] toBytes(int i) {
+        return Bytes.toBytes(i);
+    }
+
+    @Override
     public byte[] toBytes(long l) {
         return Bytes.toBytes(l);
     }
