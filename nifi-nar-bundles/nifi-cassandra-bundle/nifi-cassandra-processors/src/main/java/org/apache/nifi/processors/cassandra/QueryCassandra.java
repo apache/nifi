@@ -353,7 +353,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 }
             });
 
-            // set attribute how many rows were selected
+            // Step 3. set attribute how many rows were selected
             fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
 
             logger.info("{} contains {} Avro records; transferring to 'success'",
@@ -362,7 +362,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(fileToProcess, REL_SUCCESS);
 
-            //set state of min, max watermark
+            //Step 4.set state of min, max watermark
             statePropertyMap.put(CASSANDRA_WATERMARK_MIN_VALUE_ID, Long.toString(minBoundValue));
             statePropertyMap.put(CASSANDRA_WATERMARK_MAX_VALUE_ID, Long.toString(maxBoundValue));
             stateManager.setState(statePropertyMap, Scope.CLUSTER);
@@ -414,6 +414,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             session.remove(fileToProcess);
             context.yield();
         }
+        // Step 5. isFirst
         isFisrt=false;
     }
 
