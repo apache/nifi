@@ -21,6 +21,29 @@ In the assumed usecase one or more class of MiNiFi agent polls the C2 server per
 
 The C2 server is intended to be extensible and flexibly configurable.  The ConfigurationProvider interface is the main extension point where arbitrary logic should be able to be used to get updated flows.  The server supports bidirectional TLS authentication and configurable authorization.
 
+### Usage
+After building, extract minifi-c2/minifi-c2-assembly/target/minifi-c2-VERSION-bin.tar.gz into a directory.
+
+./bin/c2.sh or ./bin/c2.bat will start the server.
+
+[./conf/c2.properties](./minifi-c2-assembly/src/main/resources/conf/c2.properties) can be used to configure the listening port, tls settings.
+
+[./conf/minifi-c2-context.xml](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) can be configured according to the [configuration provider examples below](#configuration-providers) to retrieve configuration payloads from the appropriate provider.
+
+[./conf/authorities.yaml](./minifi-c2-assembly/src/main/resources/conf/authorities.yaml) determines the authority or authorities (arbitrary string value) to assign to requesters based on their DN.
+
+[./conf/authorizations.yaml](./minifi-c2-assembly/src/main/resources/conf/authorizations.yaml) is used to determine whether to allow access based on a requester's authorities.
+
+When using the CacheConfigurationProvider, the server will by default look for files in the ./files/ directory to satisfy requests.  It will resolve the correct file using the query parameters and content type provided to it and then serve up either the requested version if specified in the query parameters or the latest if unspecified.
+
+The pattern can be configured in [./conf/minifi-c2-context.xml](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) and the default value (${class}/config) will replace ${class} with the class query parameter and then look for CLASS/config.CONTENT_TYPE.vVERSION in the directory structure.
+
+Ex: http://localhost:10080/c2/config?class=raspi&version=1 with an Accept header that matches text/yml would result in [./files/raspi3/config.text.yml.v1](./minifi-c2-assembly/src/main/resources/files/raspi3/config.text.yml.v1) and omitting the version parameter would look for the highest version number in the directory.
+
+The version resolution is cached in memory to accommodate many devices polling periodically.  The cache duration can be configured with additional arguments in  [./conf/minifi-c2-context.xml](../minifi-integration-tests/src/test/resources/c2/hierarchical/c2-edge2/conf/minifi-c2-context.xml#L55) that call the [overloaded constructor.](./minifi-c2-service/src/main/java/org/apache/nifi/minifi/c2/service/ConfigService.java#L81)
+
+MiNiFi Java agents can be configured to poll the C2 server by [configuring the PullHttpChangeIngestor in their bootstrap.conf.](../minifi-integration-tests/src/test/resources/c2/hierarchical/minifi-edge1/bootstrap.conf#L37)
+
 ### Configuration Providers:
 There are three ConfigurationProvider implementations provided out of the box.
 1. The [CacheConfigurationProvider](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) looks at directory on the filesystem.
