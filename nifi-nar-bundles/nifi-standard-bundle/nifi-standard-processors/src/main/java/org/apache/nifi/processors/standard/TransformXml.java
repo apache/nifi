@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
@@ -98,6 +99,16 @@ public class TransformXml extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor SECURE_PROCESSING = new PropertyDescriptor.Builder()
+            .name("secure-processing")
+            .displayName("Secure processing")
+            .description("Whether or not to mitigate various XML-related attacks like XXE (XML External Entity) attacks.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("cache-size")
             .displayName("Cache size")
@@ -135,6 +146,7 @@ public class TransformXml extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(XSLT_FILE_NAME);
         properties.add(INDENT_OUTPUT);
+        properties.add(SECURE_PROCESSING);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_TTL_AFTER_LAST_ACCESS);
         this.properties = Collections.unmodifiableList(properties);
@@ -166,8 +178,17 @@ public class TransformXml extends AbstractProcessor {
                 .build();
     }
 
-    private Templates newTemplates(String path) throws TransformerConfigurationException {
+    private Templates newTemplates(ProcessContext context, String path) throws TransformerConfigurationException {
+        final Boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
         TransformerFactory factory = TransformerFactory.newInstance();
+
+        if (secureProcessing) {
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            // don't be overly DTD-unfriendly forcing http://apache.org/xml/features/disallow-doctype-decl
+            factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
+        }
+
         return factory.newTemplates(new StreamSource(path));
     }
 
@@ -186,7 +207,7 @@ public class TransformXml extends AbstractProcessor {
             cache = cacheBuilder.build(
                new CacheLoader<String, Templates>() {
                    public Templates load(String path) throws TransformerConfigurationException {
-                       return newTemplates(path);
+                       return newTemplates(context, path);
                    }
                });
         } else {
@@ -218,7 +239,7 @@ public class TransformXml extends AbstractProcessor {
                         if (cache != null) {
                             templates = cache.get(xsltFileName);
                         } else {
-                            templates = newTemplates(xsltFileName);
+                            templates = newTemplates(context, xsltFileName);
                         }
 
                         final Transformer transformer = templates.newTransformer();
