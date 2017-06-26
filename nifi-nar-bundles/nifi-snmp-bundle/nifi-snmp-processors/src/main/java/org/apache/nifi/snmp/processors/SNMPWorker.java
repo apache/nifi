@@ -32,8 +32,7 @@ import org.snmp4j.Snmp;
  */
 abstract class SNMPWorker implements AutoCloseable {
 
-    /** logger */
-    private final static Logger logger = LoggerFactory.getLogger(SNMPWorker.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SNMPWorker.class);
 
     /** SNMP abstraction */
     protected final Snmp snmp;
@@ -47,7 +46,7 @@ abstract class SNMPWorker implements AutoCloseable {
      * @param snmp instance of {@link Snmp}
      * @param target instance of {@link AbstractTarget}
      */
-    public SNMPWorker(Snmp snmp, AbstractTarget target) {
+    protected SNMPWorker(Snmp snmp, AbstractTarget target) {
         this.snmp = snmp;
         this.target = target;
     }
@@ -57,18 +56,15 @@ abstract class SNMPWorker implements AutoCloseable {
      */
     @Override
     public void close() throws TimeoutException, IOException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Closing SNMP connection");
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Closing SNMP connection");
         }
-        this.snmp.close();
+        snmp.close();
     }
 
-    /**
-     * @see java.lang.Object#toString()
-     */
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + ":" + this.snmp.toString();
+        return getClass().getSimpleName() + ":" + snmp;
     }
 
 }

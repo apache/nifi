@@ -29,6 +29,7 @@ import org.snmp4j.Snmp;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.OID;
+import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.util.DefaultPDUFactory;
 import org.snmp4j.util.TreeEvent;
@@ -39,8 +40,7 @@ import org.snmp4j.util.TreeUtils;
  */
 final class SNMPGetter extends SNMPWorker {
 
-    /** logger */
-    private final static Logger logger = LoggerFactory.getLogger(SNMPGetter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SNMPGetter.class);
 
     /** OID to request */
     private final OID oid;
@@ -54,7 +54,7 @@ final class SNMPGetter extends SNMPWorker {
     SNMPGetter(Snmp snmp, AbstractTarget target, OID oid) {
         super(snmp, target);
         this.oid = oid;
-        logger.info("Successfully initialized SNMP Getter");
+        LOGGER.info("Successfully initialized SNMP Getter");
     }
 
     /**
@@ -64,17 +64,16 @@ final class SNMPGetter extends SNMPWorker {
      */
     public ResponseEvent get() {
         try {
-            PDU pdu = null;
-            if(this.target.getVersion() == SnmpConstants.version3) {
+            PDU pdu;
+            if (target.getVersion() == SnmpConstants.version3) {
                 pdu = new ScopedPDU();
             } else {
                 pdu = new PDU();
             }
-            pdu.add(new VariableBinding(this.oid));
-            pdu.setType(PDU.GET);
-            return this.snmp.get(pdu, this.target);
+            pdu.add(new VariableBinding(oid));
+            return snmp.get(pdu, target);
         } catch (IOException e) {
-            logger.error("Failed to get information from SNMP agent; " + this, e);
+            LOGGER.error("Failed to get information from SNMP agent; {}", this, e);
             throw new ProcessException(e);
         }
     }
@@ -84,17 +83,21 @@ final class SNMPGetter extends SNMPWorker {
      * @return the list of {@link TreeEvent}
      */
     public List<TreeEvent> walk() {
-        TreeUtils treeUtils = new TreeUtils(this.snmp, new DefaultPDUFactory());
-        @SuppressWarnings("unchecked")
-        List<TreeEvent> events = treeUtils.getSubtree(this.target, this.oid);
-        return events;
+        DefaultPDUFactory pduFactory = new DefaultPDUFactory();
+
+        // BEGIN WORKAROUND - For http://oosnmp.net/pipermail/snmp4j/2016-October/005749.html
+        // As per the mailing list thread this is supposedly not needed since 2.5.2 but I still see the
+        // same issue in 2.5.6 of SNMP4J
+        pduFactory.setContextEngineID(new OctetString());
+        pduFactory.setContextName(new OctetString());
+        // END WORKAROUND
+
+        TreeUtils treeUtils = new TreeUtils(snmp, pduFactory);
+        return treeUtils.getSubtree(target, oid);
     }
 
-    /**
-     * @see org.apache.nifi.snmp.processors.SNMPWorker#toString()
-     */
     @Override
     public String toString() {
-        return super.toString() + ", OID:" + this.oid.toString();
+        return super.toString() + ", OID:" + oid.toString();
     }
 }

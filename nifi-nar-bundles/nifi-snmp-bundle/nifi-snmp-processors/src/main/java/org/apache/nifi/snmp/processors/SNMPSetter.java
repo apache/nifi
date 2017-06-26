@@ -30,8 +30,7 @@ import org.snmp4j.event.ResponseEvent;
  */
 final class SNMPSetter extends SNMPWorker {
 
-    /** logger */
-    private final static Logger logger = LoggerFactory.getLogger(SNMPSetter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SNMPSetter.class);
 
     /**
      * Creates an instance of this setter
@@ -40,7 +39,7 @@ final class SNMPSetter extends SNMPWorker {
      */
     SNMPSetter(Snmp snmp, AbstractTarget target) {
         super(snmp, target);
-        logger.info("Successfully initialized SNMP Setter");
+        LOGGER.info("Successfully initialized SNMP Setter");
     }
 
     /**
@@ -50,7 +49,7 @@ final class SNMPSetter extends SNMPWorker {
      * @throws IOException IO Exception
      */
     public ResponseEvent set(PDU pdu) throws IOException {
-        return this.snmp.set(pdu, this.target);
+        return snmp.set(pdu, target);
     }
 
 }
