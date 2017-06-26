@@ -62,6 +62,7 @@ org.apache.nifi.processors.standard.LogMessage
 org.apache.nifi.processors.standard.LookupAttribute
 org.apache.nifi.processors.standard.LookupRecord
 org.apache.nifi.processors.standard.MergeContent
+org.apache.nifi.processors.standard.MergeRecord
 org.apache.nifi.processors.standard.ModifyBytes
 org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify

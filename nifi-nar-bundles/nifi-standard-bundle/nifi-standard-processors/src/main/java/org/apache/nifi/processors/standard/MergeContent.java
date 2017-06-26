@@ -82,6 +82,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
+import org.apache.nifi.processors.standard.merge.AttributeStrategy;
+import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackager;
@@ -126,7 +128,7 @@ import org.apache.nifi.util.FlowFilePackagerV3;
     @WritesAttribute(attribute = "merge.count", description = "The number of FlowFiles that were merged into this bundle"),
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
         + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output") })
-@SeeAlso(SegmentContent.class)
+@SeeAlso({SegmentContent.class, MergeRecord.class})
 public class MergeContent extends BinFiles {
 
     // preferred attributes
@@ -201,8 +203,6 @@ public class MergeContent extends BinFiles {
             MERGE_FORMAT_AVRO_VALUE,
             "The Avro contents of all FlowFiles will be concatenated together into a single FlowFile");
 
-    public static final String ATTRIBUTE_STRATEGY_ALL_COMMON = "Keep Only Common Attributes";
-    public static final String ATTRIBUTE_STRATEGY_ALL_UNIQUE = "Keep All Unique Attributes";
 
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
@@ -223,16 +223,6 @@ public class MergeContent extends BinFiles {
             .description("Determines the format that will be used to merge the content.")
             .allowableValues(MERGE_FORMAT_TAR, MERGE_FORMAT_ZIP, MERGE_FORMAT_FLOWFILE_STREAM_V3, MERGE_FORMAT_FLOWFILE_STREAM_V2, MERGE_FORMAT_FLOWFILE_TAR_V1, MERGE_FORMAT_CONCAT, MERGE_FORMAT_AVRO)
             .defaultValue(MERGE_FORMAT_CONCAT.getValue())
-            .build();
-    public static final PropertyDescriptor ATTRIBUTE_STRATEGY = new PropertyDescriptor.Builder()
-            .required(true)
-            .name("Attribute Strategy")
-            .description("Determines which FlowFile attributes should be added to the bundle. If 'Keep All Unique Attributes' is selected, any "
-                    + "attribute on any FlowFile that gets bundled will be kept unless its value conflicts with the value from another FlowFile. "
-                    + "If 'Keep Only Common Attributes' is selected, only the attributes that exist on all FlowFiles in the bundle, with the same "
-                    + "value, will be preserved.")
-            .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE)
-            .defaultValue(ATTRIBUTE_STRATEGY_ALL_COMMON)
             .build();
 
     public static final PropertyDescriptor CORRELATION_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
@@ -315,7 +305,7 @@ public class MergeContent extends BinFiles {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(MERGE_STRATEGY);
         descriptors.add(MERGE_FORMAT);
-        descriptors.add(ATTRIBUTE_STRATEGY);
+        descriptors.add(AttributeStrategyUtil.ATTRIBUTE_STRATEGY);
         descriptors.add(CORRELATION_ATTRIBUTE_NAME);
         descriptors.add(MIN_ENTRIES);
         descriptors.add(MAX_ENTRIES);
@@ -378,7 +368,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected String getGroupId(final ProcessContext context, final FlowFile flowFile) {
+    protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final ProcessSession session) {
         final String correlationAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME)
                 .evaluateAttributeExpressions(flowFile).getValue();
         String groupId = correlationAttributeName == null ? null : flowFile.getAttribute(correlationAttributeName);
@@ -429,16 +419,7 @@ public class MergeContent extends BinFiles {
                 throw new AssertionError();
         }
 
-        final AttributeStrategy attributeStrategy;
-        switch (context.getProperty(ATTRIBUTE_STRATEGY).getValue()) {
-            case ATTRIBUTE_STRATEGY_ALL_UNIQUE:
-                attributeStrategy = new KeepUniqueAttributeStrategy();
-                break;
-            case ATTRIBUTE_STRATEGY_ALL_COMMON:
-            default:
-                attributeStrategy = new KeepCommonAttributeStrategy();
-                break;
-        }
+        final AttributeStrategy attributeStrategy = AttributeStrategyUtil.strategyFor(context);
 
         final List<FlowFile> contents = bin.getContents();
         final ProcessSession binSession = bin.getSession();
@@ -989,76 +970,7 @@ public class MergeContent extends BinFiles {
         }
     }
 
-    private static class KeepUniqueAttributeStrategy implements AttributeStrategy {
 
-        @Override
-        public Map<String, String> getMergedAttributes(final List<FlowFile> flowFiles) {
-            final Map<String, String> newAttributes = new HashMap<>();
-            final Set<String> conflicting = new HashSet<>();
-
-            for (final FlowFile flowFile : flowFiles) {
-                for (final Map.Entry<String, String> attributeEntry : flowFile.getAttributes().entrySet()) {
-                    final String name = attributeEntry.getKey();
-                    final String value = attributeEntry.getValue();
-
-                    final String existingValue = newAttributes.get(name);
-                    if (existingValue != null && !existingValue.equals(value)) {
-                        conflicting.add(name);
-                    } else {
-                        newAttributes.put(name, value);
-                    }
-                }
-            }
-
-            for (final String attributeToRemove : conflicting) {
-                newAttributes.remove(attributeToRemove);
-            }
-
-            // Never copy the UUID from the parents - which could happen if we don't remove it and there is only 1 parent.
-            newAttributes.remove(CoreAttributes.UUID.key());
-            return newAttributes;
-        }
-    }
-
-    private static class KeepCommonAttributeStrategy implements AttributeStrategy {
-
-        @Override
-        public Map<String, String> getMergedAttributes(final List<FlowFile> flowFiles) {
-            final Map<String, String> result = new HashMap<>();
-
-            //trivial cases
-            if (flowFiles == null || flowFiles.isEmpty()) {
-                return result;
-            } else if (flowFiles.size() == 1) {
-                result.putAll(flowFiles.iterator().next().getAttributes());
-            }
-
-            /*
-             * Start with the first attribute map and only put an entry to the
-             * resultant map if it is common to every map.
-             */
-            final Map<String, String> firstMap = flowFiles.iterator().next().getAttributes();
-
-            outer:
-            for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
-                final String key = mapEntry.getKey();
-                final String value = mapEntry.getValue();
-
-                for (final FlowFile flowFile : flowFiles) {
-                    final Map<String, String> currMap = flowFile.getAttributes();
-                    final String curVal = currMap.get(key);
-                    if (curVal == null || !curVal.equals(value)) {
-                        continue outer;
-                    }
-                }
-                result.put(key, value);
-            }
-
-            // Never copy the UUID from the parents - which could happen if we don't remove it and there is only 1 parent.
-            result.remove(CoreAttributes.UUID.key());
-            return result;
-        }
-    }
 
     private static class FragmentComparator implements Comparator<FlowFile> {
 
@@ -1079,8 +991,4 @@ public class MergeContent extends BinFiles {
         List<FlowFile> getUnmergedFlowFiles();
     }
 
-    private interface AttributeStrategy {
-
-        Map<String, String> getMergedAttributes(List<FlowFile> flowFiles);
-    }
 }
