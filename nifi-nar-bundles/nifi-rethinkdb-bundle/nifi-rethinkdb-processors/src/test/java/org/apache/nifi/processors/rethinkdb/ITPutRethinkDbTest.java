@@ -25,6 +25,7 @@ import org.apache.nifi.util.TestRunners;
 import org.json.simple.JSONArray;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.rethinkdb.RethinkDB;
@@ -38,6 +39,7 @@ import net.minidev.json.JSONObject;
  * admin with password admin before running the integration tests or set the attributes in the
  * test accordingly.
  */
+@Ignore("Comment this out for running tests against a real instance of RethinkDB")
 public class ITPutRethinkDbTest {
     private TestRunner runner;
     private Connection connection;
