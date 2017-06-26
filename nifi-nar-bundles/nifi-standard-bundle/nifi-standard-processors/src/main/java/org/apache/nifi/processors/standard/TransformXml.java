@@ -16,21 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Templates;
@@ -39,6 +41,8 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -49,6 +53,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -56,6 +61,9 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.lookup.LookupService;
+import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -66,6 +74,10 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 @EventDriven
 @SideEffectFree
@@ -82,10 +94,30 @@ public class TransformXml extends AbstractProcessor {
 
     public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder()
             .name("XSLT file name")
-            .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content.")
-            .required(true)
+            .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content."
+                    + "One of the XSLT file name and XSLT controller properties must be defined.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor XSLT_CONTROLLER = new PropertyDescriptor.Builder()
+            .name("xslt-controller")
+            .displayName("XSLT controller")
+            .description("Controller used to store XSLT definitions. One of the XSLT file name and "
+                    + "XSLT controller properties must be defined.")
+            .required(false)
+            .identifiesControllerService(StringLookupService.class)
+            .build();
+
+    public static final PropertyDescriptor XSLT_CONTROLLER_KEY = new PropertyDescriptor.Builder()
+            .name("xslt-controller-key")
+            .displayName("XSLT controller key")
+            .description("Key used to retrieve the XSLT definition from the XSLT controller. This property must be set when using "
+                    + "the XSLT controller property.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDENT_OUTPUT = new PropertyDescriptor.Builder()
@@ -144,6 +176,8 @@ public class TransformXml extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(XSLT_FILE_NAME);
+        properties.add(XSLT_CONTROLLER);
+        properties.add(XSLT_CONTROLLER_KEY);
         properties.add(INDENT_OUTPUT);
         properties.add(SECURE_PROCESSING);
         properties.add(CACHE_SIZE);
@@ -167,6 +201,47 @@ public class TransformXml extends AbstractProcessor {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        PropertyValue filename = validationContext.getProperty(XSLT_FILE_NAME);
+        PropertyValue controller = validationContext.getProperty(XSLT_CONTROLLER);
+        PropertyValue key = validationContext.getProperty(XSLT_CONTROLLER_KEY);
+
+        if((filename.isSet() && controller.isSet())
+                || (!filename.isSet() && !controller.isSet())) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(this.getClass().getSimpleName())
+                    .explanation("Exactly one of the \"XSLT file name\" and \"XSLT controller\" properties must be defined.")
+                    .build());
+        }
+
+        if(controller.isSet() && !key.isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(XSLT_CONTROLLER_KEY.getDisplayName())
+                    .explanation("If using \"XSLT controller\", the XSLT controller key property must be defined.")
+                    .build());
+        }
+
+        if(controller.isSet()) {
+            final LookupService<String> lookupService = validationContext.getProperty(XSLT_CONTROLLER).asControllerService(StringLookupService.class);
+            final Set<String> requiredKeys = lookupService.getRequiredKeys();
+            if (requiredKeys == null || requiredKeys.size() != 1) {
+                results.add(new ValidationResult.Builder()
+                        .valid(false)
+                        .subject(XSLT_CONTROLLER.getDisplayName())
+                        .explanation("This processor requires a key-value lookup service supporting exactly one required key, was: " +
+                            (requiredKeys == null ? "null" : String.valueOf(requiredKeys.size())))
+                        .build());
+            }
+        }
+
+        return results;
+    }
+
+    @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
@@ -177,9 +252,10 @@ public class TransformXml extends AbstractProcessor {
                 .build();
     }
 
-    private Templates newTemplates(ProcessContext context, String path) throws TransformerConfigurationException {
+    private Templates newTemplates(final ProcessContext context, final String path) throws TransformerConfigurationException, LookupFailureException {
         final Boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
         TransformerFactory factory = TransformerFactory.newInstance();
+        final boolean isFilename = context.getProperty(XSLT_FILE_NAME).isSet();
 
         if (secureProcessing) {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -188,7 +264,18 @@ public class TransformXml extends AbstractProcessor {
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
         }
 
-        return factory.newTemplates(new StreamSource(path));
+        if(isFilename) {
+            return factory.newTemplates(new StreamSource(path));
+        } else {
+            final LookupService<String> lookupService = context.getProperty(XSLT_CONTROLLER).asControllerService(StringLookupService.class);
+            final String coordinateKey = lookupService.getRequiredKeys().iterator().next();
+            final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, path));
+            if (attributeValue.isPresent() && StringUtils.isNotBlank(attributeValue.get())) {
+                return factory.newTemplates(new StreamSource(new ByteArrayInputStream(attributeValue.get().getBytes(StandardCharsets.UTF_8))));
+            } else {
+                throw new TransformerConfigurationException("No XSLT definition is associated to " + path + " in the lookup controller service.");
+            }
+        }
     }
 
     @OnScheduled
@@ -198,20 +285,21 @@ public class TransformXml extends AbstractProcessor {
         final Long cacheTTL = context.getProperty(CACHE_TTL_AFTER_LAST_ACCESS).asTimePeriod(TimeUnit.SECONDS);
 
         if (cacheSize > 0) {
-            CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
+            CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
             if (cacheTTL > 0) {
                 cacheBuilder = cacheBuilder.expireAfterAccess(cacheTTL, TimeUnit.SECONDS);
             }
 
             cache = cacheBuilder.build(
-               new CacheLoader<String, Templates>() {
-                   public Templates load(String path) throws TransformerConfigurationException {
-                       return newTemplates(context, path);
-                   }
-               });
+                    new CacheLoader<String, Templates>() {
+                        @Override
+                        public Templates load(String path) throws TransformerConfigurationException, LookupFailureException {
+                            return newTemplates(context, path);
+                        }
+                    });
         } else {
             cache = null;
-            logger.warn("Stylesheet cache disabled because cache size is set to 0");
+            logger.info("Stylesheet cache disabled because cache size is set to 0");
         }
     }
 
@@ -224,9 +312,9 @@ public class TransformXml extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
-        final String xsltFileName = context.getProperty(XSLT_FILE_NAME)
-            .evaluateAttributeExpressions(original)
-            .getValue();
+        final String path = context.getProperty(XSLT_FILE_NAME).isSet()
+                ? context.getProperty(XSLT_FILE_NAME).evaluateAttributeExpressions(original).getValue()
+                        : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
         final Boolean indentOutput = context.getProperty(INDENT_OUTPUT).asBoolean();
 
         try {
@@ -236,9 +324,9 @@ public class TransformXml extends AbstractProcessor {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         final Templates templates;
                         if (cache != null) {
-                            templates = cache.get(xsltFileName);
+                            templates = cache.get(path);
                         } else {
-                            templates = newTemplates(context, xsltFileName);
+                            templates = newTemplates(context, path);
                         }
 
                         final Transformer transformer = templates.newTransformer();
