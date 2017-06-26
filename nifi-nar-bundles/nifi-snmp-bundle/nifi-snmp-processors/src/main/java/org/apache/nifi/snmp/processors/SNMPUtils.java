@@ -54,7 +54,7 @@ public final class SNMPUtils {
 
     /** prefix for SNMP properties in flow file */
     public static final String SNMP_PROP_PREFIX = "snmp" + SNMP_PROP_DELIMITER;
-    
+
     /** used to validate OID syntax */
     public static final Validator SNMP_OID_VALIDATOR = (subject, input, context) -> {
         ValidationResult.Builder builder = new ValidationResult.Builder();
