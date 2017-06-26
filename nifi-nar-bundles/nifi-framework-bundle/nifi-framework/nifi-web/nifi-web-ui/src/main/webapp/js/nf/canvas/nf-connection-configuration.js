@@ -1220,6 +1220,7 @@
 
                 // make the prioritizer containers sortable
                 $('#prioritizer-available, #prioritizer-selected').sortable({
+                    containment: $('#connection-settings-tab-content').find('.settings-right'),
                     connectWith: 'ul',
                     placeholder: 'ui-state-highlight',
                     scroll: true,
