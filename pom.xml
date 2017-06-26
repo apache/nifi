@@ -1411,6 +1411,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-grpc-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-stateful-analysis-nar</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
                 <type>nar</type>
