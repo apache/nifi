@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.net.ssl.SSLContext;
 
+import com.mongodb.WriteConcern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -45,6 +46,13 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
+    static final String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
+    static final String WRITE_CONCERN_UNACKNOWLEDGED = "UNACKNOWLEDGED";
+    static final String WRITE_CONCERN_FSYNCED = "FSYNCED";
+    static final String WRITE_CONCERN_JOURNALED = "JOURNALED";
+    static final String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
+    static final String WRITE_CONCERN_MAJORITY = "MAJORITY";
+
     protected static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
         .name("Mongo URI")
         .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
@@ -84,6 +92,15 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .allowableValues(SSLContextService.ClientAuth.values())
         .defaultValue("REQUIRED")
         .build();
+
+    public static final PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
+            .name("Write Concern")
+            .description("The write concern to use")
+            .required(true)
+            .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
+                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY)
+            .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
+            .build();
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
 
@@ -175,5 +192,33 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     protected String getURI(final ProcessContext context) {
         return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+    }
+
+    protected WriteConcern getWriteConcern(final ProcessContext context) {
+        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
+        WriteConcern writeConcern = null;
+        switch (writeConcernProperty) {
+            case WRITE_CONCERN_ACKNOWLEDGED:
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_UNACKNOWLEDGED:
+                writeConcern = WriteConcern.UNACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_FSYNCED:
+                writeConcern = WriteConcern.FSYNCED;
+                break;
+            case WRITE_CONCERN_JOURNALED:
+                writeConcern = WriteConcern.JOURNALED;
+                break;
+            case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
+                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_MAJORITY:
+                writeConcern = WriteConcern.MAJORITY;
+                break;
+            default:
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+        }
+        return writeConcern;
     }
 }
