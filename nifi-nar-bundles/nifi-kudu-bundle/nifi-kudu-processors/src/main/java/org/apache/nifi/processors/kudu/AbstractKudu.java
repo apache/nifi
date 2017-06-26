@@ -32,7 +32,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-//import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordReaderFactory;
 
 import java.util.List;
 
