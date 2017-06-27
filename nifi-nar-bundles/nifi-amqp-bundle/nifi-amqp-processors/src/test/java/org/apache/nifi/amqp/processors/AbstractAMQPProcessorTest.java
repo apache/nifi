@@ -29,6 +29,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+
 /**
  * Unit tests for the AbstractAMQPProcessor class
  */
@@ -50,12 +51,24 @@ public class AbstractAMQPProcessorTest {
         testRunner.addControllerService("ssl-context", sslService);
         testRunner.enableControllerService(sslService);
         testRunner.setProperty(AbstractAMQPProcessor.SSL_CONTEXT_SERVICE, "ssl-context");
+        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "false");
         testRunner.setProperty(AbstractAMQPProcessor.HOST, "test");
         testRunner.setProperty(AbstractAMQPProcessor.PORT, "9999");
         testRunner.setProperty(AbstractAMQPProcessor.USER, "test");
         testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "test");
         testRunner.assertValid(sslService);
         testRunner.setProperty(AbstractAMQPProcessor.CLIENT_AUTH, "BAD");
+        processor.onTrigger(testRunner.getProcessContext(), testRunner.getProcessSessionFactory());
+    }
+
+    @Test(expected = ProviderCreationException.class)
+    public void testInvalidSSLConfiguration() throws Exception {
+        // it's invalid to have use_cert_auth enabled and not have the SSL Context Service configured
+        testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
+        testRunner.setProperty(AbstractAMQPProcessor.HOST, "test");
+        testRunner.setProperty(AbstractAMQPProcessor.PORT, "9999");
+        testRunner.setProperty(AbstractAMQPProcessor.USER, "test");
+        testRunner.setProperty(AbstractAMQPProcessor.PASSWORD, "test");
         processor.onTrigger(testRunner.getProcessContext(), testRunner.getProcessSessionFactory());
     }
 
@@ -67,6 +80,7 @@ public class AbstractAMQPProcessorTest {
         protected void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException {
             // nothing to do
         }
+
         @Override
         protected AMQPConsumer finishBuildingTargetResource(ProcessContext context) {
             return null;
