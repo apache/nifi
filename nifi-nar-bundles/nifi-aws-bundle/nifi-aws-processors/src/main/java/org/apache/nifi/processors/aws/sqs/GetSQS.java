@@ -138,6 +138,7 @@ public class GetSQS extends AbstractSQSProcessor {
 
         final ReceiveMessageRequest request = new ReceiveMessageRequest();
         request.setAttributeNames(Collections.singleton("All"));
+        request.setMessageAttributeNames(Collections.singleton("All"));
         request.setMaxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger());
         request.setVisibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue());
         request.setQueueUrl(queueUrl);
