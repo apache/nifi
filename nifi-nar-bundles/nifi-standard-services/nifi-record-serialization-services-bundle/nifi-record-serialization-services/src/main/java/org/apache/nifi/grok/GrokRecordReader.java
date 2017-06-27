@@ -43,7 +43,9 @@ import io.thekraken.grok.api.Match;
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
     private final Grok grok;
+    private final String unmatchBehavior;
     private final boolean append;
+    private final boolean failure;
     private final RecordSchema schemaFromGrok;
     private RecordSchema schema;
 
@@ -59,11 +61,13 @@ public class GrokRecordReader implements RecordReader {
             + "(?:Suppressed\\: )|"
             + "(?:\\s+... \\d+ (?:more|common frames? omitted)$)");
 
-    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final boolean append) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final String unmatchBehavior) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
         this.schema = schema;
-        this.append = append;
+        this.unmatchBehavior = unmatchBehavior;
+        this.append = this.unmatchBehavior.equalsIgnoreCase(GrokReader.APPEND_TO_PREVIOUS_MESSAGE.getValue());
+        this.failure = this.unmatchBehavior.equalsIgnoreCase(GrokReader.THROW_ERROR.getValue());
         this.schemaFromGrok = schemaFromGrok;
     }
 
@@ -88,6 +92,9 @@ public class GrokRecordReader implements RecordReader {
             final Match match = grok.match(line);
             match.captures();
             valueMap = match.toMap();
+            if(failure && valueMap.isEmpty()) {
+                throw new MalformedRecordException("One line didn't match the grok expression.");
+            }
         }
 
         // Read the next line to see if it matches the pattern (in which case we will simply leave it for
@@ -108,6 +115,8 @@ public class GrokRecordReader implements RecordReader {
                 } else if (append) {
                     trailingText.append("\n").append(nextLine);
                     raw.append("\n").append(nextLine);
+                } else if (failure) {
+                    throw new MalformedRecordException("One line didn't match the grok expression.");
                 }
             } else {
                 // The next line matched our pattern.

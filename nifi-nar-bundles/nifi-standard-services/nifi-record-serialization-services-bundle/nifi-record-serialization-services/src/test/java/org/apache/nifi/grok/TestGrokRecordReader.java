@@ -34,12 +34,21 @@ import java.util.List;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import io.thekraken.grok.api.Grok;
 import io.thekraken.grok.api.exception.GrokException;
 
 public class TestGrokRecordReader {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    private static final String append = GrokReader.APPEND_TO_PREVIOUS_MESSAGE.getValue();
+    private static final String ignore = GrokReader.SKIP_LINE.getValue();
+    private static final String failure = GrokReader.THROW_ERROR.getValue();
 
     @Test
     public void testParseSingleLineLogMessages() throws GrokException, IOException, MalformedRecordException {
@@ -48,7 +57,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), append);
 
             final String[] logLevels = new String[] {"INFO", "WARN", "ERROR", "FATAL", "FINE"};
             final String[] messages = new String[] {"Test Message 1", "Red", "Green", "Blue", "Yellow"};
@@ -73,7 +82,6 @@ public class TestGrokRecordReader {
         }
     }
 
-
     @Test
     public void testParseEmptyMessageWithStackTrace() throws GrokException, IOException, MalformedRecordException {
         final Grok grok = new Grok();
@@ -83,7 +91,7 @@ public class TestGrokRecordReader {
         final String msg = "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass \n"
             + "org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces";
         final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
-        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), append);
 
         final Object[] values = deserializer.nextRecord().getValues();
 
@@ -100,8 +108,6 @@ public class TestGrokRecordReader {
         deserializer.close();
     }
 
-
-
     @Test
     public void testParseNiFiSampleLog() throws IOException, GrokException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/nifi-log-sample.log"))) {
@@ -109,7 +115,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), append);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "INFO", "WARN", "WARN"};
 
@@ -135,7 +141,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}?");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), append);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "ERROR", "WARN", "WARN"};
 
@@ -164,7 +170,6 @@ public class TestGrokRecordReader {
         }
     }
 
-
     @Test
     public void testParseStackTrace() throws GrokException, IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/error-with-stack-trace.log"))) {
@@ -172,7 +177,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), append);
 
             final String[] logLevels = new String[] {"INFO", "ERROR", "INFO"};
             final String[] messages = new String[] {"message without stack trace",
@@ -239,7 +244,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("stackTrace"));  // always implicitly there
             assertTrue(fieldNames.contains("_raw"));  // always implicitly there
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, true);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, append);
             final Record record = deserializer.nextRecord();
 
             assertEquals("May 22 15:58:23", record.getValue("timestamp"));
@@ -278,7 +283,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, ignore);
             final Record record = deserializer.nextRecord();
 
             assertEquals("1", record.getValue("first"));
@@ -314,7 +319,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, ignore);
             for (int i = 0; i < 2; i++) {
                 final Record record = deserializer.nextRecord();
 
@@ -328,5 +333,34 @@ public class TestGrokRecordReader {
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
+    }
+
+    @Test
+    public void testParseWithFailureFirstLine() throws GrokException, IOException, MalformedRecordException {
+        thrown.expect(MalformedRecordException.class);
+
+        final Grok grok = new Grok();
+        grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
+        grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
+        final String msg = "wrong message\n2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass Message";
+        final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), failure);
+        deserializer.nextRecord().getValues();
+        deserializer.close();
+    }
+
+    @Test
+    public void testParseWithFailureSecondLine() throws GrokException, IOException, MalformedRecordException {
+        thrown.expect(MalformedRecordException.class);
+
+        final Grok grok = new Grok();
+        grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
+        grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
+        final String msg = "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass Message\nwrong message\n"
+                + "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass Message";
+        final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), failure);
+        deserializer.nextRecord().getValues();
+        deserializer.close();
     }
 }
