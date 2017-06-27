@@ -154,6 +154,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         if (!isDynamicTableName && !isDynamicMaxValues) {
             super.setup(context);
         }
+        if(context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
+            getLogger().error("The failure relationship can be used only if there is another incoming connection to this processor.");
+        }
     }
 
     @Override
