@@ -70,6 +70,19 @@ public class TestListenGRPC {
         return properties;
     }
 
+    private static void useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
+        final SSLContextService service = new StandardSSLContextService();
+        try {
+            controller.addControllerService("ssl-service", service, sslProperties);
+            controller.enableControllerService(service);
+        } catch (InitializationException ex) {
+            ex.printStackTrace();
+            Assert.fail("Could not create SSL Context Service");
+        }
+
+        controller.setProperty(InvokeGRPC.PROP_SSL_CONTEXT_SERVICE, "ssl-service");
+    }
+
     @Test
     public void testSuccessfulRoundTrip() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
         final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT);
@@ -141,6 +154,51 @@ public class TestListenGRPC {
             assertThat(reply.getBody(), containsString("but no space available; Indicating Service Unavailable"));
 
             runner.assertTransferCount(ListenGRPC.REL_SUCCESS, 0);
+        } finally {
+            // stop the server
+            listenGRPC.stopServer(processContext);
+            channel.shutdown();
+        }
+    }
+
+    @Test(expected = io.grpc.StatusRuntimeException.class)
+    public void testExceedMaxMessageSize() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT);
+        final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
+
+        final ListenGRPC listenGRPC = new ListenGRPC();
+        final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        // set max message size to 1 byte to force exception to be thrown.
+        runner.setProperty(ListenGRPC.PROP_MAX_MESSAGE_SIZE, "1B");
+
+        final ProcessContext processContext = runner.getProcessContext();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+
+        try {
+            // start the server. The order of the following statements shouldn't matter, because the
+            // startServer() method waits for a processSessionFactory to be available to it.
+            listenGRPC.startServer(processContext);
+            listenGRPC.onTrigger(processContext, processSessionFactory);
+
+            final FlowFileRequest ingestFile = FlowFileRequest.newBuilder()
+                    .putAttributes("FOO", "BAR")
+                    .putAttributes(CoreAttributes.UUID.key(), SOURCE_SYSTEM_UUID)
+                    .setContent(ByteString.copyFrom("content".getBytes()))
+                    .build();
+            // this should throw a runtime exception
+            final FlowFileReply reply = stub.send(ingestFile);
+            assertThat(reply.getResponseCode(), equalTo(FlowFileReply.ResponseCode.SUCCESS));
+            assertThat(reply.getBody(), equalTo("FlowFile successfully received."));
+
+            runner.assertTransferCount(ListenGRPC.REL_SUCCESS, 1);
+            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListenGRPC.REL_SUCCESS);
+            assertThat(successFiles.size(), equalTo(1));
+            final MockFlowFile mockFlowFile = successFiles.get(0);
+            assertThat(mockFlowFile.getAttribute("FOO"), equalTo("BAR"));
+            assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_HOST), equalTo("127.0.0.1"));
+            assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_USER_DN), equalTo(FlowFileIngestServiceInterceptor.DEFAULT_FOUND_SUBJECT));
+
         } finally {
             // stop the server
             listenGRPC.stopServer(processContext);
@@ -331,18 +389,5 @@ public class TestListenGRPC {
             listenGRPC.stopServer(processContext);
             channel.shutdown();
         }
-    }
-
-    private void useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
-        final SSLContextService service = new StandardSSLContextService();
-        try {
-            controller.addControllerService("ssl-service", service, sslProperties);
-            controller.enableControllerService(service);
-        } catch (InitializationException ex) {
-            ex.printStackTrace();
-            Assert.fail("Could not create SSL Context Service");
-        }
-
-        controller.setProperty(InvokeGRPC.PROP_SSL_CONTEXT_SERVICE, "ssl-service");
     }
 }

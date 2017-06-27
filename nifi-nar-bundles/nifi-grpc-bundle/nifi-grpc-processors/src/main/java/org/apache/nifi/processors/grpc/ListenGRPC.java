@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
@@ -67,7 +68,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Starts a gRPC server and listens on the given port to transform the incoming messages into FlowFiles." +
-        " The message format is defined by the standard gRPC protobuf IDL provided by NiFi.")
+        " The message format is defined by the standard gRPC protobuf IDL provided by NiFi. gRPC isn't intended to carry large payloads," +
+        " so this processor should be used only when FlowFile sizes are on the order of megabytes. The default maximum message size is 4MB.")
 @Tags({"ingest", "grpc", "rpc", "listen"})
 @WritesAttributes({
         @WritesAttribute(attribute = "listengrpc.remote.user.dn", description = "The DN of the user who sent the FlowFile to this NiFi"),
@@ -79,8 +81,8 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
 
     // properties
     public static final PropertyDescriptor PROP_SERVICE_PORT = new PropertyDescriptor.Builder()
-            .name("Remote gRPC service port")
-            .description("Remote port which will be connected to")
+            .name("Local gRPC service port")
+            .description("The local port that the gRPC service will listen on.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
@@ -102,9 +104,18 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             .description("The initial HTTP/2 flow control window for both new streams and overall connection." +
                     " Flow-control schemes ensure that streams on the same connection do not destructively interfere with each other." +
                     " The default is 1MB.")
-            .defaultValue("1048576")
+            .defaultValue("1MB")
             .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROP_MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Message Size")
+            .description("The maximum size of FlowFiles that this processor will allow to be received." +
+                    " The default is 4MB. If FlowFiles exceed this size, you should consider using another transport mechanism" +
+                    " as gRPC isn't designed for heavy payloads.")
+            .defaultValue("4MB")
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
     public static final PropertyDescriptor PROP_AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
             .name("Authorized DN Pattern")
@@ -119,7 +130,8 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             PROP_USE_SECURE,
             PROP_SSL_CONTEXT_SERVICE,
             PROP_FLOW_CONTROL_WINDOW,
-            PROP_AUTHORIZED_DN_PATTERN
+            PROP_AUTHORIZED_DN_PATTERN,
+            PROP_MAX_MESSAGE_SIZE
     ));
 
     // relationships
@@ -149,14 +161,16 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
     @OnScheduled
     public void startServer(final ProcessContext context) throws NoSuchAlgorithmException, IOException, KeyStoreException, CertificateException, UnrecoverableKeyException {
         final ComponentLog logger = getLogger();
+        // gather configured properties
         final Integer port = context.getProperty(PROP_SERVICE_PORT).asInteger();
         final Boolean useSecure = context.getProperty(PROP_USE_SECURE).asBoolean();
-        final Integer flowControlWindow = context.getProperty(PROP_FLOW_CONTROL_WINDOW).asInteger();
+        final Integer flowControlWindow = context.getProperty(PROP_FLOW_CONTROL_WINDOW).asDataSize(DataUnit.B).intValue();
+        final Integer maxMessageSize = context.getProperty(PROP_MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
-        final Pattern authorizedDnPatter = Pattern.compile(context.getProperty(PROP_AUTHORIZED_DN_PATTERN).getValue());
+        final Pattern authorizedDnPattern = Pattern.compile(context.getProperty(PROP_AUTHORIZED_DN_PATTERN).getValue());
         final FlowFileIngestServiceInterceptor callInterceptor = new FlowFileIngestServiceInterceptor(getLogger());
-        callInterceptor.enforceDNPattern(authorizedDnPatter);
+        callInterceptor.enforceDNPattern(authorizedDnPattern);
 
         final FlowFileIngestService flowFileIngestService = new FlowFileIngestService(getLogger(),
                 sessionFactoryReference,
@@ -166,7 +180,8 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
                 // default (de)compressor registries handle both plaintext and gzip compressed messages
                 .compressorRegistry(CompressorRegistry.getDefaultInstance())
                 .decompressorRegistry(DecompressorRegistry.getDefaultInstance())
-                .flowControlWindow(flowControlWindow);
+                .flowControlWindow(flowControlWindow)
+                .maxMessageSize(maxMessageSize);
 
         if (useSecure && sslContext != null) {
             // construct key manager

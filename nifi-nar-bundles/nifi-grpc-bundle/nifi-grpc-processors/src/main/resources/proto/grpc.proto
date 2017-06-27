@@ -39,6 +39,8 @@ service FlowFileService {
 message FlowFileRequest {
     // tags 1-15 require one byte to encode and should be left for commonly occurring tags.
     // For that reason, tags 3-14 are left available.
+    //
+    // source: https://developers.google.com/protocol-buffers/docs/proto3#assigning-tags
     int64 id = 1;
     map<string, string> attributes = 2;
     bytes content = 15;

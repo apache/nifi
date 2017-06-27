@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -65,7 +66,9 @@ import io.netty.handler.ssl.SslContextBuilder;
 @SupportsBatching
 @Tags({"grpc", "rpc", "client"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sends FlowFiles, optionally with content, to a configurable remote gRPC service endpoint. The remote gRPC service must abide by the service IDL defined in NiFi.")
+@CapabilityDescription("Sends FlowFiles, optionally with content, to a configurable remote gRPC service endpoint. The remote gRPC service must abide by the service IDL defined in NiFi. " +
+        " gRPC isn't intended to carry large payloads,  so this processor should be used only when FlowFile" +
+        " sizes are on the order of megabytes. The default maximum message size is 4MB.")
 @WritesAttributes({
         @WritesAttribute(attribute = "invokegrpc.response.code", description = "The response code that is returned (0 = ERROR, 1 = SUCCESS, 2 = RETRY)"),
         @WritesAttribute(attribute = "invokegrpc.response.body", description = "The response message that is returned"),
@@ -94,6 +97,15 @@ public class InvokeGRPC extends AbstractProcessor {
             .description("Remote port which will be connected to")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROP_MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Message Size")
+            .description("The maximum size of FlowFiles that this processor will allow to be received." +
+                    " The default is 4MB. If FlowFiles exceed this size, you should consider using another transport mechanism" +
+                    " as gRPC isn't designed for heavy payloads.")
+            .defaultValue("4MB")
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
     public static final PropertyDescriptor PROP_USE_SECURE = new PropertyDescriptor.Builder()
             .name("Use SSL/TLS")
@@ -134,6 +146,7 @@ public class InvokeGRPC extends AbstractProcessor {
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_SERVICE_HOST,
             PROP_SERVICE_PORT,
+            PROP_MAX_MESSAGE_SIZE,
             PROP_USE_SECURE,
             PROP_SSL_CONTEXT_SERVICE,
             PROP_SEND_CONTENT,
@@ -210,6 +223,7 @@ public class InvokeGRPC extends AbstractProcessor {
 
         final String host = context.getProperty(PROP_SERVICE_HOST).getValue();
         final int port = context.getProperty(PROP_SERVICE_PORT).asInteger();
+        final Integer maxMessageSize = context.getProperty(PROP_MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         String userAgent = USER_AGENT_PREFIX;
         try {
             userAgent += "_" + InetAddress.getLocalHost().getHostName();
@@ -221,6 +235,7 @@ public class InvokeGRPC extends AbstractProcessor {
                 // supports both gzip and plaintext, but will compress by default.
                 .compressorRegistry(CompressorRegistry.getDefaultInstance())
                 .decompressorRegistry(DecompressorRegistry.getDefaultInstance())
+                .maxInboundMessageSize(maxMessageSize)
                 .userAgent(userAgent);
 
         // configure whether or not we're using secure comms

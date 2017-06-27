@@ -161,6 +161,39 @@ public class TestInvokeGRPC {
     }
 
     @Test
+    public void testExceedMaxMessageSize() throws Exception {
+        final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
+
+        try {
+            server.start();
+            final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            // set max message size to 1B to force error
+            runner.setProperty(InvokeGRPC.PROP_MAX_MESSAGE_SIZE, "1B");
+
+            final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
+            runner.enqueue(mockFlowFile);
+            runner.run();
+            runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 0);
+            runner.assertTransferCount(InvokeGRPC.REL_SUCCESS_REQ, 0);
+            runner.assertTransferCount(InvokeGRPC.REL_RETRY, 0);
+            runner.assertTransferCount(InvokeGRPC.REL_NO_RETRY, 0);
+            runner.assertTransferCount(InvokeGRPC.REL_FAILURE, 1);
+
+            final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_FAILURE);
+            assertThat(responseFiles.size(), equalTo(1));
+            final MockFlowFile response = responseFiles.get(0);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            // an exception should be thrown indicating that the max message size was exceeded.
+            response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
     public void testRetry() throws Exception {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
