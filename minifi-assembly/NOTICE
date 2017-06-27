@@ -70,6 +70,11 @@ The following binary components are provided under the Apache Software License v
       Original source copyright:
       Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
 
+  (ASLv2) Apache Commons Daemon
+    The following NOTICE information applies:
+      Apache Commons Daemon
+      Copyright 2002-2013 The Apache Software Foundation  
+
   (ASLv2) Apache HttpComponents
     The following NOTICE information applies:
       Apache HttpClient

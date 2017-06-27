@@ -650,6 +650,16 @@ NiFi Properties Overrides:
   nifi.database.directory: ./database_repository_override
 ```
 
+# Running as a Windows Service
+
+MiNiFi can run as a Windows service. To do so, you must modify the `conf/bootstrap.conf` to set absolute paths for some properties. The properties are:
+
+* `lib.dir`
+* `conf.dir`
+* `nifi.minifi.config`
+
+You can now install the MiNiFi service by running the `install-service.bat` script. To remove the service run the `delete-service.bat` file. 
+
 # Example Config File
 
 Below are two example config YAML files. The first tails the minifi-app.log, send the tailed log and provenance data back to a secure instance of NiFi. The second uses a series of processors to tail the app log, routes off only lines that contain "WriteAheadFlowFileRepository" and puts it as a file in the "./" directory.

@@ -107,7 +107,7 @@
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
-                <filtered>true</filtered>
+                <filtered>false</filtered>
                 <includes>
                     <include>bin/*</include>
                 </includes>

@@ -275,7 +275,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         }
     }
 
-    private static File getBootstrapConfFile() {
+    public static File getBootstrapConfFile() {
         String configFilename = System.getProperty("org.apache.nifi.minifi.bootstrap.config.file");
 
         if (configFilename == null) {
