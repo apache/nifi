@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-
-import org.apache.nifi.logging.ComponentLog;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ReturnListener;
+
+import org.apache.nifi.logging.ComponentLog;
+
+import java.io.IOException;
 
 /**
  * Generic publisher of messages to AMQP-based messaging system. It is based on

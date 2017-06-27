@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.net.ssl.SSLContext;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultSaslConfig;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -35,16 +33,19 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * Base processor that uses RabbitMQ client API
  * (https://www.rabbitmq.com/api-guide.html) to rendezvous with AMQP-based
  * messaging systems version 0.9.1
  *
- * @param <T> the type of {@link AMQPWorker}. Please see {@link AMQPPublisher}
- *            and {@link AMQPConsumer}
+ * @param <T> the type of {@link AMQPWorker}. Please see {@link AMQPPublisher} and {@link
+ *            AMQPConsumer}
  */
 abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProcessor {
 
@@ -97,6 +98,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("Cert Authentication")
+            .description("Authenticate using the SSL certificate rather than username/password.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("ssl-client-auth")
             .displayName("Client Auth")
@@ -122,6 +131,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         descriptors.add(PASSWORD);
         descriptors.add(AMQP_VERSION);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(USE_CERT_AUTHENTICATION);
         descriptors.add(CLIENT_AUTH);
     }
 
@@ -171,10 +181,8 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * {@link #onTrigger(ProcessContext, ProcessSession)}. It is implemented by
      * sub-classes to perform {@link Processor} specific functionality.
      *
-     * @param context
-     *            instance of {@link ProcessContext}
-     * @param session
-     *            instance of {@link ProcessSession}
+     * @param context instance of {@link ProcessContext}
+     * @param session instance of {@link ProcessSession}
      */
     protected abstract void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException;
 
@@ -183,8 +191,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * {@link AMQPPublisher} or {@link AMQPConsumer}) and is implemented by
      * sub-classes.
      *
-     * @param context
-     *            instance of {@link ProcessContext}
+     * @param context instance of {@link ProcessContext}
      * @return new instance of {@link AMQPWorker}
      */
     protected abstract T finishBuildingTargetResource(ProcessContext context);
@@ -208,19 +215,24 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      */
     private Connection createConnection(ProcessContext context) {
         ConnectionFactory cf = new ConnectionFactory();
-        cf.setHost(context.getProperty(HOST).getValue());
-        cf.setPort(Integer.parseInt(context.getProperty(PORT).getValue()));
         cf.setUsername(context.getProperty(USER).getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
+        cf.setHost(context.getProperty(HOST).getValue());
+        cf.setPort(Integer.parseInt(context.getProperty(PORT).getValue()));
         String vHost = context.getProperty(V_HOST).getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
         }
 
         // handles TLS/SSL aspects
+        final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        // if the property to use cert authentication is set but the SSL service hasn't been configured, throw an exception.
+        if (useCertAuthentication && sslService == null) {
+            throw new ProviderCreationException("This processor is configured to use cert authentication, " +
+                    "but the SSL Context Service hasn't been configured. You need to configure the SSL Context Service.");
+        }
         final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
-        final SSLContext sslContext;
 
         if (sslService != null) {
             final SSLContextService.ClientAuth clientAuth;
@@ -234,14 +246,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
                 }
             }
-            sslContext = sslService.createSSLContext(clientAuth);
-        } else {
-            sslContext = null;
-        }
-
-        // check if the ssl context is set and add it to the factory if so
-        if (sslContext != null) {
+            final SSLContext sslContext = sslService.createSSLContext(clientAuth);
             cf.useSslProtocol(sslContext);
+
+            if (useCertAuthentication) {
+                // this tells the factory to use the cert common name for authentication and not user name and password
+                // REF: https://github.com/rabbitmq/rabbitmq-auth-mechanism-ssl
+                cf.setSaslConfig(DefaultSaslConfig.EXTERNAL);
+            }
         }
 
         try {
