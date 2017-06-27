@@ -333,7 +333,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final Set<FileStatus> statusSet = new HashSet<>();
 
         getLogger().debug("Fetching listing for {}", new Object[] {path});
-        final FileStatus[] statuses = hdfs.listStatus(path, filter);
+        final FileStatus[] statuses = hdfs.listStatus(path);
 
         for ( final FileStatus status : statuses ) {
             if ( status.isDirectory() ) {
@@ -344,7 +344,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                         getLogger().error("Failed to retrieve HDFS listing for subdirectory {} due to {}; will continue listing others", new Object[] {status.getPath(), ioe});
                     }
                 }
-            } else {
+            } else if (filter.accept(status.getPath())) {
                 statusSet.add(status);
             }
         }
