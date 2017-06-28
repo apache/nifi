@@ -24,8 +24,8 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "org.apache.nifi.processors.grpc";
-option java_outer_classname = "GRPCProto";
-option objc_class_prefix = "grpc";
+option java_outer_classname = "FFSProto";
+option objc_class_prefix = "FFS";
 
 package org.apache.nifi.processors.grpc;
 
