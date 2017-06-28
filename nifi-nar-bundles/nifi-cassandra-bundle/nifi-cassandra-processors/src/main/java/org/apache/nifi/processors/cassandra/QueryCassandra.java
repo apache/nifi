@@ -302,7 +302,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final StopWatch stopWatch = new StopWatch(true);
         final String waterMarkDateField = context.getProperty(DATE_FIELD).getValue();
         final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String keySpace = context.getProperty(KEYSPACE).getValue();
+        final String keySpace = context.getProperty(KEYSPACE).evaluateAttributeExpressions(fileToProcess).getValue();
 
         if ( StringUtils.isEmpty(selectQuery) && StringUtils.isEmpty(tableName) ) {
             throw new ProcessException(" TableName or Query is required");

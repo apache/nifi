@@ -167,6 +167,7 @@ public class QueryCassandraTest {
         testRunner.setVariable("charset", "UTF-8");
         testRunner.setVariable("timeout", "30 sec");
         testRunner.setVariable("fetch", "0");
+        testRunner.setVariable("query", "select * from test");
 
         // Test JSON output
         testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
