@@ -105,6 +105,15 @@ public class FTPTransfer implements FileTransfer {
         .required(false)
         .sensitive(true)
         .build();
+    public static final PropertyDescriptor UTF8_ENCODING = new PropertyDescriptor.Builder()
+            .name("ftp-use-utf8")
+            .displayName("Use UTF-8 Encoding")
+            .description("Tells the client to use UTF-8 encoding when processing files and filenames. If set to true, the server must also support UTF-8 encoding.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     private final ComponentLog logger;
 
@@ -527,6 +536,11 @@ public class FTPTransfer implements FileTransfer {
 
         if (inetAddress == null) {
             inetAddress = InetAddress.getByName(remoteHostname);
+        }
+
+        final boolean useUtf8Encoding = ctx.getProperty(UTF8_ENCODING).isSet() ? ctx.getProperty(UTF8_ENCODING).asBoolean() : false;
+        if (useUtf8Encoding) {
+            client.setControlEncoding("UTF-8");
         }
 
         client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
