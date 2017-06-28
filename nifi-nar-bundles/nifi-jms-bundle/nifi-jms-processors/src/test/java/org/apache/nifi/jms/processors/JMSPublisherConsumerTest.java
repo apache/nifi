@@ -100,7 +100,7 @@ public class JMSPublisherConsumerTest {
 
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         try {
-            consumer.consume(destinationName, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     // noop
@@ -129,7 +129,7 @@ public class JMSPublisherConsumerTest {
 
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         final AtomicBoolean callbackInvoked = new AtomicBoolean();
-        consumer.consume(destinationName, new ConsumerCallback() {
+        consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
             @Override
             public void accept(JMSResponse response) {
                 callbackInvoked.set(true);
@@ -155,7 +155,7 @@ public class JMSPublisherConsumerTest {
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         final AtomicBoolean callbackInvoked = new AtomicBoolean();
         try {
-            consumer.consume(destinationName, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -171,7 +171,7 @@ public class JMSPublisherConsumerTest {
 
         // should receive the same message, but will process it successfully
         try {
-            consumer.consume(destinationName, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -186,7 +186,7 @@ public class JMSPublisherConsumerTest {
 
         // receiving next message and fail again
         try {
-            consumer.consume(destinationName, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -202,7 +202,7 @@ public class JMSPublisherConsumerTest {
 
         // should receive the same message, but will process it successfully
         try {
-            consumer.consume(destinationName, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);

@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jms.core.JmsTemplate;
 
 /**
@@ -86,6 +87,34 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .defaultValue(CLIENT_ACK.getValue())
             .build();
 
+    static final PropertyDescriptor DURABLE_SUBSCRIBER = new PropertyDescriptor.Builder()
+            .name("Durable subscription")
+            .description("If destination is Topic if present then make it the consumer durable. " +
+                         "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createDurableConsumer-javax.jms.Topic-java.lang.String-")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    static final PropertyDescriptor SHARED_SUBSCRIBER = new PropertyDescriptor.Builder()
+            .name("Shared subscription")
+            .description("If destination is Topic if present then make it the consumer shared. " +
+                         "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createSharedConsumer-javax.jms.Topic-java.lang.String-")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    static final PropertyDescriptor SUBSCRIPTION_NAME = new PropertyDescriptor.Builder()
+            .name("Subscription Name")
+            .description("The name of the subscription to use if destination is Topic and is shared or durable.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are received from the JMS Destination are routed to this relationship")
@@ -99,6 +128,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(propertyDescriptors);
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
+        _propertyDescriptors.add(DURABLE_SUBSCRIBER);
+        _propertyDescriptors.add(SHARED_SUBSCRIBER);
+        _propertyDescriptors.add(SUBSCRIPTION_NAME);
         thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -116,7 +148,12 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     @Override
     protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
         final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
-        this.targetResource.consume(destinationName, new ConsumerCallback(){
+        final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        final boolean durable = durableBoolean == null ? false : durableBoolean;
+        final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        final boolean shared = sharedBoolean == null ? false : sharedBoolean;
+        final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
+        this.targetResource.consume(destinationName, durable, shared, subscriptionName, new ConsumerCallback(){
             @Override
             public void accept(final JMSResponse response) {
                 if (response != null){
