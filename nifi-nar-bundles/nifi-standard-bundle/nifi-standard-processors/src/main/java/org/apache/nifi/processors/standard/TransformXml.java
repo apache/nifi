@@ -104,7 +104,7 @@ public class TransformXml extends AbstractProcessor {
             .displayName("Secure processing")
             .description("Whether or not to mitigate various XML-related attacks like XXE (XML External Entity) attacks.")
             .required(true)
-            .defaultValue("false")
+            .defaultValue("true")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
