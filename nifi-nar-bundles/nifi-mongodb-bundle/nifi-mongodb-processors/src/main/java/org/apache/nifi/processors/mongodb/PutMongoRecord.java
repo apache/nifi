@@ -30,6 +30,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -62,6 +63,14 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
+    static final PropertyDescriptor INSERT_COUNT = new PropertyDescriptor.Builder()
+            .name("insert_count")
+            .displayName("Insert Batch Size")
+            .description("The number of records to group together for one single insert operation against MongoDB.")
+            .defaultValue("100")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -71,6 +80,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(WRITE_CONCERN);
         _propertyDescriptors.add(RECORD_READER_FACTORY);
+        _propertyDescriptors.add(INSERT_COUNT);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -99,28 +109,46 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY)
                 .asControllerService(RecordReaderFactory.class);
 
+        final WriteConcern writeConcern = getWriteConcern(context);
+
+        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+
         List<Document> inserts = new ArrayList<>();
-        try {
-            RecordReader reader = recordParserFactory.createRecordReader(flowFile, session.read(flowFile), getLogger());
+        int ceiling = context.getProperty(INSERT_COUNT).asInteger();
+        int added   = 0;
+        boolean error = false;
+
+        try (RecordReader reader = recordParserFactory.createRecordReader(flowFile, session.read(flowFile), getLogger())) {
             RecordSchema schema = reader.getSchema();
-            Record record = null;
+            Record record;
             while ((record = reader.nextRecord()) != null) {
                 Document document = new Document();
                 for (String name : schema.getFieldNames()) {
                     document.put(name, record.getValue(name));
                 }
                 inserts.add(document);
+                if (inserts.size() == ceiling) {
+                    collection.insertMany(inserts);
+                    added += inserts.size();
+                    inserts = new ArrayList<>();
+                }
             }
-            reader.close();
+            if (inserts.size() > 0) {
+                collection.insertMany(inserts);
+            }
         } catch (SchemaNotFoundException | IOException | MalformedRecordException e) {
-            getLogger().error("PutMongoRecord failed to transform records.", e);
+            getLogger().error("PutMongoRecord failed with error:", e);
+            session.transfer(flowFile, REL_FAILURE);
+            error = true;
+        } finally {
+            if (!error) {
+                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue(), String.format("Added %d documents to MongoDB.", added));
+                session.transfer(flowFile, REL_SUCCESS);
+                getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
+            }
         }
-
-        final ComponentLog logger = getLogger();
-
-        final WriteConcern writeConcern = getWriteConcern(context);
-
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+        session.commit();
+/*        final ComponentLog logger = getLogger();
 
         if (inserts.size() > 0) {
             try {
@@ -128,12 +156,12 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
                 session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue());
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Inserted {} records into MongoDB", new Object[]{ inserts.size() });
+
             } catch (Exception e) {
                 logger.error("Failed to insert {} into MongoDB due to {}", new Object[]{flowFile, e}, e);
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();
             }
-        }
+        }*/
     }
 }
