@@ -18,12 +18,12 @@ package org.apache.nifi.web.security.x509;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.UserContextKeys;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -49,6 +49,18 @@ import java.util.Set;
  *
  */
 public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
+
+    private static final Authorizable PROXY_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getProxyResource();
+        }
+    };
 
     private X509IdentityProvider certificateIdentityProvider;
     private Authorizer authorizer;
@@ -94,27 +106,17 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
                 final Set<String> groups = getUserGroups(identity);
 
-                if (chainIter.hasPrevious()) {
-                    // authorize this proxy in order to authenticate this user
-                    final AuthorizationRequest proxyAuthorizationRequest = new AuthorizationRequest.Builder()
-                            .identity(identity)
-                            .groups(groups)
-                            .anonymous(isAnonymous)
-                            .accessAttempt(true)
-                            .action(RequestAction.WRITE)
-                            .resource(ResourceFactory.getProxyResource())
-                            .userContext(proxy == null ? getUserContext(request) : null) // only set the context for the real user
-                            .build();
+                // Only set the client address for client making the request because we don't know the clientAddress of the proxied entities
+                String clientAddress = (proxy == null) ? request.getClientAddress() : null;
+                proxy = createUser(identity, groups, proxy, clientAddress, isAnonymous);
 
-                    final AuthorizationResult proxyAuthorizationResult = authorizer.authorize(proxyAuthorizationRequest);
-                    if (!Result.Approved.equals(proxyAuthorizationResult.getResult())) {
+                if (chainIter.hasPrevious()) {
+                    try {
+                        PROXY_AUTHORIZABLE.authorize(authorizer, RequestAction.WRITE, proxy);
+                    } catch (final AccessDeniedException e) {
                         throw new UntrustedProxyException(String.format("Untrusted proxy %s", identity));
                     }
                 }
-
-                // Only set the client address for user making the request because we don't know the client address of the proxies
-                String clientAddress = (proxy == null) ? request.getClientAddress() : null;
-                proxy = createUser(identity, groups, proxy, clientAddress, isAnonymous);
             }
 
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));

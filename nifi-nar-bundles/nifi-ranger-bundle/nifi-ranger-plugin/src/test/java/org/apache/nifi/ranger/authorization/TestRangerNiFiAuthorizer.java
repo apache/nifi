@@ -261,8 +261,7 @@ public class TestRangerNiFiAuthorizer {
 
         // a non-null result processor should be used for direct access
         when(rangerBasePlugin.isAccessAllowed(
-                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)),
-                notNull(RangerAccessResultProcessor.class))
+                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)))
         ).thenReturn(allowedResult);
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -297,8 +296,7 @@ public class TestRangerNiFiAuthorizer {
 
         // no result processor should be provided used non-direct access
         when(rangerBasePlugin.isAccessAllowed(
-                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)),
-                eq(null))
+                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)))
         ).thenReturn(allowedResult);
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -338,7 +336,7 @@ public class TestRangerNiFiAuthorizer {
         ).thenReturn(notAllowedResult);
 
         // return false when checking if a policy exists for the resource
-        when(rangerBasePlugin.doesPolicyExist(systemResource)).thenReturn(false);
+        when(rangerBasePlugin.doesPolicyExist(systemResource, action)).thenReturn(false);
 
         final AuthorizationResult result = authorizer.authorize(request);
         assertEquals(AuthorizationResult.resourceNotFound().getResult(), result.getResult());
@@ -372,12 +370,11 @@ public class TestRangerNiFiAuthorizer {
 
         // no result processor should be provided used non-direct access
         when(rangerBasePlugin.isAccessAllowed(
-                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)),
-                notNull(RangerAccessResultProcessor.class))
+                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)))
         ).thenReturn(notAllowedResult);
 
         // return true when checking if a policy exists for the resource
-        when(rangerBasePlugin.doesPolicyExist(systemResource)).thenReturn(true);
+        when(rangerBasePlugin.doesPolicyExist(systemResource, action)).thenReturn(true);
 
         final AuthorizationResult result = authorizer.authorize(request);
         assertEquals(AuthorizationResult.denied().getResult(), result.getResult());
@@ -427,12 +424,11 @@ public class TestRangerNiFiAuthorizer {
         expectedRangerRequest.setUser(request.getIdentity());
 
         // return true when checking if a policy exists for the resource
-        when(rangerBasePlugin.doesPolicyExist(resourceIdentifier)).thenReturn(true);
+        when(rangerBasePlugin.doesPolicyExist(resourceIdentifier, action)).thenReturn(true);
 
         // a non-null result processor should be used for direct access
         when(rangerBasePlugin.isAccessAllowed(
-                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)),
-                notNull(RangerAccessResultProcessor.class))
+                argThat(new RangerAccessRequestMatcher(expectedRangerRequest)))
         ).thenReturn(notAllowedResult);
 
         final AuthorizationResult result = authorizer.authorize(request);

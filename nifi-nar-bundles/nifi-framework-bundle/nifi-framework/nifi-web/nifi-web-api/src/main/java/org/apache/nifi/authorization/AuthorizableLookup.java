@@ -63,6 +63,27 @@ public interface AuthorizableLookup {
     Authorizable getCounters();
 
     /**
+     * Get the authorizable for retrieving resources.
+     *
+     * @return authorizable
+     */
+    Authorizable getResource();
+
+    /**
+     * Get the authorizable for site to site.
+     *
+     * @return authorizable
+     */
+    Authorizable getSiteToSite();
+
+    /**
+     * Get the authorizable for the flow.
+     *
+     * @return authorizable
+     */
+    Authorizable getFlow();
+
+    /**
      * Get the authorizable RootGroup InputPort.
      *
      * @param id input port id

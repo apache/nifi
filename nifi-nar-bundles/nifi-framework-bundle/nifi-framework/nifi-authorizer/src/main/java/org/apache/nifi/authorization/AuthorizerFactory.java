@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.commons.lang3.ClassUtils;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
-import org.apache.nifi.nar.NarCloseable;
 
+import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Set;
 
 public final class AuthorizerFactory {
@@ -66,6 +69,16 @@ public final class AuthorizerFactory {
         }
 
         return false;
+    }
+
+    private static void audit(final Authorizer authorizer, final AuthorizationRequest request, final AuthorizationResult result) {
+        // audit when...
+        // 1 - the authorizer supports auditing
+        // 2 - the request is an access attempt
+        // 3 - the result is either approved/denied, when resource is not found a subsequent request may be following with the parent resource
+        if (authorizer instanceof AuthorizationAuditor && request.isAccessAttempt() && !Result.ResourceNotFound.equals(result.getResult())) {
+            ((AuthorizationAuditor) authorizer).auditAccessAttempt(request, result);
+        }
     }
 
     public static Authorizer installIntegrityChecks(final Authorizer baseAuthorizer) {
@@ -309,7 +322,12 @@ public final class AuthorizerFactory {
 
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
-                    return baseManagedAuthorizer.authorize(request);
+                    final AuthorizationResult result = baseAuthorizer.authorize(request);
+
+                    // audit the authorization request
+                    audit(baseAuthorizer, request, result);
+
+                    return result;
                 }
 
                 @Override
@@ -352,7 +370,32 @@ public final class AuthorizerFactory {
                 }
             };
         } else {
-            return baseAuthorizer;
+            return new Authorizer() {
+                @Override
+                public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+                    final AuthorizationResult result = baseAuthorizer.authorize(request);
+
+                    // audit the authorization request
+                    audit(baseAuthorizer, request, result);
+
+                    return result;
+                }
+
+                @Override
+                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                    baseAuthorizer.initialize(initializationContext);
+                }
+
+                @Override
+                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                    baseAuthorizer.onConfigured(configurationContext);
+                }
+
+                @Override
+                public void preDestruction() throws AuthorizerDestructionException {
+                    baseAuthorizer.preDestruction();
+                }
+            };
         }
     }
 
@@ -363,96 +406,13 @@ public final class AuthorizerFactory {
      * @return authorizer
      */
     public static Authorizer withNarLoader(final Authorizer baseAuthorizer, final ClassLoader classLoader) {
-        if (baseAuthorizer instanceof ManagedAuthorizer) {
-            final ManagedAuthorizer baseManagedAuthorizer = (ManagedAuthorizer) baseAuthorizer;
-            return new ManagedAuthorizer() {
-                @Override
-                public String getFingerprint() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        return baseManagedAuthorizer.getFingerprint();
-                    }
-                }
+        final AuthorizerInvocationHandler invocationHandler = new AuthorizerInvocationHandler(baseAuthorizer, classLoader);
 
-                @Override
-                public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseManagedAuthorizer.inheritFingerprint(fingerprint);
-                    }
-                }
+        // extract all interfaces... baseAuthorizer is non null so getAllInterfaces is non null
+        final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(baseAuthorizer.getClass());
+        final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
 
-                @Override
-                public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseManagedAuthorizer.checkInheritability(proposedFingerprint);
-                    }
-                }
-
-                @Override
-                public AccessPolicyProvider getAccessPolicyProvider() {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        return baseManagedAuthorizer.getAccessPolicyProvider();
-                    }
-                }
-
-                @Override
-                public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        return baseManagedAuthorizer.authorize(request);
-                    }
-                }
-
-                @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseManagedAuthorizer.initialize(initializationContext);
-                    }
-                }
-
-                @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseManagedAuthorizer.onConfigured(configurationContext);
-                    }
-                }
-
-                @Override
-                public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseManagedAuthorizer.preDestruction();
-                    }
-                }
-            };
-        } else {
-            return new Authorizer() {
-                @Override
-                public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        return baseAuthorizer.authorize(request);
-                    }
-                }
-
-                @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseAuthorizer.initialize(initializationContext);
-                    }
-                }
-
-                @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseAuthorizer.onConfigured(configurationContext);
-                    }
-                }
-
-                @Override
-                public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-                        baseAuthorizer.preDestruction();
-                    }
-                }
-            };
-        }
+        return (Authorizer) Proxy.newProxyInstance(classLoader, interfaces, invocationHandler);
     }
 
     private AuthorizerFactory() {}

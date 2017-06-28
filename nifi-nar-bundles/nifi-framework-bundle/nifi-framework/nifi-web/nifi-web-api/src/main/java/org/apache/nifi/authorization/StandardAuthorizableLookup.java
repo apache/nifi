@@ -108,6 +108,42 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
+    private static final Authorizable RESOURCE_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getResourceResource();
+        }
+    };
+
+    private static final Authorizable SITE_TO_SITE_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getSiteToSiteResource();
+        }
+    };
+
+    private static final Authorizable FLOW_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getFlowResource();
+        }
+    };
+
     private static final Authorizable SYSTEM_AUTHORIZABLE = new Authorizable() {
         @Override
         public Authorizable getParentAuthorizable() {
@@ -266,6 +302,21 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getCounters() {
         return COUNTERS_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getResource() {
+        return RESOURCE_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getSiteToSite() {
+        return SITE_TO_SITE_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getFlow() {
+        return FLOW_AUTHORIZABLE;
     }
 
     private ConfiguredComponent findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {

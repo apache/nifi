@@ -21,16 +21,9 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ResourceDTO;
@@ -43,9 +36,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
@@ -61,31 +52,10 @@ public class ResourceResource extends ApplicationResource {
     private Authorizer authorizer;
 
     private void authorizeResource() {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getResourceResource())
-                .identity(user.getIdentity())
-                .groups(user.getGroups())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.READ)
-                .userContext(userContext)
-                .explanationSupplier(() -> "Unable to retrieve resources.")
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable resource = lookup.getResource();
+            resource.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     /**
