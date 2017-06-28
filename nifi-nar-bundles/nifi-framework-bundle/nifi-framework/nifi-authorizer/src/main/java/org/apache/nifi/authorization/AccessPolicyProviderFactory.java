@@ -38,6 +38,13 @@ public final class AccessPolicyProviderFactory {
                 }
 
                 @Override
+                public boolean isConfigurable(AccessPolicy accessPolicy) {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy);
+                    }
+                }
+
+                @Override
                 public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return baseConfigurableAccessPolicyProvider.updateAccessPolicy(accessPolicy);

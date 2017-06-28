@@ -30,6 +30,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
     private String resource;
     private String action;
     private ComponentReferenceEntity componentReference;
+    private Boolean configurable;
 
     /**
      * @return The action associated with this access policy.
@@ -68,5 +69,17 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
 
     public void setComponentReference(ComponentReferenceEntity componentReference) {
         this.componentReference = componentReference;
+    }
+
+    /**
+     * @return whether this policy is configurable
+     */
+    @ApiModelProperty(value = "Whether this policy is configurable.")
+    public Boolean getConfigurable() {
+        return configurable;
+    }
+
+    public void setConfigurable(Boolean configurable) {
+        this.configurable = configurable;
     }
 }

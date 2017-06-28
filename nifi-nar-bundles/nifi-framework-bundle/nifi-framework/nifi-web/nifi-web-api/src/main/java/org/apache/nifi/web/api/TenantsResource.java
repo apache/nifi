@@ -929,6 +929,7 @@ public class TenantsResource extends ApplicationResource {
                 final TenantDTO tenant = new TenantDTO();
                 tenant.setId(user.getId());
                 tenant.setIdentity(user.getIdentity());
+                tenant.setConfigurable(user.getConfigurable());
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userEntity.getPermissions());
@@ -947,6 +948,7 @@ public class TenantsResource extends ApplicationResource {
                 final TenantDTO tenant = new TenantDTO();
                 tenant.setId(userGroup.getId());
                 tenant.setIdentity(userGroup.getIdentity());
+                tenant.setConfigurable(userGroup.getConfigurable());
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userGroupEntity.getPermissions());

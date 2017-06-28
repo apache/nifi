@@ -117,12 +117,23 @@ public final class AuthorizerFactory {
                             }
 
                             @Override
+                            public boolean isConfigurable(AccessPolicy accessPolicy) {
+                                return baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy);
+                            }
+
+                            @Override
                             public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                                if (!baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy)) {
+                                    throw new IllegalArgumentException("The specified access policy is not support modification.");
+                                }
                                 return baseConfigurableAccessPolicyProvider.updateAccessPolicy(accessPolicy);
                             }
 
                             @Override
                             public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                                if (!baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy)) {
+                                    throw new IllegalArgumentException("The specified access policy is not support modification.");
+                                }
                                 return baseConfigurableAccessPolicyProvider.deleteAccessPolicy(accessPolicy);
                             }
 
@@ -171,15 +182,26 @@ public final class AuthorizerFactory {
                                         }
 
                                         @Override
+                                        public boolean isConfigurable(User user) {
+                                            return baseConfigurableUserGroupProvider.isConfigurable(user);
+                                        }
+
+                                        @Override
                                         public User updateUser(User user) throws AuthorizationAccessException {
                                             if (tenantExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
+                                            }
+                                            if (!baseConfigurableUserGroupProvider.isConfigurable(user)) {
+                                                throw new IllegalArgumentException("The specified user does not support modification.");
                                             }
                                             return baseConfigurableUserGroupProvider.updateUser(user);
                                         }
 
                                         @Override
                                         public User deleteUser(User user) throws AuthorizationAccessException {
+                                            if (!baseConfigurableUserGroupProvider.isConfigurable(user)) {
+                                                throw new IllegalArgumentException("The specified user does not support modification.");
+                                            }
                                             return baseConfigurableUserGroupProvider.deleteUser(user);
                                         }
 
@@ -192,15 +214,26 @@ public final class AuthorizerFactory {
                                         }
 
                                         @Override
+                                        public boolean isConfigurable(Group group) {
+                                            return baseConfigurableUserGroupProvider.isConfigurable(group);
+                                        }
+
+                                        @Override
                                         public Group updateGroup(Group group) throws AuthorizationAccessException {
                                             if (tenantExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
+                                            }
+                                            if (!baseConfigurableUserGroupProvider.isConfigurable(group)) {
+                                                throw new IllegalArgumentException("The specified group does not support modification.");
                                             }
                                             return baseConfigurableUserGroupProvider.updateGroup(group);
                                         }
 
                                         @Override
                                         public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                                            if (!baseConfigurableUserGroupProvider.isConfigurable(group)) {
+                                                throw new IllegalArgumentException("The specified group does not support modification.");
+                                            }
                                             return baseConfigurableUserGroupProvider.deleteGroup(group);
                                         }
 
