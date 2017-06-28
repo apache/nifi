@@ -36,6 +36,7 @@
     <xs:complexType name="Authorizer">
         <xs:sequence>
             <xs:element name="identifier" type="NonEmptyStringType"/>
+            <xs:element name="classpath" type="NonEmptyStringType" minOccurs="0"/>
             <xs:element name="class" type="NonEmptyStringType"/>
             <xs:element name="property" type="Property" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
