@@ -25,17 +25,11 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -100,29 +94,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private void authorizeFlowAccess(final NiFiUser user) {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Map<String,String> userContext;
-            if (!StringUtils.isBlank(user.getClientAddress())) {
-                userContext = new HashMap<>();
-                userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-            } else {
-                userContext = null;
-            }
-
-            final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                    .resource(ResourceFactory.getFlowResource())
-                    .identity(user.getIdentity())
-                    .groups(user.getGroups())
-                    .anonymous(user.isAnonymous())
-                    .accessAttempt(true)
-                    .action(RequestAction.READ)
-                    .userContext(userContext)
-                    .explanationSupplier(() -> "Unable to view the user interface.")
-                    .build();
-
-            final AuthorizationResult result = authorizer.authorize(request);
-            if (!Result.Approved.equals(result.getResult())) {
-                throw new AccessDeniedException(result.getExplanation());
-            }
+            final Authorizable flow = lookup.getFlow();
+            flow.authorize(authorizer, RequestAction.READ, user);
         });
     }
 

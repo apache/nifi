@@ -101,7 +101,7 @@
         <hadoop.guava.version>12.0.1</hadoop.guava.version>
         <hadoop.http.client.version>4.2.5</hadoop.http.client.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <ranger.version>0.6.0</ranger.version>
+        <ranger.version>0.7.1</ranger.version>
         <hive.version>1.2.1</hive.version>
         <hive.hadoop.version>2.6.2</hive.hadoop.version>
         <hbase.version>1.1.2</hbase.version>
