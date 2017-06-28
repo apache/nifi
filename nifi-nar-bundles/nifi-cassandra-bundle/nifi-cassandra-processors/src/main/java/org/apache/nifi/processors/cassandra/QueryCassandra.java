@@ -35,7 +35,11 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -59,7 +63,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -439,18 +452,14 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 sb.append(" <= ");
                 sb.append(maxBoundValue);
                 sb.append(" allow filtering");
-            }
-            // full data
-            else {
+            }else {
                 sb.append("select * from ");
                 sb.append(keySpace);
                 sb.append(".");
                 sb.append(tableName);
             }
             finalSelectQuery = sb.toString();
-        }
-        // based on query
-        else {
+        }else{
             // incremental data
             if (waterMarkDateField != null && !StringUtils.isEmpty(waterMarkDateField) ) {
                 String sql = selectQuery.toLowerCase().replaceAll("allow filtering", "");
@@ -480,9 +489,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     sb.append(" allow filtering");
                 }
                 finalSelectQuery = sb.toString();
-            }
-            // full data
-            else {
+            }else {
                 finalSelectQuery = selectQuery;
             }
         }
@@ -718,8 +725,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 }
             } while (!rs.isFullyFetched());
             return nrOfRows;
-        }
-        finally {
+        }finally {
 
         }
     }
