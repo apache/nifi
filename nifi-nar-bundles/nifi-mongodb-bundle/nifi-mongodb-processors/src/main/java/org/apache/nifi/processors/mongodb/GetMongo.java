@@ -18,6 +18,15 @@
  */
 package org.apache.nifi.processors.mongodb;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -31,6 +40,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -41,14 +51,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -101,7 +103,8 @@ public class GetMongo extends AbstractMongoProcessor {
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-        .name("Results Per FlowFile")
+        .name("results-per-flowfile")
+        .displayName("Results Per FlowFile")
         .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
         .required(false)
         .addValidator(StandardValidators.INTEGER_VALIDATOR)
@@ -159,6 +162,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 out.write(payload.getBytes("UTF-8"));
             }
         });
+        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
         session.transfer(flowFile, REL_SUCCESS);
     }
@@ -189,6 +193,7 @@ public class GetMongo extends AbstractMongoProcessor {
             }
 
             final MongoCursor<Document> cursor = it.iterator();
+            ComponentLog log = getLogger();
             try {
                 FlowFile flowFile = null;
                 if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
@@ -199,7 +204,9 @@ public class GetMongo extends AbstractMongoProcessor {
                         batch.add(cursor.next());
                         if (batch.size() == ceiling) {
                             try {
-                                getLogger().info("Writing batch...");
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Writing batch...");
+                                }
                                 String payload = buildBatch(batch);
                                 writeBatch(payload, context, session);
                                 batch = new ArrayList<>();
@@ -224,6 +231,7 @@ public class GetMongo extends AbstractMongoProcessor {
                                 IOUtils.write(cursor.next().toJson(), out);
                             }
                         });
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
 
                         session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
                         session.transfer(flowFile, REL_SUCCESS);
