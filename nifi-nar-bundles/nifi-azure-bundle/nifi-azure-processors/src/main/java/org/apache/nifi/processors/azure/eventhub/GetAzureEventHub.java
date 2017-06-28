@@ -338,12 +338,12 @@ public class GetAzureEventHub extends AbstractProcessor {
 
                     final Map<String, String> attributes = new HashMap<>();
                     FlowFile flowFile = session.create();
-                    EventData.SystemProperties systemProperties = eventData.getSystemProperties();
+                    final EventData.SystemProperties systemProperties = eventData.getSystemProperties();
 
                     if (null != systemProperties) {
-                        attributes.put("eventhub.enqueued.timestamp", String.valueOf(eventData.getSystemProperties().getEnqueuedTime()));
-                        attributes.put("eventhub.offset", eventData.getSystemProperties().getOffset());
-                        attributes.put("eventhub.sequence", String.valueOf(eventData.getSystemProperties().getSequenceNumber()));
+                        attributes.put("eventhub.enqueued.timestamp", String.valueOf(systemProperties.getEnqueuedTime()));
+                        attributes.put("eventhub.offset", systemProperties.getOffset());
+                        attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
                     }
 
                     attributes.put("eventhub.name", context.getProperty(EVENT_HUB_NAME).getValue());
@@ -352,9 +352,8 @@ public class GetAzureEventHub extends AbstractProcessor {
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
                     flowFile = session.write(flowFile, out -> {
-                        out.write(eventData.getBody());
+                        out.write(eventData.getBytes());
                     });
-
 
                     session.transfer(flowFile, REL_SUCCESS);
 
