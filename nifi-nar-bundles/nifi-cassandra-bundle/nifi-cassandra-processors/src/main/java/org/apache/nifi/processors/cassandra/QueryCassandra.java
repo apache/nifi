@@ -300,9 +300,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
-        final String waterMarkDateField = context.getProperty(DATE_FIELD).getValue();
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String keySpace = context.getProperty(KEYSPACE).getValue();
+        final String waterMarkDateField = context.getProperty(DATE_FIELD).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String keySpace = context.getProperty(KEYSPACE).evaluateAttributeExpressions(fileToProcess).getValue();
 
         if ( StringUtils.isEmpty(selectQuery) && StringUtils.isEmpty(tableName) ) {
             throw new ProcessException(" TableName or Query is required");
