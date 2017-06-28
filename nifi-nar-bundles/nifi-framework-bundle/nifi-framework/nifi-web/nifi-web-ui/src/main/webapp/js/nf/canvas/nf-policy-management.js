@@ -879,10 +879,10 @@
         if (resourceAndAction.resource === policy.resource) {
             if (nfCanvasUtils.isConfigurableAuthorizer()) {
                 // allow remove when policy is not inherited
-                $('#delete-policy-button').prop('disabled', policyEntity.permissions.canWrite === false);
+                $('#delete-policy-button').prop('disabled', policy.configurable === false || policyEntity.permissions.canWrite === false);
 
                 // allow modification if allowed
-                $('#new-policy-user-button').prop('disabled', policyEntity.permissions.canWrite === false);
+                $('#new-policy-user-button').prop('disabled', policy.configurable === false || policyEntity.permissions.canWrite === false);
             }
         } else {
             $('#policy-message').append(getResourceMessage(policy.resource));

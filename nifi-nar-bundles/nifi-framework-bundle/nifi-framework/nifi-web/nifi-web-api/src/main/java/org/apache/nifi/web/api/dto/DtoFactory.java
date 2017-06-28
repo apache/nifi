@@ -721,6 +721,7 @@ public final class DtoFactory {
         dto.setId(user.getIdentifier());
         dto.setUserGroups(groups);
         dto.setIdentity(user.getIdentity());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isUserConfigurable(authorizer, user));
         dto.setAccessPolicies(accessPolicies);
 
         return dto;
@@ -740,6 +741,7 @@ public final class DtoFactory {
         final TenantDTO dto = new TenantDTO();
         dto.setId(user.getIdentifier());
         dto.setIdentity(user.getIdentity());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isUserConfigurable(authorizer, user));
 
         return dto;
     }
@@ -765,6 +767,7 @@ public final class DtoFactory {
                 final AccessPolicySummaryDTO summary = summaryEntity.getComponent();
                 policy.setResource(summary.getResource());
                 policy.setAction(summary.getAction());
+                policy.setConfigurable(summary.getConfigurable());
                 policy.setComponentReference(summary.getComponentReference());
             }
 
@@ -775,6 +778,7 @@ public final class DtoFactory {
         dto.setId(userGroup.getIdentifier());
         dto.setUsers(users);
         dto.setIdentity(userGroup.getName());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isGroupConfigurable(authorizer, userGroup));
         dto.setAccessPolicies(policies);
 
         return dto;
@@ -794,6 +798,7 @@ public final class DtoFactory {
         final TenantDTO dto = new TenantDTO();
         dto.setId(userGroup.getIdentifier());
         dto.setIdentity(userGroup.getName());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isGroupConfigurable(authorizer, userGroup));
 
         return dto;
     }
@@ -1677,6 +1682,7 @@ public final class DtoFactory {
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
         dto.setAction(accessPolicy.getAction().toString());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy));
         dto.setComponentReference(componentReference);
         return dto;
     }
@@ -1694,6 +1700,7 @@ public final class DtoFactory {
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
         dto.setAction(accessPolicy.getAction().toString());
+        dto.setConfigurable(AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy));
         dto.setComponentReference(componentReference);
         return dto;
     }

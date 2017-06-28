@@ -38,6 +38,13 @@ public final class UserGroupProviderFactory {
                 }
 
                 @Override
+                public boolean isConfigurable(User user) {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return baseConfigurableUserGroupProvider.isConfigurable(user);
+                    }
+                }
+
+                @Override
                 public User updateUser(User user) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return baseConfigurableUserGroupProvider.updateUser(user);
@@ -55,6 +62,13 @@ public final class UserGroupProviderFactory {
                 public Group addGroup(Group group) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return baseConfigurableUserGroupProvider.addGroup(group);
+                    }
+                }
+
+                @Override
+                public boolean isConfigurable(Group group) {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return baseConfigurableUserGroupProvider.isConfigurable(group);
                     }
                 }
 
