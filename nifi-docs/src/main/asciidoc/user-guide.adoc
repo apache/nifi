@@ -1280,6 +1280,31 @@ image::component-linking-processor.png["Component Linking Processor Example"]
 
 NOTE: Linking to multiple components on the canvas is supported, with the restriction that the length of the URL cannot exceed a 2000 character limit.
 
+[[component_alignment]]
+=== Component Alignment
+
+Components on the NiFi canvas can be aligned to more precisely arrange your dataflow. To do this, first select all the components you want to align.  Then right-click to see the context menu and select “Align vertically” or “Align horizontally” depending on your desired result.
+
+==== Align Vertically
+
+Here is an example of aligning components vertically on your canvas.  With all components selected/highlighted, right-click:
+
+image:align-vertically-before.png["Align Vertically Example Before"]
+
+and select "Align vertically" to achieve these results:
+
+image:align-vertically-after.png["Align Vertically Example After"]
+
+==== Align Horizontally
+
+Here is an example of aligning components horizontally on your canvas.  With all components selected/highlighted, right-click:
+
+image:align-horizontally-before.png["Align Horizontally Example Before"]
+
+and select "Align horizontally" to achieve these results:
+
+image:align-horizontally-after.png["Align Horizontally Example Before"]
+
 
 [[monitoring]]
 == Monitoring of DataFlow
