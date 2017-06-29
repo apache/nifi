@@ -84,11 +84,11 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     private static final Logger logger = LoggerFactory.getLogger(ThreadPoolRequestReplicator.class);
-    private static final int MAX_CONCURRENT_REQUESTS = 100;
 
     private final Client client; // the client to use for issuing requests
     private final int connectionTimeoutMs; // connection timeout per node request
     private final int readTimeoutMs; // read timeout per node request
+    private final int maxConcurrentRequests; // maximum number of concurrent requests
     private final HttpResponseMapper responseMapper;
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
@@ -109,15 +109,16 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      *
      * @param corePoolSize core size of the thread pool
      * @param maxPoolSize the max number of threads in the thread pool
+     * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
      * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final Client client, final ClusterCoordinator clusterCoordinator,
+    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final Client client, final ClusterCoordinator clusterCoordinator,
                                        final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        this(corePoolSize, maxPoolSize, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
+        this(corePoolSize, maxPoolSize, maxConcurrentRequests, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
     }
 
     /**
@@ -125,6 +126,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      *
      * @param corePoolSize core size of the thread pool
      * @param maxPoolSize the max number of threads in the thread pool
+     * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
      * @param connectionTimeout the connection timeout specified in milliseconds
@@ -133,7 +135,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final Client client, final ClusterCoordinator clusterCoordinator,
+    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final Client client, final ClusterCoordinator clusterCoordinator,
                                        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback,
                                        final EventReporter eventReporter, final NiFiProperties nifiProperties) {
         if (corePoolSize <= 0) {
@@ -148,6 +150,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         this.clusterCoordinator = clusterCoordinator;
         this.connectionTimeoutMs = (int) FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         this.readTimeoutMs = (int) FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
+        this.maxConcurrentRequests = maxConcurrentRequests;
         this.responseMapper = new StandardHttpResponseMapper(nifiProperties);
         this.eventReporter = eventReporter;
         this.callback = callback;
@@ -361,11 +364,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             }
 
             int numRequests = responseMap.size();
-            if (numRequests >= MAX_CONCURRENT_REQUESTS) {
+            if (numRequests >= maxConcurrentRequests) {
                 numRequests = purgeExpiredRequests();
             }
 
-            if (numRequests >= MAX_CONCURRENT_REQUESTS) {
+            if (numRequests >= maxConcurrentRequests) {
                 final Map<String, Long> countsByUri = responseMap.values().stream().collect(
                         Collectors.groupingBy(
                                 StandardAsyncClusterResponse::getURIPath,
