@@ -107,7 +107,7 @@ public class GetMongo extends AbstractMongoProcessor {
         .displayName("Results Per FlowFile")
         .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
         .required(false)
-        .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
     private final static Set<Relationship> relationships;
