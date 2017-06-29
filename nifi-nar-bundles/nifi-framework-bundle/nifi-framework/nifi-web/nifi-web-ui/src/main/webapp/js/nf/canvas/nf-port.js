@@ -47,6 +47,7 @@
     var nfConnectable;
     var nfDraggable;
     var nfSelectable;
+    var nfQuickSelect;
     var nfContextMenu;
 
     var PREVIEW_NAME_LENGTH = 15;
@@ -192,7 +193,7 @@
             });
 
         // make ports selectable
-        port.call(nfSelectable.activate).call(nfContextMenu.activate);
+        port.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
 
         // only activate dragging and connecting if appropriate
         port.filter(function (d) {
@@ -529,12 +530,14 @@
          * @param nfDraggableRef   The nfDraggable module.
          * @param nfSelectableRef   The nfSelectable module.
          * @param nfContextMenuRef   The nfContextMenu module.
+         * @param nfQuickSelectRef   The nfQuickSelect module.
          */
-        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef, nfQuickSelectRef) {
             nfConnectable = nfConnectableRef;
             nfDraggable = nfDraggableRef;
             nfSelectable = nfSelectableRef;
             nfContextMenu = nfContextMenuRef;
+            nfQuickSelect = nfQuickSelectRef;
 
             portMap = d3.map();
             removedCache = d3.map();
