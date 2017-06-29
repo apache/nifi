@@ -54,11 +54,9 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     private HttpRemoteSiteListener(final NiFiProperties nifiProperties) {
         super();
         taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-
             @Override
             public Thread newThread(final Runnable r) {
-                final Thread thread = defaultFactory.newThread(r);
+                final Thread thread = Executors.defaultThreadFactory().newThread(r);
                 thread.setName("Http Site-to-Site Transaction Maintenance");
                 thread.setDaemon(true);
                 return thread;
@@ -160,6 +158,10 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     @Override
     public void stop() {
+        if(taskExecutor != null) {
+            logger.debug("Stopping Http Site-to-Site Transaction Maintenance task...");
+            taskExecutor.shutdown();
+        }
         if (transactionMaintenanceTask != null) {
             logger.debug("Stopping transactionMaintenanceTask...");
             transactionMaintenanceTask.cancel(true);
