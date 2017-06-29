@@ -347,13 +347,15 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private Collection<FlowFile> getBundles() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
         for (final BundleTracker tracker : bundleMap.values()) {
-            processBundle(tracker);
-            flowFiles.add(tracker.flowFile);
+            final boolean includeBundle = processBundle(tracker);
+            if (includeBundle) {
+                flowFiles.add(tracker.flowFile);
+            }
         }
         return flowFiles;
     }
 
-    private void processBundle(final BundleTracker bundle) throws IOException {
+    private boolean processBundle(final BundleTracker bundle) throws IOException {
         final RecordSetWriter writer = bundle.recordWriter;
         if (writer != null) {
             final WriteResult writeResult;
@@ -364,6 +366,11 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 writer.close();
             }
 
+            if (writeResult.getRecordCount() == 0) {
+                getProcessSession().remove(bundle.flowFile);
+                return false;
+            }
+
             final Map<String, String> attributes = new HashMap<>();
             attributes.putAll(writeResult.getAttributes());
             attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
@@ -372,6 +379,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         }
 
         populateAttributes(bundle);
+        return true;
     }
 
     private void writeData(final ProcessSession session, ConsumerRecord<byte[], byte[]> record, final TopicPartition topicPartition) {
@@ -418,6 +426,11 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     }
 
     private void handleParseFailure(final ConsumerRecord<byte[], byte[]> consumerRecord, final ProcessSession session, final Exception cause) {
+        handleParseFailure(consumerRecord, session, cause, "Failed to parse message from Kafka using the configured Record Reader. "
+            + "Will route message as its own FlowFile to the 'parse.failure' relationship");
+    }
+
+    private void handleParseFailure(final ConsumerRecord<byte[], byte[]> consumerRecord, final ProcessSession session, final Exception cause, final String message) {
         // If we are unable to parse the data, we need to transfer it to 'parse failure' relationship
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
@@ -432,8 +445,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         session.getProvenanceReporter().receive(failureFlowFile, transitUri);
 
         session.transfer(failureFlowFile, REL_PARSE_FAILURE);
-        final String message = "Failed to parse message from Kafka using the configured Record Reader. "
-            + "Will route message as its own FlowFile to the 'parse.failure' relationship";
 
         if (cause == null) {
             logger.error(message);
@@ -503,7 +514,14 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     writer = tracker.recordWriter;
                 }
 
-                writer.write(record);
+                try {
+                    writer.write(record);
+                } catch (final RuntimeException re) {
+                    handleParseFailure(consumerRecord, session, re, "Failed to write message from Kafka using the configured Record Writer. "
+                        + "Will route message as its own FlowFile to the 'parse.failure' relationship");
+                    continue;
+                }
+
                 tracker.incrementRecordCount(1L);
             }
 
