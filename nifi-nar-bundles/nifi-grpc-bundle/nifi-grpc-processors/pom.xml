@@ -92,7 +92,7 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <excludes>**/grpc/FlowFileRequest.java,**/grpc/FlowFileReply.java,**/grpc/GRPCProto.java,**/grpc/FlowFileServiceGrpc.java</excludes>
+                    <excludes>**/grpc/FlowFileRequest.java,**/grpc/FlowFileReply.java,**/grpc/FFSProto.java,**/grpc/FlowFileServiceGrpc.java</excludes>
                 </configuration>
             </plugin>
             <plugin>
