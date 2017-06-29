@@ -32,6 +32,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.SessionCallback;
 import org.springframework.jms.support.JmsHeaders;
@@ -61,7 +62,7 @@ final class JMSConsumer extends JMSWorker {
     /**
      *
      */
-    public void consume(final String destinationName, final ConsumerCallback consumerCallback) {
+    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(Session session) throws JMSException {
@@ -71,10 +72,31 @@ final class JMSConsumer extends JMSWorker {
                  * delivery and restarts with the oldest unacknowledged message
                  */
                 session.recover();
+                boolean isPubSub = JMSConsumer.this.jmsTemplate.isPubSubDomain();
                 Destination destination = JMSConsumer.this.jmsTemplate.getDestinationResolver().resolveDestinationName(
-                        session, destinationName, JMSConsumer.this.jmsTemplate.isPubSubDomain());
-                MessageConsumer msgConsumer = session.createConsumer(destination, null,
-                        JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                        session, destinationName, isPubSub);
+                MessageConsumer msgConsumer;
+                if (isPubSub) {
+                    if (shared) {
+                        try {
+                            if (durable) {
+                                msgConsumer = session.createSharedDurableConsumer((Topic)destination, subscriberName);
+                            } else {
+                                msgConsumer = session.createSharedConsumer((Topic)destination, subscriberName);
+                            }
+                        } catch (AbstractMethodError e) {
+                            throw new ProcessException("Failed to create a shared consumer. Make sure the target broker is JMS 2.0 compliant.", e);
+                        }
+                    } else {
+                        if (durable) {
+                            msgConsumer = session.createDurableConsumer((Topic)destination, subscriberName, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                        } else {
+                            msgConsumer = session.createConsumer((Topic)destination, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                        }
+                    }
+                } else {
+                    msgConsumer = session.createConsumer(destination, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                }
                 Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
                 JMSResponse response = null;
                 try {
