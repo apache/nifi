@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -41,7 +42,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 
-@Ignore("Integration tests that cause failures in some environments. Require that they be run from Maven to run the embedded mongo maven plugin. Maven Plugin also fails in my CentOS 7 environment.")
+//@Ignore("Integration tests that cause failures in some environments. Require that they be run from Maven to run the embedded mongo maven plugin. Maven Plugin also fails in my CentOS 7 environment.")
 public class GetMongoTest {
     private static final String MONGO_URI = "mongodb://localhost";
     private static final String DB_NAME = GetMongoTest.class.getSimpleName().toLowerCase();
@@ -199,5 +200,15 @@ public class GetMongoTest {
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         flowFiles.get(0).assertContentEquals(DOCUMENTS.get(0).toJson());
+    }
+
+    @Test
+    public void testResultsPerFlowfile() throws Exception {
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 2);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
+        Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
     }
 }
