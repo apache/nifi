@@ -27,6 +27,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -46,6 +47,19 @@ import static org.apache.nifi.processors.grpc.TestGRPCServer.NEED_CLIENT_AUTH;
  * to construct the desired stubs to communicate with a gRPC service.
  */
 public class TestGRPCClient {
+    // Used to represent the ephemeral port range.
+    private static final int PORT_START = 49152;
+    private static final int PORT_END = 65535;
+
+    /**
+     * Can be used by clients to grab a random port in a range of ports
+     *
+     * @return a port to use for client/server comms
+     */
+    public static int randomPort() {
+        // add 1 because upper bound is exclusive
+        return ThreadLocalRandom.current().nextInt(PORT_START, PORT_END + 1);
+    }
 
     /**
      * Build a channel with the given host and port and optional ssl properties.

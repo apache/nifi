@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -42,24 +43,28 @@ import io.netty.handler.ssl.SslContextBuilder;
  */
 public class TestGRPCServer<T extends BindableService> {
     public static final String HOST = "localhost";
-    public static final String PORT = "50051";
     public static final String NEED_CLIENT_AUTH = "needClientAuth";
+    // Used to represent the ephemeral port range.
+    private static final int PORT_START = 49152;
+    private static final int PORT_END = 65535;
     private final Class<T> clazz;
     private Server server;
     private Map<String, String> sslProperties;
 
-
     /**
      * Create a gRPC server
+     *
      * @param clazz the gRPC service implementation
      */
     public TestGRPCServer(final Class<T> clazz) {
         this(clazz, null);
     }
 
+
     /**
      * Create a gRPC server
-     * @param clazz the gRPC service implementation
+     *
+     * @param clazz         the gRPC service implementation
      * @param sslProperties the keystore and truststore properties for SSL communications
      */
     public TestGRPCServer(final Class<T> clazz, final Map<String, String> sslProperties) {
@@ -68,11 +73,21 @@ public class TestGRPCServer<T extends BindableService> {
     }
 
     /**
-     * Starts the gRPC server on localhost with port: {@link TestGRPCServer#PORT}.
+     * Can be used by clients to grab a random port in a range of ports
+     *
+     * @return a port to use for client/server comms
      */
-    public void start() throws Exception {
+    public static int randomPort() {
+        // add 1 because upper bound is exclusive
+        return ThreadLocalRandom.current().nextInt(PORT_START, PORT_END + 1);
+    }
+
+    /**
+     * Starts the gRPC server @localhost:port.
+     */
+    public void start(final int port) throws Exception {
         final NettyServerBuilder nettyServerBuilder = NettyServerBuilder
-                .forPort(Integer.valueOf(PORT))
+                .forPort(port)
                 .directExecutor()
                 .addService(clazz.newInstance())
                 .compressorRegistry(CompressorRegistry.getDefaultInstance())
@@ -93,7 +108,7 @@ public class TestGRPCServer<T extends BindableService> {
             keyManager.init(keyStore, keyStorePassword.toCharArray());
             SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(keyManager);
 
-            if(sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
+            if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
                 final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 final KeyStore trustStore = KeyStore.getInstance(sslProperties.get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
                 final String trustStoreFile = sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName());

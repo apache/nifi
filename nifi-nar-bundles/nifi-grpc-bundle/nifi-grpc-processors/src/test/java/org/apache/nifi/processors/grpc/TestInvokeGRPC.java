@@ -46,10 +46,11 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);
@@ -66,7 +67,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
             assertThat(successFiles.size(), equalTo(1));
@@ -74,7 +75,7 @@ public class TestInvokeGRPC {
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -85,11 +86,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
 
             runner.enqueue("content");
             runner.run();
@@ -105,7 +107,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "content");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
             assertThat(successFiles.size(), equalTo(1));
@@ -113,7 +115,7 @@ public class TestInvokeGRPC {
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "content");
             successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -124,11 +126,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_OUTPUT_RESPONSE_REGARDLESS, "true");
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
@@ -146,7 +149,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
             assertThat(successFiles.size(), equalTo(1));
@@ -154,7 +157,7 @@ public class TestInvokeGRPC {
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -165,10 +168,11 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             // set max message size to 1B to force error
             runner.setProperty(InvokeGRPC.PROP_MAX_MESSAGE_SIZE, "1B");
 
@@ -185,7 +189,7 @@ public class TestInvokeGRPC {
             assertThat(responseFiles.size(), equalTo(1));
             final MockFlowFile response = responseFiles.get(0);
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
             // an exception should be thrown indicating that the max message size was exceeded.
             response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
         } finally {
@@ -198,11 +202,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
 
             final MockFlowFile mockFlowFile = new MockFlowFile(RETRY);
             runner.enqueue(mockFlowFile);
@@ -220,7 +225,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.RETRY));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "retry");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -231,11 +236,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_OUTPUT_RESPONSE_REGARDLESS, "true");
 
             final MockFlowFile mockFlowFile = new MockFlowFile(RETRY);
@@ -254,7 +260,7 @@ public class TestInvokeGRPC {
             retry.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.RETRY));
             retry.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "retry");
             retry.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            retry.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            retry.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_RESPONSE);
             assertThat(responseFiles.size(), equalTo(1));
@@ -262,7 +268,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.RETRY));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "retry");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -273,11 +279,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
 
             final MockFlowFile mockFlowFile = new MockFlowFile(ERROR);
             runner.enqueue(mockFlowFile);
@@ -294,7 +301,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.ERROR));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "error");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -305,11 +312,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_OUTPUT_RESPONSE_REGARDLESS, "true");
             runner.setProperty(InvokeGRPC.PROP_PENALIZE_NO_RETRY, "true");
 
@@ -329,7 +337,7 @@ public class TestInvokeGRPC {
             noRetry.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.ERROR));
             noRetry.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "error");
             noRetry.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            noRetry.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            noRetry.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_RESPONSE);
             assertThat(responseFiles.size(), equalTo(1));
@@ -337,7 +345,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.ERROR));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "error");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -348,11 +356,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
 
             runner.run();
             runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 0);
@@ -371,12 +380,13 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            server.start();
+            final int port = TestGRPCServer.randomPort();
+            server.start(port);
 
             // no gRPC server running @ localhost:50052, so processor will fail
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, "50052");
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, "49151");
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);
@@ -392,7 +402,7 @@ public class TestInvokeGRPC {
             assertThat(responseFiles.size(), equalTo(1));
             final MockFlowFile response = responseFiles.get(0);
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, "50052");
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, "49151");
             response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
         } finally {
             server.stop();
@@ -406,12 +416,13 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
 
         try {
+            final int port = TestGRPCServer.randomPort();
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
             useSSLContextService(runner, sslProperties);
-            server.start();
+            server.start(port);
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);
@@ -428,7 +439,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
             assertThat(successFiles.size(), equalTo(1));
@@ -436,7 +447,7 @@ public class TestInvokeGRPC {
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }
@@ -449,12 +460,13 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
 
         try {
+            final int port = TestGRPCServer.randomPort();
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, TestGRPCServer.PORT);
+            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
             useSSLContextService(runner, getTruststoreProperties());
-            server.start();
+            server.start(port);
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);
@@ -471,7 +483,7 @@ public class TestInvokeGRPC {
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             response.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_SUCCESS_REQ);
             assertThat(successFiles.size(), equalTo(1));
@@ -479,7 +491,7 @@ public class TestInvokeGRPC {
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_CODE, String.valueOf(FlowFileReply.ResponseCode.SUCCESS));
             successFile.assertAttributeEquals(InvokeGRPC.RESPONSE_BODY, "success");
             successFile.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, TestGRPCServer.PORT);
+            successFile.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, String.valueOf(port));
         } finally {
             server.stop();
         }

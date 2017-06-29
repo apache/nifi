@@ -49,7 +49,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class TestListenGRPC {
-    private static final int PORT = 50053;
     private static final String HOST = "localhost";
     private static final String CERT_DN = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
     private static final String SOURCE_SYSTEM_UUID = "FAKE_UUID";
@@ -85,12 +84,13 @@ public class TestListenGRPC {
 
     @Test
     public void testSuccessfulRoundTrip() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT);
+        final int randPort = TestGRPCClient.randomPort();
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
 
         final ProcessContext processContext = runner.getProcessContext();
         final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
@@ -127,12 +127,13 @@ public class TestListenGRPC {
 
     @Test
     public void testOutOfSpaceRoundTrip() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT);
+        final int randPort = TestGRPCClient.randomPort();
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
 
         final ProcessContext processContext = spy(runner.getProcessContext());
         // force the context to return that space isn't available, prompting an error message to be returned.
@@ -163,12 +164,13 @@ public class TestListenGRPC {
 
     @Test(expected = io.grpc.StatusRuntimeException.class)
     public void testExceedMaxMessageSize() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT);
+        final int randPort = TestGRPCClient.randomPort();
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
         // set max message size to 1 byte to force exception to be thrown.
         runner.setProperty(ListenGRPC.PROP_MAX_MESSAGE_SIZE, "1B");
 
@@ -208,14 +210,15 @@ public class TestListenGRPC {
 
     @Test
     public void testSecureTwoWaySSL() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT, sslProperties);
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort, sslProperties);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
         runner.setProperty(ListenGRPC.PROP_USE_SECURE, "true");
         useSSLContextService(runner, sslProperties);
 
@@ -253,14 +256,15 @@ public class TestListenGRPC {
     }
 
     @Test
-    public void testSecureOneWaySSL() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testSecureOneWaySSL() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, InterruptedException {
+        final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getTruststoreProperties();
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT, sslProperties);
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort, sslProperties);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
         runner.setProperty(ListenGRPC.PROP_USE_SECURE, "true");
         useSSLContextService(runner, getKeystoreProperties());
 
@@ -282,6 +286,8 @@ public class TestListenGRPC {
             assertThat(reply.getResponseCode(), equalTo(FlowFileReply.ResponseCode.SUCCESS));
             assertThat(reply.getBody(), equalTo("FlowFile successfully received."));
 
+            // known race condition spot: grpc reply vs flowfile transfer
+            Thread.sleep(10);
             runner.assertTransferCount(ListenGRPC.REL_SUCCESS, 1);
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListenGRPC.REL_SUCCESS);
             assertThat(successFiles.size(), equalTo(1));
@@ -299,14 +305,15 @@ public class TestListenGRPC {
 
     @Test(expected = io.grpc.StatusRuntimeException.class)
     public void testSecureTwoWaySSLFailAuthorizedDNCheck() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT, sslProperties);
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort, sslProperties);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
         runner.setProperty(ListenGRPC.PROP_USE_SECURE, "true");
         runner.setProperty(ListenGRPC.PROP_AUTHORIZED_DN_PATTERN, "CN=FAKE.*");
         useSSLContextService(runner, sslProperties);
@@ -346,14 +353,15 @@ public class TestListenGRPC {
 
     @Test
     public void testSecureTwoWaySSLPassAuthorizedDNCheck() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        final int randPort = TestGRPCClient.randomPort();
         final Map<String, String> sslProperties = getKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, PORT, sslProperties);
+        final ManagedChannel channel = TestGRPCClient.buildChannel(HOST, randPort, sslProperties);
         final FlowFileServiceGrpc.FlowFileServiceBlockingStub stub = FlowFileServiceGrpc.newBlockingStub(channel);
 
         final ListenGRPC listenGRPC = new ListenGRPC();
         final TestRunner runner = TestRunners.newTestRunner(listenGRPC);
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(PORT));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, String.valueOf(randPort));
         runner.setProperty(ListenGRPC.PROP_USE_SECURE, "true");
         runner.setProperty(ListenGRPC.PROP_AUTHORIZED_DN_PATTERN, "CN=localhost.*");
         useSSLContextService(runner, sslProperties);

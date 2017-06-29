@@ -159,13 +159,15 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
         flowFile = session.putAttribute(flowFile, ListenGRPC.REMOTE_HOST, remoteHost);
         flowFile = session.putAttribute(flowFile, ListenGRPC.REMOTE_USER_DN, remoteDN);
 
+        // register success
+        session.transfer(flowFile, ListenGRPC.REL_SUCCESS);
+        session.commit();
+
+        // reply to client
         final FlowFileReply reply = replyBuilder.setResponseCode(FlowFileReply.ResponseCode.SUCCESS)
                 .setBody("FlowFile successfully received.")
                 .build();
         responseObserver.onNext(reply);
         responseObserver.onCompleted();
-
-        session.transfer(flowFile, ListenGRPC.REL_SUCCESS);
-        session.commit();
     }
 }
