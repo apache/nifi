@@ -177,6 +177,7 @@ public abstract class NiFiProperties {
     public static final String CLUSTER_NODE_PROTOCOL_MAX_THREADS = "nifi.cluster.node.protocol.max.threads";
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
+    public static final String CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = "nifi.cluster.node.max.concurrent.requests";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
     public static final String FLOW_ELECTION_MAX_WAIT_TIME = "nifi.cluster.flow.election.max.wait.time";
     public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
@@ -244,6 +245,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY = "1 sec";
     public static final String DEFAULT_CLUSTER_NODE_READ_TIMEOUT = "5 sec";
     public static final String DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT = "5 sec";
+    public static final int DEFAULT_CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = 100;
 
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 10;
@@ -559,6 +561,10 @@ public abstract class NiFiProperties {
 
     public int getWebThreads() {
         return getIntegerProperty(WEB_THREADS, DEFAULT_WEB_THREADS);
+    }
+
+    public int getClusterNodeMaxConcurrentRequests() {
+        return getIntegerProperty(CLUSTER_NODE_MAX_CONCURRENT_REQUESTS, DEFAULT_CLUSTER_NODE_MAX_CONCURRENT_REQUESTS);
     }
 
     public File getWebWorkingDirectory() {
