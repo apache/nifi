@@ -63,6 +63,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -583,12 +584,75 @@ public class TestStandardFlowFileQueue {
     }
 
 
+    @Test
+    public void testOOMEFollowedBySuccessfulSwapIn() {
+        final List<FlowFileRecord> flowFiles = new ArrayList<>();
+        for (int i = 0; i < 50000; i++) {
+            flowFiles.add(new TestFlowFile());
+        }
+
+        queue.putAll(flowFiles);
+
+        swapManager.failSwapInAfterN = 2;
+        swapManager.setSwapInFailure(new OutOfMemoryError("Intentional OOME for unit test"));
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        for (int i = 0; i < 30000; i++) {
+            final FlowFileRecord polled = queue.poll(expiredRecords);
+            assertNotNull(polled);
+        }
+
+        // verify that unexpected ERROR's are handled in such a way that we keep retrying
+        for (int i = 0; i < 3; i++) {
+            try {
+                queue.poll(expiredRecords);
+                Assert.fail("Expected OOME to be thrown");
+            } catch (final OutOfMemoryError oome) {
+                // expected
+            }
+        }
+
+        // verify that unexpected Runtime Exceptions are handled in such a way that we keep retrying
+        swapManager.setSwapInFailure(new NullPointerException("Intentional OOME for unit test"));
+
+        for (int i = 0; i < 3; i++) {
+            try {
+                queue.poll(expiredRecords);
+                Assert.fail("Expected NPE to be thrown");
+            } catch (final NullPointerException npe) {
+                // expected
+            }
+        }
+
+        swapManager.failSwapInAfterN = -1;
+
+        for (int i = 0; i < 20000; i++) {
+            final FlowFileRecord polled = queue.poll(expiredRecords);
+            assertNotNull(polled);
+        }
+
+        queue.acknowledge(flowFiles);
+        assertNull(queue.poll(expiredRecords));
+        assertEquals(0, queue.getActiveQueueSize().getObjectCount());
+        assertEquals(0, queue.size().getObjectCount());
+
+        assertTrue(swapManager.swappedOut.isEmpty());
+    }
+
+
     private class TestSwapManager implements FlowFileSwapManager {
         private final Map<String, List<FlowFileRecord>> swappedOut = new HashMap<>();
         int swapOutCalledCount = 0;
         int swapInCalledCount = 0;
 
         private int incompleteSwapFileRecordsToInclude = -1;
+
+        private int failSwapInAfterN = -1;
+        private Throwable failSwapInFailure = null;
+
+        private void setSwapInFailure(final Throwable t) {
+            this.failSwapInFailure = t;
+        }
 
         @Override
         public void initialize(final SwapManagerInitializationContext initializationContext) {
@@ -621,6 +685,17 @@ public class TestStandardFlowFileQueue {
                 final List<FlowFileRecord> partial = records.subList(0, incompleteSwapFileRecordsToInclude);
                 final SwapContents partialContents = new StandardSwapContents(summary, partial);
                 throw new IncompleteSwapFileException(swapLocation, partialContents);
+            }
+
+            if (swapInCalledCount > failSwapInAfterN && failSwapInAfterN > -1) {
+                if (failSwapInFailure instanceof RuntimeException) {
+                    throw (RuntimeException) failSwapInFailure;
+                }
+                if (failSwapInFailure instanceof Error) {
+                    throw (Error) failSwapInFailure;
+                }
+
+                throw new RuntimeException(failSwapInFailure);
             }
         }
 
