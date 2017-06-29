@@ -36,9 +36,8 @@ RUN mkdir -p $NIFI_HOME
 RUN curl -fSL $NIFI_BINARY_URL -o $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz \
 	&& echo "$(curl $NIFI_BINARY_URL.sha256) *$NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz" | sha256sum -c - \
 	&& tar -xvzf $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz -C $NIFI_BASE_DIR \
-	&& rm $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz
-
-RUN chown -R nifi:nifi $NIFI_HOME
+	&& rm $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz \
+	&& chown -R nifi:nifi $NIFI_HOME
 
 # Web HTTP Port
 EXPOSE 8080
