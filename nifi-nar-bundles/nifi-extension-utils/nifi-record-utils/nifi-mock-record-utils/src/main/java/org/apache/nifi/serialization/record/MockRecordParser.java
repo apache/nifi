@@ -76,7 +76,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
             }
 
             @Override
-            public Record nextRecord() throws IOException, MalformedRecordException {
+            public Record nextRecord(final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
                 if (failAfterN >= recordCount) {
                     throw new MalformedRecordException("Intentional Unit Test Exception because " + recordCount + " records have been read");
                 }

@@ -22,8 +22,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.DateFormat;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 import org.apache.commons.csv.CSVFormat;
@@ -36,7 +41,6 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -49,7 +53,9 @@ public class CSVRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat,
+    private List<String> rawFieldNames;
+
+    public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         this.schema = schema;
@@ -62,47 +68,77 @@ public class CSVRecordReader implements RecordReader {
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
-        final CSVFormat withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+
+        CSVFormat withHeader;
+        if (hasHeader) {
+            withHeader = csvFormat.withSkipHeaderRecord();
+
+            if (ignoreHeader) {
+                withHeader = withHeader.withHeader(schema.getFieldNames().toArray(new String[0]));
+            }
+        } else {
+            withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
+        }
+
         csvParser = new CSVParser(reader, withHeader);
     }
 
     @Override
-    public Record nextRecord() throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final RecordSchema schema = getSchema();
 
+        final List<String> rawFieldNames = getRawFieldNames();
+        final int numFieldNames = rawFieldNames.size();
+
         for (final CSVRecord csvRecord : csvParser) {
-            final Map<String, Object> rowValues = new HashMap<>(schema.getFieldCount());
+            final Map<String, Object> values = new LinkedHashMap<>();
+            for (int i = 0; i < csvRecord.size(); i++) {
+                final String rawFieldName = numFieldNames <= i ? "unknown_field_index_" + i : rawFieldNames.get(i);
+                final String rawValue = csvRecord.get(i);
 
-            for (final RecordField recordField : schema.getFields()) {
-                String rawValue = null;
-                final String fieldName = recordField.getFieldName();
-                if (csvRecord.isSet(fieldName)) {
-                    rawValue = csvRecord.get(fieldName);
-                } else {
-                    for (final String alias : recordField.getAliases()) {
-                        if (csvRecord.isSet(alias)) {
-                            rawValue = csvRecord.get(alias);
-                            break;
-                        }
-                    }
-                }
+                final Optional<DataType> dataTypeOption = schema.getDataType(rawFieldName);
 
-                if (rawValue == null) {
-                    rowValues.put(fieldName, null);
+                if (!dataTypeOption.isPresent() && dropUnknownFields) {
                     continue;
                 }
 
-                final Object converted = convert(rawValue, recordField.getDataType(), fieldName);
-                if (converted != null) {
-                    rowValues.put(fieldName, converted);
+                final Object value;
+                if (coerceTypes && dataTypeOption.isPresent()) {
+                    value = convert(rawValue, dataTypeOption.get(), rawFieldName);
+                } else if (dataTypeOption.isPresent()) {
+                    // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
+                    // dictate a field type. As a result, we will use the schema that we have to attempt to convert
+                    // the value into the desired type if it's a simple type.
+                    value = convertSimpleIfPossible(rawValue, dataTypeOption.get(), rawFieldName);
+                } else {
+                    value = rawValue;
                 }
+
+                values.put(rawFieldName, value);
             }
 
-            return new MapRecord(schema, rowValues);
+            return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
         }
 
         return null;
     }
+
+
+    private List<String> getRawFieldNames() {
+        if (this.rawFieldNames != null) {
+            return this.rawFieldNames;
+        }
+
+        // Use a SortedMap keyed by index of the field so that we can get a List of field names in the correct order
+        final SortedMap<Integer, String> sortedMap = new TreeMap<>();
+        for (final Map.Entry<String, Integer> entry : csvParser.getHeaderMap().entrySet()) {
+            sortedMap.put(entry.getValue(), entry.getKey());
+        }
+
+        this.rawFieldNames = new ArrayList<>(sortedMap.values());
+        return this.rawFieldNames;
+    }
+
 
     @Override
     public RecordSchema getSchema() {
@@ -115,12 +151,45 @@ public class CSVRecordReader implements RecordReader {
         }
 
         final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-
         if (trimmed.isEmpty()) {
             return null;
         }
 
         return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+    }
+
+    private Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
+        if (dataType == null || value == null) {
+            return value;
+        }
+
+        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        switch (dataType.getFieldType()) {
+            case STRING:
+                return value;
+            case BOOLEAN:
+            case INT:
+            case LONG:
+            case FLOAT:
+            case DOUBLE:
+            case BYTE:
+            case CHAR:
+            case SHORT:
+            case TIME:
+            case TIMESTAMP:
+            case DATE:
+                if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
+                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                } else {
+                    return value;
+                }
+        }
+
+        return value;
     }
 
     @Override

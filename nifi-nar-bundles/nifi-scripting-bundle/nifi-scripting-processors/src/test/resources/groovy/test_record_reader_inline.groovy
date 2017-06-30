@@ -44,7 +44,7 @@ class GroovyRecordReader implements RecordReader {
             new MapRecord(recordSchema, ['id': 3, 'name': 'Ramon', 'code': 300])
     ].iterator()
 
-    Record nextRecord() throws IOException, MalformedRecordException {
+    Record nextRecord(boolean coerceTypes, boolean dropUnknown) throws IOException, MalformedRecordException {
         return recordIterator.hasNext() ? recordIterator.next() : null
     }
 
