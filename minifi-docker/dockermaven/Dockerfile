@@ -16,11 +16,12 @@
 # under the License.
 #
 
-FROM openjdk:8
+FROM openjdk:8-jre-alpine
 MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
-ARG UID=1000
-ARG GID=50
+# Values are set by Maven
+ARG UID
+ARG GID
 ARG MINIFI_VERSION
 ARG MINIFI_BINARY
 
@@ -28,9 +29,9 @@ ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION
 
 # Setup MiNiFi user
-RUN groupadd -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
-RUN useradd --shell /bin/bash -u $UID -g $GID -m minifi
-RUN mkdir -p $MINIFI_HOME 
+RUN addgroup -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
+RUN adduser -S -H -G minifi minifi
+RUN mkdir -p $MINIFI_HOME
 
 ADD $MINIFI_BINARY $MINIFI_BASE_DIR
 RUN chown -R minifi:minifi $MINIFI_HOME
