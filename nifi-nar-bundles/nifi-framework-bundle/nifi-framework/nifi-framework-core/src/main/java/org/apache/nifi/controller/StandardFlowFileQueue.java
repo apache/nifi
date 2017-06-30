@@ -459,21 +459,25 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         // keep up with queue), we will end up always processing the new FlowFiles first instead of the FlowFiles that arrived
         // first.
         if (!swapLocations.isEmpty()) {
-            final String swapLocation = swapLocations.remove(0);
+            final String swapLocation = swapLocations.get(0);
             boolean partialContents = false;
             SwapContents swapContents = null;
             try {
                 swapContents = swapManager.swapIn(swapLocation, this);
+                swapLocations.remove(0);
             } catch (final IncompleteSwapFileException isfe) {
                 logger.error("Failed to swap in all FlowFiles from Swap File {}; Swap File ended prematurely. The records that were present will still be swapped in", swapLocation);
                 logger.error("", isfe);
                 swapContents = isfe.getPartialContents();
                 partialContents = true;
+                swapLocations.remove(0);
             } catch (final FileNotFoundException fnfe) {
                 logger.error("Failed to swap in FlowFiles from Swap File {} because the Swap File can no longer be found", swapLocation);
                 if (eventReporter != null) {
                     eventReporter.reportEvent(Severity.ERROR, "Swap File", "Failed to swap in FlowFiles from Swap File " + swapLocation + " because the Swap File can no longer be found");
                 }
+
+                swapLocations.remove(0);
                 return;
             } catch (final IOException ioe) {
                 logger.error("Failed to swap in FlowFiles from Swap File {}; Swap File appears to be corrupt!", swapLocation);
@@ -482,7 +486,17 @@ public class StandardFlowFileQueue implements FlowFileQueue {
                     eventReporter.reportEvent(Severity.ERROR, "Swap File", "Failed to swap in FlowFiles from Swap File " +
                         swapLocation + "; Swap File appears to be corrupt! Some FlowFiles in the queue may not be accessible. See logs for more information.");
                 }
+
+                // We do not remove the Swap File from swapLocations because the IOException may be recoverable later. For instance, the file may be on a network
+                // drive and we may have connectivity problems, etc.
                 return;
+            } catch (final Throwable t) {
+                logger.error("Failed to swap in FlowFiles from Swap File {}", swapLocation, t);
+
+                // We do not remove the Swap File from swapLocations because this is an unexpected failure that may be retry-able. For example, if there were
+                // an OOME, etc. then we don't want to he queue to still reflect that the data is around but never swap it in. By leaving the Swap File
+                // in swapLocations, we will continue to retry.
+                throw t;
             }
 
             final QueueSize swapSize = swapContents.getSummary().getQueueSize();
@@ -516,7 +530,7 @@ public class StandardFlowFileQueue implements FlowFileQueue {
 
         if (size.get().swappedCount > swapQueue.size()) {
             // we already have FlowFiles swapped out, so we won't migrate the queue; we will wait for
-            // an external process to swap FlowFiles back in.
+            // the files to be swapped back in first
             return;
         }
 
