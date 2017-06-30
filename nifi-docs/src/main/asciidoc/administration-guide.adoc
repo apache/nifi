@@ -169,7 +169,7 @@ TLS Generation Toolkit
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
-Note: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
+NOTE: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
 
 The `tls-toolkit` command line tool has two primary modes of operation:
 
@@ -180,17 +180,35 @@ Standalone
 ^^^^^^^^^^
 Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in standalone mode:
 
-* `-n,--hostnames`          The comma-separated list of hostnames that you’d like to generate certificates for.  It can be specified multiple times.  Range and instance patterns are supported. See below for details.
-* `-C,--clientCertDn`       The DN that you'd like to generate a client certificate for.  It can be specified multiple times.
-* `-f,--nifiPropertiesFile` The base 'nifi.properties' file that the tool will update for each host.
-* `-o,--outputDirectory`    The directory to use for the resulting Certificate Authority files and NiFi configurations.  A subdirectory will be made for each host.
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `-B`,`--clientCertPassword <arg>`             Password for client certificate. Must either be one value or one for each client DN (auto-generate if not specified)
+* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
+* `-C`,`--clientCertDn <arg>`                   Generate client certificate suitable for use in browser with specified DN (Can be specified multiple times)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-f`,`--nifiPropertiesFile <arg>`             Base `nifi.properties` file to update (Embedded file identical to the one in a default NiFi install will be used if not specified)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-G`,`--globalPortSequence <arg>`             Use sequential ports that are calculated for all hosts according to the provided hostname expressions (Can be specified multiple times, MUST BE SAME FROM RUN TO RUN)
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-K`,`--keyPassword <arg>`                    Key password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `-n`,`--hostnames <arg>`                      Comma separated list of hostnames
+* `--nifiDnPrefix <arg>`                        String to prepend to hostname(s) when determining DN (default: `CN=`)
+* `--nifiDnSuffix <arg>`                        String to append to hostname(s) when determining DN (default: `, OU=NIFI`)
+* `-o`,`--outputDirectory <arg>`                The directory to output keystores, truststore, config files (default: `../bin`)
+* `-O`,`--isOverwrite`                          Overwrite existing host output
+* `-P`,`--trustStorePassword <arg>`             Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
+* `-S`,`--keyStorePassword <arg>`               Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+
 
 Hostname Patterns:
 
-* Square brackets can be used in order to easily specify a range of hostnames. Example: [01-20]
-* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: (5)
+* Square brackets can be used in order to easily specify a range of hostnames. Example: `[01-20]`
+* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: `(5)`
 
 Examples:
 
@@ -212,33 +230,51 @@ bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=u
 
 Client/Server
 ^^^^^^^^^^^^^
-Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates.  The CA can be stopped when you’re not bringing nodes online.
+Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
 
 
 ===== Server
 
-The CA server is invoked by running `./bin/tls-toolkit server -h` prints the usage information along with descriptions of options that can be specified.
+The CA server is invoked by running `./bin/tls-toolkit.sh server -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in server mode:
 
-* `-f,--configJson`        The location of the json config (written after first run)
-* `-F,--useConfigJson`     Loads all relevant configuration from the config json (configJson is the only other argument necessary)
-* `-t,--token`             The token used to prevent man in the middle attacks (this should be a long, random value and needs to be known when invoking the client)
-* `-D,--dn`                The DN for the CA
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `--configJsonIn <arg>`                        The place to read configuration info from (defaults to the value of configJson), implies useConfigJson if set (default: `configJson` value)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-D`,`--dn <arg>`                             The dn to use for the CA certificate (default: `CN=YOUR_CA_HOSTNAME,OU=NIFI`)
+* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
+* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `8443`)
+* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
 
 ===== Client
 
-The client can be used to request new Certificates from the CA.  The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority.  The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
+The client can be used to request new Certificates from the CA. The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority. The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in client mode:
 
-* `-f,--configJson`                   The json config file
-* `-c,--certificateAuthorityHostname`  The hostname of the CA
-* `-D,--DN`                            The DN for the CSR (and Certificate)
-* `-t,--token`                         The token used to prevent man in the middle attacks (this should be a long, random value and needs to be the same one used to start the CA server)
-* `-T,--keyStoreType`                  The type of keystore to create (leave default for NiFi nodes, specify PKCS12 to create client cert)
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
+* `-C`,`--certificateDirectory <arg>`           The directory to write the CA certificate (default: `.`)
+* `--configJsonIn <arg>`                        The place to read configuration info from, implies `useConfigJson` if set (default: `configJson` value)
+* `-D`,`--dn <arg>`                             The DN to use for the client certificate (default: `CN=<localhost name>,OU=NIFI`) (this is auto-populated by the tool)
+* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
+* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `8443`)
+* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by CA)
 
-After running the client you will have the CA’s certificate, a keystore, a truststore, and a config.json with information about them as well as their passwords.
+After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
 
@@ -1396,13 +1432,14 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
-* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
-* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
-* `-m,--message <arg>` Bulletin message (required)
-* `-l,--level <arg>` Status level of bulletin – INFO, WARN, ERROR
-* `-v,--verbose` Verbose messaging (optional)
-* `-h,--help` Help Text (optional)
+* `-b`,`--bootstrapConf <arg>`      Existing Bootstrap Configuration file (required)
+* `-d`,`--nifiInstallDir <arg>`     NiFi Root Folder (required)
+* `-h`,`--help`                     Help Text (optional)
+* `-l`,`--level <arg>`              Status level of bulletin – INFO, WARN, ERROR
+* `-m`,`--message <arg>`            Bulletin message (required)
+* `-p`,`--proxyDN <arg>`            Proxy or User DN (required for secured nodes)
+* `-v`,`--verbose`                  Verbose messaging (optional)
+
 
 Example usage on Linux:
 
@@ -1436,13 +1473,14 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
-* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
-* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
-* `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
-* `-u,--clusterUrls <arg>` Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
-* `-v,--verbose` Verbose messaging (optional)
-* `-h,--help` Help Text (optional)
+* `-b`,`--bootstrapConf <arg>`     Existing Bootstrap Configuration file (required)
+* `-d`,`--nifiInstallDir <arg>`    NiFi Root Folder (required)
+* `-h`,`--help`                    Help Text (optional)
+* `-o`, `--operation <arg>`        Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
+* `-p`,`--proxyDN <arg>`           Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
+* `-u`,`--clusterUrls <arg>`       Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
+* `-v`,`--verbose`                 Verbose messaging (optional)
+
 
 Example usage on Linux:
 
@@ -1513,17 +1551,17 @@ To show help:
 
 The following are available options:
 
-* `-o,--operation <arg>` File operation (install | backup | restore)
-* `-b,--backupDir <arg>` Backup NiFi Directory (used with backup or restore operation)
-* `-c,--nifiCurrentDir <arg>` Current NiFi Installation Directory (used optionally with install or restore operation)
-* `-d,--nifiInstallDir <arg>` NiFi Installation Directory (used with install or restore operation)
-* `-i,--installFile <arg>` NiFi Install File (used with install operation)
-* `-r,--nifiRollbackDir <arg>` NiFi Installation Directory (used with install or restore operation)
-* `-t,--bootstrapConf <arg>` Current NiFi Bootstrap Configuration File (used optionally)
-* `-m,--moveRepositories` Allow repositories to be moved to new/restored nifi directory from existing installation, if available (used optionally with install or restore operation)
-* `-x,--overwriteConfigs` Overwrite existing configuration directory with upgrade changes (used optionally with install or restore operation)
-* `-v,--verbose` Verbose messaging (optional)
-* `-h,--help` Print help info (optional)
+* `-b`,`--backupDir <arg>`          Backup NiFi Directory (used with backup or restore operation)
+* `-c`,`--nifiCurrentDir <arg>`     Current NiFi Installation Directory (used optionally with install or restore operation)
+* `-d`,`--nifiInstallDir <arg>`     NiFi Installation Directory (used with install or restore operation)
+* `-h`,`--help`                     Print help info (optional)
+* `-i`,`--installFile <arg>`        NiFi Install File (used with install operation)
+* `-m`,`--moveRepositories`         Allow repositories to be moved to new/restored nifi directory from existing installation, if available (used optionally with install or restore operation)
+* `-o`,`--operation <arg>`          File operation (install | backup | restore)
+* `-r`,`--nifiRollbackDir <arg>`    NiFi Installation Directory (used with install or restore operation)
+* `-t`,`--bootstrapConf <arg>`      Current NiFi Bootstrap Configuration File (used optionally)
+* `-v`,`--verbose`                  Verbose messaging (optional)
+* `-x`,`--overwriteConfigs`         Overwrite existing configuration directory with upgrade changes (used optionally with install or restore operation)
 
 Example usage on Linux:
 
@@ -2091,14 +2129,14 @@ link:https://nifi.apache.org/download.html[Apache NiFi download page].
 
 You can use the following command line options with the ZooKeeper Migrator:
 
-* `-a,--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k,--krb-conf` option.
-* `-f,--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r,--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s,--send` option, the data in the file will be sent to ZooKeeper.
-* `-h,--help`                                   Prints help, displays available parameters with descriptions
-* `--ignore-source`                             Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
-* `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
-* `-r,--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f,--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s,--send` option.
-* `-s,--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f,--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z,--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r,--receive` option.
-* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
+* `-a`,`--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k`,`--krb-conf` option.
+* `-f`,`--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r`,`--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s`,`--send` option, the data in the file will be sent to ZooKeeper.
+* `-h`,`--help`                                   Prints help, displays available parameters with descriptions
+* `--ignore-source`                               Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
+* `-k`,`--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a`,`--auth` option.
+* `-r`,`--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f`,`--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s`,`--send` option.
+* `-s`,`--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f`,`--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z`,`--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r`,`--receive` option.
+* `-z`,`--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
 
 [[migrating_between_source_destination_zookeepers]]
 ==== Migrating Between Source and Destination ZooKeepers
