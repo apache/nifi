@@ -405,7 +405,7 @@ public class QueryCassandraTest {
     public void testConvertToCSVStream() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, false,true);
+        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, false);
         assertEquals(2, numberOfRows);
     }
 
@@ -413,7 +413,7 @@ public class QueryCassandraTest {
     public void testConvertToCSVStreamWithHeaderLine() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, true,true);
+        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, true);
         assertEquals(2, numberOfRows);
     }
 

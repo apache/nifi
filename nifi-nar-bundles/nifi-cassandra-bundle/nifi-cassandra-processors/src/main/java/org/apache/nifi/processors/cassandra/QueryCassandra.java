@@ -98,6 +98,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final String CASSANDRA_WATERMARK_MIN_VALUE_ID = "CASSANDRA_WATERMARK_MIN_VALUE_ID";
     public static final String CASSANDRA_WATERMARK_MAX_VALUE_ID = "CASSANDRA_WATERMARK_MAX_VALUE_ID";
+    public static final String IS_FIRST_CSV_HEADER_LINE = "IS_FIRST_CSV_HEADER_LINE";
 
     public static final String RESULT_ROW_COUNT = "executecql.row.count";
 
@@ -318,6 +319,12 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         //calculate the minBoundValue and the maxBoundValue
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
         waterMark = statePropertyMap.get(CASSANDRA_WATERMARK_MAX_VALUE_ID);
+
+        String isTemp = statePropertyMap.get(IS_FIRST_CSV_HEADER_LINE);
+        if(StringUtils.isNoneEmpty(isTemp)) {
+            isFirst = Boolean.valueOf(isTemp);
+        }
+
         long minBoundValue = 0;
         if (waterMark !=null && !StringUtils.isEmpty(waterMark)) {
             minBoundValue = Long.valueOf(waterMark) - overlapTime.longValue() + 1;
@@ -378,7 +385,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
                             } else if (CSV_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS,includeCsvHeaderLine,isFirst));
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS,includeCsvHeaderLine));
                             }
                         } else {
                             resultSet = queryFuture.getUninterruptibly();
@@ -387,7 +394,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
                             } else if (CSV_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, 0, null,includeCsvHeaderLine,isFirst));
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, 0, null,includeCsvHeaderLine));
                             }
                         }
 
@@ -409,6 +416,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             //Step 4.set state of min, max watermark
             statePropertyMap.put(CASSANDRA_WATERMARK_MIN_VALUE_ID, Long.toString(minBoundValue));
             statePropertyMap.put(CASSANDRA_WATERMARK_MAX_VALUE_ID, Long.toString(maxBoundValue));
+            // Step 5. isFirst
+            statePropertyMap.put(IS_FIRST_CSV_HEADER_LINE, String.valueOf(isFirst));
+
             stateManager.setState(statePropertyMap, Scope.CLUSTER);
 
         } catch (final NoHostAvailableException nhae) {
@@ -458,8 +468,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             session.remove(fileToProcess);
             context.yield();
         }
-        // Step 5. isFirst
-        isFirst=false;
     }
 
     private String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
@@ -713,7 +721,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
     public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, Charset charset,
-                                          long timeout, TimeUnit timeUnit, boolean includeCsvHeaderLine, boolean isFirst)
+                                          long timeout, TimeUnit timeUnit, boolean includeCsvHeaderLine)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         try {
@@ -737,7 +745,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     if (nrOfRows != 0) {
                         outStream.write("\n".getBytes(charset));
                     }else{
-                        if(includeCsvHeaderLine==true){
+                        if(includeCsvHeaderLine==true && isFirst){
                             for (int i = 0; i < columnDefinitions.size(); i++) {
                                 String columnName = columnDefinitions.getName(i);
                                 if (i != 0) {
@@ -746,6 +754,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                 outStream.write(columnName.getBytes(charset));
                             }
                             outStream.write("\n".getBytes(charset));
+                            isFirst=false;
                         }
                     }
 
