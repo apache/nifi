@@ -55,11 +55,11 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 0.10.x Consumer API. "
-    + "The complementary NiFi processor for sending messages is PublishKafka_0_10. Please note that, at this time, the Processor assumes that "
+    + "The complementary NiFi processor for sending messages is PublishKafkaRecord_0_10. Please note that, at this time, the Processor assumes that "
     + "all records that are retrieved from a given partition have the same schema. If any of the Kafka messages are pulled but cannot be parsed or written with the "
     + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
     + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
-    + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile.")
+    + "A 'record.count' attribute is added to indicate how many records are contained in the FlowFile.")
 @Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.10.x"})
 @WritesAttributes({
     @WritesAttribute(attribute = "record.count", description = "The number of records received"),
