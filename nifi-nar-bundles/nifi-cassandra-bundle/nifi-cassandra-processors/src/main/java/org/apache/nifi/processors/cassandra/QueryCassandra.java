@@ -43,6 +43,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -81,12 +83,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Tags({"cassandra", "cql", "select"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Executes provided Cassandra Query Language (CQL) select query on a Cassandra to fetch all rows whose values"
-        + "in the specified Maximum Value column(s) are larger than the previously-seen maxima.Query result"
-        + "may be converted to Avro, JSON or CSV format. Streaming is used so arbitrarily large result sets are supported. This processor can be "
-        + "scheduled to run on a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
-        + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
-        + "select query. FlowFile attribute 'executecql.row.count' indicates how many rows were selected.")
+@CapabilityDescription("Executes provided Cassandra Query Language (CQL) select query on a Cassandra 1.x, 2.x, or 3.0.x cluster."
+        + "In addition, incremental fetching can be achieved by setting Maximum-Value Columns, which causes the processor to track the columns' maximum values, "
+        + "thus only fetching rows whose columns' values exceed the observed maximums. This processor is intended to be run on the Primary Node only.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing query, the maximum value of the specified column is stored, "
         + "fetch all rows whose values in the specified Maximum Value column(s) are larger than the previously-seen maximum"
         + "State is stored across the cluster so that the next time this Processor can be run with min and max values")
@@ -103,6 +102,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     public static final String RESULT_ROW_COUNT = "executecql.row.count";
 
     public static final PropertyDescriptor INIT_WATERMARK = new PropertyDescriptor.Builder().name("Initial Watermark Value")
+            .name("Initial Watermark")
+            .displayName("Initial Watermark")
             .description("Use it only once.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -110,6 +111,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor BACKOFF_PERIOD = new PropertyDescriptor.Builder()
             .name("Backoff Period")
+            .displayName("Backoff Period")
             .description("Only records older than the backoff period will be eligible for pickup. This can be used in the ILM use case to define a retention period.")
             .defaultValue("10 seconds")
             .required(true)
@@ -119,6 +121,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor OVERLAP_TIME = new PropertyDescriptor.Builder()
             .name("Overlap Period")
+            .displayName("Overlap Period")
             .description("Amount of time to overlap into the last load date to ensure long running transactions missed by previous load weren't missed. Recommended: >0s")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -127,6 +130,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor DATE_FIELD = new PropertyDescriptor.Builder()
             .name("Date Field")
+            .displayName("Date Field")
             .description("Source field containing a modified date for tracking incremental load")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -134,6 +138,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
+            .displayName("Table Name")
             .description("Load for Table Name")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -141,6 +146,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor CQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("CQL select query")
+            .displayName("CQL select query")
             .description("CQL select query")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -149,6 +155,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Max Wait Time")
+            .displayName("Max Wait Time")
             .description("The maximum amount of time allowed for a running CQL select query. Must be of format "
                     + "<duration> <TimeUnit> where <duration> is a non-negative integer and TimeUnit is a supported "
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
@@ -160,6 +167,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch size")
+            .displayName("Fetch size")
             .description("The number of result rows to be fetched from the result set at a time. Zero is the default "
                     + "and means there is no limit.")
             .defaultValue("0")
@@ -170,12 +178,22 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor OUTPUT_FORMAT = new PropertyDescriptor.Builder()
             .name("Output Format")
+            .displayName("Output Format")
             .description("The format to which the result rows will be converted. If JSON is selected, the output will "
                     + "contain an object with field 'results' containing an array of result rows. Each row in the array is a "
                     + "map of the named column to its value. For example: { \"results\": [{\"userid\":1, \"name\":\"Joe Smith\"}]}")
             .required(true)
             .allowableValues(AVRO_FORMAT, JSON_FORMAT, CSV_FORMAT)
             .defaultValue(AVRO_FORMAT)
+            .build();
+
+    public static final PropertyDescriptor INCLUDE_CSV_HEADER_LINE = new PropertyDescriptor.Builder()
+            .name("Include CSV Header Line")
+            .displayName("Include CSV Header Line")
+            .description("Specifies whether or not the CSV column names should be written out as the first line.")
+            .required(true)
+            .allowableValues("true","false")
+            .defaultValue("false")
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -196,7 +214,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     private final static Set<Relationship> relationships;
 
-    private boolean isFisrt = true;
+    private static boolean isFirst = true;
     /*
      * Will ensure that the list of property descriptors is build only once.
      * Will also create a Set of relationships
@@ -214,6 +232,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
         _propertyDescriptors.add(OUTPUT_FORMAT);
+        _propertyDescriptors.add(INCLUDE_CSV_HEADER_LINE);
+
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -222,7 +242,21 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _relationships.add(REL_RETRY);
         relationships = Collections.unmodifiableSet(_relationships);
     }
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
 
+        Set<ValidationResult> results = new HashSet<>();
+        results.addAll(super.customValidate(validationContext));
+
+        String selectQuery = validationContext.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions().getValue();
+        String tableName = validationContext.getProperty(TABLE_NAME).getValue();
+
+        if ( StringUtils.isEmpty(selectQuery) && StringUtils.isEmpty(tableName) ) {
+            results.add(new ValidationResult.Builder().valid(false).explanation(
+                    "TableName or Query is required").build());
+        }
+        return results;
+    }
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
@@ -288,7 +322,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         if (waterMark !=null && !StringUtils.isEmpty(waterMark)) {
             minBoundValue = Long.valueOf(waterMark) - overlapTime.longValue() + 1;
         }
-        if (isFisrt && initWaterMark != null && NumberUtils.isNumber(initWaterMark)) {
+        if (isFirst && initWaterMark != null && NumberUtils.isNumber(initWaterMark)) {
             long initMinBoundValue = Long.valueOf(initWaterMark);
             if (initMinBoundValue > 0) {
                 minBoundValue = initMinBoundValue;
@@ -311,15 +345,12 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
+        final boolean includeCsvHeaderLine = Boolean.valueOf(context.getProperty(INCLUDE_CSV_HEADER_LINE).getValue());
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
         final String waterMarkDateField = context.getProperty(DATE_FIELD).getValue();
         final String tableName = context.getProperty(TABLE_NAME).getValue();
         final String keySpace = context.getProperty(KEYSPACE).evaluateAttributeExpressions(fileToProcess).getValue();
-
-        if ( StringUtils.isEmpty(selectQuery) && StringUtils.isEmpty(tableName) ) {
-            throw new ProcessException(" TableName or Query is required");
-        }
 
         String modifiedSelectQuery = addRangeQuery(tableName, keySpace, waterMarkDateField, selectQuery, minBoundValue, maxBoundValue);
 
@@ -347,7 +378,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
                             } else if (CSV_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS,includeCsvHeaderLine,isFirst));
                             }
                         } else {
                             resultSet = queryFuture.getUninterruptibly();
@@ -356,7 +387,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             } else if (JSON_FORMAT.equals(outputFormat)) {
                                 nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
                             } else if (CSV_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, 0, null));
+                                nrOfRows.set(convertToCsvStream(resultSet, out, charset, 0, null,includeCsvHeaderLine,isFirst));
                             }
                         }
 
@@ -422,13 +453,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 context.yield();
             }
         } catch (final IOException e) {
-            logger.error("Unable to set state{}",
-                    new Object[]{statePropertyMap});
+            logger.error("Unable to set state{} due to {}",
+                    new Object[]{statePropertyMap, e});
             session.remove(fileToProcess);
             context.yield();
         }
         // Step 5. isFirst
-        isFisrt=false;
+        isFirst=false;
     }
 
     private String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
@@ -682,7 +713,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
     public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, Charset charset,
-                                          long timeout, TimeUnit timeUnit)
+                                          long timeout, TimeUnit timeUnit, boolean includeCsvHeaderLine, boolean isFirst)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         try {
@@ -705,6 +736,17 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 for (Row row : rs) {
                     if (nrOfRows != 0) {
                         outStream.write("\n".getBytes(charset));
+                    }else{
+                        if(includeCsvHeaderLine==true){
+                            for (int i = 0; i < columnDefinitions.size(); i++) {
+                                String columnName = columnDefinitions.getName(i);
+                                if (i != 0) {
+                                    outStream.write(",".getBytes(charset));
+                                }
+                                outStream.write(columnName.getBytes(charset));
+                            }
+                            outStream.write("\n".getBytes(charset));
+                        }
                     }
 
                     for (int i = 0; i < columnDefinitions.size(); i++) {
