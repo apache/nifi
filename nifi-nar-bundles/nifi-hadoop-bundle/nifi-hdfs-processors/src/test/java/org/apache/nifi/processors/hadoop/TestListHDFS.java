@@ -44,6 +44,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -311,6 +312,73 @@ public class TestListHDFS {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 5);
+    }
+
+    @Test
+    public void testMinAgeMaxAge() throws IOException, InterruptedException {
+        long now = new Date().getTime();
+        long oneHourAgo = now - 3600000;
+        long twoHoursAgo = now - 2*3600000;
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now, now, create777(), "owner", "group", new Path("/test/willBeIgnored.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now-5, now-5, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, oneHourAgo, oneHourAgo, create777(), "owner", "group", new Path("/test/testFile1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, twoHoursAgo, twoHoursAgo, create777(), "owner", "group", new Path("/test/testFile2.txt")));
+
+        // all files
+        runner.run();
+        runner.assertValid();
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
+        runner.clearTransferState();
+        runner.getStateManager().clear(Scope.CLUSTER);
+
+        // invalid min_age > max_age
+        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
+        runner.setProperty(ListHDFS.MAX_AGE, "1 sec");
+        runner.assertNotValid();
+
+        // only one file (one hour ago)
+        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
+        runner.setProperty(ListHDFS.MAX_AGE, "90 min");
+        runner.assertValid();
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run(); // will ignore the file for this cycle
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        // Next iteration should pick up the file, since nothing else was added.
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0).assertAttributeEquals("filename", "testFile1.txt");
+        runner.clearTransferState();
+        runner.getStateManager().clear(Scope.CLUSTER);
+
+        // two files (one hour ago and two hours ago)
+        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
+        runner.removeProperty(ListHDFS.MAX_AGE);
+        runner.assertValid();
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
+        runner.clearTransferState();
+        runner.getStateManager().clear(Scope.CLUSTER);
+
+        // two files (now and one hour ago)
+        runner.setProperty(ListHDFS.MIN_AGE, "0 sec");
+        runner.setProperty(ListHDFS.MAX_AGE, "90 min");
+        runner.assertValid();
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
     }
 
 
