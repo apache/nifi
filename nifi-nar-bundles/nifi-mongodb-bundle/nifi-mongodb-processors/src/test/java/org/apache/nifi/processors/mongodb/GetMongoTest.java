@@ -60,9 +60,12 @@ public class GetMongoTest {
     @Before
     public void setup() {
         runner = TestRunners.newTestRunner(GetMongo.class);
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
-        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DB_NAME);
-        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
+        runner.setVariable("uri", MONGO_URI);
+        runner.setVariable("db", DB_NAME);
+        runner.setVariable("collection", COLLECTION_NAME);
+        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
+        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
@@ -120,8 +123,9 @@ public class GetMongoTest {
         Assert.assertTrue(results.iterator().next().toString().matches("'Query' .* is invalid because org.bson.json.JsonParseException"));
 
         // invalid projection
+        runner.setVariable("projection", "{a: x,y,z}");
         runner.setProperty(GetMongo.QUERY, "{a: 1}");
-        runner.setProperty(GetMongo.PROJECTION, "{a: x,y,z}");
+        runner.setProperty(GetMongo.PROJECTION, "${projection}");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
@@ -146,7 +150,8 @@ public class GetMongoTest {
 
     @Test
     public void testReadOneDocument() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{a: 1, b: 3}");
+        runner.setVariable("query", "{a: 1, b: 3}");
+        runner.setProperty(GetMongo.QUERY, "${query}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
@@ -180,8 +185,9 @@ public class GetMongoTest {
 
     @Test
     public void testSort() throws Exception {
+        runner.setVariable("sort", "{a: -1, b: -1, c: 1}");
         runner.setProperty(GetMongo.QUERY, "{a: {$exists: true}}");
-        runner.setProperty(GetMongo.SORT, "{a: -1, b: -1, c: 1}");
+        runner.setProperty(GetMongo.SORT, "${sort}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);

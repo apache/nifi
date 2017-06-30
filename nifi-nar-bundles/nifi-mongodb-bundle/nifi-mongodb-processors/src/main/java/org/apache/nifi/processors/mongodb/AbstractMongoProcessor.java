@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -48,18 +49,21 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .name("Mongo URI")
         .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
         .required(true)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     protected static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Database Name")
         .description("The name of the database to use")
         .required(true)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     protected static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Collection Name")
         .description("The name of the collection to use")
         .required(true)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -124,11 +128,10 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         }
 
         try {
-            final String uri = context.getProperty(URI).getValue();
             if(sslContext == null) {
-                mongoClient = new MongoClient(new MongoClientURI(uri));
+                mongoClient = new MongoClient(new MongoClientURI(getURI(context)));
             } else {
-                mongoClient = new MongoClient(new MongoClientURI(uri, getClientOptions(sslContext)));
+                mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
             }
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
@@ -153,12 +156,24 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     protected MongoDatabase getDatabase(final ProcessContext context) {
-        final String databaseName = context.getProperty(DATABASE_NAME).getValue();
+        return getDatabase(context, null);
+    }
+
+    protected MongoDatabase getDatabase(final ProcessContext context, final FlowFile flowFile) {
+        final String databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         return mongoClient.getDatabase(databaseName);
     }
 
     protected MongoCollection<Document> getCollection(final ProcessContext context) {
-        final String collectionName = context.getProperty(COLLECTION_NAME).getValue();
-        return getDatabase(context).getCollection(collectionName);
+        return getCollection(context, null);
+    }
+
+    protected MongoCollection<Document> getCollection(final ProcessContext context, final FlowFile flowFile) {
+        final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        return getDatabase(context, flowFile).getCollection(collectionName);
+    }
+
+    protected String getURI(final ProcessContext context) {
+        return context.getProperty(URI).evaluateAttributeExpressions().getValue();
     }
 }
