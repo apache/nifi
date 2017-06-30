@@ -48,7 +48,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "WARN", "ERROR", "FATAL", "FINE"};
             final String[] messages = new String[] {"Test Message 1", "Red", "Green", "Blue", "Yellow"};
@@ -78,7 +78,7 @@ public class TestGrokRecordReader {
         final String msg = "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass \n"
             + "org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces";
         final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
-        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), true);
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
         final Object[] values = deserializer.nextRecord().getValues();
 
@@ -101,7 +101,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "INFO", "WARN", "WARN"};
 
@@ -125,7 +125,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}?");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "ERROR", "WARN", "WARN"};
 
@@ -157,7 +157,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "ERROR", "INFO"};
             final String[] messages = new String[] {"message without stack trace",
@@ -211,7 +211,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("message"));
             assertTrue(fieldNames.contains("stackTrace"));  // always implicitly there
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, true);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, true);
             final Record record = deserializer.nextRecord();
 
             assertEquals("May 22 15:58:23", record.getValue("timestamp"));
@@ -248,7 +248,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
             final Record record = deserializer.nextRecord();
 
             assertEquals("1", record.getValue("first"));
@@ -283,7 +283,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
             for (int i = 0; i < 2; i++) {
                 final Record record = deserializer.nextRecord();
 

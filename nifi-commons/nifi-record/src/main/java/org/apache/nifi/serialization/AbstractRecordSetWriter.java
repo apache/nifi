@@ -92,6 +92,10 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
         return WriteResult.of(recordCount, attributes == null ? Collections.emptyMap() : attributes);
     }
 
+    protected int incrementRecordCount() {
+        return ++recordCount;
+    }
+
     /**
      * Method that is called as a result of {@link #beginRecordSet()} being called. This gives subclasses
      * the chance to react to a new RecordSet beginning but prevents the subclass from changing how this

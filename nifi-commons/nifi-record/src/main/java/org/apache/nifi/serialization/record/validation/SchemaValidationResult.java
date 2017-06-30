@@ -15,17 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization.record.util;
+package org.apache.nifi.serialization.record.validation;
 
-import org.apache.nifi.serialization.SchemaValidationException;
+import java.util.Collection;
 
-public class IllegalTypeConversionException extends SchemaValidationException {
+public interface SchemaValidationResult {
+    boolean isValid();
 
-    public IllegalTypeConversionException(final String message) {
-        super(message);
-    }
-
-    public IllegalTypeConversionException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+    Collection<ValidationError> getValidationErrors();
 }

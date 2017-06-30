@@ -24,24 +24,43 @@ import java.util.Objects;
 import java.util.Set;
 
 public class RecordField {
+    private static final boolean DEFAULT_NULLABLE = true;
+
     private final String fieldName;
     private final DataType dataType;
     private final Set<String> aliases;
     private final Object defaultValue;
+    private final boolean nullable;
 
     public RecordField(final String fieldName, final DataType dataType) {
-        this(fieldName, dataType, null, Collections.emptySet());
+        this(fieldName, dataType, null, Collections.emptySet(), DEFAULT_NULLABLE);
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final boolean nullable) {
+        this(fieldName, dataType, null, Collections.emptySet(), nullable);
     }
 
     public RecordField(final String fieldName, final DataType dataType, final Object defaultValue) {
-        this(fieldName, dataType, defaultValue, Collections.emptySet());
+        this(fieldName, dataType, defaultValue, Collections.emptySet(), DEFAULT_NULLABLE);
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final boolean nullable) {
+        this(fieldName, dataType, defaultValue, Collections.emptySet(), nullable);
     }
 
     public RecordField(final String fieldName, final DataType dataType, final Set<String> aliases) {
-        this(fieldName, dataType, null, aliases);
+        this(fieldName, dataType, null, aliases, DEFAULT_NULLABLE);
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Set<String> aliases, final boolean nullable) {
+        this(fieldName, dataType, null, aliases, nullable);
     }
 
     public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final Set<String> aliases) {
+        this(fieldName, dataType, defaultValue, aliases, DEFAULT_NULLABLE);
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final Set<String> aliases, final boolean nullable) {
         if (defaultValue != null && !DataTypeUtils.isCompatibleDataType(defaultValue, dataType)) {
             throw new IllegalArgumentException("Cannot set the default value for field [" + fieldName + "] to [" + defaultValue
                 + "] because that is not a valid value for Data Type [" + dataType + "]");
@@ -51,6 +70,7 @@ public class RecordField {
         this.dataType = Objects.requireNonNull(dataType);
         this.aliases = Collections.unmodifiableSet(Objects.requireNonNull(aliases));
         this.defaultValue = defaultValue;
+        this.nullable = nullable;
     }
 
     public String getFieldName() {
@@ -69,6 +89,10 @@ public class RecordField {
         return defaultValue;
     }
 
+    public boolean isNullable() {
+        return nullable;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -77,6 +101,7 @@ public class RecordField {
         result = prime * result + fieldName.hashCode();
         result = prime * result + aliases.hashCode();
         result = prime * result + ((defaultValue == null) ? 0 : defaultValue.hashCode());
+        result = prime * result + Boolean.hashCode(nullable);
         return result;
     }
 
@@ -94,11 +119,12 @@ public class RecordField {
         }
 
         RecordField other = (RecordField) obj;
-        return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue);
+        return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue)
+            && nullable == other.nullable;
     }
 
     @Override
     public String toString() {
-        return "RecordField[name=" + fieldName + ", dataType=" + dataType + (aliases.isEmpty() ? "" : ", aliases=" + aliases) + "]";
+        return "RecordField[name=" + fieldName + ", dataType=" + dataType + (aliases.isEmpty() ? "" : ", aliases=" + aliases) + ", nullable=" + nullable + "]";
     }
 }

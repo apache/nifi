@@ -67,6 +67,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     private volatile Grok grok;
     private volatile boolean appendUnmatchedLine;
     private volatile RecordSchema recordSchema;
+    private volatile RecordSchema recordSchemaFromGrok;
 
     private static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
 
@@ -133,9 +134,11 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
         appendUnmatchedLine = context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue());
 
+        this.recordSchemaFromGrok = createRecordSchema(grok);
+
         final String schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
         if (STRING_FIELDS_FROM_GROK_EXPRESSION.getValue().equals(schemaAccess)) {
-            this.recordSchema = createRecordSchema(grok);
+            this.recordSchema = recordSchemaFromGrok;
         } else {
             this.recordSchema = null;
         }
@@ -236,6 +239,6 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(flowFile, in, null);
-        return new GrokRecordReader(in, grok, schema, appendUnmatchedLine);
+        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, appendUnmatchedLine);
     }
 }

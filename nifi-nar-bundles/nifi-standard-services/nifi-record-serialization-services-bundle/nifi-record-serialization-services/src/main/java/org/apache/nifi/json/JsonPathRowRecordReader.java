@@ -20,6 +20,7 @@ package org.apache.nifi.json;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.function.Supplier;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -89,7 +91,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     @Override
-    protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema) throws IOException {
+    protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields) throws IOException {
         if (jsonNode == null) {
             return null;
         }
@@ -100,7 +102,8 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         for (final Map.Entry<String, JsonPath> entry : jsonPaths.entrySet()) {
             final String fieldName = entry.getKey();
             final DataType desiredType = schema.getDataType(fieldName).orElse(null);
-            if (desiredType == null) {
+
+            if (desiredType == null && dropUnknownFields) {
                 continue;
             }
 
@@ -117,13 +120,83 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             final Optional<RecordField> field = schema.getField(fieldName);
             final Object defaultValue = field.isPresent() ? field.get().getDefaultValue() : null;
 
-            value = convert(value, desiredType, fieldName, defaultValue);
+            if (coerceTypes && desiredType != null) {
+                value = convert(value, desiredType, fieldName, defaultValue);
+            } else {
+                final DataType dataType = field.isPresent() ? field.get().getDataType() : null;
+                value = convert(value, dataType);
+            }
+
             values.put(fieldName, value);
         }
 
         return new MapRecord(schema, values);
     }
 
+
+    @SuppressWarnings("unchecked")
+    protected Object convert(final Object value, final DataType dataType) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof List) {
+            final List<?> list = (List<?>) value;
+            final Object[] array = new Object[list.size()];
+
+            final DataType elementDataType;
+            if (dataType != null && dataType.getFieldType() == RecordFieldType.ARRAY) {
+                elementDataType = ((ArrayDataType) dataType).getElementType();
+            } else {
+                elementDataType = null;
+            }
+
+            int i = 0;
+            for (final Object val : list) {
+                array[i++] = convert(val, elementDataType);
+            }
+
+            return array;
+        }
+
+        if (value instanceof Map) {
+            final Map<String, ?> map = (Map<String, ?>) value;
+
+            boolean record = false;
+            for (final Object obj : map.values()) {
+                if (obj instanceof JsonNode) {
+                    record = true;
+                }
+            }
+
+            if (!record) {
+                return value;
+            }
+
+            RecordSchema childSchema = null;
+            if (dataType != null && dataType.getFieldType() == RecordFieldType.RECORD) {
+                childSchema = ((RecordDataType) dataType).getChildSchema();
+            }
+            if (childSchema == null) {
+                childSchema = new SimpleRecordSchema(Collections.emptyList());
+            }
+
+            final Map<String, Object> values = new HashMap<>();
+            for (final Map.Entry<String, ?> entry : map.entrySet()) {
+                final String key = entry.getKey();
+                final Object childValue = entry.getValue();
+
+                final RecordField recordField = childSchema.getField(key).orElse(null);
+                final DataType childDataType = recordField == null ? null : recordField.getDataType();
+
+                values.put(key, convert(childValue, childDataType));
+            }
+
+            return new MapRecord(childSchema, values);
+        }
+
+        return value;
+    }
 
     @SuppressWarnings("unchecked")
     protected Object convert(final Object value, final DataType dataType, final String fieldName, final Object defaultValue) {

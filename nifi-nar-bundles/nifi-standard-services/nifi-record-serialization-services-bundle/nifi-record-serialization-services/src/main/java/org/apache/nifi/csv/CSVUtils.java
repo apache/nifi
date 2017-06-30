@@ -61,7 +61,7 @@ public class CSVUtils {
         .defaultValue("\"")
         .required(true)
         .build();
-    static final PropertyDescriptor SKIP_HEADER_LINE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor FIRST_LINE_IS_HEADER = new PropertyDescriptor.Builder()
         .name("Skip Header Line")
         .displayName("Treat First Line as Header")
         .description("Specifies whether or not the first line of CSV should be considered a Header or should be considered a record. If the Schema Access Strategy "
@@ -73,6 +73,18 @@ public class CSVUtils {
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
+        .build();
+    static final PropertyDescriptor IGNORE_CSV_HEADER = new PropertyDescriptor.Builder()
+        .name("ignore-csv-header")
+        .displayName("Ignore CSV Header Column Names")
+        .description("If the first line of a CSV is a header, and the configured schema does not match the fields named in the header line, this controls how "
+            + "the Reader will interpret the fields. If this property is true, then the field names mapped to each column are driven only by the configured schema and "
+            + "any fields not in the schema will be ignored. If this property is false, then the field names found in the CSV Header will be used as the names of the "
+            + "fields.")
+        .expressionLanguageSupported(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(false)
         .build();
     static final PropertyDescriptor COMMENT_MARKER = new PropertyDescriptor.Builder()
         .name("Comment Marker")
@@ -177,7 +189,7 @@ public class CSVUtils {
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
 
-        final PropertyValue skipHeaderPropertyValue = context.getProperty(SKIP_HEADER_LINE);
+        final PropertyValue skipHeaderPropertyValue = context.getProperty(FIRST_LINE_IS_HEADER);
         if (skipHeaderPropertyValue.getValue() != null && skipHeaderPropertyValue.asBoolean()) {
             format = format.withFirstRecordAsHeader();
         }

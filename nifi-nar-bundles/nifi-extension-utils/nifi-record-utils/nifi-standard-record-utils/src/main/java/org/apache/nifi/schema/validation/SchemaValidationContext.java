@@ -15,17 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization.record.util;
+package org.apache.nifi.schema.validation;
 
-import org.apache.nifi.serialization.SchemaValidationException;
+import org.apache.nifi.serialization.record.RecordSchema;
 
-public class IllegalTypeConversionException extends SchemaValidationException {
+public class SchemaValidationContext {
+    private final RecordSchema schema;
+    private final boolean allowExtraFields;
+    private final boolean strictTypeChecking;
 
-    public IllegalTypeConversionException(final String message) {
-        super(message);
+    public SchemaValidationContext(final RecordSchema schema, final boolean allowExtraFields, final boolean strictTypeChecking) {
+        this.schema = schema;
+        this.allowExtraFields = allowExtraFields;
+        this.strictTypeChecking = strictTypeChecking;
     }
 
-    public IllegalTypeConversionException(final String message, final Throwable cause) {
-        super(message, cause);
+    public RecordSchema getSchema() {
+        return schema;
+    }
+
+    public boolean isExtraFieldAllowed() {
+        return allowExtraFields;
+    }
+
+    public boolean isStrictTypeChecking() {
+        return strictTypeChecking;
     }
 }
