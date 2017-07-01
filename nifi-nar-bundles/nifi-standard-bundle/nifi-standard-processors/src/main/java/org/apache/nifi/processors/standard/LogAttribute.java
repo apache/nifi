@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -90,10 +91,19 @@ public class LogAttribute extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("character-set")
+            .displayName("Character Set")
+            .description("The name of the CharacterSet to use")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(Charset.defaultCharset().name())
+            .required(true)
+            .build();
+
     public static final String FIFTY_DASHES = "--------------------------------------------------";
 
     public static enum DebugLevels {
-
         trace, debug, info, warn, error
     }
 
@@ -119,6 +129,7 @@ public class LogAttribute extends AbstractProcessor {
         supDescriptors.add(ATTRIBUTES_TO_LOG_CSV);
         supDescriptors.add(ATTRIBUTES_TO_IGNORE_CSV);
         supDescriptors.add(LOG_PREFIX);
+        supDescriptors.add(CHARSET);
         supportedDescriptors = Collections.unmodifiableList(supDescriptors);
     }
 
@@ -138,6 +149,7 @@ public class LogAttribute extends AbstractProcessor {
         final String dashedLine;
 
         String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+        Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         if (StringUtil.isBlank(logPrefix)) {
             dashedLine = StringUtils.repeat('-', 50);
@@ -171,7 +183,7 @@ public class LogAttribute extends AbstractProcessor {
         if (logPayload) {
             message.append("\n");
             if (flowFile.getSize() < ONE_MB) {
-                final FlowFilePayloadCallback callback = new FlowFilePayloadCallback();
+                final FlowFilePayloadCallback callback = new FlowFilePayloadCallback(charset);
                 session.read(flowFile, callback);
                 message.append(callback.getContents());
             } else {
@@ -277,10 +289,15 @@ public class LogAttribute extends AbstractProcessor {
     protected static class FlowFilePayloadCallback implements InputStreamCallback {
 
         private String contents = "";
+        private Charset charset;
+
+        public FlowFilePayloadCallback(Charset charset) {
+            this.charset = charset;
+        }
 
         @Override
         public void process(final InputStream in) throws IOException {
-            contents = IOUtils.toString(in);
+            contents = IOUtils.toString(in, charset);
         }
 
         public String getContents() {
