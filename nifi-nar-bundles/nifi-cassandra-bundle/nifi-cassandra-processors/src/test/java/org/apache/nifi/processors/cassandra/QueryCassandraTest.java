@@ -16,16 +16,11 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Configuration;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -38,8 +33,7 @@ import org.junit.Test;
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -85,6 +79,7 @@ public class QueryCassandraTest {
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "${query}");
         testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "${pass}");
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "${user}");
+        testRunner.setVariable("query", "select * from test");
         testRunner.assertValid();
     }
 
@@ -159,7 +154,6 @@ public class QueryCassandraTest {
         testRunner.setProperty(QueryCassandra.QUERY_TIMEOUT, "${timeout}");
         testRunner.setProperty(QueryCassandra.FETCH_SIZE, "${fetch}");
         testRunner.setIncomingConnection(false);
-        testRunner.assertValid();
 
         testRunner.setVariable("hosts", "localhost:9042");
         testRunner.setVariable("user", "username");
@@ -168,6 +162,8 @@ public class QueryCassandraTest {
         testRunner.setVariable("timeout", "30 sec");
         testRunner.setVariable("fetch", "0");
         testRunner.setVariable("query", "select * from test");
+
+        testRunner.assertValid();
 
         // Test JSON output
         testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
@@ -201,6 +197,67 @@ public class QueryCassandraTest {
         assertNotNull(files);
         assertEquals("One file should be transferred to success", 1, files.size());
     }
+
+    @Test
+    public void testProcessorCsvOutput() {
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+
+        // Test JSON output
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.CSV_FORMAT);
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
+        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+        assertNotNull(files);
+        assertEquals("One file should be transferred to success", 1, files.size());
+        assertEquals("user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
+                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
+                new String(files.get(0).toByteArray()));
+    }
+
+    @Test
+    public void testProcessorCsvOutputWithHeaderLine() {
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+
+        // Test JSON output
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.CSV_FORMAT);
+        testRunner.setProperty(QueryCassandra.INCLUDE_CSV_HEADER_LINE, String.valueOf(true));
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
+        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+
+        assertNotNull(files);
+        assertEquals("One file should be transferred to success", 1, files.size());
+        assertEquals("user_id,first_name,last_name,emails,top_places,todo,registered,scale,metric\n"
+                +"user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
+                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
+                new String(files.get(0).toByteArray()));
+    }
+
+//    @Test
+//    public void testProcessorIncrementalFetch() {
+//        setUpStandardProcessorConfig();
+//        testRunner.setIncomingConnection(false);
+//
+//        // Test JSON output
+//        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
+//        testRunner.setProperty(QueryCassandra.DATE_FIELD, );
+//        testRunner.run(1, true, true);
+//        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
+//        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+//
+//        assertNotNull(files);
+//        assertEquals("One file should be transferred to success", 1, files.size());
+//
+//        Row row = CassandraQueryTestUtil.createRow("user3", "James", "Ko",
+//                Sets.newHashSet("jk@notareal.com", "jk@fakedomain.com"), Arrays.asList("New York, NY", "Santa Clara, CA"),
+//                new HashMap<Date, String>() {{
+//                    put(Calendar.getInstance().getTime(), "Set my alarm for a month from now");
+//                }}, true, 1.0f, 2.0);
+//
+//
+//    }
 
     @Test
     public void testProcessorEmptyFlowFileAndExceptions() {
@@ -366,7 +423,15 @@ public class QueryCassandraTest {
     public void testConvertToCSVStream() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null);
+        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, false);
+        assertEquals(2, numberOfRows);
+    }
+
+    @Test
+    public void testConvertToCSVStreamWithHeaderLine() throws Exception {
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        long numberOfRows = QueryCassandra.convertToCsvStream(rs, baos, StandardCharsets.UTF_8, 0, null, true);
         assertEquals(2, numberOfRows);
     }
 
