@@ -63,6 +63,7 @@ public class SFTPTransfer implements FileTransfer {
         .description("Password for the private key")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
         .sensitive(true)
         .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
@@ -82,6 +83,7 @@ public class SFTPTransfer implements FileTransfer {
         .name("Port")
         .description("The port that the remote system is listening on for file transfers")
         .addValidator(StandardValidators.PORT_VALIDATOR)
+        .expressionLanguageSupported(true)
         .required(true)
         .defaultValue("22")
         .build();
