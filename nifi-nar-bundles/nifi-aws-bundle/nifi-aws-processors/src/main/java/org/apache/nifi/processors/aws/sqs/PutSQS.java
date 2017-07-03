@@ -67,7 +67,7 @@ public class PutSQS extends AbstractSQSProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                    REGION, DELAY, TIMEOUT, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT));
+                    REGION, DELAY, TIMEOUT, BATCH_SIZE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT));
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -110,43 +110,57 @@ public class PutSQS extends AbstractSQSProcessor {
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
         request.setQueueUrl(queueUrl);
 
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final List<FlowFile> flowFiles = session.get(new UrlFlowFileFilter(batchSize, queueUrl, context));
+        flowFiles.add(flowFile);
+
         final Set<SendMessageBatchRequestEntry> entries = new HashSet<>();
 
-        final SendMessageBatchRequestEntry entry = new SendMessageBatchRequestEntry();
-        entry.setId(flowFile.getAttribute("uuid"));
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        session.exportTo(flowFile, baos);
-        final String flowFileContent = baos.toString();
-        entry.setMessageBody(flowFileContent);
+        for(FlowFile flowFileItem : flowFiles) {
 
-        final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
+            final SendMessageBatchRequestEntry entry = new SendMessageBatchRequestEntry();
+            entry.setId(flowFileItem.getAttribute("uuid"));
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            session.exportTo(flowFileItem, baos);
+            final String flowFileContent = baos.toString();
+            entry.setMessageBody(flowFileContent);
 
-        for (final PropertyDescriptor descriptor : userDefinedProperties) {
-            final MessageAttributeValue mav = new MessageAttributeValue();
-            mav.setDataType("String");
-            mav.setStringValue(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
-            messageAttributes.put(descriptor.getName(), mav);
+            final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
+
+            for (final PropertyDescriptor descriptor : userDefinedProperties) {
+                final MessageAttributeValue mav = new MessageAttributeValue();
+                mav.setDataType("String");
+                mav.setStringValue(context.getProperty(descriptor).evaluateAttributeExpressions(flowFileItem).getValue());
+                messageAttributes.put(descriptor.getName(), mav);
+            }
+
+            entry.setMessageAttributes(messageAttributes);
+            entry.setDelaySeconds(context.getProperty(DELAY).asTimePeriod(TimeUnit.SECONDS).intValue());
+            entries.add(entry);
+
         }
-
-        entry.setMessageAttributes(messageAttributes);
-        entry.setDelaySeconds(context.getProperty(DELAY).asTimePeriod(TimeUnit.SECONDS).intValue());
-        entries.add(entry);
 
         request.setEntries(entries);
 
         try {
             client.sendMessageBatch(request);
         } catch (final Exception e) {
-            getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            getLogger().error("Failed to send {} messages to Amazon SQS due to {}; routing to failure", new Object[]{flowFiles.size(), e});
+            final List<FlowFile> penalizedFlowFiles = new ArrayList<>();
+            for (final FlowFile flowFileItem : flowFiles) {
+                penalizedFlowFiles.add(session.penalize(flowFileItem));
+            }
+            session.transfer(penalizedFlowFiles, REL_FAILURE);
             return;
         }
 
-        getLogger().info("Successfully published message to Amazon SQS for {}", new Object[]{flowFile});
-        session.transfer(flowFile, REL_SUCCESS);
+        getLogger().info("Successfully published {} messages to Amazon SQS; routing to success", new Object[]{flowFiles.size()});
+        session.transfer(flowFiles, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        session.getProvenanceReporter().send(flowFile, queueUrl, transmissionMillis);
+
+        for(FlowFile flowFileItem : flowFiles) {
+            session.getProvenanceReporter().send(flowFileItem, queueUrl, transmissionMillis);
+        }
     }
 
 }

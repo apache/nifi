@@ -57,7 +57,7 @@ public class DeleteSQS extends AbstractSQSProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(QUEUE_URL, RECEIPT_HANDLE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                    REGION, TIMEOUT, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT));
+                    REGION, TIMEOUT, BATCH_SIZE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -66,13 +66,16 @@ public class DeleteSQS extends AbstractSQSProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        List<FlowFile> flowFiles = session.get(1);
-        if (flowFiles.isEmpty()) {
+        final FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 
-        final FlowFile firstFlowFile = flowFiles.get(0);
-        final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(firstFlowFile).getValue();
+        final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final List<FlowFile> flowFiles = session.get(new UrlFlowFileFilter(batchSize, queueUrl, context));
+
+        flowFiles.add(flowFile);
 
         final AmazonSQSClient client = getClient();
         final DeleteMessageBatchRequest request = new DeleteMessageBatchRequest();
@@ -80,10 +83,9 @@ public class DeleteSQS extends AbstractSQSProcessor {
 
         final List<DeleteMessageBatchRequestEntry> entries = new ArrayList<>(flowFiles.size());
 
-        for (final FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFileItem : flowFiles) {
             final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
-            String receiptHandle = context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFile).getValue();
-            entry.setReceiptHandle(receiptHandle);
+            entry.setReceiptHandle(context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFileItem).getValue());
             String entryId = flowFile.getAttribute(CoreAttributes.UUID.key());
             entry.setId(entryId);
             entries.add(entry);
@@ -98,8 +100,8 @@ public class DeleteSQS extends AbstractSQSProcessor {
         } catch (final Exception e) {
             getLogger().error("Failed to delete {} objects from SQS due to {}", new Object[]{flowFiles.size(), e});
             final List<FlowFile> penalizedFlowFiles = new ArrayList<>();
-            for (final FlowFile flowFile : flowFiles) {
-                penalizedFlowFiles.add(session.penalize(flowFile));
+            for (final FlowFile flowFileItem : flowFiles) {
+                penalizedFlowFiles.add(session.penalize(flowFileItem));
             }
             session.transfer(penalizedFlowFiles, REL_FAILURE);
         }

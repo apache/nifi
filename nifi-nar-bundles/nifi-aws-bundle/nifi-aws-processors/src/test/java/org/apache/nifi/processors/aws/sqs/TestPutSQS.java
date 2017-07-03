@@ -17,9 +17,12 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.util.TestRunner;
@@ -99,6 +102,54 @@ public class TestPutSQS {
         assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testSimplePutBatch() throws IOException {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutSQS.QUEUE_URL, "${url}");
+        runner.setProperty(PutSQS.BATCH_SIZE, "2");
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "1.txt");
+        attrs.put("url", "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+        runner.enqueue("TestMessageBody1", attrs);
+
+        attrs = new HashMap<>();
+        attrs.put("filename", "2.txt");
+        attrs.put("url", "https://sqs.us-west-2.amazonaws.com/123456789012/another");
+        runner.enqueue("TestMessageBody2", attrs);
+
+        attrs = new HashMap<>();
+        attrs.put("filename", "3.txt");
+        attrs.put("url", "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+        runner.enqueue("TestMessageBody3", attrs);
+
+        attrs = new HashMap<>();
+        attrs.put("filename", "4.txt");
+        attrs.put("url", "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+        runner.enqueue("TestMessageBody4", attrs);
+
+        SendMessageBatchResult batchResult = new SendMessageBatchResult();
+        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
+
+        runner.run(1);
+
+        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
+        SendMessageBatchRequest request = captureRequest.getValue();
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
+
+        List<String> messageBodies = new ArrayList<String>();
+        assertEquals(request.getEntries().size(), 2);
+        messageBodies.add(request.getEntries().get(0).getMessageBody());
+        messageBodies.add(request.getEntries().get(1).getMessageBody());
+
+        assertTrue(messageBodies.contains("TestMessageBody1"));
+        assertTrue(messageBodies.contains("TestMessageBody3"));
+
+        runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 2);
     }
 
 }

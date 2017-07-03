@@ -18,6 +18,8 @@ package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
@@ -60,11 +62,40 @@ public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProvide
      *
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
+    @Deprecated
     @Override
     protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials ");
 
         return new AmazonSQSClient(credentials, config);
+    }
+
+    protected class UrlFlowFileFilter implements FlowFileFilter {
+
+        int count = 0;
+        int batchSize;
+        String expectedUrl;
+        ProcessContext context;
+
+        public UrlFlowFileFilter(int batchSize, String expectedUrl, ProcessContext context) {
+            this.batchSize = batchSize;
+            this.expectedUrl = expectedUrl;
+            this.context = context;
+        }
+
+        @Override
+        public FlowFileFilterResult filter(FlowFile flowFile) {
+            if(count >= batchSize - 1)  {
+                return FlowFileFilterResult.REJECT_AND_TERMINATE;
+            }
+            if(expectedUrl.equals(context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue())) {
+                count++;
+                return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+            } else {
+                return FlowFileFilterResult.REJECT_AND_CONTINUE;
+            }
+        }
+
     }
 
 }
