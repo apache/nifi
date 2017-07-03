@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;

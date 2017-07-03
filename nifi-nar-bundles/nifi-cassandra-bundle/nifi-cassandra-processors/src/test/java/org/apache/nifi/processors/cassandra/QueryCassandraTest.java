@@ -20,7 +20,6 @@ import com.datastax.driver.core.*;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
-import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -35,8 +34,8 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -210,7 +209,6 @@ public class QueryCassandraTest {
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
-        String a = new String(files.get(0).toByteArray());
         assertEquals("One file should be transferred to success", 1, files.size());
         assertEquals("user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
                         "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
