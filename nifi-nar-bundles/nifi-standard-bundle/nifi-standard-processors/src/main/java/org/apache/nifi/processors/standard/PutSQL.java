@@ -73,6 +73,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -119,7 +120,10 @@ import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnEr
                 + "hex: the string is hex encoded with all letters in upper case and no '0x' at the beginning. "
                 + "Dates/Times/Timestamps - "
                 + "Date, Time and Timestamp formats all support both custom formats or named format ('yyyy-MM-dd','ISO_OFFSET_DATE_TIME') "
-                + "as specified according to java.time.format.DateTimeFormatter.")
+                + "as specified according to java.time.format.DateTimeFormatter. "
+                + "If not specified, a long value input is expected to be an unix epoch (milli seconds from 1970/1/1), or a string value in "
+                + "'yyyy-MM-dd' format for Date, 'HH:mm:ss.SSS' for Time (some database engines e.g. Derby or MySQL do not support milliseconds and will truncate milliseconds), "
+                + "'yyyy-MM-dd HH:mm:ss.SSS' for Timestamp is used.")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "sql.generated.key", description = "If the database generated a key for an INSERT statement and the Obtain Generated Keys property is set to true, "
@@ -840,9 +844,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                             date = new Date(Long.parseLong(parameterValue));
                         }else {
                             String dateFormatString = "yyyy-MM-dd";
-                            if (!valueFormat.isEmpty()) {
-                                dateFormatString = valueFormat;
-                            }
                             SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
                             java.util.Date parsedDate = dateFormat.parse(parameterValue);
                             date = new Date(parsedDate.getTime());
@@ -863,9 +864,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                             time = new Time(Long.parseLong(parameterValue));
                         } else {
                             String timeFormatString = "HH:mm:ss.SSS";
-                            if (!valueFormat.isEmpty()) {
-                                timeFormatString = valueFormat;
-                            }
                             SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
                             java.util.Date parsedDate = dateFormat.parse(parameterValue);
                             time = new Time(parsedDate.getTime());
@@ -873,7 +871,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
                         LocalTime parsedTime = LocalTime.parse(parameterValue, dtFormatter);
-                        time = Time.valueOf(parsedTime);
+                        LocalDateTime localDateTime = parsedTime.atDate(LocalDate.ofEpochDay(0));
+                        Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
+                        time = new Time(instant.toEpochMilli());
                     }
 
                     stmt.setTime(parameterIndex, time);
@@ -890,7 +890,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                             java.util.Date parsedDate = dateFormat.parse(parameterValue);
                             lTimestamp = parsedDate.getTime();
                         }
-                    }else {
+                    } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
                         TemporalAccessor accessor = dtFormatter.parse(parameterValue);
                         java.util.Date parsedDate = java.util.Date.from(Instant.from(accessor));
