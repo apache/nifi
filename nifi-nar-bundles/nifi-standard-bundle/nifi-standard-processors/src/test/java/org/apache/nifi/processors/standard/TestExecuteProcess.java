@@ -30,11 +30,12 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.test.ConditionalIgnoreRule.ConditionalIgnore;
+import org.apache.nifi.test.NotRunningOnWindows;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestExecuteProcess {
@@ -83,7 +84,7 @@ public class TestExecuteProcess {
         assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
-    @Ignore   // won't run under Windows
+    @ConditionalIgnore( condition = NotRunningOnWindows.class )
     @Test
     public void testEcho() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");

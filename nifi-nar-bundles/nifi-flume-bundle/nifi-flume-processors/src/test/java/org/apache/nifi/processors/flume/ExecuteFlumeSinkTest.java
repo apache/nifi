@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.flume;
 
-import java.io.File;
-
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,12 +33,13 @@ import org.apache.flume.source.AvroSource;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.test.ConditionalIgnoreRule.ConditionalIgnore;
+import org.apache.nifi.test.NotRunningOnWindows;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -136,7 +136,7 @@ public class ExecuteFlumeSinkTest {
     }
 
     @Test
-    @Ignore("Does not work on Windows")
+    @ConditionalIgnore( condition = NotRunningOnWindows.class )
     public void testHdfsSink() throws IOException {
         File destDir = temp.newFolder("hdfs");
 

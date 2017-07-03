@@ -25,6 +25,8 @@ import java.nio.charset.Charset;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.nifi.test.ConditionalIgnoreRule.ConditionalIgnore;
+import org.apache.nifi.test.NotRunningOnWindows;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -48,7 +50,7 @@ public class TestGetSchema {
     public TemporaryFolder temp = new TemporaryFolder();
 
     @Test
-    @Ignore("Does not work on windows")
+    @ConditionalIgnore( condition = NotRunningOnWindows.class )
     public void testSchemaFromFileSystem() throws IOException {
         File schemaFile = temp.newFile("schema.avsc");
         FileOutputStream out = new FileOutputStream(schemaFile);
@@ -62,7 +64,7 @@ public class TestGetSchema {
     }
 
     @Test
-    @Ignore("Does not work on windows")
+    @Ignore // JARs for null datasets need to be on the classpath
     public void testSchemaFromKiteURIs() throws IOException {
         String location = temp.newFolder("ns", "temp").toString();
         if (location.endsWith("/")) {
