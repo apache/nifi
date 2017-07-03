@@ -470,7 +470,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         }
     }
 
-    private String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
+    public static String addRangeQuery(String tableName, String keySpace, String waterMarkDateField, String selectQuery, long minBoundValue, long maxBoundValue) {
 
         String finalSelectQuery="";
         // based on table

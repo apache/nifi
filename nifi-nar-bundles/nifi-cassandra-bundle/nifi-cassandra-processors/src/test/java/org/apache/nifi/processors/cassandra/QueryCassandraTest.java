@@ -22,6 +22,7 @@ import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
@@ -31,15 +32,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -235,29 +236,57 @@ public class QueryCassandraTest {
                 new String(files.get(0).toByteArray()));
     }
 
-//    @Test
-//    public void testProcessorIncrementalFetch() {
-//        setUpStandardProcessorConfig();
-//        testRunner.setIncomingConnection(false);
-//
-//        // Test JSON output
-//        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
-//        testRunner.setProperty(QueryCassandra.DATE_FIELD, );
-//        testRunner.run(1, true, true);
-//        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
-//        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-//
-//        assertNotNull(files);
-//        assertEquals("One file should be transferred to success", 1, files.size());
-//
-//        Row row = CassandraQueryTestUtil.createRow("user3", "James", "Ko",
-//                Sets.newHashSet("jk@notareal.com", "jk@fakedomain.com"), Arrays.asList("New York, NY", "Santa Clara, CA"),
-//                new HashMap<Date, String>() {{
-//                    put(Calendar.getInstance().getTime(), "Set my alarm for a month from now");
-//                }}, true, 1.0f, 2.0);
-//
-//
-//    }
+    @Test
+    public void testProcessorWatermarkValue() throws Exception{
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+
+        // Test JSON output
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
+        int overLapTime = testRunner.getProcessContext().getProperty(QueryCassandra.OVERLAP_TIME).asTimePeriod(TimeUnit.SECONDS).intValue();
+        testRunner.run();
+
+        // the min value is zero, the maxValue is now.
+        String minValue = "0";
+        String maxValue = testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MAX_VALUE_ID);
+        assertEquals(testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MIN_VALUE_ID), minValue);
+        testRunner.clearTransferState();
+
+        // Run again, Watermark value is chaned
+        testRunner.run();
+
+        // the min value is changed to the previous maximum value+1
+        String newMinValue = testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MIN_VALUE_ID);
+        assertNotEquals(minValue, newMinValue);
+
+        // it should be the same
+        assertEquals( String.valueOf(Long.valueOf(newMinValue)) , String.valueOf(Long.valueOf(maxValue)-overLapTime+1 ));
+    }
+
+    @Test
+    public void testAddRangeQuery() throws IOException {
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
+        testRunner.run();
+
+        String queryWithCql = QueryCassandra.addRangeQuery(null,
+                                     null,
+                                    "create_date",
+                                    "select * from sample.test",
+                                     Long.valueOf( testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MIN_VALUE_ID)) ,
+                                     Long.valueOf( testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MAX_VALUE_ID)) );
+        assertNotNull(queryWithCql);
+
+        String queryWithTablename = QueryCassandra.addRangeQuery("test",
+                "sample",
+                "create_date",
+                null,
+                Long.valueOf( testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MIN_VALUE_ID)) ,
+                Long.valueOf( testRunner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get(QueryCassandra.CASSANDRA_WATERMARK_MAX_VALUE_ID)) );
+        assertNotNull(queryWithTablename);
+        assertEquals(queryWithCql, queryWithTablename);
+    }
 
     @Test
     public void testProcessorEmptyFlowFileAndExceptions() {
