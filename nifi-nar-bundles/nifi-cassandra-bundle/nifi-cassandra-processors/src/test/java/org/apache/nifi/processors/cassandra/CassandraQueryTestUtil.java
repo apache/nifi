@@ -25,6 +25,7 @@ import com.google.common.reflect.TypeToken;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,7 +53,7 @@ public class CassandraQueryTestUtil {
         when(columnDefinitions.getName(anyInt())).thenAnswer(new Answer<String>() {
 
             List<String> colNames = Arrays.asList(
-                    "user_id", "first_name", "last_name", "emails", "top_places", "todo", "registered", "scale", "metric");
+                    "user_id", "first_name", "last_name", "emails", "top_places", "todo", "registered", "scale", "metric","create_date");
 
             @Override
             public String answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -68,7 +69,7 @@ public class CassandraQueryTestUtil {
             List<DataType> dataTypes = Arrays.asList(
                     DataType.text(), DataType.text(), DataType.text(), DataType.set(DataType.text()),
                     DataType.list(DataType.text()), DataType.map(DataType.timestamp(), DataType.text()), DataType.cboolean(),
-                    DataType.cfloat(), DataType.cdouble()
+                    DataType.cfloat(), DataType.cdouble(), DataType.timestamp()
             );
 
             @Override
@@ -87,12 +88,12 @@ public class CassandraQueryTestUtil {
                         Arrays.asList("New York, NY", "Santa Clara, CA"),
                         new HashMap<Date, String>() {{
                             put(aMonthPrior, "Set my alarm for a month from now");
-                        }}, false, 1.0f, 2.0),
+                        }}, false, 1.0f, 2.0, new Timestamp(aMonthPrior.getTime())),
                 createRow("user2", "Mary", "Jones", Sets.newHashSet("mjones@notareal.com"),
                         Collections.singletonList("Orlando, FL"),
                         new HashMap<Date, String>() {{
                             put(testDate, "Get milk and bread");
-                        }}, true, 3.0f, 4.0)
+                        }}, true, 3.0f, 4.0, new Timestamp(testDate.getTime()))
         );
 
         when(resultSet.iterator()).thenReturn(rows.iterator());
@@ -105,7 +106,7 @@ public class CassandraQueryTestUtil {
 
     public static Row createRow(String user_id, String first_name, String last_name, Set<String> emails,
                                 List<String> top_places, Map<Date, String> todo, boolean registered,
-                                float scale, double metric) {
+                                float scale, double metric, Timestamp create_date) {
         Row row = mock(Row.class);
         when(row.getString(0)).thenReturn(user_id);
         when(row.getString(1)).thenReturn(first_name);
@@ -116,6 +117,7 @@ public class CassandraQueryTestUtil {
         when(row.getBool(6)).thenReturn(registered);
         when(row.getFloat(7)).thenReturn(scale);
         when(row.getDouble(8)).thenReturn(metric);
+        when(row.getTimestamp(9)).thenReturn(create_date);
 
         return row;
     }
