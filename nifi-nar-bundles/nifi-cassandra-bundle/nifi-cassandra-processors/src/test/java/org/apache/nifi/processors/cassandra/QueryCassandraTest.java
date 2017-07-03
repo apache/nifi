@@ -210,6 +210,7 @@ public class QueryCassandraTest {
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
+        String a = new String(files.get(0).toByteArray());
         assertEquals("One file should be transferred to success", 1, files.size());
         assertEquals("user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
                         "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
