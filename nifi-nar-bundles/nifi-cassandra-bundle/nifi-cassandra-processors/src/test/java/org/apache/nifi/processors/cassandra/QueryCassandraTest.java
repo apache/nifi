@@ -218,8 +218,8 @@ public class QueryCassandraTest {
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
         assertNotNull(files);
         assertEquals("One file should be transferred to success", 1, files.size());
-        assertEquals("user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
-                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
+        assertEquals("user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 05:00:00 UTC 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
+                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 05:00:00 UTC 2016=Get milk and bread},true,3.0,4.0",
                 new String(files.get(0).toByteArray()));
     }
 
@@ -238,8 +238,8 @@ public class QueryCassandraTest {
         assertNotNull(files);
         assertEquals("One file should be transferred to success", 1, files.size());
         assertEquals("user_id,first_name,last_name,emails,top_places,todo,registered,scale,metric\n"
-                +"user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 14:00:00 KST 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
-                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 14:00:00 KST 2016=Get milk and bread},true,3.0,4.0",
+                +"user1,Joe,Smith,[jsmith@notareal.com],[New York, NY, Santa Clara, CA],{Sun Jan 03 05:00:00 UTC 2016=Set my alarm for a month from now},false,1.0,2.0\n" +
+                        "user2,Mary,Jones,[mjones@notareal.com],[Orlando, FL],{Wed Feb 03 05:00:00 UTC 2016=Get milk and bread},true,3.0,4.0",
                 new String(files.get(0).toByteArray()));
     }
 
