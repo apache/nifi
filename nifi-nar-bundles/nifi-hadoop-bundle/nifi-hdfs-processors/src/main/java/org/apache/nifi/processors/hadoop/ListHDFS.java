@@ -121,16 +121,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .displayName("Minimum File Age")
         .description("The minimum age that a file must be in order to be pulled; any file younger than this "
                 + "amount of time (based on last modification date) will be ignored")
-        .required(true)
+        .required(false)
         .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
-        .defaultValue("0 sec")
         .build();
 
     public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
         .name("maximum-file-age")
         .displayName("Maximum File Age")
         .description("The maximum age that a file must be in order to be pulled; any file older than this "
-                + "amount of time (based on last modification date) will be ignored")
+                + "amount of time (based on last modification date) will be ignored. Minimum value is 100ms.")
         .required(false)
         .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
         .build();
@@ -219,7 +218,9 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final TreeMap<Long, List<FileStatus>> orderedEntries = new TreeMap<>();
 
         final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final long minimumAge = (minAgeProp == null) ? 0L : minAgeProp;
+        // NIFI-4144 - setting to MIN_VALUE so that in case the file modification time is in
+        // the future relative to the nifi instance, files are not skipped.
+        final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
         final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
