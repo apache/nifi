@@ -33,8 +33,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -644,6 +646,44 @@ public class TestListFile {
         assertEquals(true, processor.isListingResetNecessary(ListFile.MAX_SIZE));
         assertEquals(true, processor.isListingResetNecessary(ListFile.IGNORE_HIDDEN_FILES));
         assertEquals(false, processor.isListingResetNecessary(new PropertyDescriptor.Builder().name("x").build()));
+    }
+
+    private void makeTestFile(final String name, final long millis, final Map<String, Long> fileTimes) throws IOException {
+        final File file = new File(TESTDIR + name);
+        assertTrue(file.createNewFile());
+        assertTrue(file.setLastModified(millis));
+        fileTimes.put(file.getName(), file.lastModified());
+    }
+
+    @Test
+    public void testFilterRunMidFileWrites() throws Exception {
+        final Map<String, Long> fileTimes = new HashMap<>();
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+
+        makeTestFile("/batch1-age3.txt", time3millis, fileTimes);
+        makeTestFile("/batch1-age4.txt", time4millis, fileTimes);
+        makeTestFile("/batch1-age5.txt", time5millis, fileTimes);
+
+        // check files
+        runNext();
+
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
+        assertEquals(3, runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS).size());
+
+        // should be picked since it's newer than age3
+        makeTestFile("/batch2-age2.txt", time2millis, fileTimes);
+        // should be picked even if it has the same age3 timestamp, because it wasn't there at the previous cycle.
+        makeTestFile("/batch2-age3.txt", time3millis, fileTimes);
+        // should be ignored since it's older than age3
+        makeTestFile("/batch2-age4.txt", time4millis, fileTimes);
+
+        runNext();
+
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 2);
+        assertEquals(2, runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS).size());
     }
 
     /*

@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processor.util.list;
 
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MILLIS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MINUTES;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_SECONDS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -130,6 +134,8 @@ public class TestAbstractListProcessor {
 
         final long initialTimestamp = getCurrentTimestampMillis(targetPrecision);
 
+        setTargetSystemTimestampPrecision(targetPrecision);
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
         proc.addEntity("name", "id2", initialTimestamp);
@@ -182,6 +188,8 @@ public class TestAbstractListProcessor {
 
         final long initialTimestamp = getCurrentTimestampMillis(targetPrecision);
 
+        setTargetSystemTimestampPrecision(targetPrecision);
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
         proc.addEntity("name", "id2", initialTimestamp);
@@ -226,6 +234,20 @@ public class TestAbstractListProcessor {
         runner.clearTransferState();
     }
 
+    private void setTargetSystemTimestampPrecision(TimeUnit targetPrecision) {
+        switch (targetPrecision) {
+            case MINUTES:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_MINUTES);
+                break;
+            case SECONDS:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_SECONDS);
+                break;
+            case MILLISECONDS:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_MILLIS);
+                break;
+        }
+    }
+
     @Test
     public void testOnlyNewEntriesEmittedMillisPrecision() throws Exception {
         testOnlyNewEntriesEmitted(TimeUnit.MILLISECONDS);
@@ -257,6 +279,8 @@ public class TestAbstractListProcessor {
         final Map<String, String> preexistingState = new HashMap<>();
         preexistingState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, Long.toString(initialTimestamp));
         preexistingState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, Long.toString(initialTimestamp));
+        preexistingState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", "id");
+        preexistingState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", "id2");
         runner.getStateManager().setState(preexistingState, Scope.CLUSTER);
 
         // run for the first time
@@ -324,6 +348,7 @@ public class TestAbstractListProcessor {
         // Ensure only timestamp is migrated
         expectedState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(initialTimestamp));
         expectedState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(initialTimestamp));
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", "id");
         runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
@@ -383,9 +408,10 @@ public class TestAbstractListProcessor {
 
         // Verify the state manager now maintains the associated state
         final Map<String, String> expectedState = new HashMap<>();
-        // Ensure only timestamp is migrated
+        // Ensure timestamp and identifies are migrated
         expectedState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, "1492");
         expectedState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, "1492");
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", "id");
         runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
     }
 
@@ -462,10 +488,12 @@ public class TestAbstractListProcessor {
         assertEquals(2, stateMap.getVersion());
 
         final Map<String, String> map = stateMap.toMap();
-        // Ensure only timestamp is migrated
-        assertEquals(2, map.size());
+        // Ensure timestamp and identifiers are migrated
+        assertEquals(4, map.size());
         assertEquals(Long.toString(initialTimestamp), map.get(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY));
         assertEquals(Long.toString(initialTimestamp), map.get(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY));
+        assertEquals("id", map.get(AbstractListProcessor.IDENTIFIER_PREFIX + ".0"));
+        assertEquals("id2", map.get(AbstractListProcessor.IDENTIFIER_PREFIX + ".1"));
 
         proc.addEntity("new name", "new id", initialTimestamp + 1);
         runner.run();
@@ -476,10 +504,11 @@ public class TestAbstractListProcessor {
         StateMap updatedStateMap = runner.getStateManager().getState(Scope.CLUSTER);
         assertEquals(3, updatedStateMap.getVersion());
 
-        assertEquals(2, updatedStateMap.toMap().size());
+        assertEquals(3, updatedStateMap.toMap().size());
         assertEquals(Long.toString(initialTimestamp + 1), updatedStateMap.get(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY));
         // Processed timestamp is now caught up
         assertEquals(Long.toString(initialTimestamp + 1), updatedStateMap.get(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY));
+        assertEquals("new id", updatedStateMap.get(AbstractListProcessor.IDENTIFIER_PREFIX + ".0"));
     }
 
     private static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {
