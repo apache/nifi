@@ -239,9 +239,13 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     StreamUtils.copy(in, out);
-                    transfer.flush();
                 }
             });
+
+            if(!transfer.flush(flowFile)) {
+                throw new IOException("completePendingCommand returned false, file transfer failed");
+            }
+
             transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
         } catch (final FileNotFoundException e) {
             getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
@@ -297,7 +301,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
             try {
-                transfer.deleteFile(null, filename);
+                transfer.deleteFile(flowFile, null, filename);
             } catch (final FileNotFoundException e) {
                 // file doesn't exist -- effectively the same as removing it. Move on.
             } catch (final IOException ioe) {
@@ -313,7 +317,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             final String target = targetDir + simpleFilename;
 
             try {
-                transfer.rename(filename, target);
+                transfer.rename(flowFile, filename, target);
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
                     new Object[] {flowFile, host, port, filename, ioe}, ioe);

@@ -36,7 +36,6 @@ import org.mockftpserver.fake.filesystem.FileSystem;
 import org.mockftpserver.fake.filesystem.WindowsFakeFileSystem;
 
 import java.io.FileInputStream;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -166,5 +165,72 @@ public class TestFTP {
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(GetFTP.REL_SUCCESS).get(0);
         retrievedFile.assertContentEquals("Just some random test test test chocolate");
+    }
+
+    @Test
+    public void basicFileFetch() throws IOException {
+        FileSystem results = fakeFtpServer.getFileSystem();
+
+        FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
+        sampleFile.setContents("Just some random test test test chocolate");
+        results.add(sampleFile);
+
+        // Check file exists
+        Assert.assertTrue(results.exists("c:\\data\\randombytes-2"));
+
+        TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
+        runner.setProperty(FetchFTP.HOSTNAME, "${host}");
+        runner.setProperty(FetchFTP.USERNAME, "${username}");
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, "${port}");
+        runner.setProperty(FetchFTP.REMOTE_FILENAME, "c:\\data\\randombytes-2");
+        runner.setProperty(FetchFTP.COMPLETION_STRATEGY, FetchFTP.COMPLETION_MOVE);
+        runner.setProperty(FetchFTP.MOVE_DESTINATION_DIR, "data");
+
+
+        Map<String, String> attrs = new HashMap<String, String>();
+        attrs.put("host", "localhost");
+        attrs.put("username", username);
+        attrs.put("port", Integer.toString(ftpPort));
+        runner.enqueue("", attrs);
+
+        runner.run();
+
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        retrievedFile.assertContentEquals("Just some random test test test chocolate");
+    }
+
+    @Test
+    public void basicFileList() throws IOException {
+        FileSystem results = fakeFtpServer.getFileSystem();
+
+        FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
+        sampleFile.setContents("Just some random test test test chocolate");
+        results.add(sampleFile);
+
+        // Check file exists
+        Assert.assertTrue(results.exists("c:\\data\\randombytes-2"));
+
+        TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
+        runner.setProperty(ListFTP.HOSTNAME, "localhost");
+        runner.setProperty(ListFTP.USERNAME, username);
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
+        runner.setProperty(ListFTP.REMOTE_PATH, "/");
+        runner.assertValid();
+
+        runner.run();
+
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        runner.assertAllFlowFilesContainAttribute("ftp.remote.host");
+        runner.assertAllFlowFilesContainAttribute("ftp.remote.port");
+        runner.assertAllFlowFilesContainAttribute("ftp.listing.user");
+        runner.assertAllFlowFilesContainAttribute(ListFile.FILE_OWNER_ATTRIBUTE);
+        runner.assertAllFlowFilesContainAttribute(ListFile.FILE_GROUP_ATTRIBUTE);
+        runner.assertAllFlowFilesContainAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE);
+        runner.assertAllFlowFilesContainAttribute(ListFile.FILE_SIZE_ATTRIBUTE);
+        runner.assertAllFlowFilesContainAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE);
+        retrievedFile.assertAttributeEquals("ftp.listing.user", username);
+        retrievedFile.assertAttributeEquals("filename", "randombytes-2");
     }
 }

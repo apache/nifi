@@ -289,7 +289,7 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(null);
+        final FTPClient client = getClient(flowFile);
         InputStream in = client.retrieveFileStream(remoteFileName);
         if (in == null) {
             throw new IOException(client.getReplyString());
@@ -301,6 +301,11 @@ public class FTPTransfer implements FileTransfer {
     public void flush() throws IOException {
         final FTPClient client = getClient(null);
         client.completePendingCommand();
+    }
+
+    @Override
+    public boolean flush(final FlowFile flowFile) throws IOException {
+        return getClient(flowFile).completePendingCommand();
     }
 
     @Override
@@ -444,8 +449,8 @@ public class FTPTransfer implements FileTransfer {
 
 
     @Override
-    public void rename(final String source, final String target) throws IOException {
-        final FTPClient client = getClient(null);
+    public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
+        final FTPClient client = getClient(flowFile);
         final boolean renameSuccessful = client.rename(source, target);
         if (!renameSuccessful) {
             throw new IOException("Failed to rename temporary file " + source + " to " + target + " due to: " + client.getReplyString());
@@ -453,8 +458,8 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteFile(final String path, final String remoteFileName) throws IOException {
-        final FTPClient client = getClient(null);
+    public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
+        final FTPClient client = getClient(flowFile);
         if (path != null) {
             setWorkingDirectory(path);
         }
@@ -464,8 +469,8 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteDirectory(final String remoteDirectoryName) throws IOException {
-        final FTPClient client = getClient(null);
+    public void deleteDirectory(final FlowFile flowFile, final String remoteDirectoryName) throws IOException {
+        final FTPClient client = getClient(flowFile);
         final boolean success = client.removeDirectory(remoteDirectoryName);
         if (!success) {
             throw new IOException("Failed to remove directory " + remoteDirectoryName + " due to " + client.getReplyString());
