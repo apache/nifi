@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -178,6 +179,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile Long lastRunTimeNanos = 0L;
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetState = false;
+    private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
 
     /*
      * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
@@ -194,6 +196,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
     static final String LATEST_LISTED_ENTRY_TIMESTAMP_KEY = "listing.timestamp";
     static final String LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY = "processed.timestamp";
+    static final String IDENTIFIER_PREFIX = "id";
 
     public File getPersistenceFile() {
         return new File("conf/state/" + getIdentifier());
@@ -307,6 +310,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // if the local file's latest timestamp is beyond that of the value provided from the cache, replace
                 if (minTimestamp == null || localTimestamp > minTimestamp) {
                     minTimestamp = localTimestamp;
+                    latestIdentifiersProcessed.clear();
+                    latestIdentifiersProcessed.addAll(listing.getMatchingIdentifiers());
                 }
             }
 
@@ -317,16 +322,20 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (minTimestamp != null) {
-            persist(minTimestamp, minTimestamp, stateManager, scope);
+            persist(minTimestamp, minTimestamp, latestIdentifiersProcessed, stateManager, scope);
         }
     }
 
     private void persist(final long latestListedEntryTimestampThisCycleMillis,
                          final long lastProcessedLatestEntryTimestampMillis,
+                         final List<String> processedIdentifiesWithLatestTimestamp,
                          final StateManager stateManager, final Scope scope) throws IOException {
-        final Map<String, String> updatedState = new HashMap<>(1);
+        final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
         updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
         updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
+        for (int i = 0; i < processedIdentifiesWithLatestTimestamp.size(); i++) {
+            updatedState.put(IDENTIFIER_PREFIX + "." + i, processedIdentifiesWithLatestTimestamp.get(i));
+        }
         stateManager.setState(updatedState, scope);
     }
 
@@ -350,19 +359,27 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // Attempt to retrieve state from the state manager if a last listing was not yet established or
                 // if just elected the primary node
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-                final String latestListedEntryTimestampString = stateMap.get(LATEST_LISTED_ENTRY_TIMESTAMP_KEY);
-                final String lastProcessedLatestEntryTimestampString= stateMap.get(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY);
-                if (lastProcessedLatestEntryTimestampString != null) {
-                    this.lastProcessedLatestEntryTimestampMillis = Long.parseLong(lastProcessedLatestEntryTimestampString);
-                }
-                if (latestListedEntryTimestampString != null) {
-                    minTimestampToListMillis = Long.parseLong(latestListedEntryTimestampString);
-                    // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
-                    if (minTimestampToListMillis == this.lastListedLatestEntryTimestampMillis) {
-                        context.yield();
-                        return;
-                    } else {
-                        this.lastListedLatestEntryTimestampMillis = minTimestampToListMillis;
+                latestIdentifiersProcessed.clear();
+                for (Map.Entry<String, String> state : stateMap.toMap().entrySet()) {
+                    final String k = state.getKey();
+                    final String v = state.getValue();
+                    if (v == null || v.isEmpty()) {
+                        continue;
+                    }
+
+                    if (LATEST_LISTED_ENTRY_TIMESTAMP_KEY.equals(k)) {
+                        minTimestampToListMillis = Long.parseLong(v);
+                        // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
+                        if (minTimestampToListMillis.equals(this.lastListedLatestEntryTimestampMillis)) {
+                            context.yield();
+                            return;
+                        } else {
+                            this.lastListedLatestEntryTimestampMillis = minTimestampToListMillis;
+                        }
+                    } else if (LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY.equals(k)) {
+                        this.lastProcessedLatestEntryTimestampMillis = Long.parseLong(v);
+                    } else if (k.startsWith(IDENTIFIER_PREFIX)) {
+                        latestIdentifiersProcessed.add(v);
                     }
                 }
                 justElectedPrimaryNode = false;
@@ -405,7 +422,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 targetSystemHasSeconds = entityTimestampMillis % 60_000 > 0;
             }
             // New entries are all those that occur at or after the associated timestamp
-            final boolean newEntry = minTimestampToListMillis == null || entityTimestampMillis >= minTimestampToListMillis && entityTimestampMillis > lastProcessedLatestEntryTimestampMillis;
+            final boolean newEntry = minTimestampToListMillis == null || entityTimestampMillis >= minTimestampToListMillis && entityTimestampMillis >= lastProcessedLatestEntryTimestampMillis;
 
             if (newEntry) {
                 List<T> entitiesForTimestamp = orderedEntries.get(entity.getTimestamp());
@@ -439,7 +456,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                  *   - The latest listed entity timestamp is equal to the last processed time, meaning we handled those items originally passed over. No need to process it again.
                  */
                 final long  listingLagNanos = TimeUnit.MILLISECONDS.toNanos(listingLagMillis);
-                if (currentRunTimeNanos - lastRunTimeNanos < listingLagNanos || latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)) {
+                if (currentRunTimeNanos - lastRunTimeNanos < listingLagNanos
+                        || (latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)
+                            && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream()
+                                    .allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier())))) {
                     context.yield();
                     return;
                 }
@@ -456,9 +476,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
             }
 
+            for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
+                List<T> entities = timestampEntities.getValue();
+                if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
+                    // Filter out previously processed entities.
+                    entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
+                }
 
-            for (List<T> timestampEntities : orderedEntries.values()) {
-                for (T entity : timestampEntities) {
+                for (T entity : entities) {
                     // Create the FlowFile for this path.
                     final Map<String, String> attributes = createAttributes(entity, context);
                     FlowFile flowFile = session.create();
@@ -476,6 +501,13 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // If there have been files created, update the last timestamp we processed.
                 // Retrieving lastKey instead of using latestListedEntryTimestampThisCycleMillis is intentional here,
                 // because latestListedEntryTimestampThisCycleMillis might be removed if it's not old enough.
+                if (!orderedEntries.lastKey().equals(lastProcessedLatestEntryTimestampMillis)) {
+                    // If the latest timestamp at this cycle becomes different than the previous one, we need to clear identifiers.
+                    // If it didn't change, we need to add identifiers.
+                    latestIdentifiersProcessed.clear();
+                }
+                // Capture latestIdentifierProcessed.
+                latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
                 lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
                 getLogger().info("Successfully created listing with {} new objects", new Object[]{flowfilesCreated});
                 session.commit();
@@ -494,7 +526,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 // the distributed state cache, the node can continue to run (if it is primary node).
                 try {
                     lastListedLatestEntryTimestampMillis = latestListedEntryTimestampThisCycleMillis;
-                    persist(latestListedEntryTimestampThisCycleMillis, lastProcessedLatestEntryTimestampMillis, context.getStateManager(), getStateScope(context));
+                    persist(latestListedEntryTimestampThisCycleMillis, lastProcessedLatestEntryTimestampMillis, latestIdentifiersProcessed, context.getStateManager(), getStateScope(context));
                 } catch (final IOException ioe) {
                     getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
                         + "if another node begins executing this Processor, data duplication may occur.", ioe);
@@ -518,6 +550,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         lastListedLatestEntryTimestampMillis = null;
         lastProcessedLatestEntryTimestampMillis = 0L;
         lastRunTimeNanos = 0L;
+        latestIdentifiersProcessed.clear();
     }
 
     /**
