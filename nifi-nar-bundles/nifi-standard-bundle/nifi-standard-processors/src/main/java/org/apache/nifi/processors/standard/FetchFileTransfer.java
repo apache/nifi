@@ -239,9 +239,10 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 @Override
                 public void process(final OutputStream out) throws IOException {
                     StreamUtils.copy(in, out);
-                    transfer.flush();
                 }
             });
+
+            transfer.flush(flowFile);
             transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
         } catch (final FileNotFoundException e) {
             getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",

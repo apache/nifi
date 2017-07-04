@@ -309,6 +309,11 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
+    public void flush(final FlowFile flowFile) throws IOException {
+        // nothing needed here
+    }
+
+    @Override
     public void deleteFile(final String path, final String remoteFileName) throws IOException {
         final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
         try {

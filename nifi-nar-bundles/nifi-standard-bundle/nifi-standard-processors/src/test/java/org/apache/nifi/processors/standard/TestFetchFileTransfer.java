@@ -282,6 +282,10 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
+                public void flush(FlowFile flowFile) throws IOException {
+                }
+
+                @Override
                 public FileInfo getRemoteFileInfo(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     return null;
                 }

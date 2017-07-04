@@ -289,7 +289,7 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(null);
+        final FTPClient client = getClient(flowFile);
         InputStream in = client.retrieveFileStream(remoteFileName);
         if (in == null) {
             throw new IOException(client.getReplyString());
@@ -300,6 +300,12 @@ public class FTPTransfer implements FileTransfer {
     @Override
     public void flush() throws IOException {
         final FTPClient client = getClient(null);
+        client.completePendingCommand();
+    }
+
+    @Override
+    public void flush(final FlowFile flowFile) throws IOException {
+        final FTPClient client = getClient(flowFile);
         client.completePendingCommand();
     }
 
