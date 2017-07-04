@@ -99,8 +99,9 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
-            .name("Cert Authentication")
-            .description("Authenticate using the SSL certificate rather than username/password.")
+            .name("cert-authentication")
+            .displayName("Use Certificate Authentication")
+            .description("Authenticate using the SSL certificate common name rather than username/password.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
