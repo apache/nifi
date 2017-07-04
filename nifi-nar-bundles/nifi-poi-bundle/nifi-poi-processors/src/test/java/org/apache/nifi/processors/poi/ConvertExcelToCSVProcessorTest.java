@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.poi;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -37,6 +39,16 @@ public class ConvertExcelToCSVProcessorTest {
     @Before
     public void init() {
         testRunner = TestRunners.newTestRunner(ConvertExcelToCSVProcessor.class);
+    }
+
+    @Test
+    public void testColToIndex() {
+        assertEquals(Integer.valueOf(0), ConvertExcelToCSVProcessor.columnToIndex("A"));
+        assertEquals(Integer.valueOf(1), ConvertExcelToCSVProcessor.columnToIndex("B"));
+        assertEquals(Integer.valueOf(25), ConvertExcelToCSVProcessor.columnToIndex("Z"));
+        assertEquals(Integer.valueOf(29), ConvertExcelToCSVProcessor.columnToIndex("AD"));
+        assertEquals(Integer.valueOf(239), ConvertExcelToCSVProcessor.columnToIndex("IF"));
+        assertEquals(Integer.valueOf(16383), ConvertExcelToCSVProcessor.columnToIndex("XFD"));
     }
 
     @Test
@@ -147,6 +159,30 @@ public class ConvertExcelToCSVProcessorTest {
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);  //We aren't expecting any output to success here because the sheet doesn't exist
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+    }
+
+    /**
+     * Validates that a sheet contains blank cells can be converted to a CSV without missing columns.
+     *
+     * @throws Exception
+     *  Any exception thrown during execution.
+     */
+    @Test
+    public void testProcessASheetWithBlankCells() throws Exception {
+
+        testRunner.setProperty(ConvertExcelToCSVProcessor.DESIRED_SHEETS, "Sheet1");
+        testRunner.enqueue(new File("src/test/resources/with-blank-cells.xlsx").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(l == 8l);
+        ff.isContentEqual("test", StandardCharsets.UTF_8);
+        ff.assertContentEquals(new File("src/test/resources/with-blank-cells.csv"));
     }
 
     /**
