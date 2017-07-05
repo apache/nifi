@@ -277,7 +277,6 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                     binFlowFile(context, flowFile, session, manager);
                 } catch (final Exception e) {
                     getLogger().error("Failed to bin {} due to {}", new Object[] {flowFile, e});
-                    session.transfer(flowFile, REL_FAILURE);
                 }
             }
         } finally {

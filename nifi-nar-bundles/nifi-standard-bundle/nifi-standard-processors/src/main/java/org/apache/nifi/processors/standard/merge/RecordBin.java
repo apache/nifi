@@ -112,6 +112,10 @@ public class RecordBin {
         boolean flowFileMigrated = false;
 
         try {
+            if (isComplete()) {
+                return false;
+            }
+
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
                 if (recordWriter == null) {
@@ -256,14 +260,14 @@ public class RecordBin {
     }
 
     public void complete() throws IOException {
-        if (isComplete()) {
-            return;
-        }
-
-        complete = true;
-
         writeLock.lock();
         try {
+            if (isComplete()) {
+                return;
+            }
+
+            complete = true;
+
             final WriteResult writeResult = recordWriter.finishRecordSet();
             recordWriter.close();
 
@@ -320,21 +324,23 @@ public class RecordBin {
             }
 
             final Map<String, String> attributes = new HashMap<>();
+
+            final AttributeStrategy attributeStrategy = AttributeStrategyUtil.strategyFor(context);
+            final Map<String, String> mergedAttributes = attributeStrategy.getMergedAttributes(flowFiles);
+            attributes.putAll(mergedAttributes);
+
             attributes.putAll(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordWriter.getMimeType());
             attributes.put(MERGE_COUNT_ATTRIBUTE, Integer.toString(flowFiles.size()));
             attributes.put(MERGE_BIN_AGE_ATTRIBUTE, Long.toString(getBinAge()));
 
-            final AttributeStrategy attributeStrategy = AttributeStrategyUtil.strategyFor(context);
-            final Map<String, String> mergedAttributes = attributeStrategy.getMergedAttributes(flowFiles);
-            attributes.putAll(mergedAttributes);
-
             merged = session.putAllAttributes(merged, attributes);
 
             session.getProvenanceReporter().join(flowFiles, merged);
             session.transfer(merged, MergeRecord.REL_MERGED);
             session.transfer(flowFiles, MergeRecord.REL_ORIGINAL);
+            session.adjustCounter("Records Merged", writeResult.getRecordCount(), false);
             session.commit();
 
             logger.debug("Created bin with {} records with Merged FlowFile {} using input FlowFiles {}", new Object[] {writeResult.getRecordCount(), merged, this.flowFiles});

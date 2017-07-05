@@ -150,7 +150,12 @@ public class RecordBinManager {
 
         // if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
         final RecordBin bin = new RecordBin(context, sessionFactory.createSession(), logger, createThresholds());
-        bin.offer(flowFile, reader, session, true);
+        final boolean binAccepted = bin.offer(flowFile, reader, session, true);
+        if (!binAccepted) {
+            session.rollback();
+            throw new RuntimeException("Attempted to add " + flowFile + " to a new bin but failed. This is unexpected. Will roll back session and try again.");
+        }
+
         if (!bin.isComplete()) {
             final int updatedBinCount = binCount.incrementAndGet();
             currentBins.add(bin);
