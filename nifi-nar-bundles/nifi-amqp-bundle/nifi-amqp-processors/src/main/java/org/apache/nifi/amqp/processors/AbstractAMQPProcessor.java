@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DefaultSaslConfig;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -33,19 +35,18 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultSaslConfig;
 
-import javax.net.ssl.SSLContext;
 
 /**
  * Base processor that uses RabbitMQ client API
  * (https://www.rabbitmq.com/api-guide.html) to rendezvous with AMQP-based
  * messaging systems version 0.9.1
  *
- * @param <T> the type of {@link AMQPWorker}. Please see {@link AMQPPublisher} and {@link
- *            AMQPConsumer}
+ * @param <T> the type of {@link AMQPWorker}. Please see {@link AMQPPublisher}
+ *         and {@link AMQPConsumer}
  */
 abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProcessor {
 
@@ -182,8 +183,10 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * {@link #onTrigger(ProcessContext, ProcessSession)}. It is implemented by
      * sub-classes to perform {@link Processor} specific functionality.
      *
-     * @param context instance of {@link ProcessContext}
-     * @param session instance of {@link ProcessSession}
+     * @param context
+     *         instance of {@link ProcessContext}
+     * @param session
+     *         instance of {@link ProcessSession}
      */
     protected abstract void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException;
 
@@ -192,7 +195,8 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * {@link AMQPPublisher} or {@link AMQPConsumer}) and is implemented by
      * sub-classes.
      *
-     * @param context instance of {@link ProcessContext}
+     * @param context
+     *         instance of {@link ProcessContext}
      * @return new instance of {@link AMQPWorker}
      */
     protected abstract T finishBuildingTargetResource(ProcessContext context);

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -26,8 +29,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the AbstractAMQPProcessor class
@@ -79,6 +80,7 @@ public class AbstractAMQPProcessorTest {
         protected void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException {
             // nothing to do
         }
+
         @Override
         protected AMQPConsumer finishBuildingTargetResource(ProcessContext context) {
             return null;

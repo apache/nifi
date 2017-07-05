@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ReturnListener;
+import java.io.IOException;
 
 import org.apache.nifi.logging.ComponentLog;
 
-import java.io.IOException;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ReturnListener;
 
 /**
  * Generic publisher of messages to AMQP-based messaging system. It is based on
@@ -38,7 +38,7 @@ final class AMQPPublisher extends AMQPWorker {
      * Creates an instance of this publisher
      *
      * @param connection
-     *            instance of AMQP {@link Connection}
+     *         instance of AMQP {@link Connection}
      */
     AMQPPublisher(Connection connection, ComponentLog processLog) {
         super(connection);
@@ -52,15 +52,15 @@ final class AMQPPublisher extends AMQPWorker {
      * {@link BasicProperties}) to a pre-defined AMQP Exchange.
      *
      * @param bytes
-     *            bytes representing a message.
+     *         bytes representing a message.
      * @param properties
-     *            instance of {@link BasicProperties}
+     *         instance of {@link BasicProperties}
      * @param exchange
-     *            the name of AMQP exchange to which messages will be published.
-     *            If not provided 'default' exchange will be used.
+     *         the name of AMQP exchange to which messages will be published. If not
+     *         provided 'default' exchange will be used.
      * @param routingKey
-     *            (required) the name of the routingKey to be used by AMQP-based
-     *            system to route messages to its final destination (queue).
+     *         (required) the name of the routingKey to be used by AMQP-based system to
+     *         route messages to its final destination (queue).
      */
     void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
         this.validateStringProperty("routingKey", routingKey);
