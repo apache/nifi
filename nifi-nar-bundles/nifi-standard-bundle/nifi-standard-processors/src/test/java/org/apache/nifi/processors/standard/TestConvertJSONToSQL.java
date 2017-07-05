@@ -106,17 +106,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testInsertQuotedIdentifiers() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -143,17 +134,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testInsertQuotedTableIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -234,17 +216,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testUpdateQuotedTableIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -297,17 +270,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testMultipleInsertsQuotedIdentifiers() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -359,17 +323,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testUpdateBasedOnPrimaryKeyQuotedIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -449,17 +404,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testUpdateBasedOnUpdateKeyQuotedIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -796,17 +742,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testDelete() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -831,17 +768,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testDeleteQuotedIdentifiers() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -868,17 +796,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testDeleteQuotedTableIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
@@ -905,17 +824,8 @@ public class TestConvertJSONToSQL {
     @Test
     public void testDeleteWithNullValue() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
-        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
-
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createPersons);
-            }
-        }
 
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
