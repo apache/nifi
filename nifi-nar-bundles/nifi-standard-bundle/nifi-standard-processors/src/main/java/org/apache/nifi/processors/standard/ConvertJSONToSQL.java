@@ -514,19 +514,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         // only "true" is considered true, everything else is false
         case Types.BOOLEAN:
-            switch (fieldValue==null?"":fieldValue) {
-            case "true":
-                fieldValue = "true";
-                break;
-
-            default:
-                fieldValue = "false";
-                break;
-            }
+            fieldValue = Boolean.valueOf(fieldValue).toString();
             break;
 
         // Don't truncate numeric types.
-        // Should we check value is indeed number and throw error if not?
         case Types.TINYINT:
         case Types.SMALLINT:
         case Types.INTEGER:
@@ -538,11 +529,11 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         case Types.NUMERIC:
             break;
 
-        // Don't truncate date and time types.
-        // Should we check value is indeed correct date and/or time and throw error if not?
-        // We assume date and time is already correct, but because ConvertJSONToSQL is often used together with PutSQL
-        // maybe we should assure PutSQL correctly understands date and time values.
-        // Currently PutSQL expect Long numeric values. But JSON usually uses ISO 8601, for example: 2012-04-23T18:25:43.511Z for dates.
+        // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
+        // Specifically, milliseconds since January 1, 1970, 00:00:00 GMT
+        // However, for TIMESTAMP, PutSQL accepts optional timestamp format via FlowFile attribute.
+        // See PutSQL.setParameter method and NIFI-3430 for detail.
+        // Alternatively, user can use JSONTreeReader and PutDatabaseRecord to handle date format more efficiently.
         case Types.DATE:
         case Types.TIME:
         case Types.TIMESTAMP:
