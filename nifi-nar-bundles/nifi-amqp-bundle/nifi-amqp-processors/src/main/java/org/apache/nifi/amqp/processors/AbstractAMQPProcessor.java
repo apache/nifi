@@ -46,7 +46,7 @@ import com.rabbitmq.client.DefaultSaslConfig;
  * messaging systems version 0.9.1
  *
  * @param <T> the type of {@link AMQPWorker}. Please see {@link AMQPPublisher}
- *         and {@link AMQPConsumer}
+ *            and {@link AMQPConsumer}
  */
 abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProcessor {
 
@@ -184,9 +184,9 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * sub-classes to perform {@link Processor} specific functionality.
      *
      * @param context
-     *         instance of {@link ProcessContext}
+     *            instance of {@link ProcessContext}
      * @param session
-     *         instance of {@link ProcessSession}
+     *            instance of {@link ProcessSession}
      */
     protected abstract void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException;
 
@@ -196,7 +196,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * sub-classes.
      *
      * @param context
-     *         instance of {@link ProcessContext}
+     *            instance of {@link ProcessContext}
      * @return new instance of {@link AMQPWorker}
      */
     protected abstract T finishBuildingTargetResource(ProcessContext context);
