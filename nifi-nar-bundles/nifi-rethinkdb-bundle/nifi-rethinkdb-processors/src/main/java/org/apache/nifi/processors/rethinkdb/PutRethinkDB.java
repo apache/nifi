@@ -48,20 +48,20 @@ import java.util.Set;
 @EventDriven
 @SupportsBatching
 @Tags({"rethinkdb", "stream","insert", "update", "write", "put"})
-@CapabilityDescription("Processor to write the JSON contents of a FlowFile to RethinkDb. The flow file should contain either JSON Object an array of JSON documents")
+@CapabilityDescription("Processor to write the JSON content of a FlowFile to RethinkDB (https://www.rethinkdb.com/). The flow file should contain either JSON Object an array of JSON documents")
 @WritesAttributes({
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_ERROR_MESSAGE, description = "Rethinkdb error emssage"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_ERROR_KEY, description = "Error count while inserting documents"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_DELETED_KEY, description = "Number of documents deleted"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY, description = "Keys generated on inserting documents"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_INSERTED_KEY, description = "Number of documents inserted"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_REPLACED_KEY, description = "Number of documents replaced"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_SKIPPED_KEY, description = "Number of documents skipped because they already existed"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_UNCHANGED_KEY, description = "Number of documents unchaged since they already existed"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, description = "First error while inserting documents"),
-    @WritesAttribute(attribute = PutRethinkDb.RETHINKDB_INSERT_RESULT_WARNINGS_KEY, description = "Warning message in case of large number of ids being returned on insertion")
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_ERROR_MESSAGE, description = "RethinkDB error message"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_ERROR_KEY, description = "Error count while inserting documents"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_DELETED_KEY, description = "Number of documents deleted"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY, description = "Keys generated on inserting documents"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_INSERTED_KEY, description = "Number of documents inserted"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_REPLACED_KEY, description = "Number of documents replaced"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_SKIPPED_KEY, description = "Number of documents skipped because they already existed"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_UNCHANGED_KEY, description = "Number of documents unchanged since they already existed"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, description = "First error while inserting documents"),
+    @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_WARNINGS_KEY, description = "Warning message in case of large number of ids being returned on insertion")
     })
-public class PutRethinkDb extends AbstractRethinkDbProcessor {
+public class PutRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue CONFLICT_STRATEGY_UPDATE = new AllowableValue("update", "Update", "Update the document having same id with new values");
     public static AllowableValue CONFLICT_STRATEGY_REPLACE = new AllowableValue("replace", "Replace", "Replace the document with having same id new document");
@@ -196,7 +196,7 @@ public class PutRethinkDb extends AbstractRethinkDbProcessor {
                     (endTimeMillis - startTimeMillis));
             }
         } catch (Exception exception) {
-            getLogger().error("Failed to insert into RethinkDb due to {}",
+            getLogger().error("Failed to insert into RethinkDB due to {}",
                     new Object[]{exception.getLocalizedMessage()}, exception);
             flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, exception.getMessage() + "");
             session.transfer(flowFile, REL_FAILURE);

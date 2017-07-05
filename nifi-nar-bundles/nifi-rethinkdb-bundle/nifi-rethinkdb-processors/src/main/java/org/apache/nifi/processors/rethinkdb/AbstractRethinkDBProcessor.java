@@ -30,7 +30,7 @@ import com.rethinkdb.net.Connection;
 /**
  * Abstract base class for RethinkDb processors
  */
-abstract class AbstractRethinkDbProcessor extends AbstractProcessor {
+abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
 
     protected static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("rethinkdb-charset")
@@ -105,7 +105,7 @@ abstract class AbstractRethinkDbProcessor extends AbstractProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Sucessful FlowFiles are routed to this relationship").build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder().name("success")
+    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed FlowFiles are routed to this relationship").build();
 
     public static final String RESULT_ERROR_KEY = "errors";
