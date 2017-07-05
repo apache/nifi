@@ -61,6 +61,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class StatusMerger {
+    private static final String ZERO_COUNT = "0";
+    private static final String ZERO_BYTES = "0 bytes";
+    private static final String ZERO_COUNT_AND_BYTES = "0 (0 bytes)";
+    private static final String EMPTY_COUNT = "-";
+    private static final String EMPTY_BYTES = "-";
+
     public static void merge(final ControllerStatusDTO target, final ControllerStatusDTO toMerge) {
         if (target == null || toMerge == null) {
             return;
@@ -743,14 +749,32 @@ public class StatusMerger {
     }
 
     public static String formatCount(final Integer intStatus) {
-        return intStatus == null ? "-" : FormatUtils.formatCount(intStatus);
+        if (intStatus == null) {
+            return EMPTY_COUNT;
+        }
+        if (intStatus == 0) {
+            return ZERO_COUNT;
+        }
+
+        return FormatUtils.formatCount(intStatus);
     }
 
     public static String formatDataSize(final Long longStatus) {
-        return longStatus == null ? "-" : FormatUtils.formatDataSize(longStatus);
+        if (longStatus == null) {
+            return EMPTY_BYTES;
+        }
+        if (longStatus == 0L) {
+            return ZERO_BYTES;
+        }
+
+        return FormatUtils.formatDataSize(longStatus);
     }
 
     public static String prettyPrint(final Integer count, final Long bytes) {
+        if (count != null && bytes != null && count == 0 && bytes == 0L) {
+            return ZERO_COUNT_AND_BYTES;
+        }
+
         return formatCount(count) + " (" + formatDataSize(bytes) + ")";
     }
 

@@ -18,7 +18,6 @@ package org.apache.nifi.controller;
 
 import static java.util.Objects.requireNonNull;
 
-import com.sun.jersey.api.client.ClientHandlerException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,7 +46,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+
 import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -248,6 +249,8 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.sun.jersey.api.client.ClientHandlerException;
+
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider,
     QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider, IdentifierLookup, ReloadComponent {
 
@@ -300,6 +303,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ConcurrentMap<String, ReportingTaskNode> reportingTasks = new ConcurrentHashMap<>();
     private final VariableRegistry variableRegistry;
     private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
+
+    private final ConcurrentMap<String, ProcessorNode> allProcessors = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ProcessGroup> allProcessGroups = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Connection> allConnections = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Port> allInputPorts = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
 
     private volatile ZooKeeperStateServer zooKeeperStateServer;
 
@@ -532,7 +542,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), this, processScheduler,
                 nifiProperties, encryptor, this, this.variableRegistry);
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
-        rootGroupRef.set(rootGroup);
+        setRootGroup(rootGroup);
         instanceId = ComponentIdGenerator.generateId().toString();
 
         controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider, this.variableRegistry, this.nifiProperties);
@@ -1660,6 +1670,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // update the heartbeat bean
             this.heartbeatBeanRef.set(new HeartbeatBean(group, isPrimary()));
+            allProcessGroups.put(group.getIdentifier(), group);
+            allProcessGroups.put(ROOT_GROUP_ID_ALIAS, group);
         } finally {
             writeLock.unlock();
         }
@@ -2364,12 +2376,76 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @return the process group or null if not group is found
      */
     public ProcessGroup getGroup(final String id) {
-        requireNonNull(id);
-        final ProcessGroup root = getRootGroup();
-        final String searchId = id.equals(ROOT_GROUP_ID_ALIAS) ? getRootGroupId() : id;
-        return root == null ? null : root.findProcessGroup(searchId);
+        return allProcessGroups.get(requireNonNull(id));
     }
 
+    public void onProcessGroupAdded(final ProcessGroup group) {
+        allProcessGroups.put(group.getIdentifier(), group);
+    }
+
+    public void onProcessGroupRemoved(final ProcessGroup group) {
+        allProcessGroups.remove(group.getIdentifier());
+    }
+
+    public void onProcessorAdded(final ProcessorNode procNode) {
+        allProcessors.put(procNode.getIdentifier(), procNode);
+    }
+
+    public void onProcessorRemoved(final ProcessorNode procNode) {
+        allProcessors.remove(procNode.getIdentifier());
+    }
+
+    public ProcessorNode getProcessorNode(final String id) {
+        return allProcessors.get(id);
+    }
+
+    public void onConnectionAdded(final Connection connection) {
+        allConnections.put(connection.getIdentifier(), connection);
+    }
+
+    public void onConnectionRemoved(final Connection connection) {
+        allConnections.remove(connection.getIdentifier());
+    }
+
+    public Connection getConnection(final String id) {
+        return allConnections.get(id);
+    }
+
+    public void onInputPortAdded(final Port inputPort) {
+        allInputPorts.put(inputPort.getIdentifier(), inputPort);
+    }
+
+    public void onInputPortRemoved(final Port inputPort) {
+        allInputPorts.remove(inputPort.getIdentifier());
+    }
+
+    public Port getInputPort(final String id) {
+        return allInputPorts.get(id);
+    }
+
+    public void onOutputPortAdded(final Port outputPort) {
+        allOutputPorts.put(outputPort.getIdentifier(), outputPort);
+    }
+
+    public void onOutputPortRemoved(final Port outputPort) {
+        allOutputPorts.remove(outputPort.getIdentifier());
+    }
+
+    public Port getOutputPort(final String id) {
+        return allOutputPorts.get(id);
+    }
+
+    public void onFunnelAdded(final Funnel funnel) {
+        allFunnels.put(funnel.getIdentifier(), funnel);
+    }
+
+    public void onFunnelRemoved(final Funnel funnel) {
+        allFunnels.remove(funnel.getIdentifier());
+    }
+
+    public Funnel getFunnel(final String id) {
+        return allFunnels.get(id);
+    }
     /**
      * Returns the status of all components in the controller. This request is
      * not in the context of a user so the results will be unfiltered.
@@ -3487,7 +3563,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     public int getActiveThreadCount() {
-        return getGroupStatus(getRootGroupId()).getActiveThreadCount();
+        final int timerDrivenCount = timerDrivenEngineRef.get().getActiveCount();
+        final int eventDrivenCount = eventDrivenEngineRef.get().getActiveCount();
+        return timerDrivenCount + eventDrivenCount;
     }
 
     private RepositoryStatusReport getProcessorStats() {
