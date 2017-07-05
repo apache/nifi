@@ -102,7 +102,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
             .name("cert-authentication")
             .displayName("Use Certificate Authentication")
-            .description("Authenticate using the SSL certificate common name rather than username/password.")
+            .description("Authenticate using the SSL certificate common name rather than user name/password.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
@@ -220,10 +220,10 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      */
     private Connection createConnection(ProcessContext context) {
         ConnectionFactory cf = new ConnectionFactory();
-        cf.setUsername(context.getProperty(USER).getValue());
-        cf.setPassword(context.getProperty(PASSWORD).getValue());
         cf.setHost(context.getProperty(HOST).getValue());
         cf.setPort(Integer.parseInt(context.getProperty(PORT).getValue()));
+        cf.setUsername(context.getProperty(USER).getValue());
+        cf.setPassword(context.getProperty(PASSWORD).getValue());
         String vHost = context.getProperty(V_HOST).getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
