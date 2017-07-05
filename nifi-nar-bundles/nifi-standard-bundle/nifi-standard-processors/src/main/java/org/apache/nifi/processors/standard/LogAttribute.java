@@ -20,13 +20,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,6 +50,8 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.jetty.util.StringUtil;
 
+import com.google.common.collect.Sets;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -66,14 +69,33 @@ public class LogAttribute extends AbstractProcessor {
     public static final PropertyDescriptor ATTRIBUTES_TO_LOG_CSV = new PropertyDescriptor.Builder()
             .name("Attributes to Log")
             .required(false)
-            .description("A comma-separated list of Attributes to Log. If not specified, all attributes will be logged.")
+            .description("A comma-separated list of Attributes to Log. If not specified, all attributes will be logged unless `Attributes to Log by Regular Expression` is modified." +
+                    " There's an AND relationship between the two properties.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor ATTRIBUTES_TO_LOG_REGEX = new PropertyDescriptor.Builder()
+            .name("attributes-to-log-regex")
+            .displayName("Attributes to Log by Regular Expression")
+            .required(false)
+            .defaultValue(".*")
+            .description("A regular expression indicating the Attributes to Log. If not specified, all attributes will be logged unless `Attributes to Log` is modified." +
+                    " There's an AND relationship between the two properties.")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
     public static final PropertyDescriptor ATTRIBUTES_TO_IGNORE_CSV = new PropertyDescriptor.Builder()
             .name("Attributes to Ignore")
-            .description("A comma-separated list of Attributes to ignore. If not specified, no attributes will be ignored.")
+            .description("A comma-separated list of Attributes to ignore. If not specified, no attributes will be ignored unless `Attributes to Ignore by Regular Expression` is modified." +
+                    " There's an OR relationship between the two properties.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor ATTRIBUTES_TO_IGNORE_REGEX = new PropertyDescriptor.Builder()
+            .name("attributes-to-ignore-regex")
+            .displayName("Attributes to Ignore by Regular Expression")
+            .required(false)
+            .description("A regular expression indicating the Attributes to Ignore. If not specified, no attributes will be ignored unless `Attributes to Ignore` is modified." +
+                    " There's an OR relationship between the two properties.")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
     public static final PropertyDescriptor LOG_PAYLOAD = new PropertyDescriptor.Builder()
             .name("Log Payload")
@@ -127,7 +149,9 @@ public class LogAttribute extends AbstractProcessor {
         supDescriptors.add(LOG_LEVEL);
         supDescriptors.add(LOG_PAYLOAD);
         supDescriptors.add(ATTRIBUTES_TO_LOG_CSV);
+        supDescriptors.add(ATTRIBUTES_TO_LOG_REGEX);
         supDescriptors.add(ATTRIBUTES_TO_IGNORE_CSV);
+        supDescriptors.add(ATTRIBUTES_TO_IGNORE_REGEX);
         supDescriptors.add(LOG_PREFIX);
         supDescriptors.add(CHARSET);
         supportedDescriptors = Collections.unmodifiableList(supDescriptors);
@@ -217,21 +241,27 @@ public class LogAttribute extends AbstractProcessor {
     }
 
     private Set<String> getAttributesToLog(final Set<String> flowFileAttrKeys, final ProcessContext context) {
-        final Set<String> result = new TreeSet<>();
 
+        // collect properties
         final String attrsToLogValue = context.getProperty(ATTRIBUTES_TO_LOG_CSV).getValue();
-        if (StringUtils.isBlank(attrsToLogValue)) {
-            result.addAll(flowFileAttrKeys);
-        } else {
-            result.addAll(Arrays.asList(attrsToLogValue.split("\\s*,\\s*")));
-        }
-
         final String attrsToRemoveValue = context.getProperty(ATTRIBUTES_TO_IGNORE_CSV).getValue();
-        if (StringUtils.isNotBlank(attrsToRemoveValue)) {
-            result.removeAll(Arrays.asList(attrsToRemoveValue.split("\\s*,\\s*")));
-        }
-
-        return result;
+        final Set<String> attrsToLog = StringUtils.isBlank(attrsToLogValue) ? Sets.newHashSet(flowFileAttrKeys) : Sets.newHashSet(attrsToLogValue.split("\\s*,\\s*"));
+        final Set<String> attrsToRemove = StringUtils.isBlank(attrsToRemoveValue) ? Sets.newHashSet() : Sets.newHashSet(attrsToRemoveValue.split("\\s*,\\s*"));
+        final Pattern attrsToLogRegex = Pattern.compile(context.getProperty(ATTRIBUTES_TO_LOG_REGEX).getValue());
+        final String attrsToRemoveRegexValue = context.getProperty(ATTRIBUTES_TO_IGNORE_REGEX).getValue();
+        final Pattern attrsToRemoveRegex = attrsToRemoveRegexValue == null ? null : Pattern.compile(context.getProperty(ATTRIBUTES_TO_IGNORE_REGEX).getValue());
+        return flowFileAttrKeys.stream()
+                .filter(candidate -> {
+                    // we'll consider logging an attribute if either no explicit attributes to log were configured,
+                    // if this property was configured to be logged, or if the regular expression of properties to log matches
+                    if ((attrsToLog.isEmpty() || attrsToLog.contains(candidate)) && attrsToLogRegex.matcher(candidate).matches()) {
+                        // log properties we've _not_ configured either explicitly or by regular expression to be ignored.
+                        if ((attrsToRemove.isEmpty() || !attrsToRemove.contains(candidate)) && (attrsToRemoveRegex == null || !attrsToRemoveRegex.matcher(candidate).matches())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.toCollection(TreeSet::new));
     }
 
     private void transferChunk(final ProcessSession session) {
