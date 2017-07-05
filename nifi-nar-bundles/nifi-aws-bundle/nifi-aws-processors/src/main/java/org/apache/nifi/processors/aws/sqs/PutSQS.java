@@ -38,14 +38,17 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 
 @SupportsBatching
 @SeeAlso({ GetSQS.class, DeleteSQS.class })
@@ -115,11 +118,13 @@ public class PutSQS extends AbstractSQSProcessor {
         flowFiles.add(flowFile);
 
         final Set<SendMessageBatchRequestEntry> entries = new HashSet<>();
+        final Map<String, FlowFile> ffMap = new HashMap<String, FlowFile>();
+        ffMap.put(flowFile.getAttribute(CoreAttributes.UUID.key()), flowFile);
 
         for(FlowFile flowFileItem : flowFiles) {
-
+            final String uuid = flowFileItem.getAttribute(CoreAttributes.UUID.key());
             final SendMessageBatchRequestEntry entry = new SendMessageBatchRequestEntry();
-            entry.setId(flowFileItem.getAttribute("uuid"));
+            entry.setId(uuid);
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFileItem, baos);
             final String flowFileContent = baos.toString();
@@ -137,13 +142,30 @@ public class PutSQS extends AbstractSQSProcessor {
             entry.setMessageAttributes(messageAttributes);
             entry.setDelaySeconds(context.getProperty(DELAY).asTimePeriod(TimeUnit.SECONDS).intValue());
             entries.add(entry);
-
+            ffMap.put(uuid, flowFileItem);
         }
 
         request.setEntries(entries);
 
         try {
-            client.sendMessageBatch(request);
+            SendMessageBatchResult result = client.sendMessageBatch(request);
+            List<BatchResultErrorEntry> failures = result.getFailed();
+
+            for (BatchResultErrorEntry batchResultErrorEntry : failures) {
+                final String id = batchResultErrorEntry.getId();
+                final FlowFile ff = ffMap.remove(id);
+                getLogger().error("Failed to delete {} from SQS due to {}", new Object[]{ff, batchResultErrorEntry.getMessage()});
+                session.penalize(ff);
+                session.transfer(ff, REL_FAILURE);
+            }
+
+            getLogger().debug("Successfully published {} messages to Amazon SQS; routing to success", new Object[]{ffMap.size()});
+            session.transfer(ffMap.values(), REL_SUCCESS);
+            final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+
+            for(FlowFile flowFileItem : ffMap.values()) {
+                session.getProvenanceReporter().send(flowFileItem, queueUrl, transmissionMillis);
+            }
         } catch (final Exception e) {
             getLogger().error("Failed to send {} messages to Amazon SQS due to {}; routing to failure", new Object[]{flowFiles.size(), e});
             final List<FlowFile> penalizedFlowFiles = new ArrayList<>();
@@ -152,14 +174,6 @@ public class PutSQS extends AbstractSQSProcessor {
             }
             session.transfer(penalizedFlowFiles, REL_FAILURE);
             return;
-        }
-
-        getLogger().info("Successfully published {} messages to Amazon SQS; routing to success", new Object[]{flowFiles.size()});
-        session.transfer(flowFiles, REL_SUCCESS);
-        final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-
-        for(FlowFile flowFileItem : flowFiles) {
-            session.getProvenanceReporter().send(flowFileItem, queueUrl, transmissionMillis);
         }
     }
 

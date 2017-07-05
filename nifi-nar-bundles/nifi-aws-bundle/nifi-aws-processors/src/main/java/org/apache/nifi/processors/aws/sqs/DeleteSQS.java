@@ -19,7 +19,9 @@ package org.apache.nifi.processors.aws.sqs;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -36,8 +38,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
@@ -82,21 +86,35 @@ public class DeleteSQS extends AbstractSQSProcessor {
         request.setQueueUrl(queueUrl);
 
         final List<DeleteMessageBatchRequestEntry> entries = new ArrayList<>(flowFiles.size());
+        final Map<String, FlowFile> ffMap = new HashMap<String, FlowFile>();
+        ffMap.put(flowFile.getAttribute(CoreAttributes.UUID.key()), flowFile);
 
         for (final FlowFile flowFileItem : flowFiles) {
             final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
+            final String uuid = flowFileItem.getAttribute(CoreAttributes.UUID.key());
             entry.setReceiptHandle(context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFileItem).getValue());
-            String entryId = flowFile.getAttribute(CoreAttributes.UUID.key());
-            entry.setId(entryId);
+            entry.setId(uuid);
             entries.add(entry);
+            ffMap.put(uuid, flowFileItem);
         }
 
         request.setEntries(entries);
 
         try {
-            client.deleteMessageBatch(request);
-            getLogger().info("Successfully deleted {} objects from SQS", new Object[]{flowFiles.size()});
-            session.transfer(flowFiles, REL_SUCCESS);
+            DeleteMessageBatchResult result = client.deleteMessageBatch(request);
+
+            List<BatchResultErrorEntry> failures = result.getFailed();
+
+            for (BatchResultErrorEntry batchResultErrorEntry : failures) {
+                final String id = batchResultErrorEntry.getId();
+                final FlowFile ff = ffMap.remove(id);
+                getLogger().error("Failed to delete {} from SQS due to {}", new Object[]{ff, batchResultErrorEntry.getMessage()});
+                session.penalize(ff);
+                session.transfer(ff, REL_FAILURE);
+            }
+
+            getLogger().debug("Successfully deleted {} objects from SQS", new Object[]{ffMap.size()});
+            session.transfer(ffMap.values(), REL_SUCCESS);
         } catch (final Exception e) {
             getLogger().error("Failed to delete {} objects from SQS due to {}", new Object[]{flowFiles.size(), e});
             final List<FlowFile> penalizedFlowFiles = new ArrayList<>();

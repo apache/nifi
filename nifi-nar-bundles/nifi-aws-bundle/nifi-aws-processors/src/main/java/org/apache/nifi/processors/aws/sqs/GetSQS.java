@@ -92,14 +92,6 @@ public class GetSQS extends AbstractSQSProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
-            .description("The maximum number of messages to send in a single network request")
-            .required(true)
-            .addValidator(StandardValidators.createLongValidator(1L, 10L, true))
-            .defaultValue("10")
-            .build();
-
     public static final PropertyDescriptor DYNAMIC_QUEUE_URL = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(QUEUE_URL)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)

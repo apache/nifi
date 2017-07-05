@@ -35,8 +35,8 @@ public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProvide
             .name("Batch Size")
             .description("The maximum number of messages to send in a single network request")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("25")
+            .addValidator(StandardValidators.createLongValidator(1L, 10L, true))
+            .defaultValue("10")
             .build();
 
     public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()

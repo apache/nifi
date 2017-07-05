@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
 
 
 public class TestDeleteSQS {
@@ -61,6 +62,9 @@ public class TestDeleteSQS {
         ffAttributes.put("sqs.receipt.handle", "test-receipt-handle-1");
         runner.enqueue("TestMessageBody", ffAttributes);
 
+        DeleteMessageBatchResult batchResult = new DeleteMessageBatchResult();
+        Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class))).thenReturn(batchResult);
+
         runner.assertValid();
         runner.run(1);
 
@@ -82,11 +86,15 @@ public class TestDeleteSQS {
         ffAttributes.put("custom.receipt.handle", "test-receipt-handle-1");
         runner.enqueue("TestMessageBody", ffAttributes);
 
+        DeleteMessageBatchResult batchResult = new DeleteMessageBatchResult();
+        Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class))).thenReturn(batchResult);
+
         runner.assertValid();
         runner.run(1);
 
         ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
+
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("test-receipt-handle-1", deleteRequest.getEntries().get(0).getReceiptHandle());
 
