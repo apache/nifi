@@ -208,6 +208,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         writeLock.lock();
         try {
             this.processGroup = group;
+            invalidateValidationContext();
         } finally {
             writeLock.unlock();
         }

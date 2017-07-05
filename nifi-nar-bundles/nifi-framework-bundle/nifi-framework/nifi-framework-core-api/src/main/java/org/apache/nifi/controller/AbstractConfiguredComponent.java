@@ -61,6 +61,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
+    private final AtomicReference<ValidationContext> validationContext = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
     private final VariableRegistry variableRegistry;
@@ -118,6 +119,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setAnnotationData(final String data) {
+        invalidateValidationContext();
         annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
     }
 
@@ -435,6 +437,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        invalidateValidationContext();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
@@ -449,8 +452,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
-            getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier()));
+        final Collection<ValidationResult> validationResults = validate(getValidationContext());
 
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
@@ -470,8 +472,13 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(
-                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final ValidationContext validationContext;
+            if (serviceIdentifiersNotToValidate == null || serviceIdentifiersNotToValidate.isEmpty()) {
+                validationContext = getValidationContext();
+            } else {
+                validationContext = getValidationContextFactory().newValidationContext(serviceIdentifiersNotToValidate,
+                    getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            }
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
@@ -513,6 +520,25 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     protected ValidationContextFactory getValidationContextFactory() {
         return this.validationContextFactory;
+    }
+
+    protected void invalidateValidationContext() {
+        this.validationContext.set(null);
+    }
+
+    protected ValidationContext getValidationContext() {
+        while (true) {
+            ValidationContext context = this.validationContext.get();
+            if (context != null) {
+                return context;
+            }
+
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final boolean updated = validationContext.compareAndSet(null, context);
+            if (updated) {
+                return context;
+            }
+        }
     }
 
     protected VariableRegistry getVariableRegistry() {
