@@ -42,9 +42,12 @@ import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.beans.PropertyDescriptor;
 import java.util.Arrays;
@@ -55,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -88,6 +93,7 @@ public class TestStandardControllerServiceProvider {
     private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private static NiFiProperties niFiProperties;
     private static Bundle systemBundle;
+    private FlowController controller;
 
     @BeforeClass
     public static void setNiFiProps() {
@@ -97,6 +103,29 @@ public class TestStandardControllerServiceProvider {
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+    }
+
+    @Before
+    public void setup() {
+        controller = Mockito.mock(FlowController.class);
+
+        final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
+        Mockito.doAnswer(new Answer<ProcessorNode>() {
+            @Override
+            public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
+                final String id = invocation.getArgumentAt(0, String.class);
+                return processorMap.get(id);
+            }
+        }).when(controller).getProcessorNode(Mockito.anyString());
+
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
+                processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
+                return null;
+            }
+        }).when(controller).onProcessorAdded(Mockito.any(ProcessorNode.class));
     }
 
     private StandardProcessScheduler createScheduler() {
@@ -111,7 +140,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testDisableControllerService() {
-        final ProcessGroup procGroup = new MockProcessGroup();
+        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -127,7 +156,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test(timeout = 10000)
     public void testEnableDisableWithReference() {
-        final ProcessGroup group = new MockProcessGroup();
+        final ProcessGroup group = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(group);
 
@@ -190,7 +219,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     public void testEnableReferencingServicesGraph(final ProcessScheduler scheduler) {
-        final ProcessGroup procGroup = new MockProcessGroup();
+        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -246,7 +275,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testOrderingOfServices() {
-        final ProcessGroup procGroup = new MockProcessGroup();
+        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -405,7 +434,7 @@ public class TestStandardControllerServiceProvider {
                 new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, niFiProperties,
                 VariableRegistry.EMPTY_REGISTRY, reloadComponent);
 
-        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null, variableRegistry);
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, Mockito.mock(FlowController.class), variableRegistry);
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);
 
@@ -414,7 +443,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testEnableReferencingComponents() {
-        final ProcessGroup procGroup = new MockProcessGroup();
+        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -442,7 +471,7 @@ public class TestStandardControllerServiceProvider {
         FlowController controller = Mockito.mock(FlowController.class);
         StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
-        ProcessGroup procGroup = new MockProcessGroup();
+        ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode A = provider.createControllerService(ServiceA.class.getName(), "A",
@@ -493,7 +522,7 @@ public class TestStandardControllerServiceProvider {
         FlowController controller = Mockito.mock(FlowController.class);
         StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
                 stateManagerProvider, variableRegistry, niFiProperties);
-        ProcessGroup procGroup = new MockProcessGroup();
+        ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode A = provider.createControllerService(ServiceC.class.getName(), "A",
@@ -535,7 +564,7 @@ public class TestStandardControllerServiceProvider {
         FlowController controller = Mockito.mock(FlowController.class);
         StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
-        ProcessGroup procGroup = new MockProcessGroup();
+        ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",

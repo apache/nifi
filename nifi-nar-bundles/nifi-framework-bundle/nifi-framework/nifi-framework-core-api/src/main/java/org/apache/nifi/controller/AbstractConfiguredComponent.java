@@ -472,7 +472,13 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = getValidationContext();
+            final ValidationContext validationContext;
+            if (serviceIdentifiersNotToValidate == null || serviceIdentifiersNotToValidate.isEmpty()) {
+                validationContext = getValidationContext();
+            } else {
+                validationContext = getValidationContextFactory().newValidationContext(serviceIdentifiersNotToValidate,
+                    getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            }
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
