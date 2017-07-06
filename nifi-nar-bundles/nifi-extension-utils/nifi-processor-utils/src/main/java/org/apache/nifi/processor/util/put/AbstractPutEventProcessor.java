@@ -128,9 +128,8 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                     + "that is transmitted over the stream so that the receiver can determine when one message ends and the next message begins. Users should "
                     + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. In order to use a new line character you can "
                     + "enter '\\n'. For a tab character use '\\t'. Finally for a carriage return use '\\r'.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("\\n")
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()

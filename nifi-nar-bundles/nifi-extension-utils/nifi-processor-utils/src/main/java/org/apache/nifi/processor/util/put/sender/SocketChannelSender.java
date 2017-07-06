@@ -21,6 +21,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.SocketChannelOutputStream;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
@@ -95,4 +96,9 @@ public class SocketChannelSender extends ChannelSender {
         socketChannelOutput = null;
         channel = null;
     }
+
+    public OutputStream getOutputStream() {
+        return socketChannelOutput;
+    }
+
 }

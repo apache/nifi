@@ -16,14 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -37,14 +30,21 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
+import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import javax.net.ssl.SSLContext;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -178,15 +178,34 @@ public class PutTCP extends AbstractPutEventProcessor {
             return;
         }
 
+        // really shouldn't happen since we know the protocol is TCP here, but this is more graceful so we
+        // can cast to a SocketChannelSender later in order to obtain the OutputStream
+        if (!(sender instanceof SocketChannelSender)) {
+            getLogger().error("Processor can only be used with a SocketChannelSender, but obtained: " + sender.getClass().getCanonicalName());
+            context.yield();
+            return;
+        }
+
+        boolean closeSender = isConnectionPerFlowFile(context);
         try {
-            String outgoingMessageDelimiter = getOutgoingMessageDelimiter(context, flowFile);
-            ByteArrayOutputStream content = readContent(session, flowFile);
-            if (outgoingMessageDelimiter != null) {
-                Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-                content = appendDelimiter(content, outgoingMessageDelimiter, charset);
+            // We might keep the connection open across invocations of the processor so don't auto-close this
+            final OutputStream out = ((SocketChannelSender)sender).getOutputStream();
+            final String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+
+            final StopWatch stopWatch = new StopWatch(true);
+            try (final InputStream rawIn = session.read(flowFile);
+                 final BufferedInputStream in = new BufferedInputStream(rawIn)) {
+                IOUtils.copy(in, out);
+                if (delimiter != null) {
+                    final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                    out.write(delimiter.getBytes(charSet), 0, delimiter.length());
+                }
+                out.flush();
+            } catch (final Exception e) {
+                closeSender = true;
+                throw e;
             }
-            StopWatch stopWatch = new StopWatch(true);
-            sender.send(content.toByteArray());
+
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commit();
@@ -194,11 +213,10 @@ public class PutTCP extends AbstractPutEventProcessor {
             onFailure(context, session, flowFile);
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
         } finally {
-            // If we are going to use this sender again, then relinquish it back to the pool.
-            if (!isConnectionPerFlowFile(context)) {
-                relinquishSender(sender);
-            } else {
+            if (closeSender) {
                 sender.close();
+            } else {
+                relinquishSender(sender);
             }
         }
     }
@@ -218,43 +236,6 @@ public class PutTCP extends AbstractPutEventProcessor {
         session.transfer(session.penalize(flowFile), REL_FAILURE);
         session.commit();
         context.yield();
-    }
-
-    /**
-     * Helper method to read the FlowFile content stream into a ByteArrayOutputStream object.
-     *
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile to read the content from.
-     *
-     * @return ByteArrayOutputStream object containing the FlowFile content.
-     */
-    protected ByteArrayOutputStream readContent(final ProcessSession session, final FlowFile flowFile) {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize() + 1);
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.copy(in, baos);
-            }
-        });
-
-        return baos;
-    }
-
-    /**
-     * Helper method to append a delimiter to the message contents.
-     *
-     * @param content
-     *            - the message contents.
-     * @param delimiter
-     *            - the delimiter value.
-     *
-     * @return ByteArrayOutputStream object containing the new message contents.
-     */
-    protected ByteArrayOutputStream appendDelimiter(final ByteArrayOutputStream content, final String delimiter, Charset charSet) {
-        content.write(delimiter.getBytes(charSet), 0, delimiter.length());
-        return content;
     }
 
     /**
