@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.ConfluentSchemaRegistryWriter;
 import org.apache.nifi.schema.access.HortonworksAttributeSchemaReferenceWriter;
 import org.apache.nifi.schema.access.HortonworksEncodedSchemaReferenceWriter;
 import org.apache.nifi.schema.access.NopSchemaAccessWriter;
@@ -159,6 +160,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             return new HortonworksEncodedSchemaReferenceWriter();
         } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
             return new HortonworksAttributeSchemaReferenceWriter();
+        } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
+            return new ConfluentSchemaRegistryWriter();
         } else if (allowableValue.equalsIgnoreCase(NO_SCHEMA.getValue())) {
             return new NopSchemaAccessWriter();
         }
