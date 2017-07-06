@@ -360,10 +360,12 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 boolean returned = senderPool.offer(sender);
                 // if the pool is full then close the sender.
                 if (!returned) {
+                    getLogger().debug("Sender wasn't returned because queue was full, closing sender");
                     sender.close();
                 }
             } else {
                 // probably already closed here, but quietly close anyway to be safe.
+                getLogger().debug("Sender is not connected, closing sender");
                 sender.close();
             }
         }

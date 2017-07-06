@@ -214,8 +214,10 @@ public class PutTCP extends AbstractPutEventProcessor {
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
         } finally {
             if (closeSender) {
+                getLogger().debug("Closing sender");
                 sender.close();
             } else {
+                getLogger().debug("Relinquishing sender");
                 relinquishSender(sender);
             }
         }
