@@ -309,8 +309,8 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void flush(final FlowFile flowFile) throws IOException {
-        // nothing needed here
+    public boolean flush(final FlowFile flowFile) throws IOException {
+        return true;
     }
 
     @Override

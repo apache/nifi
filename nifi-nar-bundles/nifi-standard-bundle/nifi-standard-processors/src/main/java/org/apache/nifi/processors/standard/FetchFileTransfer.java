@@ -242,7 +242,10 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 }
             });
 
-            transfer.flush(flowFile);
+            if(!transfer.flush(flowFile)) {
+                throw new IOException("completePendingCommand returned false, file transfer failed");
+            }
+
             transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
         } catch (final FileNotFoundException e) {
             getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",

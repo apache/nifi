@@ -304,9 +304,8 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void flush(final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(flowFile);
-        client.completePendingCommand();
+    public boolean flush(final FlowFile flowFile) throws IOException {
+        return getClient(flowFile).completePendingCommand();
     }
 
     @Override

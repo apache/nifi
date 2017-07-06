@@ -282,7 +282,8 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void flush(FlowFile flowFile) throws IOException {
+                public boolean flush(FlowFile flowFile) throws IOException {
+                    return true;
                 }
 
                 @Override

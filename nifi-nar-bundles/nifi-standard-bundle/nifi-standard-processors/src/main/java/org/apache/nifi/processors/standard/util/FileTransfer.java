@@ -39,7 +39,7 @@ public interface FileTransfer extends Closeable {
 
     void flush() throws IOException;
 
-    void flush(FlowFile flowFile) throws IOException;
+    boolean flush(FlowFile flowFile) throws IOException;
 
     FileInfo getRemoteFileInfo(FlowFile flowFile, String path, String remoteFileName) throws IOException;
 
