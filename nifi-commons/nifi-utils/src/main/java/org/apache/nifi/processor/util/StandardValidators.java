@@ -391,6 +391,8 @@ public class StandardValidators {
     }
 
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
+        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -400,7 +402,7 @@ public class StandardValidators {
             if (input == null) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
-            if (Pattern.compile(FormatUtils.TIME_DURATION_REGEX).matcher(input.toLowerCase()).matches()) {
+            if (TIME_DURATION_PATTERN.matcher(input.toLowerCase()).matches()) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
             } else {
                 return new ValidationResult.Builder()
@@ -416,6 +418,8 @@ public class StandardValidators {
     };
 
     public static final Validator DATA_SIZE_VALIDATOR = new Validator() {
+        private final Pattern DATA_SIZE_PATTERN = Pattern.compile(DataUnit.DATA_SIZE_REGEX);
+
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -430,7 +434,7 @@ public class StandardValidators {
                         .explanation("Data Size cannot be null")
                         .build();
             }
-            if (Pattern.compile(DataUnit.DATA_SIZE_REGEX).matcher(input.toUpperCase()).matches()) {
+            if (DATA_SIZE_PATTERN.matcher(input.toUpperCase()).matches()) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
             } else {
                 return new ValidationResult.Builder()
@@ -706,8 +710,7 @@ public class StandardValidators {
     //
     //
     static class TimePeriodValidator implements Validator {
-
-        private final Pattern pattern;
+        private static final Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
 
         private final long minNanos;
         private final long maxNanos;
@@ -716,8 +719,6 @@ public class StandardValidators {
         private final String maxValueEnglish;
 
         public TimePeriodValidator(final long minValue, final TimeUnit minTimeUnit, final long maxValue, final TimeUnit maxTimeUnit) {
-            pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-
             this.minNanos = TimeUnit.NANOSECONDS.convert(minValue, minTimeUnit);
             this.maxNanos = TimeUnit.NANOSECONDS.convert(maxValue, maxTimeUnit);
             this.minValueEnglish = minValue + " " + minTimeUnit.toString();

@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -78,6 +80,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private final VariableRegistry variableRegistry;
     private final FlowController flowController;
     private final NiFiProperties nifiProperties;
+
+    private final ConcurrentMap<String, ControllerServiceNode> serviceCache = new ConcurrentHashMap<>();
 
     public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
             final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties) {
@@ -158,6 +162,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
 
+            serviceCache.put(id, serviceNode);
+
             return serviceNode;
         } catch (final Throwable t) {
             throw new ControllerServiceInstantiationException(t);
@@ -222,6 +228,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
                 new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, flowController, true);
+
+        serviceCache.putIfAbsent(id, serviceNode);
         return serviceNode;
     }
 
@@ -459,12 +467,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public ControllerService getControllerServiceForComponent(final String serviceIdentifier, final String componentId) {
-        final ProcessGroup rootGroup = getRootGroup();
-
         // Find the Process Group that owns the component.
         ProcessGroup groupOfInterest = null;
 
-        final ProcessorNode procNode = rootGroup.findProcessor(componentId);
+        final ProcessorNode procNode = flowController.getProcessorNode(componentId);
         if (procNode == null) {
             final ControllerServiceNode serviceNode = getControllerServiceNode(componentId);
             if (serviceNode == null) {
@@ -523,7 +529,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             return rootServiceNode;
         }
 
-        return getRootGroup().findControllerService(serviceIdentifier);
+        return serviceCache.get(serviceIdentifier);
     }
 
     @Override
@@ -533,15 +539,16 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             serviceNodes = flowController.getRootControllerServices();
         } else {
             ProcessGroup group = getRootGroup();
-            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
+            if (FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) || group.getIdentifier().equals(groupId)) {
+                serviceNodes = new HashSet<>(serviceCache.values());
+            } else {
                 group = group.findProcessGroup(groupId);
-            }
+                if (group == null) {
+                    return Collections.emptySet();
+                }
 
-            if (group == null) {
-                return Collections.emptySet();
+                serviceNodes = group.getControllerServices(true);
             }
-
-            serviceNodes = group.getControllerServices(true);
         }
 
         final Set<String> identifiers = new HashSet<>();
@@ -570,13 +577,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         group.removeControllerService(serviceNode);
         ExtensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
+        serviceCache.remove(serviceNode.getIdentifier());
     }
 
     @Override
     public Set<ControllerServiceNode> getAllControllerServices() {
         final Set<ControllerServiceNode> allServices = new HashSet<>();
         allServices.addAll(flowController.getRootControllerServices());
-        allServices.addAll(getRootGroup().findAllControllerServices());
+        allServices.addAll(serviceCache.values());
 
         return allServices;
     }
