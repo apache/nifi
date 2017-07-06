@@ -91,10 +91,11 @@ import com.sun.jersey.api.client.ClientResponse.Status;
     @WritesAttribute(attribute = "http.method", description = "The HTTP Method that was used for the request, such as GET or POST"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_LOCAL_NAME, description = "IP address/hostname of the server"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_PORT, description = "Listening port of the server"),
-    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of hte Request URL"),
+    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of the Request URL"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REMOTE_HOST, description = "The hostname of the requestor"),
     @WritesAttribute(attribute = "http.remote.addr", description = "The hostname:port combination of the requestor"),
     @WritesAttribute(attribute = "http.remote.user", description = "The username of the requestor"),
+    @WritesAttribute(attribute = "http.protocol", description = "The protocol used to communicate"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
@@ -106,7 +107,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\"")})
 @SeeAlso(value = {HandleHttpResponse.class},
-        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.RestrictedStandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
@@ -448,6 +449,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
+        sslFactory.setProtocol(sslService.getSslAlgorithm());
+
         if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
             sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
@@ -528,6 +531,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
             putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
             putAttribute(attributes, "http.remote.user", request.getRemoteUser());
+            putAttribute(attributes, "http.protocol", request.getProtocol());
             putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
             putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());
