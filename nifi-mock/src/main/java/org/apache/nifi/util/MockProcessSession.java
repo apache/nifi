@@ -756,6 +756,13 @@ public class MockProcessSession implements ProcessSession {
             throw new IllegalArgumentException("I only accept MockFlowFile");
         }
 
+        // if the flowfile provided was created in this session (i.e. it's in currentVersions),
+        // then throw an exception indicating that you can't transfer flowfiles back to self.
+        // this mimics the behavior of StandardProcessSession
+        if(currentVersions.get(flowFile.getId()) != null) {
+            throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
+        }
+
         final MockFlowFile mockFlowFile = (MockFlowFile) flowFile;
         beingProcessed.remove(flowFile.getId());
         processorQueue.offer(mockFlowFile);
