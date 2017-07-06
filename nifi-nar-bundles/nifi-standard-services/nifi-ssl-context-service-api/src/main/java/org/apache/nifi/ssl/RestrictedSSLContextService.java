@@ -16,62 +16,22 @@
  */
 package org.apache.nifi.ssl;
 
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processor.exception.ProcessException;
 
 /**
- * Definition for SSLContextService.
- *
+ * Simple extension of the regular {@link SSLContextService} to allow for restricted implementations
+ * of that interface.
  */
-@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
-@CapabilityDescription("Provides the ability to configure keystore and/or truststore properties once and reuse "
-        + "that configuration throughout the application")
-public interface SSLContextService extends ControllerService {
-
-    public static enum ClientAuth {
-
-        WANT,
-        REQUIRED,
-        NONE
-    }
-
-    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
-
-    public String getTrustStoreFile();
-
-    public String getTrustStoreType();
-
-    public String getTrustStorePassword();
-
-    public boolean isTrustStoreConfigured();
-
-    public String getKeyStoreFile();
-
-    public String getKeyStoreType();
-
-    public String getKeyStorePassword();
-
-    public String getKeyPassword();
-
-    public boolean isKeyStoreConfigured();
-
-    String getSslAlgorithm();
+public interface RestrictedSSLContextService extends SSLContextService {
 
     /**
-     * Build a set of allowable TLS/SSL protocol algorithms based on JVM configuration.
+     * Build a restricted set of allowable TLS protocol algorithms.
      *
      * @return the computed set of allowable values
      */
@@ -83,14 +43,11 @@ public interface SSLContextService extends ControllerService {
          * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
          */
         supportedProtocols.add("TLS");
-        supportedProtocols.add("SSL");
 
-        // Determine those provided by the JVM on the system
-        try {
-            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
-        } catch (NoSuchAlgorithmException e) {
-            // ignored as default is used
-        }
+        /*
+         * Add specifically supported TLS versions
+         */
+        supportedProtocols.add("TLSv1.2");
 
         final int numProtocols = supportedProtocols.size();
 
