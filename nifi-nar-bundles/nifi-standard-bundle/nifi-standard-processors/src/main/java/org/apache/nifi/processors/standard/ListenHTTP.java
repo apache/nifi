@@ -227,6 +227,22 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             contextFactory.setKeyStoreType(keyStoreType);
         }
 
+        if (sslContextService != null) {
+            // if the configured protocol isn't supported by Jetty, throw an exception
+            final String[] excludeProtocols = contextFactory.getExcludeProtocols();
+            if (excludeProtocols != null) {
+                for (final String protocol : excludeProtocols) {
+                    if (protocol.equals(sslContextService.getSslAlgorithm())) {
+                        final IllegalArgumentException e = new IllegalArgumentException("The configured SSL Protocol '" + sslContextService.getSslAlgorithm()
+                                + "' is not supported by this processor. Please choose another.");
+                        getLogger().error("Failed to start ListenHTTP.", e);
+                        throw e;
+                    }
+                }
+            }
+            contextFactory.setProtocol(sslContextService.getSslAlgorithm());
+        }
+
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setName(String.format("%s (%s) Web Server", getClass().getSimpleName(), getIdentifier()));
@@ -249,6 +265,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
+
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         }
 
