@@ -431,13 +431,14 @@ public class SFTPTransfer implements FileTransfer {
                 session.setPassword(password);
             }
 
-            session.setTimeout(ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            final int connectionTimeoutMillis = ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            session.setTimeout(connectionTimeoutMillis);
             session.connect();
             this.session = session;
             this.closed = false;
 
             sftp = (ChannelSftp) session.openChannel("sftp");
-            sftp.connect();
+            sftp.connect(connectionTimeoutMillis);
             session.setTimeout(ctx.getProperty(FileTransfer.DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             if (!ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean()) {
                 session.setServerAliveCountMax(0); // do not send keepalive message on SocketTimeoutException
