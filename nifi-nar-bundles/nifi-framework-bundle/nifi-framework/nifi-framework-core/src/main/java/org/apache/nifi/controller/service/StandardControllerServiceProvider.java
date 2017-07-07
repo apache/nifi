@@ -162,7 +162,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
 
-            serviceCache.put(id, serviceNode);
+            serviceCache.putIfAbsent(id, serviceNode);
 
             return serviceNode;
         } catch (final Throwable t) {

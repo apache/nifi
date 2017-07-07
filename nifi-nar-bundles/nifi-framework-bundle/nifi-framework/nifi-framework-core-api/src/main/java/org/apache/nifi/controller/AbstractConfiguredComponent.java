@@ -217,7 +217,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                getComponent().onPropertyModified(descriptor, oldValue, value);
+                onPropertyModified(descriptor, oldValue, value);
             } catch (final Exception e) {
                 // nothing really to do here...
             }
@@ -253,7 +253,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                getComponent().onPropertyModified(descriptor, value, null);
+                onPropertyModified(descriptor, value, null);
             } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
             }
@@ -436,7 +436,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    public final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         invalidateValidationContext();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
