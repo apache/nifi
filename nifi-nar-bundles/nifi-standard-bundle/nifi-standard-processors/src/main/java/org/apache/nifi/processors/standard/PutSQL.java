@@ -456,8 +456,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     }
                 }
 
-                getLogger().error("Failed to update database due to a failed batch update. There were a total of {} FlowFiles that failed, {} that succeeded, "
-                        + "and {} that were not execute and will be routed to retry; ", new Object[]{failureCount, successCount, retryCount});
+                getLogger().error("Failed to update database due to a failed batch update, {}. There were a total of {} FlowFiles that failed, {} that succeeded, "
+                        + "and {} that were not execute and will be routed to retry; ", new Object[]{e, failureCount, successCount, retryCount}, e);
 
                 return;
 
