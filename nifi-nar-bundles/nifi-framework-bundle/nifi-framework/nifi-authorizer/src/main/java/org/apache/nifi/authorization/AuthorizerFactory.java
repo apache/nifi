@@ -329,62 +329,62 @@ public final class AuthorizerFactory {
      * @param baseAuthorizer base authorizer
      * @return authorizer
      */
-    public static Authorizer withNarLoader(final Authorizer baseAuthorizer) {
+    public static Authorizer withNarLoader(final Authorizer baseAuthorizer, final ClassLoader classLoader) {
         if (baseAuthorizer instanceof ManagedAuthorizer) {
             final ManagedAuthorizer baseManagedAuthorizer = (ManagedAuthorizer) baseAuthorizer;
             return new ManagedAuthorizer() {
                 @Override
                 public String getFingerprint() throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         return baseManagedAuthorizer.getFingerprint();
                     }
                 }
 
                 @Override
                 public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseManagedAuthorizer.inheritFingerprint(fingerprint);
                     }
                 }
 
                 @Override
                 public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseManagedAuthorizer.checkInheritability(proposedFingerprint);
                     }
                 }
 
                 @Override
                 public AccessPolicyProvider getAccessPolicyProvider() {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         return baseManagedAuthorizer.getAccessPolicyProvider();
                     }
                 }
 
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         return baseManagedAuthorizer.authorize(request);
                     }
                 }
 
                 @Override
                 public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseManagedAuthorizer.initialize(initializationContext);
                     }
                 }
 
                 @Override
                 public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseManagedAuthorizer.onConfigured(configurationContext);
                     }
                 }
 
                 @Override
                 public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseManagedAuthorizer.preDestruction();
                     }
                 }
@@ -393,28 +393,28 @@ public final class AuthorizerFactory {
             return new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         return baseAuthorizer.authorize(request);
                     }
                 }
 
                 @Override
                 public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseAuthorizer.initialize(initializationContext);
                     }
                 }
 
                 @Override
                 public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseAuthorizer.onConfigured(configurationContext);
                     }
                 }
 
                 @Override
                 public void preDestruction() throws AuthorizerDestructionException {
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
                         baseAuthorizer.preDestruction();
                     }
                 }
