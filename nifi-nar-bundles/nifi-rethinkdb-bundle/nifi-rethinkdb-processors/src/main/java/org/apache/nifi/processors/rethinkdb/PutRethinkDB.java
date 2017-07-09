@@ -208,15 +208,15 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
             HashMap<String, Object> result) {
         Map<String,String> resultAttributes = new HashMap<>();
         resultAttributes.put(RETHINKDB_INSERT_RESULT, result.toString());
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_ERROR_KEY, result.get(RESULT_ERROR_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_DELETED_KEY, result.get(RESULT_DELETED_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY, result.get(RESULT_GENERATED_KEYS_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_INSERTED_KEY, result.get(RESULT_INSERTED_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_REPLACED_KEY, result.get(RESULT_REPLACED_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_SKIPPED_KEY, result.get(RESULT_SKIPPED_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_UNCHANGED_KEY, result.get(RESULT_UNCHANGED_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, result.get(RESULT_FIRST_ERROR_KEY) + "");
-        resultAttributes.put(RETHINKDB_INSERT_RESULT_WARNINGS_KEY, result.get(RESULT_WARNINGS_KEY) + "");
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_ERROR_KEY, String.valueOf(result.get(RESULT_ERROR_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_DELETED_KEY, String.valueOf(result.get(RESULT_DELETED_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY, String.valueOf(result.get(RESULT_GENERATED_KEYS_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_INSERTED_KEY, String.valueOf(result.get(RESULT_INSERTED_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_REPLACED_KEY, String.valueOf(result.get(RESULT_REPLACED_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_SKIPPED_KEY, String.valueOf(result.get(RESULT_SKIPPED_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_UNCHANGED_KEY, String.valueOf(result.get(RESULT_UNCHANGED_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, String.valueOf(result.get(RESULT_FIRST_ERROR_KEY)));
+        resultAttributes.put(RETHINKDB_INSERT_RESULT_WARNINGS_KEY, String.valueOf(result.get(RESULT_WARNINGS_KEY)));
         flowFile = session.putAllAttributes(flowFile, resultAttributes);
         return flowFile;
     }

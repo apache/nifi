@@ -168,14 +168,14 @@ public class ITPutRethinkDBTest {
         runner.run(1,true,true);
 
         flowFiles = runner.getFlowFilesForRelationship(PutRethinkDB.REL_FAILURE);
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_DELETED_KEY), "0");
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_ERROR_KEY),"1");
-        assertNotNull(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY));
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_INSERTED_KEY),"0");
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_REPLACED_KEY),"0");
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_SKIPPED_KEY),"0");
-        assertEquals(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_UNCHANGED_KEY),"0");
-        assertNotNull(flowFiles.get(1).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY));
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_DELETED_KEY), "0");
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_ERROR_KEY),"1");
+        assertNotNull(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_GENERATED_KEYS_KEY));
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_INSERTED_KEY),"0");
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_REPLACED_KEY),"0");
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_SKIPPED_KEY),"0");
+        assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_UNCHANGED_KEY),"0");
+        assertNotNull(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY));
 
         count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 1L, count);
