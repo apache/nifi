@@ -198,7 +198,7 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
         } catch (Exception exception) {
             getLogger().error("Failed to insert into RethinkDB due to {}",
                     new Object[]{exception.getLocalizedMessage()}, exception);
-            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, exception.getMessage() + "");
+            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, String.valueOf(exception.getMessage()));
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
