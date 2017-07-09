@@ -18,8 +18,13 @@
 package org.apache.nifi.controller.repository.claim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Assert;
@@ -27,6 +32,34 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestStandardResourceClaimManager {
+
+
+    @Test(timeout = 10000)
+    public void testGetClaimantCountWhileMarkingDestructable() throws InterruptedException, ExecutionException {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+
+        for (int i = 0; i < 50000; i++) {
+            final ResourceClaim rc = manager.newResourceClaim("container", "section", String.valueOf(i), false, false);
+            manager.markDestructable(rc);
+        }
+
+        final Object completedObject = new Object();
+        final CompletableFuture<Object> future = new CompletableFuture<>();
+        final ResourceClaim lastClaim = manager.newResourceClaim("container", "section", "lastOne", false, false);
+        final Thread backgroundThread = new Thread(() -> {
+            manager.markDestructable(lastClaim);
+            future.complete(completedObject);
+        });
+
+        backgroundThread.start();
+
+        Thread.sleep(10);
+        assertEquals(0, manager.getClaimantCount(lastClaim));
+        assertNull(future.getNow(null));
+        manager.drainDestructableClaims(new ArrayList<>(), 1);
+        assertTrue(completedObject == future.get());
+    }
+
 
     @Test
     @Ignore("Unit test was created to repeat a concurrency bug in StandardResourceClaimManager. "
