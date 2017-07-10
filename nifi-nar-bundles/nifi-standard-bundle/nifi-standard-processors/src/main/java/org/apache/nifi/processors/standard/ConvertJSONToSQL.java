@@ -518,6 +518,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             break;
 
         // Don't truncate numeric types.
+        case Types.BIT:
         case Types.TINYINT:
         case Types.SMALLINT:
         case Types.INTEGER:
@@ -527,6 +528,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         case Types.DOUBLE:
         case Types.DECIMAL:
         case Types.NUMERIC:
+            if (fieldNode.isBoolean()) {
+                // Convert boolean to number representation for databases those don't support boolean type.
+                fieldValue = fieldNode.asBoolean() ? "0" : "1";
+            }
             break;
 
         // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
@@ -539,7 +544,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         case Types.TIMESTAMP:
             break;
 
-        default:
+        // Truncate string data types only.
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
             if (colSize != null && fieldValue.length() > colSize) {
                 fieldValue = fieldValue.substring(0, colSize);
             }

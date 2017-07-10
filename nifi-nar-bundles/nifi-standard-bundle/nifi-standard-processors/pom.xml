@@ -368,6 +368,7 @@
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
