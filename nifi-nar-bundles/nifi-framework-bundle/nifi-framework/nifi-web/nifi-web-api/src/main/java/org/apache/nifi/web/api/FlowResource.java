@@ -540,7 +540,6 @@ public class FlowResource extends ApplicationResource {
     @Path("process-groups/{id}")
     @ApiOperation(
             value = "Schedule or unschedule comopnents in the specified Process Group.",
-            notes = "",
             response = ScheduleComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow", type = ""),
@@ -1547,7 +1546,7 @@ public class FlowResource extends ApplicationResource {
     @Path("remote-process-groups/{id}/status")
     @ApiOperation(
             value = "Gets status for a remote process group",
-            response = ProcessorStatusEntity.class,
+            response = RemoteProcessGroupStatusEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow", type = "")
             }
