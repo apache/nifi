@@ -126,6 +126,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/flowfiles/{flowfile-uuid}")
     @ApiOperation(
             value = "Gets a FlowFile from a Connection.",
+            response = FlowFileEntity.class,
             authorizations = {
                     @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
             }
@@ -201,6 +202,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/flowfiles/{flowfile-uuid}/content")
     @ApiOperation(
             value = "Gets the content for a FlowFile in a Connection.",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
             }
@@ -429,7 +431,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Path("{id}/listing-requests/{listing-request-id}")
     @ApiOperation(
             value = "Cancels and/or removes a request to list the contents of this connection.",
-            response = DropRequestEntity.class,
+            response = ListingRequestEntity.class,
             authorizations = {
                     @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
             }

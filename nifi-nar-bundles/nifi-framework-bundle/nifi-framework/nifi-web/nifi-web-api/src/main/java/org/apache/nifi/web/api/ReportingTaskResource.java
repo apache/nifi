@@ -255,7 +255,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }
@@ -310,7 +310,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }

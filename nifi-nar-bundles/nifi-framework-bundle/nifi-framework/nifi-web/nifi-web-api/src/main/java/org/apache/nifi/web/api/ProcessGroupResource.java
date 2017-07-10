@@ -61,7 +61,6 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
-import org.apache.nifi.web.api.entity.FlowSnippetEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
 import org.apache.nifi.web.api.entity.InputPortsEntity;
@@ -519,7 +518,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Path("{id}/process-groups")
     @ApiOperation(
             value = "Gets all process groups",
-            response = ProcessorsEntity.class,
+            response = ProcessGroupsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /process-groups/{uuid}", type = "")
             }
@@ -1756,7 +1755,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Path("{id}/snippet-instance")
     @ApiOperation(
             value = "Copies a snippet and discards it.",
-            response = FlowSnippetEntity.class,
+            response = FlowEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
                     @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = ""),

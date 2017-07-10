@@ -276,7 +276,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("/{id}/state")
     @ApiOperation(
             value = "Gets the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = "")
             }
@@ -332,7 +332,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = "")
             }
