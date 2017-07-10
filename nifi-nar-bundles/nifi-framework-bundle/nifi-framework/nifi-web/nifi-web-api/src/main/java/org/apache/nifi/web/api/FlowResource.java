@@ -69,7 +69,7 @@ import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
-import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -774,7 +774,7 @@ public class FlowResource extends ApplicationResource {
     @Path("cluster/summary")
     @ApiOperation(
             value = "The cluster summary for this NiFi",
-            response = ClusteSummaryEntity.class,
+            response = ClusterSummaryEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow", type = "")
             }
@@ -812,7 +812,7 @@ public class FlowResource extends ApplicationResource {
         clusterConfiguration.setConnectedToCluster(isConnectedToCluster());
 
         // create the response entity
-        final ClusteSummaryEntity entity = new ClusteSummaryEntity();
+        final ClusterSummaryEntity entity = new ClusterSummaryEntity();
         entity.setClusterSummary(clusterConfiguration);
 
         // generate the response
