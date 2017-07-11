@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -98,7 +99,6 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
-
 
     public static final AllowableValue MERGE_STRATEGY_BIN_PACK = new AllowableValue(
         "Bin-Packing Algorithm",
@@ -185,8 +185,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
         .name("max.bin.count")
-        .displayName("Maximum number of Bins")
-        .description("Specifies the maximum number of bins that can be held in memory at any one time")
+        .displayName("Maximum Number of Bins")
+        .description("Specifies the maximum number of bins that can be held in memory at any one time. "
+            + "This number should not be smaller than the maximum number of conurrent threads for this Processor, "
+            + "or the bins that are created will often consist only of a single incoming FlowFile.")
         .defaultValue("10")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -271,12 +273,28 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
         final ProcessSession session = sessionFactory.createSession();
         final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 250));
+        if (getLogger().isDebugEnabled()) {
+            final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
+            getLogger().debug("Pulled {} FlowFiles from queue: {}", new Object[] {ids.size(), ids});
+        }
+
+        final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
+        final boolean block;
+        if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
+            block = true;
+        } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
+            block = true;
+        } else {
+            block = false;
+        }
+
         try {
             for (final FlowFile flowFile : flowFiles) {
                 try {
-                    binFlowFile(context, flowFile, session, manager);
+                    binFlowFile(context, flowFile, session, manager, block);
                 } catch (final Exception e) {
                     getLogger().error("Failed to bin {} due to {}", new Object[] {flowFile, e});
+                    session.transfer(flowFile, REL_FAILURE);
                 }
             }
         } finally {
@@ -296,24 +314,15 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     }
 
 
-    private void binFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session, final RecordBinManager binManager) {
+    private void binFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session, final RecordBinManager binManager, final boolean block) {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        try (final InputStream in = session.read(flowFile)) {
-            final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+        try (final InputStream in = session.read(flowFile);
+            final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+
             final RecordSchema schema = reader.getSchema();
 
             final String groupId = getGroupId(context, flowFile, schema, session);
             getLogger().debug("Got Group ID {} for {}", new Object[] {groupId, flowFile});
-
-            final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
-            final boolean block;
-            if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
-                block = true;
-            } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
-                block = true;
-            } else {
-                block = false;
-            }
 
             binManager.add(groupId, flowFile, reader, session, block);
         } catch (MalformedRecordException | IOException | SchemaNotFoundException e) {

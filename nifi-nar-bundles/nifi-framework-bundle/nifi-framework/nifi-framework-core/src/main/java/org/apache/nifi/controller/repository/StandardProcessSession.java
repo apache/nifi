@@ -191,13 +191,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         processingStartTime = System.nanoTime();
     }
 
-    private void closeStreams(final Map<FlowFile, ? extends Closeable> streamMap) {
+    private void closeStreams(final Map<FlowFile, ? extends Closeable> streamMap, final String action, final String streamType) {
         final Map<FlowFile, ? extends Closeable> openStreamCopy = new HashMap<>(streamMap); // avoid ConcurrentModificationException by creating a copy of the List
         for (final Map.Entry<FlowFile, ? extends Closeable> entry : openStreamCopy.entrySet()) {
             final FlowFile flowFile = entry.getKey();
             final Closeable openStream = entry.getValue();
 
-            LOG.warn("{} closing {} for {} because the session was committed without the stream being closed.", this, openStream, flowFile);
+            LOG.warn("{} closing {} for {} because the session was {} without the {} stream being closed.", this, openStream, flowFile, action, streamType);
 
             try {
                 openStream.close();
@@ -212,8 +212,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         resetWriteClaims(false);
 
-        closeStreams(openInputStreams);
-        closeStreams(openOutputStreams);
+        closeStreams(openInputStreams, "committed", "input");
+        closeStreams(openOutputStreams, "committed", "output");
 
         if (!readRecursionSet.isEmpty()) {
             throw new IllegalStateException();
@@ -914,8 +914,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         deleteOnCommit.clear();
 
-        closeStreams(openInputStreams);
-        closeStreams(openOutputStreams);
+        closeStreams(openInputStreams, "rolled back", "input");
+        closeStreams(openOutputStreams, "rolled back", "output");
 
         try {
             claimCache.reset();
@@ -2171,7 +2171,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }
 
-        final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), false);
+        final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
         final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
         final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn);
         final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
@@ -2470,7 +2470,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     final long bytesWritten = countingOut.getBytesWritten();
                     StandardProcessSession.this.bytesWritten += bytesWritten;
 
-                    openOutputStreams.remove(sourceFlowFile);
+                    final OutputStream removed = openOutputStreams.remove(sourceFlowFile);
+                    if (removed == null) {
+                        LOG.error("Closed Session's OutputStream but there was no entry for it in the map; sourceFlowFile={}; map={}", sourceFlowFile, openOutputStreams);
+                    }
 
                     flush();
                     removeTemporaryClaim(record);

@@ -25,14 +25,17 @@ public class RecordBinThresholds {
     private final long minBytes;
     private final long maxBytes;
     private final long maxBinMillis;
+    private final String maxBinAge;
     private final Optional<String> recordCountAttribute;
 
-    public RecordBinThresholds(final int minRecords, final int maxRecords, final long minBytes, final long maxBytes, final long maxBinMillis, final String recordCountAttribute) {
+    public RecordBinThresholds(final int minRecords, final int maxRecords, final long minBytes, final long maxBytes, final long maxBinMillis,
+        final String maxBinAge, final String recordCountAttribute) {
         this.minRecords = minRecords;
         this.maxRecords = maxRecords;
         this.minBytes = minBytes;
         this.maxBytes = maxBytes;
         this.maxBinMillis = maxBinMillis;
+        this.maxBinAge = maxBinAge;
         this.recordCountAttribute = Optional.ofNullable(recordCountAttribute);
     }
 
@@ -54,6 +57,10 @@ public class RecordBinThresholds {
 
     public long getMaxBinMillis() {
         return maxBinMillis;
+    }
+
+    public String getMaxBinAge() {
+        return maxBinAge;
     }
 
     public Optional<String> getRecordCountAttribute() {

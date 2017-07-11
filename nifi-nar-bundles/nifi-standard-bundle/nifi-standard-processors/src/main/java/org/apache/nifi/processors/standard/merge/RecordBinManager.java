@@ -135,6 +135,7 @@ public class RecordBinManager {
 
             if (accepted) {
                 acceptedBin = bin;
+                logger.debug("Transferred id={} to {}", new Object[] {flowFile.getId(), bin});
                 break;
             }
         }
@@ -156,9 +157,24 @@ public class RecordBinManager {
             throw new RuntimeException("Attempted to add " + flowFile + " to a new bin but failed. This is unexpected. Will roll back session and try again.");
         }
 
+        logger.debug("Transferred id={} to {}", new Object[] {flowFile.getId(), bin});
+
         if (!bin.isComplete()) {
             final int updatedBinCount = binCount.incrementAndGet();
-            currentBins.add(bin);
+
+            lock.lock();
+            try {
+                // We have already obtained the list of RecordBins from this Map above. However, we released
+                // the lock in order to avoid blocking while writing to a Bin. Because of this, it is possible
+                // that another thread may have already come in and removed this List from the Map, if all
+                // Bins in the List have been completed. As a result, we must now obtain the write lock again
+                // and obtain the List (or a new one), and then update that. This ensures that we never lose
+                // track of a Bin. If we don't lose this, we could completely lose a Bin.
+                final List<RecordBin> bins = groupBinMap.computeIfAbsent(groupIdentifier, grpId -> new CopyOnWriteArrayList<>());
+                bins.add(bin);
+            } finally {
+                lock.unlock();
+            }
 
             if (updatedBinCount > maxBinCount) {
                 completeOldestBin();
@@ -176,6 +192,7 @@ public class RecordBinManager {
         final long maxBytes = maxSizeValue.isSet() ? maxSizeValue.asDataSize(DataUnit.B).longValue() : Long.MAX_VALUE;
 
         final PropertyValue maxMillisValue = context.getProperty(MergeRecord.MAX_BIN_AGE);
+        final String maxBinAge = maxMillisValue.getValue();
         final long maxBinMillis = maxMillisValue.isSet() ? maxMillisValue.asTimePeriod(TimeUnit.MILLISECONDS).longValue() : Long.MAX_VALUE;
 
         final String recordCountAttribute;
@@ -186,7 +203,7 @@ public class RecordBinManager {
             recordCountAttribute = null;
         }
 
-        return new RecordBinThresholds(minRecords, maxRecords, minBytes, maxBytes, maxBinMillis, recordCountAttribute);
+        return new RecordBinThresholds(minRecords, maxRecords, minBytes, maxBytes, maxBinMillis, maxBinAge, recordCountAttribute);
     }
 
 
@@ -210,18 +227,13 @@ public class RecordBinManager {
                 return;
             }
 
-            binCount.decrementAndGet();
-            final List<RecordBin> bins = groupBinMap.get(oldestBinGroup);
-            bins.remove(oldestBin);
-            if (bins.isEmpty()) {
-                groupBinMap.remove(oldestBinGroup);
-            }
+            removeBins(oldestBinGroup, Collections.singletonList(oldestBin));
         } finally {
             lock.unlock();
         }
 
         logger.debug("Completing Bin " + oldestBin + " because the maximum number of bins has been exceeded");
-        oldestBin.complete();
+        oldestBin.complete("Maximum number of bins has been exceeded");
     }
 
 
@@ -252,7 +264,7 @@ public class RecordBinManager {
 
             for (final RecordBin bin : expiredBins) {
                 logger.debug("Completing Bin {} because it has expired");
-                bin.complete();
+                bin.complete("Bin has reached Max Bin Age");
             }
 
             removeBins(key, expiredBins);
@@ -264,7 +276,13 @@ public class RecordBinManager {
         try {
             final List<RecordBin> list = groupBinMap.get(key);
             if (list != null) {
+                final int initialSize = list.size();
                 list.removeAll(bins);
+
+                // Determine how many items were removed from the list and
+                // update our binCount to keep track of this.
+                final int removedCount = initialSize - list.size();
+                binCount.addAndGet(-removedCount);
 
                 if (list.isEmpty()) {
                     groupBinMap.remove(key);

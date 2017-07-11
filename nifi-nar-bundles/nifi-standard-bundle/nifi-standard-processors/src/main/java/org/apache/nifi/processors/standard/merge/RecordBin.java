@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -67,6 +69,10 @@ public class RecordBin {
     private int recordCount = 0;
     private volatile boolean complete = false;
 
+    private static final AtomicLong idGenerator = new AtomicLong(0L);
+    private final long id = idGenerator.getAndIncrement();
+
+
     public RecordBin(final ProcessContext context, final ProcessSession session, final ComponentLog logger, final RecordBinThresholds thresholds) {
         this.session = session;
         this.writerFactory = context.getProperty(MergeRecord.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -94,6 +100,7 @@ public class RecordBin {
         throws IOException, MalformedRecordException, SchemaNotFoundException {
 
         if (isComplete()) {
+            logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
             return false;
         }
 
@@ -106,6 +113,7 @@ public class RecordBin {
         }
 
         if (!locked) {
+            logger.debug("RecordBin.offer for id={} returning false because failed to get lock for {}", new Object[] {flowFile.getId(), this});
             return false;
         }
 
@@ -113,13 +121,18 @@ public class RecordBin {
 
         try {
             if (isComplete()) {
+                logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
                 return false;
             }
+
+            logger.debug("Migrating id={} to {}", new Object[] {flowFile.getId(), this});
 
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
                 if (recordWriter == null) {
                     final OutputStream rawOut = session.write(merged);
+                    logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
+
                     this.out = new ByteCountingOutputStream(rawOut);
 
                     recordWriter = writerFactory.createWriter(logger, record.getSchema(), flowFile, out);
@@ -130,6 +143,9 @@ public class RecordBin {
                 recordCount++;
             }
 
+            // This will be closed by the MergeRecord class anyway but we have to close it
+            // here because it needs to be closed before we are able to migrate the FlowFile
+            // to a new Session.
             recordReader.close();
             flowFileSession.migrate(this.session, Collections.singleton(flowFile));
             flowFileMigrated = true;
@@ -137,10 +153,10 @@ public class RecordBin {
 
             if (isFull()) {
                 logger.debug(this + " is now full. Completing bin.");
-                complete();
+                complete("Bin is full");
             } else if (isOlderThan(thresholds.getMaxBinMillis(), TimeUnit.MILLISECONDS)) {
                 logger.debug(this + " is now expired. Completing bin.");
-                complete();
+                complete("Bin is older than " + thresholds.getMaxBinAge());
             }
 
             return true;
@@ -148,9 +164,16 @@ public class RecordBin {
             logger.error("Failed to create merged FlowFile from " + (flowFiles.size() + 1) + " input FlowFiles; routing originals to failure", e);
 
             try {
+                // This will be closed by the MergeRecord class anyway but we have to close it
+                // here because it needs to be closed before we are able to migrate the FlowFile
+                // to a new Session.
                 recordReader.close();
+
                 if (recordWriter != null) {
                     recordWriter.close();
+                }
+                if (this.out != null) {
+                    this.out.close();
                 }
 
                 if (!flowFileMigrated) {
@@ -180,9 +203,17 @@ public class RecordBin {
             int maxRecords;
             final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
             if (recordCountAttribute.isPresent()) {
-                final String recordCountValue = flowFiles.get(0).getAttribute(recordCountAttribute.get());
+                final Optional<String> recordCountValue = flowFiles.stream()
+                    .filter(ff -> ff.getAttribute(recordCountAttribute.get()) != null)
+                    .map(ff -> ff.getAttribute(recordCountAttribute.get()))
+                    .findFirst();
+
+                if (!recordCountValue.isPresent()) {
+                    return false;
+                }
+
                 try {
-                    maxRecords = Integer.parseInt(recordCountValue);
+                    maxRecords = Integer.parseInt(recordCountValue.get());
                 } catch (final NumberFormatException e) {
                     maxRecords = 1;
                 }
@@ -233,10 +264,24 @@ public class RecordBin {
 
     public void rollback() {
         complete = true;
+        logger.debug("Marked {} as complete because rollback() was called", new Object[] {this});
 
         writeLock.lock();
         try {
+            if (recordWriter != null) {
+                try {
+                    recordWriter.close();
+                } catch (IOException e) {
+                    logger.warn("Failed to close Record Writer", e);
+                }
+            }
+
             session.rollback();
+
+            if (logger.isDebugEnabled()) {
+                final List<String> ids = flowFiles.stream().map(ff -> " id=" + ff.getId() + ",").collect(Collectors.toList());
+                logger.debug("Rolled back bin {} containing input FlowFiles {}", new Object[] {this, ids});
+            }
         } finally {
             writeLock.unlock();
         }
@@ -248,9 +293,18 @@ public class RecordBin {
 
     private void fail() {
         complete = true;
+        logger.debug("Marked {} as complete because fail() was called", new Object[] {this});
 
         writeLock.lock();
         try {
+            if (recordWriter != null) {
+                try {
+                    recordWriter.close();
+                } catch (IOException e) {
+                    logger.warn("Failed to close Record Writer", e);
+                }
+            }
+
             session.remove(merged);
             session.transfer(flowFiles, MergeRecord.REL_FAILURE);
             session.commit();
@@ -259,17 +313,20 @@ public class RecordBin {
         }
     }
 
-    public void complete() throws IOException {
+    public void complete(final String completionReason) throws IOException {
         writeLock.lock();
         try {
             if (isComplete()) {
+                logger.debug("Cannot complete {} because it is already completed", new Object[] {this});
                 return;
             }
 
             complete = true;
+            logger.debug("Marked {} as complete because complete() was called", new Object[] {this});
 
             final WriteResult writeResult = recordWriter.finishRecordSet();
             recordWriter.close();
+            logger.debug("Closed Record Writer using session {} for {}", new Object[] {session, this});
 
             if (flowFiles.isEmpty()) {
                 session.remove(merged);
@@ -337,13 +394,16 @@ public class RecordBin {
 
             merged = session.putAllAttributes(merged, attributes);
 
-            session.getProvenanceReporter().join(flowFiles, merged);
+            session.getProvenanceReporter().join(flowFiles, merged, "Records Merged due to: " + completionReason);
             session.transfer(merged, MergeRecord.REL_MERGED);
             session.transfer(flowFiles, MergeRecord.REL_ORIGINAL);
             session.adjustCounter("Records Merged", writeResult.getRecordCount(), false);
             session.commit();
 
-            logger.debug("Created bin with {} records with Merged FlowFile {} using input FlowFiles {}", new Object[] {writeResult.getRecordCount(), merged, this.flowFiles});
+            if (logger.isDebugEnabled()) {
+                final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
+                logger.debug("Completed bin {} with {} records with Merged FlowFile {} using input FlowFiles {}", new Object[] {this, writeResult.getRecordCount(), merged, ids});
+            }
         } catch (final Exception e) {
             session.rollback(true);
             throw e;
@@ -356,7 +416,7 @@ public class RecordBin {
     public String toString() {
         readLock.lock();
         try {
-            return "RecordBin[size=" + flowFiles.size() + ", full=" + isFull() + ", isComplete=" + isComplete() + ", contents=" + flowFiles + "]";
+            return "RecordBin[size=" + flowFiles.size() + ", full=" + isFull() + ", isComplete=" + isComplete() + ", id=" + id + "]";
         } finally {
             readLock.unlock();
         }
