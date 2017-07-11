@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "tenant")
 public class TenantDTO extends ComponentDTO {
     private String identity;
+    private Boolean configurable;
 
     /**
      * @return tenant's identity
@@ -39,5 +40,15 @@ public class TenantDTO extends ComponentDTO {
         this.identity = identity;
     }
 
+    /**
+     * @return whether this tenant is configurable
+     */
+    @ApiModelProperty(value = "Whether this tenant is configurable.")
+    public Boolean getConfigurable() {
+        return configurable;
+    }
 
+    public void setConfigurable(Boolean configurable) {
+        this.configurable = configurable;
+    }
 }

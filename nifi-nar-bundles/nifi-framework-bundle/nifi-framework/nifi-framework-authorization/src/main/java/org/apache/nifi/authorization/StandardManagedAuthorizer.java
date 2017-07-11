@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.components.PropertyValue;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -58,8 +59,12 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
 
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-        final String accessPolicyProviderKey = configurationContext.getProperty("Access Policy Provider").getValue();
-        accessPolicyProvider = accessPolicyProviderLookup.getAccessPolicyProvider(accessPolicyProviderKey);
+        final PropertyValue accessPolicyProviderKey = configurationContext.getProperty("Access Policy Provider");
+        if (!accessPolicyProviderKey.isSet()) {
+            throw new AuthorizerCreationException("The Access Policy Provider must be set.");
+        }
+
+        accessPolicyProvider = accessPolicyProviderLookup.getAccessPolicyProvider(accessPolicyProviderKey.getValue());
 
         // ensure the desired access policy provider was found
         if (accessPolicyProvider == null) {

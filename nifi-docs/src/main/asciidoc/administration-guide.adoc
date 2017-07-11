@@ -425,6 +425,8 @@ The 'authorizers.xml' file is used to define and configure available authorizers
 and a AccessPolicyProvider.  The users, group, and access policies will be loaded and optionally configured through these providers.  The managed authorizer will make all access decisions based on
 these provided users, groups, and access policies.
 
+During startup there is a check to ensure that there are no two users/groups with the same identity/name. This check is executed regardless of the configured implementation. This is necessary because this is how users/groups are identified and authorized during access decisions.
+
 The default UserGroupProvider is the FileUserGroupProvider, however, you can develop additional UserGroupProviders as extensions.  The FileUserGroupProvider has the following properties:
 
 * Users File - The file where the FileUserGroupProvider stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
@@ -463,6 +465,17 @@ Another option for the UserGroupProvider is the LdapUserGroupProvider. By defaul
 * Group Search Filter - Filter for searching for groups against the 'Group Search Base'. Optional.
 * Group Name Attribute - Attribute to use to extract group name (i.e. cn). Optional. If not set, the entire DN is used.
 * Group Member Attribute - Attribute to use to define group membership (i.e. member). Optional. If not set group membership will not be calculated through the groups. Will rely on group member being defined through 'User Group Name Attribute' if set.
+
+Another option for the UserGroupProvider are composite implementations. This means that multiple sources/implementations can be configured and composed. For instance, an admin can configure users/groups to be loaded from a file and a directory server. There are two composite implementations, one that supports multiple UserGroupProviders and one that supports multiple UserGroupProviders and a single configurable UserGroupProvider.
+
+The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources. The CompositeUserGroupProvider has the following properties:
+
+* User Group Provider - The identifier of user group providers to load from. The name of each property must be unique, for example: "User Group Provider A", "User Group Provider B", "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
+
+The CompositeConfigurableUserGroupProvider will provide support for retrieving users and groups from multiple sources. Additionally, a single configurable user group provider is required. Users from the configurable user group provider are configurable, however users loaded from one of the User Group Provider [unique key] will not be. The CompositeConfigurableUserGroupProvider has the following properties:
+
+* Configurable User Group Provider - A configurable user group provider.
+* User Group Provider - The identifier of user group providers to load from. The name of each property must be unique, for example: "User Group Provider A", "User Group Provider B", "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
 
 The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you can develop additional AccessPolicyProvider as extensions.  The FileAccessPolicyProvider has the following properties:
 
@@ -621,6 +634,85 @@ Here is an example loading users and groups from LDAP but still using file based
 
 The 'Initial Admin Identity' value would have loaded from the cn from John Smith's entry based on the 'User Identity Attribute' value.
 
+Here is an example composite implementation loading users from LDAP and a local file. The users from LDAP will be read only while the users loaded from the file will be configurable in UI.
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">cn=nifi-node1,ou=servers,dc=example,dc=com</property>
+        <property name="Initial User Identity 2">cn=nifi-node2,ou=servers,dc=example,dc=com</property>
+    </userGroupProvider>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">ANONYMOUS</property>
+
+        <property name="Manager DN"></property>
+        <property name="Manager Password"></property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password"></property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url">ldap://localhost:10389</property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base">ou=users,o=nifi</property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute">cn</property>
+        <property name="User Group Name Attribute"></property>
+
+        <property name="Group Search Base">ou=groups,o=nifi</property>
+        <property name="Group Object Class">groupOfNames</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute">cn</property>
+        <property name="Group Member Attribute">member</property>
+    </userGroupProvider>
+    <userGroupProvider>
+        <identifier>composite-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider</class>
+        <property name="Configurable User Group Provider">file-user-group-provider</property>
+        <property name="User Group Provider 1">ldap-user-group-provider</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">composite-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">John Smith</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Node Identity 1">cn=nifi-node1,ou=servers,dc=example,dc=com</property>
+        <property name="Node Identity 2">cn=nifi-node2,ou=servers,dc=example,dc=com</property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+</authorizers>
+----
+
+In this example, the users and groups are loaded from LDAP but the servers are managed in a local file. The 'Initial Admin Identity' value came from an attribute in a LDAP entry based on the 'User Identity Attribute'. The 'Node Identity' values are established in the local file using the 'Initial User Identity' properties.
 
 [[legacy-authorized-users]]
 Legacy Authorized Users (NiFi Instance Upgrade)
