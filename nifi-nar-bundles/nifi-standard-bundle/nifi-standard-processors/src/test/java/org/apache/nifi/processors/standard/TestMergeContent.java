@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,8 +50,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -826,7 +827,7 @@ public class TestMergeContent {
     @Test
     public void testUniqueAttributes() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.ATTRIBUTE_STRATEGY, MergeContent.ATTRIBUTE_STRATEGY_ALL_UNIQUE);
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_UNIQUE);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
 
@@ -856,7 +857,7 @@ public class TestMergeContent {
     @Test
     public void testCommonAttributesOnly() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.ATTRIBUTE_STRATEGY, MergeContent.ATTRIBUTE_STRATEGY_ALL_COMMON);
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_COMMON);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
 
