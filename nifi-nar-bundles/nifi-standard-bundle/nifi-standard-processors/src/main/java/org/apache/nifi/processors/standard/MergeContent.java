@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +54,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -313,6 +315,16 @@ public class MergeContent extends BinFiles {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor TAR_MODIFIED_TIME = new PropertyDescriptor.Builder()
+            .name("Tar Modified Time")
+            .description("If using the Tar Merge Format, specifies if the Tar entry should store the modified timestamp either by expression "
+                    + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'; if using "
+                    + "other merge strategy or left blank, this value is ignored")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("${file.lastModifiedTime}")
+            .build();
 
     public static final Relationship REL_MERGED = new Relationship.Builder().name("merged").description("The FlowFile containing the merged content").build();
 
@@ -347,6 +359,7 @@ public class MergeContent extends BinFiles {
         descriptors.add(DEMARCATOR);
         descriptors.add(COMPRESSION_LEVEL);
         descriptors.add(KEEP_PATH);
+        descriptors.add(TAR_MODIFIED_TIME);
         return descriptors;
     }
 
@@ -726,6 +739,17 @@ public class MergeContent extends BinFiles {
                                 } catch (final Exception e) {
                                     getLogger().debug("Attribute {} of {} is set to {}; expected 3 digits between 0-7, so ignoring",
                                             new Object[]{TAR_PERMISSIONS_ATTRIBUTE, flowFile, permissionsVal});
+                                }
+                            }
+
+                            final String modTime = context.getProperty(TAR_MODIFIED_TIME)
+                                    .evaluateAttributeExpressions(flowFile).getValue();
+                            if (StringUtils.isNotBlank(modTime)) {
+                                try {
+                                    tarEntry.setModTime(Instant.parse(modTime).toEpochMilli());
+                                } catch (final Exception e) {
+                                    getLogger().debug("Attribute {} of {} is set to {}; expected ISO8601 format, so ignoring",
+                                            new Object[]{TAR_MODIFIED_TIME, flowFile, modTime});
                                 }
                             }
 
