@@ -173,7 +173,7 @@ public class GetMongo extends AbstractMongoProcessor {
             }
         });
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
+        session.getProvenanceReporter().receive(flowFile, getURI(context));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -246,7 +246,7 @@ public class GetMongo extends AbstractMongoProcessor {
                         });
                         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
 
-                        session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
+                        session.getProvenanceReporter().receive(flowFile, getURI(context));
                         session.transfer(flowFile, REL_SUCCESS);
                     }
                 }
