@@ -1,0 +1,37 @@
+{"bundle": {
+     "node": [
+          {
+               "subNode1": {
+                    "attribute": "d&b",
+                    "value": "Hello & Goodbye"
+               },
+               "subNode2": {"value": "World"}
+          },
+          {
+               "xmlns": "http://namespace/1",
+               "subNode1": {"value": "Hello"},
+               "subNode2": {"value": "World"}
+          },
+          {
+               "xmlns": "http://namespace/1",
+               "subNode1": {"value": "Hello"},
+               "subNode2": {"value": "World"}
+          },
+          {
+               "xmlns": "http://namespace/1",
+               "subNode1": {"value": "Hello"},
+               "subNode2": {"value": "World"}
+          },
+          {
+               "xmlns": "http://namespace/1",
+               "subNode1": {"value": "Hello"},
+               "subNode2": {"value": "World"}
+          },
+          {
+               "xmlns": "http://namespace/1",
+               "subNode1": {"value": "Hello"},
+               "subNode2": {"value": "World"}
+          }
+     ],
+     "xmlns": "http://namespace/1"
+}}

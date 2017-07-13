@@ -329,6 +329,11 @@
             <artifactId>calcite-core</artifactId>
             <version>1.12.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20170516</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -473,6 +478,9 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
+                        <exclude>src/test/resources/TestConvertXmlToJson/snippet-bundle.json</exclude>
+                        <exclude>src/test/resources/TestConvertXmlToJson/snippet-empty.xml</exclude>
+                        <exclude>src/test/resources/TestConvertXmlToJson/snippet-witsml.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
