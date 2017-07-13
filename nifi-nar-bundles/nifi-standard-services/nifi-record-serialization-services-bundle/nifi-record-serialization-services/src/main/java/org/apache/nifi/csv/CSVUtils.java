@@ -22,10 +22,18 @@ import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public class CSVUtils {
+
+    static final String EXPLICIT_COLUMNS_DISPLAY_NAME = "Explicit Columns";
 
     static final AllowableValue CUSTOM = new AllowableValue("custom", "Custom Format",
         "The format of the CSV is configured by using the properties of this Controller Service, such as Value Separator");
@@ -37,6 +45,17 @@ public class CSVUtils {
         "The format used by Informix when issuing the UNLOAD TO file_name command with escaping disabled");
     static final AllowableValue MYSQL = new AllowableValue("mysql", "MySQL Format", "CSV data follows the format used by MySQL");
 
+    static final AllowableValue SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS = new AllowableValue("csv-explicit-columns", "Use '" + EXPLICIT_COLUMNS_DISPLAY_NAME + "' Property",
+            "Takes the '" + EXPLICIT_COLUMNS_DISPLAY_NAME + "' property value as the explicit definition of the CSV columns.");
+
+    static final PropertyDescriptor EXPLICIT_COLUMNS = new PropertyDescriptor.Builder()
+            .name("csv-utils-explicit-columns")
+            .displayName(EXPLICIT_COLUMNS_DISPLAY_NAME)
+            .description("Specifies the CSV columns expected as a comma separated list. Only used with the Schema Access Strategy '" + SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS.getDisplayName() + "'.")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
     static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
         .name("CSV Format")
         .description("Specifies which \"format\" the CSV data is in, or specifies if custom formatting should be used.")
@@ -223,5 +242,23 @@ public class CSVUtils {
         return input.replace("\\t", "\t")
             .replace("\\n", "\n")
             .replace("\\r", "\r");
+    }
+
+    public static Collection<ValidationResult> validateCsvConfig(ValidationContext validationContext) {
+
+        // If using 'Explicit Columns' strategy, make sure 'Explicit Columns' property is set and not empty
+        if (validationContext.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue()
+                .equalsIgnoreCase(CSVUtils.SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS.getValue())
+                && !CSVExplicitColumnsSchemaStrategy.isExplicitColumnsPropertyValueValid(validationContext.getProperty(CSVUtils.EXPLICIT_COLUMNS))
+                ) {
+
+            return Collections.singleton(new ValidationResult.Builder()
+                    .subject(CSVUtils.EXPLICIT_COLUMNS_DISPLAY_NAME)
+                    .explanation(CSVExplicitColumnsSchemaStrategy.INVALID_EXPLICIT_COLUMNS_PROPERTY_VALUE_EXPLANATION)
+                    .valid(false)
+                    .build());
+        }
+
+        return Collections.emptyList();
     }
 }

@@ -21,6 +21,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
@@ -30,6 +31,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -45,11 +47,12 @@ import org.apache.nifi.stream.io.NonCloseableInputStream;
 
 @Tags({"csv", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses CSV-formatted data, returning each row in the CSV file as a separate record. "
-    + "This reader assumes that the first line in the content is the column names and all subsequent lines are "
-    + "the values. See Controller Service's Usage for further documentation.")
+    + "This reader can assume that the first line in the content is the column names and all subsequent lines are the values. "
+    + "It can also be told what schema to expect, using a schema registry, schema text, or explicitly defining the columns."
+    + "See Controller Service's Usage for further documentation.")
 public class CSVReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    private final AllowableValue headerDerivedAllowableValue = new AllowableValue("csv-header-derived", "Use String Fields From Header",
+    static final AllowableValue HEADER_DERIVED_ALLOWABLE_VALUE = new AllowableValue("csv-header-derived", "Use String Fields From Header",
         "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the "
             + "column names in the header and assuming that all columns are of type String.");
 
@@ -65,6 +68,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(CSVUtils.EXPLICIT_COLUMNS);
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
         properties.add(CSVUtils.SKIP_HEADER_LINE);
@@ -96,9 +100,21 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        Collection<ValidationResult> validationResults = new ArrayList<>();
+        validationResults.addAll(super.customValidate(validationContext));
+        validationResults.addAll(CSVUtils.validateCsvConfig(validationContext));
+        return validationResults;
+    }
+
+    @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
-        if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
+        if (allowableValue.equalsIgnoreCase(HEADER_DERIVED_ALLOWABLE_VALUE.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
+        }
+
+        if (allowableValue.equalsIgnoreCase(CSVUtils.SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS.getValue())) {
+            return new CSVExplicitColumnsSchemaStrategy(context.getProperty(CSVUtils.EXPLICIT_COLUMNS));
         }
 
         return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
@@ -106,8 +122,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
-        if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
+        if (allowableValue.equalsIgnoreCase(HEADER_DERIVED_ALLOWABLE_VALUE.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
+        }
+
+        if (allowableValue.equalsIgnoreCase(CSVUtils.SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS.getValue())) {
+            return new CSVExplicitColumnsSchemaStrategy(context.getProperty(CSVUtils.EXPLICIT_COLUMNS));
         }
 
         return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
@@ -116,12 +136,13 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(headerDerivedAllowableValue);
+        allowableValues.add(HEADER_DERIVED_ALLOWABLE_VALUE);
+        allowableValues.add(CSVUtils.SCHEMA_ACCESS_STRATEGY_EXPLICIT_COLUMNS);
         return allowableValues;
     }
 
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return headerDerivedAllowableValue;
+        return HEADER_DERIVED_ALLOWABLE_VALUE;
     }
 }
