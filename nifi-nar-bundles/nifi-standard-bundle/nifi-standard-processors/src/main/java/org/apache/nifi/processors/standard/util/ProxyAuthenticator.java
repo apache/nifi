@@ -16,34 +16,27 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.Route;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.net.Proxy;
-import java.util.HashMap;
-import java.util.Map;
 
-import com.burgstaller.okhttp.DispatchingAuthenticator;
-import com.squareup.okhttp.Authenticator;
-import com.squareup.okhttp.Credentials;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+public class ProxyAuthenticator implements Authenticator {
 
-public class MultiAuthenticator extends DispatchingAuthenticator {
+    public ProxyAuthenticator() {
+    }
 
-    public MultiAuthenticator(Map<String, Authenticator> registry) {
-        super(registry);
+    public ProxyAuthenticator(String proxyUsername, String proxyPassword) {
+        this.proxyUsername = proxyUsername;
+        this.proxyPassword = proxyPassword;
     }
 
     private String proxyUsername;
     private String proxyPassword;
-
-    @Override
-    public Request authenticateProxy(Proxy proxy, Response response) throws IOException {
-        String credential = Credentials.basic(proxyUsername, proxyPassword);
-        return response.request()
-                .newBuilder()
-                .header("Proxy-Authorization", credential)
-                .build();
-    }
 
     public void setProxyUsername(String proxyUsername) {
         this.proxyUsername = proxyUsername;
@@ -53,17 +46,13 @@ public class MultiAuthenticator extends DispatchingAuthenticator {
         this.proxyPassword = proxyPassword;
     }
 
-    public static final class Builder {
-        Map<String, Authenticator> registry = new HashMap<>();
-
-        public Builder with(String scheme, Authenticator authenticator) {
-            registry.put(scheme, authenticator);
-            return this;
-        }
-
-        public MultiAuthenticator build() {
-            return new MultiAuthenticator(registry);
-        }
+    @Nullable
+    @Override
+    public Request authenticate(Route route, Response response) throws IOException {
+        String credential = Credentials.basic(proxyUsername, proxyPassword);
+        return response.request()
+                .newBuilder()
+                .header("Proxy-Authorization", credential)
+                .build();
     }
-
 }
