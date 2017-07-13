@@ -295,7 +295,7 @@ public class MergeContent extends BinFiles {
                     + "other merge strategy or left blank, this value is ignored")
             .required(false)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.ISO8061_INSTANT_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${file.lastModifiedTime}")
             .build();
 
