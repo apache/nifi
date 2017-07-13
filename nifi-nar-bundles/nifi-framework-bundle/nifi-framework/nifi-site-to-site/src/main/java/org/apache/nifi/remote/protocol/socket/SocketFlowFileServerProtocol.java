@@ -74,9 +74,6 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             properties.put(propertyName, propertyValue);
         }
 
-        // evaluate the properties received
-        boolean responseWritten = false;
-
         try {
             validateHandshakeRequest(confirmed, peer, properties);
         } catch (HandshakeException e) {
@@ -86,21 +83,11 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             } else {
                 handshakeResult.writeResponse(dos);
             }
-            switch (handshakeResult) {
-                case UNAUTHORIZED:
-                case PORT_NOT_IN_VALID_STATE:
-                case PORTS_DESTINATION_FULL:
-                    responseWritten = true;
-                    break;
-                default:
-                    throw e;
-            }
+            throw e;
         }
 
         // send "OK" response
-        if (!responseWritten) {
-            ResponseCode.PROPERTIES_OK.writeResponse(dos);
-        }
+        ResponseCode.PROPERTIES_OK.writeResponse(dos);
 
         return confirmed;
     }
@@ -114,7 +101,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             throw new IllegalStateException("Protocol is shutdown");
         }
 
-        logger.debug("{} Negotiating Codec with {} using {}", new Object[]{this, peer, peer.getCommunicationsSession()});
+        logger.debug("{} Negotiating Codec with {} using {}", this, peer, peer.getCommunicationsSession());
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
@@ -126,7 +113,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         // Negotiate the FlowFileCodec to use.
         try {
             negotiatedFlowFileCodec = RemoteResourceFactory.receiveCodecNegotiation(dis, dos);
-            logger.debug("{} Negotiated Codec {} with {}", new Object[]{this, negotiatedFlowFileCodec, peer});
+            logger.debug("{} Negotiated Codec {} with {}", this, negotiatedFlowFileCodec, peer);
             return negotiatedFlowFileCodec;
         } catch (final HandshakeException e) {
             throw new ProtocolException(e.toString());
@@ -143,9 +130,9 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             throw new IllegalStateException("Protocol is shutdown");
         }
 
-        logger.debug("{} Reading Request Type from {} using {}", new Object[]{this, peer, peer.getCommunicationsSession()});
+        logger.debug("{} Reading Request Type from {} using {}", this, peer, peer.getCommunicationsSession());
         final RequestType requestType = RequestType.readRequestType(new DataInputStream(peer.getCommunicationsSession().getInput().getInputStream()));
-        logger.debug("{} Got Request Type {} from {}", new Object[]{this, requestType, peer});
+        logger.debug("{} Got Request Type {} from {}", this, requestType, peer);
 
         return requestType;
     }

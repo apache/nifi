@@ -16,11 +16,16 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
-import org.apache.nifi.remote.StandardVersionNegotiator;
+import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformation;
+import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
 import org.apache.nifi.remote.io.socket.SocketChannelInput;
 import org.apache.nifi.remote.io.socket.SocketChannelOutput;
@@ -40,10 +45,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -57,6 +70,12 @@ public class TestSocketFlowFileServerProtocol {
     }
 
     private Peer getDefaultPeer(final HandshakeProperties handshakeProperties, final OutputStream outputStream) throws IOException {
+        final Map<HandshakeProperty, String> defaultProps = new HashMap<>();
+        defaultProps.put(HandshakeProperty.GZIP, String.valueOf(handshakeProperties.isUseGzip()));
+        return getCustomPeer(handshakeProperties, outputStream, defaultProps);
+    }
+
+    private Peer getCustomPeer(final HandshakeProperties handshakeProperties, final OutputStream outputStream, final Map<HandshakeProperty, String> props) throws IOException {
         final PeerDescription description = new PeerDescription("peer-host", 8080, false);
 
         final byte[] inputBytes;
@@ -65,9 +84,11 @@ public class TestSocketFlowFileServerProtocol {
 
             dos.writeUTF(handshakeProperties.getCommsIdentifier());
             dos.writeUTF(handshakeProperties.getTransitUriPrefix());
-            dos.writeInt(1); // num of properties
-            dos.writeUTF(HandshakeProperty.GZIP.name());
-            dos.writeUTF(String.valueOf(handshakeProperties.isUseGzip()));
+            dos.writeInt(props.size()); // num of properties
+            for (Map.Entry<HandshakeProperty, String> prop : props.entrySet()) {
+                dos.writeUTF(prop.getKey().name());
+                dos.writeUTF(prop.getValue());
+            }
             dos.flush();
 
             inputBytes = bos.toByteArray();
@@ -90,9 +111,7 @@ public class TestSocketFlowFileServerProtocol {
     }
 
     private SocketFlowFileServerProtocol getDefaultSocketFlowFileServerProtocol() {
-        final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        final SocketFlowFileServerProtocol protocol = spy(new SocketFlowFileServerProtocol());
-        return protocol;
+        return spy(new SocketFlowFileServerProtocol());
     }
 
     @Test
@@ -172,14 +191,178 @@ public class TestSocketFlowFileServerProtocol {
             final int numPeers = dis.readInt();
             assertEquals(nodeInfoList.size(), numPeers);
 
-            for (int i = 0; i < nodeInfoList.size(); i++) {
-                final NodeInformation node = nodeInfoList.get(i);
+            for (final NodeInformation node : nodeInfoList) {
                 assertEquals(node.getSiteToSiteHostname(), dis.readUTF());
                 assertEquals(node.getSiteToSitePort().intValue(), dis.readInt());
                 assertEquals(node.isSiteToSiteSecure(), dis.readBoolean());
                 assertEquals(node.getTotalFlowFiles(), dis.readInt());
             }
         }
+    }
+    @Test
+    public void testPortDestinationFull() throws Exception {
+        final SocketFlowFileServerProtocol serverProtocol = getDefaultSocketFlowFileServerProtocol();
+        final HandshakeProperties handshakeProperties = new HandshakeProperties();
+        handshakeProperties.setCommsIdentifier("communication-identifier");
+        handshakeProperties.setTransitUriPrefix("uri-prefix");
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Map<HandshakeProperty, String> customProps = new HashMap<>();
+        customProps.put(HandshakeProperty.GZIP, "false");
+        customProps.put(HandshakeProperty.PORT_IDENTIFIER, handshakeProperties.getCommsIdentifier());
+        final Peer peer = getCustomPeer(handshakeProperties, outputStream, customProps);
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final RootGroupPort port = mock(RootGroupPort.class);
+        final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
+        doReturn(true).when(processGroup).isRootGroup();
+        doReturn(port).when(processGroup).getOutputPort(handshakeProperties.getCommsIdentifier());
+        doReturn(true).when(port).isValid();
+        doReturn(true).when(port).isRunning();
+        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(true).when(authResult).isAuthorized();
+        final Set<Connection> connections = new HashSet<>();
+        final Connection connection = mock(Connection.class);
+        connections.add(connection);
+        doReturn(connections).when(port).getConnections();
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        doReturn(flowFileQueue).when(connection).getFlowFileQueue();
+        doReturn(true).when(flowFileQueue).isFull();
+
+        serverProtocol.setRootProcessGroup(processGroup);
+        try {
+            serverProtocol.handshake(peer);
+            fail();
+        } catch (final HandshakeException e) {
+            assertEquals(ResponseCode.PORTS_DESTINATION_FULL, e.getResponseCode());
+        }
+
+        assertFalse(serverProtocol.isHandshakeSuccessful());
+    }
+
+    @Test
+    public void testPortNotInValidState() throws Exception {
+        final SocketFlowFileServerProtocol serverProtocol = getDefaultSocketFlowFileServerProtocol();
+        final HandshakeProperties handshakeProperties = new HandshakeProperties();
+        handshakeProperties.setCommsIdentifier("communication-identifier");
+        handshakeProperties.setTransitUriPrefix("uri-prefix");
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Map<HandshakeProperty, String> customProps = new HashMap<>();
+        customProps.put(HandshakeProperty.GZIP, "false");
+        customProps.put(HandshakeProperty.PORT_IDENTIFIER, handshakeProperties.getCommsIdentifier());
+        final Peer peer = getCustomPeer(handshakeProperties, outputStream, customProps);
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final RootGroupPort port = mock(RootGroupPort.class);
+        final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
+        doReturn(true).when(processGroup).isRootGroup();
+        doReturn(port).when(processGroup).getOutputPort(handshakeProperties.getCommsIdentifier());
+        doReturn(false).when(port).isValid();
+        doReturn(true).when(port).isRunning();
+        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(true).when(authResult).isAuthorized();
+
+        serverProtocol.setRootProcessGroup(processGroup);
+        try {
+            serverProtocol.handshake(peer);
+            fail();
+        } catch (final HandshakeException e) {
+            assertEquals(ResponseCode.PORT_NOT_IN_VALID_STATE, e.getResponseCode());
+        }
+
+        assertFalse(serverProtocol.isHandshakeSuccessful());
+    }
+
+    @Test
+    public void testIllegalHandshakeProperty() throws Exception {
+        final SocketFlowFileServerProtocol serverProtocol = getDefaultSocketFlowFileServerProtocol();
+        final HandshakeProperties handshakeProperties = new HandshakeProperties();
+        handshakeProperties.setCommsIdentifier("communication-identifier");
+        handshakeProperties.setTransitUriPrefix("uri-prefix");
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Map<HandshakeProperty, String> customProps = new HashMap<>();
+//      specifically NOT including the HandshakeProperty.GZIP entry
+        customProps.put(HandshakeProperty.PORT_IDENTIFIER, handshakeProperties.getCommsIdentifier());
+        final Peer peer = getCustomPeer(handshakeProperties, outputStream, customProps);
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final RootGroupPort port = mock(RootGroupPort.class);
+        final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
+        doReturn(true).when(processGroup).isRootGroup();
+        doReturn(port).when(processGroup).getOutputPort(handshakeProperties.getCommsIdentifier());
+        doReturn(true).when(port).isValid();
+        doReturn(true).when(port).isRunning();
+        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(true).when(authResult).isAuthorized();
+
+        serverProtocol.setRootProcessGroup(processGroup);
+        try {
+            serverProtocol.handshake(peer);
+            fail();
+        } catch (final HandshakeException e) {
+            assertEquals(ResponseCode.MISSING_PROPERTY, e.getResponseCode());
+        }
+
+        assertFalse(serverProtocol.isHandshakeSuccessful());
+    }
+
+    @Test
+    public void testUnauthorized() throws Exception {
+        final SocketFlowFileServerProtocol serverProtocol = getDefaultSocketFlowFileServerProtocol();
+        final HandshakeProperties handshakeProperties = new HandshakeProperties();
+        handshakeProperties.setCommsIdentifier("communication-identifier");
+        handshakeProperties.setTransitUriPrefix("uri-prefix");
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Map<HandshakeProperty, String> customProps = new HashMap<>();
+        customProps.put(HandshakeProperty.GZIP, "false");
+        customProps.put(HandshakeProperty.PORT_IDENTIFIER, handshakeProperties.getCommsIdentifier());
+        final Peer peer = getCustomPeer(handshakeProperties, outputStream, customProps);
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final RootGroupPort port = mock(RootGroupPort.class);
+        final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
+        doReturn(true).when(processGroup).isRootGroup();
+        doReturn(port).when(processGroup).getOutputPort(handshakeProperties.getCommsIdentifier());
+        doReturn(true).when(port).isValid();
+        doReturn(true).when(port).isRunning();
+        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(false).when(authResult).isAuthorized();
+        doReturn("test failure").when(authResult).getExplanation();
+
+        serverProtocol.setRootProcessGroup(processGroup);
+        try {
+            serverProtocol.handshake(peer);
+            fail();
+        } catch (final HandshakeException e) {
+            assertEquals(ResponseCode.UNAUTHORIZED, e.getResponseCode());
+        }
+
+        assertFalse(serverProtocol.isHandshakeSuccessful());
+    }
+
+    @Test
+    public void testUnknownPort() throws Exception {
+        final SocketFlowFileServerProtocol serverProtocol = getDefaultSocketFlowFileServerProtocol();
+        final HandshakeProperties handshakeProperties = new HandshakeProperties();
+        handshakeProperties.setCommsIdentifier("communication-identifier");
+        handshakeProperties.setTransitUriPrefix("uri-prefix");
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Map<HandshakeProperty, String> customProps = new HashMap<>();
+        customProps.put(HandshakeProperty.GZIP, "false");
+        customProps.put(HandshakeProperty.PORT_IDENTIFIER, handshakeProperties.getCommsIdentifier());
+        final Peer peer = getCustomPeer(handshakeProperties, outputStream, customProps);
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        doReturn(true).when(processGroup).isRootGroup();
+
+        serverProtocol.setRootProcessGroup(processGroup);
+        try {
+            serverProtocol.handshake(peer);
+            fail();
+        } catch (final HandshakeException e) {
+            assertEquals(ResponseCode.UNKNOWN_PORT, e.getResponseCode());
+        }
+
+        assertFalse(serverProtocol.isHandshakeSuccessful());
     }
 
 }
