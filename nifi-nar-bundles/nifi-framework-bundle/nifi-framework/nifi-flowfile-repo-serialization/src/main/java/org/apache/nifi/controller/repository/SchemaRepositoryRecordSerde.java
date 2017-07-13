@@ -41,7 +41,6 @@ import org.apache.nifi.repository.schema.SimpleRecordField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
-import org.wali.UpdateType;
 
 public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<RepositoryRecord> {
     private static final Logger logger = LoggerFactory.getLogger(SchemaRepositoryRecordSerde.class);
@@ -123,10 +122,11 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         final Record record = (Record) updateRecord.getFieldValue(RepositoryRecordSchema.REPOSITORY_RECORD_UPDATE_V2);
 
         final String actionType = (String) record.getFieldValue(RepositoryRecordSchema.ACTION_TYPE_FIELD);
-        final UpdateType updateType = UpdateType.valueOf(actionType);
-        switch (updateType) {
+        final RepositoryRecordType recordType = RepositoryRecordType.valueOf(actionType);
+        switch (recordType) {
             case CREATE:
                 return createRecord(record);
+            case CONTENTMISSING:
             case DELETE:
                 return deleteRecord(record);
             case SWAP_IN:
@@ -135,9 +135,9 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
                 return swapOutRecord(record);
             case UPDATE:
                 return updateRecord(record);
-            default:
-                throw new IOException("Found unrecognized Update Type '" + actionType + "'");
         }
+
+        throw new IOException("Found unrecognized Update Type '" + actionType + "'");
     }
 
 
