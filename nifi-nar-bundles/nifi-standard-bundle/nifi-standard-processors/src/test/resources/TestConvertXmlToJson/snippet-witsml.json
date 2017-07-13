@@ -1,0 +1,26 @@
+{"wellbores": {
+     "xmlns": "http://www.witsml.org/schemas/1series",
+     "wellbore": {
+          "uid": "6ed5bb6b-f6e6-465b-9879-d87220f8",
+          "xmlns": "http://www.witsml.org/schemas/1series",
+          "tvd": {
+               "uom": "m",
+               "content": 2134.83578549231
+          },
+          "statusWellbore": "drilling",
+          "md": {
+               "uom": "m",
+               "content": 5314.188
+          },
+          "commonData": {
+               "dTimLastChange": "2016-04-06T08:12:43.799Z",
+               "dTimCreation": "2016-04-04T22:59:00.100Z"
+          },
+          "name": "EnergisticsWellbore2016-B",
+          "isActive": false,
+          "uidWell": "b04e88c7-72c1-443e-aecc-8ea3c6",
+          "nameWell": "EnergisticsWell2016-B"
+     },
+     "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+     "version": "1.4.1.1"
+}}
