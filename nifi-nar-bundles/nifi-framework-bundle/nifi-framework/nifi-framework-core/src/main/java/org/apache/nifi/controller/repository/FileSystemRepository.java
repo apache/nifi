@@ -66,6 +66,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
@@ -97,22 +98,23 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
-    // 1 MB. This could be adjusted but 1 MB seems reasonable, as it means that we won't continually write to one
-    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
-    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
-    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
-    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
-    static final int MAX_APPENDABLE_CLAIM_LENGTH = 1024 * 1024;
 
-    // Queue for claims that are kept open for writing. Size of 100 is pretty arbitrary. Ideally, this will be at
+    // Queue for claims that are kept open for writing. Ideally, this will be at
     // least as large as the number of threads that will be updating the repository simultaneously but we don't want
     // to get too large because it will hold open up to this many FileOutputStreams.
     // The queue is used to determine which claim to write to and then the corresponding Map can be used to obtain
     // the OutputStream that we can use for writing to the claim.
-    private final BlockingQueue<ClaimLengthPair> writableClaimQueue = new LinkedBlockingQueue<>(100);
+    private final BlockingQueue<ClaimLengthPair> writableClaimQueue;
     private final ConcurrentMap<ResourceClaim, ByteCountingOutputStream> writableClaimStreams = new ConcurrentHashMap<>(100);
 
     private final boolean archiveData;
+    // 1 MB default, as it means that we won't continually write to one
+    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
+    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
+    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
+    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
+    private final int maxAppendableClaimLength;
+    private final int maxFlowFilesPerClaim;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
@@ -140,6 +142,9 @@ public class FileSystemRepository implements ContentRepository {
         alwaysSync = false;
         containerCleanupExecutor = null;
         nifiProperties = null;
+        maxAppendableClaimLength = 0;
+        maxFlowFilesPerClaim = 0;
+        writableClaimQueue = null;
     }
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
@@ -149,6 +154,10 @@ public class FileSystemRepository implements ContentRepository {
         for (final Path path : fileRespositoryPaths.values()) {
             Files.createDirectories(path);
         }
+        this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
+        this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        final String maxAppendableClaimSize = nifiProperties.getMaxAppendableClaimSize();
+        this.maxAppendableClaimLength = DataUnit.parseDataSize(maxAppendableClaimSize, DataUnit.B).intValue();
 
         this.containers = new HashMap<>(fileRespositoryPaths);
         this.containerNames = new ArrayList<>(containers.keySet());
@@ -948,7 +957,7 @@ public class FileSystemRepository implements ContentRepository {
                 // is called. In this case, we don't have to actually close the file stream. Instead, we
                 // can just add it onto the queue and continue to use it for the next content claim.
                 final long resourceClaimLength = scc.getOffset() + scc.getLength();
-                if (recycle && resourceClaimLength < MAX_APPENDABLE_CLAIM_LENGTH) {
+                if (recycle && resourceClaimLength < maxAppendableClaimLength) {
                     final ClaimLengthPair pair = new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength);
 
                     // We are checking that writableClaimStreams contains the resource claim as a key, as a sanity check.
