@@ -220,6 +220,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_FLOWFILE_REPO_PARTITIONS = "256";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "2 min";
     public static final int DEFAULT_MAX_FLOWFILES_PER_CLAIM = 100;
+    public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final String DEFAULT_SWAP_STORAGE_LOCATION = "./flowfile_repository/swap";
     public static final String DEFAULT_SWAP_IN_PERIOD = "1 sec";
@@ -924,6 +925,15 @@ public abstract class NiFiProperties {
         return provenanceRepositoryPaths;
     }
 
+    /**
+     * Returns the number of claims to keep open for writing. Ideally, this will be at
+     * least as large as the number of threads that will be updating the repository simultaneously but we don't want
+     * to get too large because it will hold open up to this many FileOutputStreams.
+     *
+     * Default is {@link #DEFAULT_MAX_FLOWFILES_PER_CLAIM}
+     *
+     * @return the maximum number of flow files per claim
+     */
     public int getMaxFlowFilesPerClaim() {
         try {
             return Integer.parseInt(getProperty(MAX_FLOWFILES_PER_CLAIM));
@@ -932,8 +942,16 @@ public abstract class NiFiProperties {
         }
     }
 
+    /**
+     * Returns the maximum size, in bytes, that claims should grow before writing a new file. This means that we won't continually write to one
+     * file that keeps growing but gives us a chance to bunch together many small files.
+     *
+     * Default is {@link #DEFAULT_MAX_APPENDABLE_CLAIM_SIZE}
+     *
+     * @return the maximum appendable claim size
+     */
     public String getMaxAppendableClaimSize() {
-        return getProperty(MAX_APPENDABLE_CLAIM_SIZE);
+        return getProperty(MAX_APPENDABLE_CLAIM_SIZE, DEFAULT_MAX_APPENDABLE_CLAIM_SIZE);
     }
 
     public String getProperty(final String key, final String defaultValue) {
