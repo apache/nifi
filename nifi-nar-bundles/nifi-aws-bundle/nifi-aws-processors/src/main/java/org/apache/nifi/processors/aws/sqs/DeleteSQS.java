@@ -46,8 +46,7 @@ import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 public class DeleteSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
-            .name("sqs-receipt-handle")
-            .displayName("Receipt Handle")
+            .name("Receipt Handle")
             .description("The identifier that specifies the receipt of the message")
             .expressionLanguageSupported(true)
             .required(true)
