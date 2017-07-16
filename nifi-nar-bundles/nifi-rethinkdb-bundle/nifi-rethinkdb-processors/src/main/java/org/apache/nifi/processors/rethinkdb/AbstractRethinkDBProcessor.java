@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.rethinkdb;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -28,7 +29,7 @@ import com.rethinkdb.gen.ast.Table;
 import com.rethinkdb.net.Connection;
 
 /**
- * Abstract base class for RethinkDb processors
+ * Abstract base class for RethinkDB processors
  */
 abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
 
@@ -95,7 +96,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
 
     protected static final PropertyDescriptor MAX_DOCUMENTS_SIZE = new PropertyDescriptor.Builder()
             .name("rethinkdb-max-document-size")
-            .displayName("Max size of documents in MBs")
+            .displayName("Max size of documents")
             .description("Maximum size of documents allowed to be posted in one batch")
             .defaultValue("1 MB")
             .required(true)
@@ -108,6 +109,9 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed FlowFiles are routed to this relationship").build();
 
+    static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not_found")
+            .description("Document not found are routed to this relationship").build();
+
     public static final String RESULT_ERROR_KEY = "errors";
     public static final String RESULT_DELETED_KEY = "deleted";
     public static final String RESULT_GENERATED_KEYS_KEY = "generated_keys";
@@ -117,6 +121,8 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
     public static final String RESULT_UNCHANGED_KEY = "unchanged";
     public static final String RESULT_FIRST_ERROR_KEY = "first_error";
     public static final String RESULT_WARNINGS_KEY = "warnings";
+
+    public static final String RETHINKDB_ERROR_MESSAGE = "rethinkdb.error.message";
 
     protected Connection rethinkDbConnection;
     protected String databaseName;
@@ -158,7 +164,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
             getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
             throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
-        getLogger().info("RethinkDb connection created for host {} port {} and db {}",
+        getLogger().info("RethinkDB connection created for host {} port {} and db {}",
                 new Object[] {hostname, port,databaseName});
     }
 
@@ -166,5 +172,12 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
         return getRethinkDB().connection().hostname(hostname)
             .port(port).user(username,
                     password).connect();
+    }
+
+    @OnStopped
+    public void close() {
+        getLogger().info("Closing connection");
+        if ( rethinkDbConnection != null )
+            rethinkDbConnection.close();
     }
 }

@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -61,6 +62,7 @@ import java.util.Set;
     @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, description = "First error while inserting documents"),
     @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_WARNINGS_KEY, description = "Warning message in case of large number of ids being returned on insertion")
     })
+@SeeAlso({GetRethinkDB.class})
 public class PutRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue CONFLICT_STRATEGY_UPDATE = new AllowableValue("update", "Update", "Update the document having same id with new values");
@@ -96,7 +98,6 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    public static final String RETHINKDB_ERROR_MESSAGE = "rethinkdb.error.message";
     public static final String RETHINKDB_INSERT_RESULT = "rethinkdb.insert.result";
     public static final String RETHINKDB_INSERT_RESULT_ERROR_KEY = "rethinkdb.insert.errors";
     public static final String RETHINKDB_INSERT_RESULT_DELETED_KEY = "rethinkdb.insert.deleted";
@@ -230,8 +231,6 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
      */
     @OnStopped
     public void close() {
-        getLogger().info("Closing connection");
-        if ( rethinkDbConnection != null )
-            rethinkDbConnection.close();
+        super.close();
     }
 }
