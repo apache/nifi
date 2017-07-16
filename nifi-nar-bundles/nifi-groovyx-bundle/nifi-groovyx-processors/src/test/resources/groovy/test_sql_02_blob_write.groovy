@@ -17,8 +17,8 @@
 
 import groovy.sql.Sql
 
-//the next line not needed because require flowFile property set to true
-//def flowFile = session.get()
+def flowFile = session.get()
+if(!flowFile)return
 
 //write content of the flow file into database blob
 flowFile.read{ rawIn->

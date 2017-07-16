@@ -14,5 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+def flowFile = session.get()
+if(!flowFile)return
 flowFile."from-content" = "test content"
 REL_SUCCESS << flowFile

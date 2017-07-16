@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+def flowFile = session.get()
+if(!flowFile)return
 def selectedColumns = ''
 flowFile.write{inputStream, outputStream->
     String[] header = null

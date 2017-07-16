@@ -30,6 +30,9 @@ import groovy.json.JsonOutput
   ...
 ]
 */
+def flowFile = session.get()
+if(!flowFile)return
+
 def outFiles = [] //list for new flow files
 def rows = new JsonSlurper().parse( flowFile.read() )
 

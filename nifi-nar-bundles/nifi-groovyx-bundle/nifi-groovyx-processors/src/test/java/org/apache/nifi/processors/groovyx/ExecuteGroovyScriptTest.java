@@ -130,8 +130,7 @@ public class ExecuteGroovyScriptTest {
      */
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "flowFile.testAttr = flowFile.read().getText('UTF-8'); REL_SUCCESS << flowFile;");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty(proc.SCRIPT_BODY, "def flowFile = session.get(); if(!flowFile)return; flowFile.testAttr = flowFile.read().getText('UTF-8'); REL_SUCCESS << flowFile;");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
 
         runner.assertValid();
@@ -146,7 +145,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_groovy() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
@@ -160,7 +158,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTriggerX_groovy() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTriggerX.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
@@ -174,7 +171,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_changeContent_groovy() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContent.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
@@ -191,7 +187,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_changeContentX_groovy() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContentX.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
@@ -208,7 +203,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_no_input_groovy() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_no_input.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
         runner.run();
@@ -222,22 +216,19 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_good_script() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, " REL_SUCCESS << flowFile ");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty(proc.SCRIPT_BODY, " def ff = session.get(); if(!ff)return; REL_SUCCESS << ff ");
         runner.assertValid();
     }
 
     @Test
     public void test_bad_script() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.assertNotValid();
     }
 
     @Test
     public void test_sql_01_select() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_01_select.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         runner.setProperty("CTL.sql", "dbcp");
         runner.assertValid();
 
@@ -253,7 +244,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_sql_02_blob_write() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_02_blob_write.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.setProperty("CTL.sql", "dbcp");
         //runner.setProperty("ID", "0");
         runner.assertValid();
@@ -273,7 +263,6 @@ public class ExecuteGroovyScriptTest {
     public void test_sql_03_blob_read() throws Exception {
         //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_03_blob_read.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         runner.setProperty("CTL.sql", "dbcp");
         runner.setProperty("ID", "0");
         runner.setValidateExpressionUsage(false);
@@ -291,7 +280,6 @@ public class ExecuteGroovyScriptTest {
     public void test_sql_04_insert_and_json() throws Exception {
         //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.groovy");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.setProperty("CTL.sql", "dbcp");
         runner.setValidateExpressionUsage(false);
         runner.assertValid();
@@ -310,7 +298,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_filter_01() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get{it.FILTER=='3'}; if(!ff)return; REL_SUCCESS << ff;");
-        runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
 
         runner.assertValid();
@@ -330,8 +317,7 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_read_01() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read().getText('UTF-8')=='1234'; REL_SUCCESS << flowFile;");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get(); if(!ff)return; assert ff.read().getText('UTF-8')=='1234'; REL_SUCCESS << ff; ");
 
         runner.assertValid();
 
@@ -343,8 +329,7 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_read_02() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read{s-> assert s.getText('UTF-8')=='1234' }; REL_SUCCESS << flowFile;");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get(); if(!ff)return; ff.read{s-> assert s.getText('UTF-8')=='1234' }; REL_SUCCESS << ff; ");
 
         runner.assertValid();
 
@@ -356,8 +341,7 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_read_03() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read('UTF-8'){r-> assert r.getText()=='1234' }; REL_SUCCESS << flowFile;");
-        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get(); if(!ff)return; ff.read('UTF-8'){r-> assert r.getText()=='1234' }; REL_SUCCESS << ff; ");
 
         runner.assertValid();
 

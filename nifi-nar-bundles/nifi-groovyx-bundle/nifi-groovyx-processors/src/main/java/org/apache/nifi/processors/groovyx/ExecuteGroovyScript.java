@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -63,13 +64,14 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.ValidationContext;
 
 @EventDriven
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})
 @CapabilityDescription(
         "Experimental Extended Groovy script processor. The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
 @Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
-@SeeAlso({})
+@SeeAlso(classNames={"org.apache.nifi.processors.script.ExecuteScript"})
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
         supportsExpressionLanguage = true,
@@ -90,20 +92,20 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .description("Body of script to execute. Only one of Script File or Script Body may be used").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(false)
             .build();
 
-    public static String[] VALID_BOOLEANS = {"true", "false"};
-    public static final PropertyDescriptor REQUIRE_FLOW = new PropertyDescriptor.Builder().name("Requires flow file")
-            .description("If `true` then flowFile variable initialized and validated. So developer don't need to do flowFile = session.get(). If `false` the flowFile variable not initialized.")
-            .required(true).expressionLanguageSupported(false).allowableValues(VALID_BOOLEANS).defaultValue("false").build();
-
     public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
     public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder()
             .name("Failure strategy")
-            .description("If `transfer to failure` used then all flowFiles received from incoming queues in this session "
-                    +"in case of exception will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE.")
+            .description("What to do with unhandled exceptions. If you want to manage exception by code then keep the default value `rollback`."
+                    +" If `transfer to failure` selected and unhandled exception occured then all flowFiles received from incoming queues in this session"
+                    +" will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE."
+                    +" If `rollback` selected and unhandled exception occured then all flowFiles received from incoming queues will be returned back"
+                    +" with penalize flag."
+                    +" If the processor has no incoming connections then this parameter has no affect."
+                )
             .required(true).expressionLanguageSupported(false).allowableValues(VALID_FAIL_STRATEGY).defaultValue(VALID_FAIL_STRATEGY[0]).build();
 
     public static final PropertyDescriptor ADD_CLASSPATH = new PropertyDescriptor.Builder().name("Additional classpath").required(false)
-            .description("Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name. Please avoid using this parameter because of deploy complexity :)")
+            .description("Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that were successfully processed").build();
@@ -127,7 +129,6 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(SCRIPT_FILE);
         descriptors.add(SCRIPT_BODY);
-        descriptors.add(REQUIRE_FLOW);
         descriptors.add(FAIL_STRATEGY);
         descriptors.add(ADD_CLASSPATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -366,24 +367,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
-        String requireFlow = context.getProperty(REQUIRE_FLOW).getValue();
         boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 
-        FlowFile flowFile = null;
-
-        if ("true".equals(requireFlow)) {
-            flowFile = session.get();
-            if (flowFile == null) {
-                return;
-            }
-        } else {
-            if (toFailureOnError) {
-                throw new ProcessException("The parameter `" + REQUIRE_FLOW.getName() + "` must be true when `" + FAIL_STRATEGY.getName() + "` is " + VALID_FAIL_STRATEGY[1]);
-            }
-        }
 
         HashMap CTL = new HashMap() {
             @Override
@@ -424,9 +412,6 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             bindings.put("REL_SUCCESS", REL_SUCCESS);
             bindings.put("REL_FAILURE", REL_FAILURE);
             bindings.put("CTL", CTL);
-            if (flowFile != null) {
-                bindings.put("flowFile", flowFile);
-            }
 
             script.run();
             bindings.clear();
