@@ -452,6 +452,77 @@ public class TestPutSQL {
     }
 
     @Test
+    public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST3 (id integer primary key, ts1 TIME, ts2 DATE)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String dateStr = "2002-02-02";
+        final String timeStr = "12:02:02";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", timeStr);
+        attributes.put("sql.args.1.format", "ISO_LOCAL_TIME");
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", dateStr);
+        attributes.put("sql.args.2.format", "ISO_LOCAL_DATE");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", "68522000");
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", "1012633200000");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (2, ?, ?)".getBytes(), attributes);
+
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", "120202000");
+        attributes.put("sql.args.1.format", "HHmmssSSS");
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", "20020202");
+        attributes.put("sql.args.2.format", "yyyyMMdd");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (3, ?, ?)".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 3);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST3 ORDER BY ID");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(68522000L, rs.getTime(2).getTime());
+                assertEquals(1012633200000L, rs.getDate(3).getTime());
+
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertEquals(68522000L, rs.getTime(2).getTime());
+                assertEquals(1012633200000L, rs.getDate(3).getTime());
+
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertEquals(68522000L, rs.getTime(2).getTime());
+                assertEquals(1012633200000L, rs.getDate(3).getTime());
+
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
     public void testBitType() throws SQLException, InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
         try (final Connection conn = service.getConnection()) {
@@ -566,6 +637,91 @@ public class TestPutSQL {
             }
         }
 
+    }
+
+    @Test
+    public void testUsingTimeValuesEpochAndString() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE TIMETESTS (id integer primary key, ts1 time, ts2 time)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String arg2TS = "00:01:01";
+        final String art3TS = "12:02:02";
+        final String timeFormatString = "HH:mm:ss";
+        SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
+        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.1.value", Long.toString(parsedDate.getTime()));
+
+        attributes.put("sql.args.2.type", String.valueOf(Types.TIME));
+        attributes.put("sql.args.2.value", art3TS);
+        attributes.put("sql.args.2.format", timeFormatString);
+
+        runner.enqueue("INSERT INTO TIMETESTS (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMETESTS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(arg2TS, rs.getString(2));
+                assertEquals(art3TS, rs.getString(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testUsingDateValuesEpochAndString() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE DATETESTS (id integer primary key, ts1 date, ts2 date)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String arg2TS = "2001-01-01";
+        final String art3TS = "2002-02-02";
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.1.value", Long.toString(parsedDate.getTime()));
+        attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
+        attributes.put("sql.args.2.value", art3TS);
+
+        runner.enqueue("INSERT INTO DATETESTS (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM DATETESTS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(arg2TS, rs.getString(2));
+                assertEquals(art3TS, rs.getString(3));
+                assertFalse(rs.next());
+            }
+        }
     }
 
     @Test
