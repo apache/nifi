@@ -43,7 +43,7 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException {
+    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
         final String schemaName = schemaNamePropertyValue.evaluateAttributeExpressions(flowFile).getValue();
         if (schemaName.trim().isEmpty()) {
             throw new SchemaNotFoundException("FlowFile did not contain appropriate attributes to determine Schema Name.");

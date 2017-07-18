@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -141,7 +141,7 @@
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
         <nifi.security.needClientAuth />
-        <nifi.security.user.authorizer>file-provider</nifi.security.user.authorizer>
+        <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />
@@ -160,6 +160,7 @@
         <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
+        <nifi.cluster.node.max.concurrent.requests>100</nifi.cluster.node.max.concurrent.requests>
         <nifi.cluster.firewall.file />
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
         <nifi.cluster.flow.election.max.candidates />

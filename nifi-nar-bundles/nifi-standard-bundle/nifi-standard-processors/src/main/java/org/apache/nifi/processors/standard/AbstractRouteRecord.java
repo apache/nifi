@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -112,15 +111,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSchema writeSchema;
-        try (final InputStream rawIn = session.read(flowFile);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            writeSchema = writerFactory.getSchema(flowFile, in);
-        } catch (final Exception e) {
-            getLogger().error("Failed to process records for {}; will route to failure", new Object[] {flowFile, e});
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
+
 
         final AtomicInteger numRecords = new AtomicInteger(0);
         final Map<Relationship, Tuple<FlowFile, RecordSetWriter>> writers = new HashMap<>();
@@ -130,6 +121,8 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in) throws IOException {
                     try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+
+                        final RecordSchema writeSchema = writerFactory.getSchema(original, reader.getSchema());
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {

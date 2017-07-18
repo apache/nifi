@@ -61,7 +61,6 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
-import org.apache.nifi.web.api.entity.FlowSnippetEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
 import org.apache.nifi.web.api.entity.InputPortsEntity;
@@ -236,7 +235,7 @@ public class ProcessGroupResource extends ApplicationResource {
             entity.getComponent().setContents(null);
         }
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -321,7 +320,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, processGroupEntity.getComponent());
                     populateRemainingProcessGroupEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -410,7 +409,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, processGroupEntity.getId());
 
                     // create the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -503,7 +502,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // generate a 201 created response
                     String uri = entity.getUri();
-                    return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
+                    return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
     }
@@ -519,7 +518,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Path("{id}/process-groups")
     @ApiOperation(
             value = "Gets all process groups",
-            response = ProcessorsEntity.class,
+            response = ProcessGroupsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /process-groups/{uuid}", type = "")
             }
@@ -565,7 +564,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setProcessGroups(populateRemainingProcessGroupEntitiesContent(entities));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ----------
@@ -689,7 +688,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // generate a 201 created response
                     String uri = entity.getUri();
-                    return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
+                    return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
     }
@@ -745,7 +744,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setProcessors(processorResource.populateRemainingProcessorEntitiesContent(processors));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -----------
@@ -839,7 +838,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     inputPortResource.populateRemainingInputPortEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -893,7 +892,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setInputPorts(inputPortResource.populateRemainingInputPortEntitiesContent(inputPorts));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ------------
@@ -987,7 +986,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     outputPortResource.populateRemainingOutputPortEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -1042,7 +1041,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setOutputPorts(outputPortResource.populateRemainingOutputPortEntitiesContent(outputPorts));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -------
@@ -1136,7 +1135,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     funnelResource.populateRemainingFunnelEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -1191,7 +1190,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setFunnels(funnelResource.populateRemainingFunnelEntitiesContent(funnels));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ------
@@ -1285,7 +1284,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     labelResource.populateRemainingLabelEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -1340,7 +1339,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setLabels(labelResource.populateRemainingLabelEntitiesContent(labels));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ---------------------
@@ -1449,7 +1448,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(revision, groupId, remoteProcessGroupDTO);
                     remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntityContent(entity);
 
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -1511,7 +1510,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setRemoteProcessGroups(remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntitiesContent(remoteProcessGroups));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -----------
@@ -1677,7 +1676,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // extract the href and build the response
                     String uri = entity.getUri();
-                    return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
+                    return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
     }
@@ -1732,7 +1731,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setConnections(connectionResource.populateRemainingConnectionEntitiesContent(connections));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // ----------------
@@ -1756,7 +1755,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Path("{id}/snippet-instance")
     @ApiOperation(
             value = "Copies a snippet and discards it.",
-            response = FlowSnippetEntity.class,
+            response = FlowEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
                     @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = ""),
@@ -1838,7 +1837,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     populateRemainingSnippetContent(flow);
 
                     // generate the response
-                    return clusterContext(generateCreatedResponse(getAbsolutePath(), flowEntity)).build();
+                    return generateCreatedResponse(getAbsolutePath(), flowEntity).build();
                 }
         );
     }
@@ -2009,7 +2008,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     populateRemainingSnippetContent(flowSnippet);
 
                     // generate the response
-                    return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
+                    return generateCreatedResponse(getAbsolutePath(), entity).build();
                 }
         );
     }
@@ -2096,7 +2095,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     entity.setTemplate(template);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(template.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(template.getUri()), entity).build();
                 }
         );
     }
@@ -2251,7 +2250,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         entity.setTemplate(template);
 
                         // build the response
-                        return clusterContext(generateCreatedResponse(URI.create(template.getUri()), entity)).build();
+                        return generateCreatedResponse(URI.create(template.getUri()), entity).build();
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         logger.info("Unable to import template: " + e);
                         String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"%s\"/>", Response.Status.BAD_REQUEST.getStatusCode(), e.getMessage());
@@ -2377,7 +2376,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }

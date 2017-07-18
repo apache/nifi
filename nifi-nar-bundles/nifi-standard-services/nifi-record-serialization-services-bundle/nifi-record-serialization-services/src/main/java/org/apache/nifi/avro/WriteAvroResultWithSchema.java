@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -34,12 +35,13 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
     private final DataFileWriter<GenericRecord> dataFileWriter;
     private final Schema schema;
 
-    public WriteAvroResultWithSchema(final Schema schema, final OutputStream out) throws IOException {
+    public WriteAvroResultWithSchema(final Schema schema, final OutputStream out, final CodecFactory codec) throws IOException {
         super(out);
         this.schema = schema;
 
         final GenericDatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         dataFileWriter = new DataFileWriter<>(datumWriter);
+        dataFileWriter.setCodec(codec);
         dataFileWriter.create(schema, out);
     }
 

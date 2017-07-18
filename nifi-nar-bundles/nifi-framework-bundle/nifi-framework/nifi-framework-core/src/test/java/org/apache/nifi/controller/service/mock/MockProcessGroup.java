@@ -17,6 +17,13 @@
 
 package org.apache.nifi.controller.service.mock;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
@@ -25,6 +32,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
@@ -35,16 +43,14 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
+    private final FlowController flowController;
+
+    public MockProcessGroup(final FlowController flowController) {
+        this.flowController = flowController;
+    }
 
     @Override
     public Authorizable getParentAuthorizable() {
@@ -260,11 +266,13 @@ public class MockProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
         processorMap.put(processor.getIdentifier(), processor);
+        flowController.onProcessorAdded(processor);
     }
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         processorMap.remove(processor.getIdentifier());
+        flowController.onProcessorRemoved(processor);
     }
 
     @Override

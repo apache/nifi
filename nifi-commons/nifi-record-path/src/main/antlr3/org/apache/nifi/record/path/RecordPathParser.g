@@ -38,6 +38,8 @@ tokens {
 	PREDICATE;
 	OPERATOR;
 	RELATIVE_PATH;
+	FUNCTION;
+	ARGUMENTS;
 }
 
 @header {
@@ -90,7 +92,7 @@ multipleStringLiterals : STRING_LITERAL (COMMA! STRING_LITERAL)*;
 stringList : multipleStringLiterals ->
 	^(STRING_LIST multipleStringLiterals);
 
-rawOrLiteral : RAW_FIELD_NAME | STRING_LITERAL;
+rawOrLiteral : IDENTIFIER | STRING_LITERAL;
 
 
 
@@ -118,6 +120,7 @@ index : LBRACKET! indexOrKey RBRACKET!;
 
 
 
+
 //
 // Predicates
 //
@@ -125,13 +128,52 @@ operator : LESS_THAN | LESS_THAN_EQUAL | GREATER_THAN | GREATER_THAN_EQUAL | EQU
 
 literal : NUMBER | STRING_LITERAL;
 
-expression : path | literal;
+expression : path | literal | function;
 
-operation : relativePath operator^ expression;
+operation : expression operator^ expression;
 
-predicate : LBRACKET operation RBRACKET ->
-	^(PREDICATE operation);
+filter : filterFunction | operation;
 
+predicate : LBRACKET filter RBRACKET ->
+	^(PREDICATE filter);
+
+
+//
+// Functions
+//
+
+argument : expression;
+
+optionalArgument : argument?;
+
+argumentList : optionalArgument (COMMA argument)* ->
+	^(ARGUMENTS optionalArgument argument*);
+
+function : IDENTIFIER LPAREN argumentList RPAREN ->
+	^(FUNCTION IDENTIFIER argumentList);
+
+
+filterFunctionNames : CONTAINS | CONTAINS_REGEX | ENDS_WITH | STARTS_WITH | IS_BLANK | IS_EMPTY | MATCHES_REGEX;
+
+filterArgument : expression | filterFunction;
+
+optionalFilterArgument : filterArgument?;
+
+filterArgumentList : optionalFilterArgument (COMMA filterArgument)* ->
+	^(ARGUMENTS optionalFilterArgument filterArgument*);
+
+simpleFilterFunction : filterFunctionNames LPAREN filterArgumentList RPAREN ->
+	^(FUNCTION filterFunctionNames filterArgumentList);
+
+simpleFilterFunctionOrOperation : simpleFilterFunction | operation;
+
+notFunctionArgList : simpleFilterFunctionOrOperation ->
+	^(ARGUMENTS simpleFilterFunctionOrOperation);
+
+notFilterFunction : NOT LPAREN notFunctionArgList RPAREN ->
+	^(FUNCTION NOT notFunctionArgList);
+	
+filterFunction : simpleFilterFunction | notFilterFunction; 
 
 
 
@@ -191,5 +233,7 @@ relativePath : currentOrParent relativePathSegment? ->
 
 path : absolutePath | relativePath;
 
-pathExpression : path EOF ->
-	^(PATH_EXPRESSION path);
+pathOrFunction : path | function;
+
+pathExpression : pathOrFunction EOF ->
+	^(PATH_EXPRESSION pathOrFunction);

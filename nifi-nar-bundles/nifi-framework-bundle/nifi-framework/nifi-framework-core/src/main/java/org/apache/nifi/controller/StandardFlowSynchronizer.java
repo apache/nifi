@@ -18,8 +18,10 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
+import org.apache.nifi.authorization.ManagedAuthorizer;
+import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
@@ -224,15 +226,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         logger.trace("Getting Authorizer fingerprint from controller");
 
         final byte[] existingAuthFingerprint;
-        final AbstractPolicyBasedAuthorizer policyBasedAuthorizer;
+        final ManagedAuthorizer managedAuthorizer;
         final Authorizer authorizer = controller.getAuthorizer();
 
-        if (authorizer instanceof AbstractPolicyBasedAuthorizer) {
-            policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) authorizer;
-            existingAuthFingerprint = policyBasedAuthorizer.getFingerprint().getBytes(StandardCharsets.UTF_8);
+        if (AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            managedAuthorizer = (ManagedAuthorizer) authorizer;
+            existingAuthFingerprint = managedAuthorizer.getFingerprint().getBytes(StandardCharsets.UTF_8);
         } else {
             existingAuthFingerprint = null;
-            policyBasedAuthorizer = null;
+            managedAuthorizer = null;
         }
 
         final Set<String> missingComponents = new HashSet<>();
@@ -249,7 +251,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             if (existingFlowEmpty) {
                 configuration = parseFlowBytes(proposedFlow.getFlow());
                 if (configuration != null) {
-                    logger.trace("Checking bunde compatibility");
+                    logger.trace("Checking bundle compatibility");
                     checkBundleCompatibility(configuration);
                 }
             } else {
@@ -272,7 +274,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         logger.trace("Checking authorizer inheritability");
 
-        final AuthorizerInheritability authInheritability = checkAuthorizerInheritability(existingDataFlow, proposedFlow);
+        final AuthorizerInheritability authInheritability = checkAuthorizerInheritability(authorizer, existingDataFlow, proposedFlow);
         if (!authInheritability.isInheritable() && authInheritability.getReason() != null) {
             throw new UninheritableFlowException("Proposed Authorizer is not inheritable by the flow controller because of Authorizer differences: " + authInheritability.getReason());
         }
@@ -415,10 +417,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             // if auths are inheritable and we have a policy based authorizer, then inherit
-            if (authInheritability.isInheritable() && policyBasedAuthorizer != null) {
+            if (authInheritability.isInheritable() && managedAuthorizer != null) {
                 logger.trace("Inheriting authorizations");
                 final String proposedAuthFingerprint = new String(proposedFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
-                policyBasedAuthorizer.inheritFingerprint(proposedAuthFingerprint);
+                managedAuthorizer.inheritFingerprint(proposedAuthFingerprint);
             }
 
             logger.debug("Finished syncing flows");
@@ -1391,7 +1393,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
      * @param proposedFlow the proposed DataFlow
      * @return the AuthorizerInheritability result
      */
-    public AuthorizerInheritability checkAuthorizerInheritability(final DataFlow existingFlow, final DataFlow proposedFlow) {
+    private AuthorizerInheritability checkAuthorizerInheritability(final Authorizer authorizer, final DataFlow existingFlow, final DataFlow proposedFlow) {
         final byte[] existing = existingFlow.getAuthorizerFingerprint();
         final byte[] proposed = proposedFlow.getAuthorizerFingerprint();
 
@@ -1414,15 +1416,20 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         // both are internal, but not the same
         if (!Arrays.equals(existing, proposed)) {
-            final byte[] emptyAuthBytes = AbstractPolicyBasedAuthorizer.EMPTY_FINGERPRINT.getBytes(StandardCharsets.UTF_8);
+            if (AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+                final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
 
-            // if current is empty then we can take all the proposed authorizations
-            // otherwise they are both internal authorizers and don't match so we can't proceed
-            if (Arrays.equals(emptyAuthBytes, existing)) {
-                return AuthorizerInheritability.inheritable();
+                try {
+                    // if the configurations are not equal, see if the manager indicates the proposed configuration is inheritable
+                    managedAuthorizer.checkInheritability(new String(proposed, StandardCharsets.UTF_8));
+                    return AuthorizerInheritability.inheritable();
+                } catch (final UninheritableAuthorizationsException e) {
+                    return AuthorizerInheritability.uninheritable("Proposed Authorizations do not match current Authorizations: " + e.getMessage());
+                }
             } else {
+                // should never hit since the existing is only null when authorizer is not managed
                 return AuthorizerInheritability.uninheritable(
-                        "Proposed Authorizations do not match current Authorizations");
+                        "Proposed Authorizations do not match current Authorizations and are not configured with an internal Authorizer");
             }
         }
 

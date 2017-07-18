@@ -37,6 +37,8 @@ import org.apache.nifi.ssl.SSLContextService;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultSaslConfig;
+
 
 /**
  * Base processor that uses RabbitMQ client API
@@ -97,6 +99,15 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("cert-authentication")
+            .displayName("Use Certificate Authentication")
+            .description("Authenticate using the SSL certificate common name rather than user name/password.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("ssl-client-auth")
             .displayName("Client Auth")
@@ -122,6 +133,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         descriptors.add(PASSWORD);
         descriptors.add(AMQP_VERSION);
         descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(USE_CERT_AUTHENTICATION);
         descriptors.add(CLIENT_AUTH);
     }
 
@@ -218,9 +230,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
 
         // handles TLS/SSL aspects
+        final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        // if the property to use cert authentication is set but the SSL service hasn't been configured, throw an exception.
+        if (useCertAuthentication && sslService == null) {
+            throw new ProviderCreationException("This processor is configured to use cert authentication, " +
+                    "but the SSL Context Service hasn't been configured. You need to configure the SSL Context Service.");
+        }
         final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
-        final SSLContext sslContext;
 
         if (sslService != null) {
             final SSLContextService.ClientAuth clientAuth;
@@ -234,14 +251,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
                 }
             }
-            sslContext = sslService.createSSLContext(clientAuth);
-        } else {
-            sslContext = null;
-        }
-
-        // check if the ssl context is set and add it to the factory if so
-        if (sslContext != null) {
+            final SSLContext sslContext = sslService.createSSLContext(clientAuth);
             cf.useSslProtocol(sslContext);
+
+            if (useCertAuthentication) {
+                // this tells the factory to use the cert common name for authentication and not user name and password
+                // REF: https://github.com/rabbitmq/rabbitmq-auth-mechanism-ssl
+                cf.setSaslConfig(DefaultSaslConfig.EXTERNAL);
+            }
         }
 
         try {

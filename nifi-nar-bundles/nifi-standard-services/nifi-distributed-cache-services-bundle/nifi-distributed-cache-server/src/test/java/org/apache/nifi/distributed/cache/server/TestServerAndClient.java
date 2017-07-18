@@ -34,7 +34,7 @@ import java.util.Map;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService;
@@ -587,33 +587,36 @@ public class TestServerAndClient {
         client1.put(key, "valueC1-0", stringSerializer, stringSerializer);
 
         // Client 1 and 2 fetch the key
-        AtomicDistributedMapCacheClient.CacheEntry<String, String> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
-        AtomicDistributedMapCacheClient.CacheEntry<String, String> c2 = client2.fetch(key, stringSerializer, stringDeserializer);
-        assertEquals(0, c1.getRevision());
+        AtomicCacheEntry<String, String, Long> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
+        AtomicCacheEntry<String, String, Long> c2 = client2.fetch(key, stringSerializer, stringDeserializer);
+        assertEquals(new Long(0), c1.getRevision().orElse(0L));
         assertEquals("valueC1-0", c1.getValue());
-        assertEquals(0, c2.getRevision());
+        assertEquals(new Long(0), c2.getRevision().orElse(0L));
         assertEquals("valueC1-0", c2.getValue());
 
         // Client 1 replace
-        boolean c1Result = client1.replace(key, "valueC1-1", stringSerializer, stringSerializer, c1.getRevision());
+        c1.setValue("valueC1-1");
+        boolean c1Result = client1.replace(c1, stringSerializer, stringSerializer);
         assertTrue("C1 should be able to replace the key", c1Result);
         // Client 2 replace with the old revision
-        boolean c2Result = client2.replace(key, "valueC2-1", stringSerializer, stringSerializer, c2.getRevision());
+        c2.setValue("valueC2-1");
+        boolean c2Result = client2.replace(c2, stringSerializer, stringSerializer);
         assertFalse("C2 shouldn't be able to replace the key", c2Result);
 
         // Client 2 fetch the key again
         c2 = client2.fetch(key, stringSerializer, stringDeserializer);
         assertEquals("valueC1-1", c2.getValue());
-        assertEquals(1, c2.getRevision());
+        assertEquals(new Long(1), c2.getRevision().orElse(0L));
 
         // Now, Client 2 knows the correct revision so it can replace the key
-        c2Result = client2.replace(key, "valueC2-2", stringSerializer, stringSerializer, c2.getRevision());
+        c2.setValue("valueC2-2");
+        c2Result = client2.replace(c2, stringSerializer, stringSerializer);
         assertTrue("C2 should be able to replace the key", c2Result);
 
         // Assert the cache
         c2 = client2.fetch(key, stringSerializer, stringDeserializer);
         assertEquals("valueC2-2", c2.getValue());
-        assertEquals(2, c2.getRevision());
+        assertEquals(new Long(2), c2.getRevision().orElse(0L));
 
         client1.close();
         client2.close();
@@ -678,7 +681,8 @@ public class TestServerAndClient {
         }
 
         try {
-            client.replace(key, "value2", stringSerializer, stringSerializer, 0L);
+            AtomicCacheEntry<String,String,Long> entry = new AtomicCacheEntry<>(key, "value2", 0L);
+            client.replace(entry, stringSerializer, stringSerializer);
             fail("Version 2 operations should NOT work.");
         } catch (UnsupportedOperationException e) {
         }

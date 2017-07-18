@@ -1105,12 +1105,12 @@ public class ControllerFacade implements Authorizable {
         final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission result;
 
-        // submit the event
         if (LineageRequestType.FLOWFILE.equals(requestDto.getLineageRequestType())) {
-            // submit uuid
-            if (requestDto.getEventId() == null) {
+            if (requestDto.getUuid() != null) {
+                // submit uuid if it is specified
                 result = provenanceRepository.submitLineageComputation(requestDto.getUuid(), NiFiUserUtils.getNiFiUser());
             } else {
+                // submit the event if the flowfile uuid needs to be looked up
                 result = provenanceRepository.submitLineageComputation(requestDto.getEventId(), NiFiUserUtils.getNiFiUser());
             }
         } else {

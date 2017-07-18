@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-toolkit-assembly</artifactId>
     <packaging>pom</packaging>
@@ -79,6 +79,10 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-zookeeper-migrator</artifactId>
+        </dependency>
+          <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-flowanalyzer</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

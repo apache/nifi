@@ -405,6 +405,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             port.setProcessGroup(this);
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
+            flowController.onInputPortAdded(port);
         } finally {
             writeLock.unlock();
         }
@@ -439,6 +440,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
+            flowController.onInputPortRemoved(port);
             LOG.info("Input Port {} removed from flow", port);
         } finally {
             writeLock.unlock();
@@ -484,6 +486,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);
+            flowController.onOutputPortAdded(port);
         } finally {
             writeLock.unlock();
         }
@@ -509,6 +512,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Output Port of this Process Group");
             }
 
+            flowController.onOutputPortRemoved(port);
             LOG.info("Output Port {} removed from flow", port);
         } finally {
             writeLock.unlock();
@@ -545,6 +549,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             group.setParent(this);
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
+            flowController.onProcessGroupAdded(group);
         } finally {
             writeLock.unlock();
         }
@@ -584,6 +589,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             removeComponents(group);
             processGroups.remove(group.getIdentifier());
+            flowController.onProcessGroupRemoved(group);
             LOG.info("{} removed from flow", group);
         } finally {
             writeLock.unlock();
@@ -704,6 +710,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             processor.setProcessGroup(this);
             processors.put(processorId, processor);
+            flowController.onProcessorAdded(processor);
         } finally {
             writeLock.unlock();
         }
@@ -745,6 +752,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             processors.remove(id);
+            flowController.onProcessorRemoved(processor);
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
@@ -884,6 +892,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 destination.addConnection(connection);
             }
             connections.put(connection.getIdentifier(), connection);
+            flowController.onConnectionAdded(connection);
         } finally {
             writeLock.unlock();
         }
@@ -943,6 +952,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // remove the connection from our map
             connections.remove(connection.getIdentifier());
             LOG.info("{} removed from flow", connection);
+            flowController.onConnectionRemoved(connection);
         } finally {
             writeLock.unlock();
         }
@@ -970,24 +980,20 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Connection findConnection(final String id) {
-        return findConnection(id, this);
-    }
-
-    private Connection findConnection(final String id, final ProcessGroup start) {
-        Connection connection = start.getConnection(id);
-        if (connection != null) {
-            return connection;
+        final Connection connection = flowController.getConnection(id);
+        if (connection == null) {
+            return null;
         }
 
-        for (final ProcessGroup group : start.getProcessGroups()) {
-            connection = findConnection(id, group);
-            if (connection != null) {
-                return connection;
-            }
+        // We found a Connection in the Controller, but we only want to return it if
+        // the Process Group is this or is a child of this.
+        if (isOwner(connection.getProcessGroup())) {
+            return connection;
         }
 
         return null;
     }
+
 
     @Override
     public List<Connection> findAllConnections() {
@@ -1386,19 +1392,19 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroup findProcessGroup(final String id) {
-        return findProcessGroup(requireNonNull(id), this);
-    }
-
-    private ProcessGroup findProcessGroup(final String id, final ProcessGroup start) {
-        if (id.equals(start.getIdentifier())) {
-            return start;
+        if (requireNonNull(id).equals(getIdentifier())) {
+            return this;
         }
 
-        for (final ProcessGroup group : start.getProcessGroups()) {
-            final ProcessGroup matching = findProcessGroup(id, group);
-            if (matching != null) {
-                return matching;
-            }
+        final ProcessGroup group = flowController.getGroup(id);
+        if (group == null) {
+            return null;
+        }
+
+        // We found a Processor in the Controller, but we only want to return it if
+        // the Process Group is this or is a child of this.
+        if (isOwner(group.getParent())) {
+            return group;
         }
 
         return null;
@@ -1453,23 +1459,30 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessorNode findProcessor(final String id) {
-        return findProcessor(id, this);
-    }
+        final ProcessorNode node = flowController.getProcessorNode(id);
+        if (node == null) {
+            return null;
+        }
 
-    private ProcessorNode findProcessor(final String id, final ProcessGroup start) {
-        ProcessorNode node = start.getProcessor(id);
-        if (node != null) {
+        // We found a Processor in the Controller, but we only want to return it if
+        // the Process Group is this or is a child of this.
+        if (isOwner(node.getProcessGroup())) {
             return node;
         }
 
-        for (final ProcessGroup group : start.getProcessGroups()) {
-            node = findProcessor(id, group);
-            if (node != null) {
-                return node;
-            }
+        return null;
+    }
+
+    private boolean isOwner(ProcessGroup owner) {
+        while (owner != this && owner != null) {
+            owner = owner.getParent();
         }
 
-        return null;
+        if (owner == this) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -1521,6 +1534,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return null;
     }
 
+    @Override
     public RemoteGroupPort findRemoteGroupPort(final String identifier) {
         return findRemoteGroupPort(identifier, this);
     }
@@ -1584,7 +1598,16 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Port findInputPort(final String id) {
-        return findPort(id, this, new InputPortRetriever());
+        final Port port = flowController.getInputPort(id);
+        if (port == null) {
+            return null;
+        }
+
+        if (isOwner(port.getProcessGroup())) {
+            return port;
+        }
+
+        return null;
     }
 
     @Override
@@ -1602,7 +1625,16 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Port findOutputPort(final String id) {
-        return findPort(id, this, new OutputPortRetriever());
+        final Port port = flowController.getOutputPort(id);
+        if (port == null) {
+            return null;
+        }
+
+        if (isOwner(port.getProcessGroup())) {
+            return port;
+        }
+
+        return null;
     }
 
     @Override
@@ -1674,21 +1706,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private Port findPort(final String id, final ProcessGroup group, final PortRetriever retriever) {
-        Port port = retriever.getPort(group, id);
-        if (port != null) {
-            return port;
-        }
-
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            port = findPort(id, childGroup, retriever);
-            if (port != null) {
-                return port;
-            }
-        }
-
-        return null;
-    }
 
     private Port getPortByName(final String name, final ProcessGroup group, final PortRetriever retriever) {
         for (final Port port : retriever.getPorts(group)) {
@@ -1716,6 +1733,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             funnel.setProcessGroup(this);
             funnels.put(funnel.getIdentifier(), funnel);
+            flowController.onFunnelAdded(funnel);
 
             if (autoStart) {
                 startFunnel(funnel);
@@ -1737,24 +1755,18 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Funnel findFunnel(final String id) {
-        return findFunnel(id, this);
-    }
-
-    private Funnel findFunnel(final String id, final ProcessGroup start) {
-        Funnel funnel = start.getFunnel(id);
-        if (funnel != null) {
+        final Funnel funnel = flowController.getFunnel(id);
+        if (funnel == null) {
             return funnel;
         }
 
-        for (final ProcessGroup group : start.getProcessGroups()) {
-            funnel = findFunnel(id, group);
-            if (funnel != null) {
-                return funnel;
-            }
+        if (isOwner(funnel.getProcessGroup())) {
+            return funnel;
         }
 
         return null;
     }
+
 
     @Override
     public ControllerServiceNode findControllerService(final String id) {
@@ -1814,6 +1826,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             funnels.remove(funnel.getIdentifier());
+            flowController.onFunnelRemoved(funnel);
             LOG.info("{} removed from flow", funnel);
         } finally {
             writeLock.unlock();

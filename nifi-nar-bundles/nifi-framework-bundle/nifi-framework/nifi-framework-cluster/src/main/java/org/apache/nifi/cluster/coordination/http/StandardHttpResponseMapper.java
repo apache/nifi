@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.http;
 
+import org.apache.nifi.cluster.coordination.http.endpoints.AccessPolicyEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
@@ -60,9 +61,14 @@ import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupsEn
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.SearchUsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.TemplatesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.UsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
@@ -141,6 +147,12 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new FunnelEndpointMerger());
         endpointMergers.add(new FunnelsEndpointMerger());
         endpointMergers.add(new ControllerEndpointMerger());
+        endpointMergers.add(new UsersEndpointMerger());
+        endpointMergers.add(new UserEndpointMerger());
+        endpointMergers.add(new UserGroupsEndpointMerger());
+        endpointMergers.add(new UserGroupEndpointMerger());
+        endpointMergers.add(new AccessPolicyEndpointMerger());
+        endpointMergers.add(new SearchUsersEndpointMerger());
     }
 
     @Override

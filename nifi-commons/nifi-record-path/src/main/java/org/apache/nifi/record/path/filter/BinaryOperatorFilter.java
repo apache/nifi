@@ -34,7 +34,7 @@ public abstract class BinaryOperatorFilter implements RecordPathFilter {
     }
 
     @Override
-    public Stream<FieldValue> filter(final FieldValue currentNode, final RecordPathEvaluationContext context) {
+    public Stream<FieldValue> filter(final RecordPathEvaluationContext context, final boolean invert) {
         final Stream<FieldValue> rhsStream = rhs.evaluate(context);
         final Optional<FieldValue> firstMatch = rhsStream
             .filter(fieldVal -> fieldVal.getValue() != null)
@@ -48,7 +48,10 @@ public abstract class BinaryOperatorFilter implements RecordPathFilter {
         final Object value = fieldValue.getValue();
 
         final Stream<FieldValue> lhsStream = lhs.evaluate(context);
-        return lhsStream.filter(fieldVal -> test(fieldVal, value));
+        return lhsStream.filter(fieldVal -> {
+            final boolean result = test(fieldVal, value);
+            return invert ? !result : result;
+        });
     }
 
     @Override

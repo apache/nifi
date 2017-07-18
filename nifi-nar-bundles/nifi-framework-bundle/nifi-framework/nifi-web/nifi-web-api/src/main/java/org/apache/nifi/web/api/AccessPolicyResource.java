@@ -23,8 +23,8 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -140,8 +140,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) @PathParam("resource") String rawResource) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         // parse the action and resource type
@@ -162,7 +162,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(requestAction, resource);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -----------------------
@@ -203,8 +203,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
@@ -255,7 +255,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     populateRemainingAccessPolicyEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -294,8 +294,8 @@ public class AccessPolicyResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -312,7 +312,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(id);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -356,8 +356,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
@@ -397,7 +397,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     final AccessPolicyEntity entity = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
                     populateRemainingAccessPolicyEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -454,8 +454,8 @@ public class AccessPolicyResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (isReplicateRequest()) {
@@ -484,7 +484,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 (revision, accessPolicyEntity) -> {
                     // delete the specified access policy
                     final AccessPolicyEntity entity = serviceFacade.deleteAccessPolicy(revision, accessPolicyEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

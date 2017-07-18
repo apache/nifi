@@ -95,7 +95,7 @@ public class TemplateResource extends ApplicationResource {
     @Path("{id}/download")
     @ApiOperation(
             value = "Exports a template",
-            response = TemplateDTO.class,
+            response = String.class,
             authorizations = {
                     @Authorization(value = "Read - /templates/{uuid}", type = "")
             }
@@ -213,7 +213,7 @@ public class TemplateResource extends ApplicationResource {
                     // build the response entity
                     final TemplateEntity entity = new TemplateEntity();
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

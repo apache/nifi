@@ -19,19 +19,12 @@ package org.apache.nifi.authorization;
 /**
  * Initialization content for Authorizers.
  */
-public interface AuthorizerInitializationContext {
-
-    /**
-     * The identifier of the Authorizer.
-     *
-     * @return  The identifier
-     */
-    public String getIdentifier();
+public interface AuthorizerInitializationContext extends AccessPolicyProviderInitializationContext {
 
     /**
      * The lookup for accessing other configured Authorizers.
      *
      * @return  The Authorizer lookup
      */
-    public AuthorizerLookup getAuthorizerLookup();
+    AuthorizerLookup getAuthorizerLookup();
 }

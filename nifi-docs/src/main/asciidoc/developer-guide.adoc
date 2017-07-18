@@ -1949,6 +1949,116 @@ ReportingTasks, allowing reports to be generated
 in many different ways to expose metrics and monitoring capabilities
 needed for any number of operational concerns.
 
+== UI Extensions
+
+There are two UI extension points that are available in NiFi:
+
+- Custom Processor UIs
+- Content Viewers
+
+Custom UIs can be created to provide configuration options beyond the standard property/value tables available in most processor settings.  Examples of processors with Custom UIs are link:https://github.com/apache/nifi/tree/master/nifi-nar-bundles/nifi-update-attribute-bundle[UpdateAttribute] and link:https://github.com/apache/nifi/tree/master/nifi-nar-bundles/nifi-standard-bundle[JoltTransformJSON].
+
+Content Viewers can be created to extend the types of data that can be viewed within NiFi. NiFi comes with NARs in the lib directory which contain content viewers for data types such as csv, xml, avro, json (standard-nar) and image types such as png, jpeg and gif (media-nar).
+
+=== Custom Processor UIs
+
+To add a Custom UI to a processor:
+
+1. Create your UI.
+2. Build and bundle your WAR in a processor NAR.
+3. The WAR needs to contain a `nifi-processor-configuration` file in the META-INF directory, which associates the Custom UI with that processor.
+4. Place the NAR in the lib directory and it will be discovered when NiFi starts up.
+5. In the Configure Processor window for the processor, the Properties tab should now have an `Advanced` button, which will access the Custom UI.
+
+As an example, here is the NAR layout for UpdateAttribute:
+
+.Update Attribute NAR Layout
+------------------------------------------------------------------------------------------------
+nifi-update-attribute-bundle
+│
+├── nifi-update-attribute-model
+│
+├── nifi-update-attribute-nar
+│
+├── nifi-update-attribute-processor
+│
+├── nifi-update-attribute-ui
+│   ├── pom.xml
+│   └── src
+│       └── main
+│           ├── java
+│           ├── resources
+│           └── webapp
+│               └── css
+│               └── images
+│               └── js
+│               └── META-INF
+│               │   └── nifi-processor-configuration
+│               └── WEB-INF
+│
+└── pom.xml
+------------------------------------------------------------------------------------------------
+
+with the contents of the `nifi-processor-configuration` as follows:
+
+`org.apache.nifi.processors.attributes.UpdateAttribute:${project.groupId}:nifi-update-attribute-nar:${project.version}`
+
+NOTE:  Custom UIs can also be implemented for Controller Services and Reporting Tasks.
+
+
+=== Content Viewers
+
+To add a Content Viewer:
+
+1. Build and bundle your WAR in a processor NAR.
+2. The WAR needs to contain a `nifi-content-viewer` file in the META-INF directory, which lists the supported content types.
+3. Place the NAR in the lib directory and it will be discovered when NiFi starts up.
+4. When a matching content type is encountered, the content viewer will generate the appropriate view.
+
+A good example to follow is the NAR layout for the Standard Content Viewer:
+
+.Standard Content Viewer NAR Layout
+------------------------------------------------------------------------------------------------
+nifi-standard-bundle
+│
+├── nifi-jolt-transform-json-ui
+│
+├── nifi-standard-content-viewer
+│   ├── pom.xml
+│   └── src
+│       └── main
+│           ├── java
+│           ├── resources
+│           └── webapp
+│               └── css
+│               └── META-INF
+│               │   └── nifi-content-viewer
+│               └── WEB-INF
+│
+├── nifi-standard-nar
+│
+├── nifi-standard-prioritizers
+│
+├── nifi-standard-processors
+│
+├── nifi-standard-reporting-tasks
+│
+├── nifi-standard-utils
+│
+└── pom.xml
+------------------------------------------------------------------------------------------------
+
+with the contents of `nifi-content-viewer` as follows:
+------------------------------------------------------------------------------------------------
+application/xml
+application/json
+text/plain
+text/csv
+avro/binary
+application/avro-binary
+application/avro+binary
+------------------------------------------------------------------------------------------------
+
 
 == Command Line Tools
 

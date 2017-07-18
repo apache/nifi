@@ -112,6 +112,7 @@ public class SiteToSiteResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getSiteToSiteResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.READ)
@@ -172,7 +173,7 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         // generate the response
-        return clusterContext(noCache(Response.ok(entity))).build();
+        return noCache(Response.ok(entity)).build();
     }
 
     /**
@@ -262,7 +263,7 @@ public class SiteToSiteResource extends ApplicationResource {
         final PeersEntity entity = new PeersEntity();
         entity.setPeers(peers);
 
-        return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+        return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
     // setters

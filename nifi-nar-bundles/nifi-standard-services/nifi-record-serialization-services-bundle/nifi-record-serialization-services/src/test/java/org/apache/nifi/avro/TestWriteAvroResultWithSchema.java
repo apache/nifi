@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.StringType;
@@ -33,7 +34,7 @@ public class TestWriteAvroResultWithSchema extends TestWriteAvroResult {
 
     @Override
     protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) throws IOException {
-        return new WriteAvroResultWithSchema(schema, out);
+        return new WriteAvroResultWithSchema(schema, out, CodecFactory.nullCodec());
     }
 
     @Override

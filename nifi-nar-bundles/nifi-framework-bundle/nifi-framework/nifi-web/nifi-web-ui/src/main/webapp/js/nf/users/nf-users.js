@@ -66,7 +66,8 @@
         urls: {
             banners: '../nifi-api/flow/banners',
             controllerAbout: '../nifi-api/flow/about',
-            currentUser: '../nifi-api/flow/current-user'
+            currentUser: '../nifi-api/flow/current-user',
+            flowConfig: '../nifi-api/flow/config'
         }
     };
 
@@ -82,6 +83,14 @@
             nfCommon.setCurrentUser(currentUser);
         }).fail(nfErrorHandler.handleAjaxError);
     };
+
+    var getFlowConfig = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.flowConfig,
+            dataType: 'json'
+        }).fail(nfErrorHandler.handleAjaxError);
+    }
 
     var initializeUsersPage = function () {
         // define mouse over event for the refresh button
@@ -149,9 +158,12 @@
             nfClient.init();
 
             // load the users authorities
-            ensureAccess().done(function () {
+            $.when(getFlowConfig(), ensureAccess()).done(function (configResult) {
+                var configResponse = configResult[0];
+                var configDetails = configResponse.flowConfiguration;
+
                 // create the counters table
-                nfUsersTable.init();
+                nfUsersTable.init(configDetails.supportsConfigurableUsersAndGroups);
 
                 // load the users table
                 nfUsersTable.loadUsersTable().done(function () {

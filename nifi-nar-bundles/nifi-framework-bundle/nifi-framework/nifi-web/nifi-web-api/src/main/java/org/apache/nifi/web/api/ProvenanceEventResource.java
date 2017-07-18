@@ -79,6 +79,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/input")
     @ApiOperation(
             value = "Gets the input content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
@@ -161,6 +162,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/output")
     @ApiOperation(
             value = "Gets the output content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
@@ -300,7 +302,7 @@ public class ProvenanceEventResource extends ApplicationResource {
         entity.setProvenanceEvent(event);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -376,7 +378,7 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // generate the response
         URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
-        return clusterContext(generateCreatedResponse(uri, entity)).build();
+        return generateCreatedResponse(uri, entity).build();
     }
 
     // setters

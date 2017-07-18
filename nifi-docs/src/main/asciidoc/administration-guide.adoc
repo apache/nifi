@@ -169,7 +169,7 @@ TLS Generation Toolkit
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
-Note: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
+NOTE: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
 
 The `tls-toolkit` command line tool has two primary modes of operation:
 
@@ -180,17 +180,35 @@ Standalone
 ^^^^^^^^^^
 Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in standalone mode:
 
-* `-n,--hostnames`          The comma-separated list of hostnames that you’d like to generate certificates for.  It can be specified multiple times.  Range and instance patterns are supported. See below for details.
-* `-C,--clientCertDn`       The DN that you'd like to generate a client certificate for.  It can be specified multiple times.
-* `-f,--nifiPropertiesFile` The base 'nifi.properties' file that the tool will update for each host.
-* `-o,--outputDirectory`    The directory to use for the resulting Certificate Authority files and NiFi configurations.  A subdirectory will be made for each host.
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `-B`,`--clientCertPassword <arg>`             Password for client certificate. Must either be one value or one for each client DN (auto-generate if not specified)
+* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
+* `-C`,`--clientCertDn <arg>`                   Generate client certificate suitable for use in browser with specified DN (Can be specified multiple times)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-f`,`--nifiPropertiesFile <arg>`             Base `nifi.properties` file to update (Embedded file identical to the one in a default NiFi install will be used if not specified)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-G`,`--globalPortSequence <arg>`             Use sequential ports that are calculated for all hosts according to the provided hostname expressions (Can be specified multiple times, MUST BE SAME FROM RUN TO RUN)
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-K`,`--keyPassword <arg>`                    Key password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `-n`,`--hostnames <arg>`                      Comma separated list of hostnames
+* `--nifiDnPrefix <arg>`                        String to prepend to hostname(s) when determining DN (default: `CN=`)
+* `--nifiDnSuffix <arg>`                        String to append to hostname(s) when determining DN (default: `, OU=NIFI`)
+* `-o`,`--outputDirectory <arg>`                The directory to output keystores, truststore, config files (default: `../bin`)
+* `-O`,`--isOverwrite`                          Overwrite existing host output
+* `-P`,`--trustStorePassword <arg>`             Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
+* `-S`,`--keyStorePassword <arg>`               Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
+* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+
 
 Hostname Patterns:
 
-* Square brackets can be used in order to easily specify a range of hostnames. Example: [01-20]
-* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: (5)
+* Square brackets can be used in order to easily specify a range of hostnames. Example: `[01-20]`
+* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: `(5)`
 
 Examples:
 
@@ -212,33 +230,51 @@ bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=u
 
 Client/Server
 ^^^^^^^^^^^^^
-Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates.  The CA can be stopped when you’re not bringing nodes online.
+Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
 
 
 ===== Server
 
-The CA server is invoked by running `./bin/tls-toolkit server -h` prints the usage information along with descriptions of options that can be specified.
+The CA server is invoked by running `./bin/tls-toolkit.sh server -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in server mode:
 
-* `-f,--configJson`        The location of the json config (written after first run)
-* `-F,--useConfigJson`     Loads all relevant configuration from the config json (configJson is the only other argument necessary)
-* `-t,--token`             The token used to prevent man in the middle attacks (this should be a long, random value and needs to be known when invoking the client)
-* `-D,--dn`                The DN for the CA
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `--configJsonIn <arg>`                        The place to read configuration info from (defaults to the value of configJson), implies useConfigJson if set (default: `configJson` value)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-D`,`--dn <arg>`                             The dn to use for the CA certificate (default: `CN=YOUR_CA_HOSTNAME,OU=NIFI`)
+* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
+* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `8443`)
+* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
 
 ===== Client
 
-The client can be used to request new Certificates from the CA.  The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority.  The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
+The client can be used to request new Certificates from the CA. The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority. The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
 
-The most common options to specify are:
+You can use the following command line options with the `tls-toolkit` in client mode:
 
-* `-f,--configJson`                   The json config file
-* `-c,--certificateAuthorityHostname`  The hostname of the CA
-* `-D,--DN`                            The DN for the CSR (and Certificate)
-* `-t,--token`                         The token used to prevent man in the middle attacks (this should be a long, random value and needs to be the same one used to start the CA server)
-* `-T,--keyStoreType`                  The type of keystore to create (leave default for NiFi nodes, specify PKCS12 to create client cert)
+* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
+* `-C`,`--certificateDirectory <arg>`           The directory to write the CA certificate (default: `.`)
+* `--configJsonIn <arg>`                        The place to read configuration info from, implies `useConfigJson` if set (default: `configJson` value)
+* `-D`,`--dn <arg>`                             The DN to use for the client certificate (default: `CN=<localhost name>,OU=NIFI`) (this is auto-populated by the tool)
+* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
+* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
+* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
+* `-h`,`--help`                                 Print help and exit
+* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
+* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `8443`)
+* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
+* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
+* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by CA)
 
-After running the client you will have the CA’s certificate, a keystore, a truststore, and a config.json with information about them as well as their passwords.
+After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
 
@@ -385,7 +421,78 @@ Authorizers are configured using two properties in the 'nifi.properties' file:
 Authorizers.xml Setup
 ~~~~~~~~~~~~~~~~~~~~~
 
-The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the FileAuthorizer, however, you can develop additional authorizers as extensions.  The FileAuthorizer has the following properties:
+The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the StandardManagedAuthorizer.  The managed authorizer is comprised of a UserGroupProvider
+and a AccessPolicyProvider.  The users, group, and access policies will be loaded and optionally configured through these providers.  The managed authorizer will make all access decisions based on
+these provided users, groups, and access policies.
+
+During startup there is a check to ensure that there are no two users/groups with the same identity/name. This check is executed regardless of the configured implementation. This is necessary because this is how users/groups are identified and authorized during access decisions.
+
+The default UserGroupProvider is the FileUserGroupProvider, however, you can develop additional UserGroupProviders as extensions.  The FileUserGroupProvider has the following properties:
+
+* Users File - The file where the FileUserGroupProvider stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
+* Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically be used to load the users and groups into the Users File.
+* Initial User Identity - The identity of a users and systems to seed the Users File. The name of each property must be unique, for example: "Initial User Identity A", "Initial User Identity B", "Initial User Identity C" or "Initial User Identity 1", "Initial User Identity 2", "Initial User Identity 3"
+
+Another option for the UserGroupProvider is the LdapUserGroupProvider. By default, this option is commented out but can be configured in lieu of the FileUserGroupProvider. This will sync users and groups from a directory server and will present them in NiFi UI in read only form. The LdapUserGroupProvider has the following properties:
+
+* Authentication Strategy - How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, LDAPS, or START_TLS
+* Manager DN - The DN of the manager that is used to bind to the LDAP server to search for users.
+* Manager Password - The password of the manager that is used to bind to the LDAP server to search for users.
+* TLS - Keystore - Path to the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Keystore Password - Password for the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Keystore Type - Type of the Keystore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+* TLS - Truststore - Path to the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Truststore Password - Password for the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+* TLS - Truststore Type - Type of the Truststore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+* TLS - Client Auth - Client authentication policy when connecting to LDAP using LDAPS or START_TLS. Possible values are REQUIRED, WANT, NONE.
+* TLS - Protocol - Protocol to use when connecting to LDAP using LDAPS or START_TLS. (i.e. TLS, TLSv1.1, TLSv1.2, etc).
+* TLS - Shutdown Gracefully - Specifies whether the TLS should be shut down gracefully before the target context is closed. Defaults to false.
+* Referral Strategy - Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
+* Connect Timeout - Duration of connect timeout. (i.e. 10 secs).
+* Read Timeout - Duration of read timeout. (i.e. 10 secs).
+* Url - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
+* Page Size - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
+* Sync Interval - Duration of time between syncing users and groups. (i.e. 30 mins).
+* User Search Base - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
+* User Object Class - Object class for identifying users (i.e. person). Required if searching users.
+* User Search Scope - Search scope for searching users (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching users.
+* User Search Filter - Filter for searching for users against the 'User Search Base' (i.e. (memberof=cn=team1,ou=groups,o=nifi) ). Optional.
+* User Identity Attribute - Attribute to use to extract user identity (i.e. cn). Optional. If not set, the entire DN is used.
+* User Group Name Attribute - Attribute to use to define group membership (i.e. memberof). Optional. If not set group membership will not be calculated through the users. Will rely on group membership being defined through 'Group Member Attribute' if set.
+* Group Search Base - Base DN for searching for groups (i.e. ou=groups,o=nifi). Required to search groups.
+* Group Object Class - Object class for identifying groups (i.e. groupOfNames). Required if searching groups.
+* Group Search Scope - Search scope for searching groups (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching groups.
+* Group Search Filter - Filter for searching for groups against the 'Group Search Base'. Optional.
+* Group Name Attribute - Attribute to use to extract group name (i.e. cn). Optional. If not set, the entire DN is used.
+* Group Member Attribute - Attribute to use to define group membership (i.e. member). Optional. If not set group membership will not be calculated through the groups. Will rely on group member being defined through 'User Group Name Attribute' if set.
+
+Another option for the UserGroupProvider are composite implementations. This means that multiple sources/implementations can be configured and composed. For instance, an admin can configure users/groups to be loaded from a file and a directory server. There are two composite implementations, one that supports multiple UserGroupProviders and one that supports multiple UserGroupProviders and a single configurable UserGroupProvider.
+
+The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources. The CompositeUserGroupProvider has the following properties:
+
+* User Group Provider - The identifier of user group providers to load from. The name of each property must be unique, for example: "User Group Provider A", "User Group Provider B", "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
+
+The CompositeConfigurableUserGroupProvider will provide support for retrieving users and groups from multiple sources. Additionally, a single configurable user group provider is required. Users from the configurable user group provider are configurable, however users loaded from one of the User Group Provider [unique key] will not be. The CompositeConfigurableUserGroupProvider has the following properties:
+
+* Configurable User Group Provider - A configurable user group provider.
+* User Group Provider - The identifier of user group providers to load from. The name of each property must be unique, for example: "User Group Provider A", "User Group Provider B", "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
+
+The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you can develop additional AccessPolicyProvider as extensions.  The FileAccessPolicyProvider has the following properties:
+
+* User Group Provider - The identifier for an User Group Provider defined above that will be used to access users and groups for use in the managed access policies.
+* Authorizations File - The file where the FileAccessPolicyProvider will store policies.
+* Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
+* Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
+* Node Identity - The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered these properties can be ignored. The name of each property must be unique, for example for a three node cluster: "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
+
+The identities configured in the Initial Admin Identity, the Node Identity properties, or discovered in a Legacy Authorized Users File must be available in the configured User Group Provider.
+
+The default authorizer is the StandardManagedAuthorizer, however, you can develop additional authorizers as extensions.  The StandardManagedAuthorizer has the following properties:
+
+* Access Policy Provider - The identifier for an Access Policy Provider defined above.
+
+The FileAuthorizer has been replaced with the more granular StandardManagedAuthorizer approach described above. However, it is still available for backwards compatibility reasons. The
+FileAuthorizer has the following properties.
 
 * Authorizations File - The file where the FileAuthorizer stores policies.  By default, the 'authorizations.xml' in the 'conf' directory is chosen.
 * Users File - The file where the FileAuthorizer stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
@@ -402,17 +509,29 @@ If you are setting up a secured NiFi instance for the first time, you must manua
 Here is an example LDAP entry using the name John Smith:
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">cn=John Smith,ou=people,dc=example,dc=com</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">cn=John Smith,ou=people,dc=example,dc=com</property>
         <property name="Legacy Authorized Users File"></property>
-        <!--
+
         <property name="Node Identity 1"></property>
-        <property name="Node Identity 2"></property>
-        -->
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -420,17 +539,29 @@ Here is an example LDAP entry using the name John Smith:
 Here is an example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">johnsmith@NIFI.APACHE.ORG</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
         <property name="Legacy Authorized Users File"></property>
-        <!--
+
         <property name="Node Identity 1"></property>
-        <property name="Node Identity 2"></property>
-        -->
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -438,6 +569,150 @@ Here is an example Kerberos entry using the name John Smith and realm `NIFI.APAC
 After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'users.xml' and 'authorizations.xml' files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
 NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the flow.xml.gz is generated.  If the NiFi instance is an upgrade from an existing flow.xml.gz or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
+
+Here is an example loading users and groups from LDAP but still using file based access policies:
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">ANONYMOUS</property>
+
+        <property name="Manager DN"></property>
+        <property name="Manager Password"></property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password"></property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url">ldap://localhost:10389</property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base">ou=users,o=nifi</property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute">cn</property>
+        <property name="User Group Name Attribute"></property>
+
+        <property name="Group Search Base">ou=groups,o=nifi</property>
+        <property name="Group Object Class">groupOfNames</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute">cn</property>
+        <property name="Group Member Attribute">member</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">ldap-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">John Smith</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Node Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+</authorizers>
+----
+
+The 'Initial Admin Identity' value would have loaded from the cn from John Smith's entry based on the 'User Identity Attribute' value.
+
+Here is an example composite implementation loading users from LDAP and a local file. The users from LDAP will be read only while the users loaded from the file will be configurable in UI.
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">cn=nifi-node1,ou=servers,dc=example,dc=com</property>
+        <property name="Initial User Identity 2">cn=nifi-node2,ou=servers,dc=example,dc=com</property>
+    </userGroupProvider>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">ANONYMOUS</property>
+
+        <property name="Manager DN"></property>
+        <property name="Manager Password"></property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password"></property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url">ldap://localhost:10389</property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base">ou=users,o=nifi</property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute">cn</property>
+        <property name="User Group Name Attribute"></property>
+
+        <property name="Group Search Base">ou=groups,o=nifi</property>
+        <property name="Group Object Class">groupOfNames</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute">cn</property>
+        <property name="Group Member Attribute">member</property>
+    </userGroupProvider>
+    <userGroupProvider>
+        <identifier>composite-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider</class>
+        <property name="Configurable User Group Provider">file-user-group-provider</property>
+        <property name="User Group Provider 1">ldap-user-group-provider</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">composite-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity">John Smith</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Node Identity 1">cn=nifi-node1,ou=servers,dc=example,dc=com</property>
+        <property name="Node Identity 2">cn=nifi-node2,ou=servers,dc=example,dc=com</property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+</authorizers>
+----
+
+In this example, the users and groups are loaded from LDAP but the servers are managed in a local file. The 'Initial Admin Identity' value came from an attribute in a LDAP entry based on the 'User Identity Attribute'. The 'Node Identity' values are established in the local file using the 'Initial User Identity' properties.
 
 [[legacy-authorized-users]]
 Legacy Authorized Users (NiFi Instance Upgrade)
@@ -449,13 +724,28 @@ Here is an example entry:
 
 ----
 <authorizers>
-    <authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File">/Users/johnsmith/config_files/authorized-users.xml</property>
+
+        <property name="Initial User Identity 1"></property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File">/Users/johnsmith/config_files/authorized-users.xml</property>
+
+        <property name="Node Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -514,15 +804,32 @@ cn=nifi-2,ou=people,dc=example,dc=com
 ----
 
 ----
-<authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
+<authorizers>
+    <userGroupProvider>
+        <identifier>file-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.FileUserGroupProvider</class>
         <property name="Users File">./conf/users.xml</property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Initial User Identity 1">johnsmith@NIFI.APACHE.ORG</property>
+        <property name="Initial User Identity 2">cn=nifi-1,ou=people,dc=example,dc=com</property>
+        <property name="Initial User Identity 3">cn=nifi-2,ou=people,dc=example,dc=com</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">file-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
         <property name="Legacy Authorized Users File"></property>
+
         <property name="Node Identity 1">cn=nifi-1,ou=people,dc=example,dc=com</property>
         <property name="Node Identity 2">cn=nifi-2,ou=people,dc=example,dc=com</property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
     </authorizer>
 </authorizers>
 ----
@@ -535,7 +842,11 @@ Now that initial authorizations have been created, additional users, groups and 
 Configuring Users & Access Policies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This section describes:
+Depending on the capabilities of the configured UserGroupProvider and AccessPolicyProvider the users, groups, and policies will be configurable in the UI. If the extensions are not configurable the
+users, groups, and policies will read-only in the UI. If the configured authorizer does not use UserGroupProvider and AccessPolicyProvider the users and policies may or may not be visible and
+configurable in the UI based on the underlying implementation.
+
+This section assumes the users, groups, and policies are configurable in the UI and describes:
 
 * How to create users and groups
 * How access policies are used to define authorizations
@@ -1184,6 +1495,7 @@ and clustered environments. These utilities include:
 
 * Notify -- The notification tool allows administrators to send bulletins to the NiFi UI using the command line.
 * Node Manager -- The node manager tool allows administrators to perform a status check on a node as well as to connect, disconnect, or remove nodes that are part of a cluster.
+* File Manager -- The file manager tool allows administrators to backup, install or restore a NiFi installation from backup.
 
 The admin toolkit is bundled with the nifi-toolkit and can be executed with scripts found in the _bin_ folder.
 
@@ -1212,13 +1524,14 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
-* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
-* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes)
-* `-m,--message <arg>` Bulletin message (required)
-* `-l,--level <arg>` Status level of bulletin – INFO, WARN, ERROR
-* `-v,--verbose` Verbose messaging (optional)
-* `-h,--help` Help Text (optional)
+* `-b`,`--bootstrapConf <arg>`      Existing Bootstrap Configuration file (required)
+* `-d`,`--nifiInstallDir <arg>`     NiFi Root Folder (required)
+* `-h`,`--help`                     Help Text (optional)
+* `-l`,`--level <arg>`              Status level of bulletin – INFO, WARN, ERROR
+* `-m`,`--message <arg>`            Bulletin message (required)
+* `-p`,`--proxyDN <arg>`            Proxy or User DN (required for secured nodes)
+* `-v`,`--verbose`                  Verbose messaging (optional)
+
 
 Example usage on Linux:
 
@@ -1252,13 +1565,14 @@ To show help:
 
 The following are available options:
 
-* `-b,--bootstrapConf <arg>` Existing Bootstrap Configuration file (required)
-* `-d,--nifiInstallDir <arg>` NiFi Root Folder (required)
-* `-p,--proxyDN <arg>` Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
-* `-o, --operation <arg>` Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
-* `-u,--clusterUrls <arg>` Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
-* `-v,--verbose` Verbose messaging (optional)
-* `-h,--help` Help Text (optional)
+* `-b`,`--bootstrapConf <arg>`     Existing Bootstrap Configuration file (required)
+* `-d`,`--nifiInstallDir <arg>`    NiFi Root Folder (required)
+* `-h`,`--help`                    Help Text (optional)
+* `-o`, `--operation <arg>`        Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
+* `-p`,`--proxyDN <arg>`           Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
+* `-u`,`--clusterUrls <arg>`       Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
+* `-v`,`--verbose`                 Verbose messaging (optional)
+
 
 Example usage on Linux:
 
@@ -1316,6 +1630,84 @@ should show 2 of 2 nodes).  The cluster should allow a flow to be adjusted.  The
 cluster if restarted and the flow for the cluster has not changed. If the flow was changed, the flow template of
 the removed node should be deleted before restarting the node to allow it to obtain the cluster flow (otherwise
 an uninheritable flow file exception may occur).
+
+=== File Manager
+
+The File Manager utility allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi
+in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup.
+File Manager supports NiFi version 1.0.0 and higher and is available in 'file-manager.bat' file for use on Windows machines.
+
+To show help:
+
+  file-manager.sh -h
+
+The following are available options:
+
+* `-b`,`--backupDir <arg>`          Backup NiFi Directory (used with backup or restore operation)
+* `-c`,`--nifiCurrentDir <arg>`     Current NiFi Installation Directory (used optionally with install or restore operation)
+* `-d`,`--nifiInstallDir <arg>`     NiFi Installation Directory (used with install or restore operation)
+* `-h`,`--help`                     Print help info (optional)
+* `-i`,`--installFile <arg>`        NiFi Install File (used with install operation)
+* `-m`,`--moveRepositories`         Allow repositories to be moved to new/restored nifi directory from existing installation, if available (used optionally with install or restore operation)
+* `-o`,`--operation <arg>`          File operation (install | backup | restore)
+* `-r`,`--nifiRollbackDir <arg>`    NiFi Installation Directory (used with install or restore operation)
+* `-t`,`--bootstrapConf <arg>`      Current NiFi Bootstrap Configuration File (used optionally)
+* `-v`,`--verbose`                  Verbose messaging (optional)
+* `-x`,`--overwriteConfigs`         Overwrite existing configuration directory with upgrade changes (used optionally with install or restore operation)
+
+Example usage on Linux:
+
+ # backup NiFi installation
+ # option -t may be provided to ensure backup of external boostrap.conf file
+ ./file-manager.sh
+ -o backup
+ –b /tmp/nifi_bak
+ –c /usr/nifi_old
+ -v
+
+ # install NiFi using compressed tar file into /usr/nifi directory (should install as /usr/nifi/nifi-1.3.0).
+ # migrate existing configurations with location determined by external bootstrap.conf and move over repositories from nifi_old
+ # options -t and -c should both be provided if migration of configurations, state and repositories are required
+ ./file-manager.sh
+ -o install
+ –i nifi-1.3.0.tar.gz
+ –d /usr/nifi
+ –c /usr/nifi/nifi_old
+ -t /usr/nifi/old_conf/bootstrap.conf
+ -v
+ -m
+
+ # restore NiFi installation from backup directory and move back repositories
+ # option -t may be provided to ensure bootstrap.conf is restored to the file path provided, otherwise it is placed in the
+ # default directory under the rollback path (e.g. /usr/nifi_old/conf)
+ ./file-manager.sh
+ -o restore
+ –b /tmp/nifi_bak
+ –r /usr/nifi_old
+ –c /usr/nifi
+ -m
+ -v
+
+=== Expected Behavior
+
+Backup:
+
+During the backup operation a backup directory is created in a designated location for an existing NiFi installation. Backups will capture all critical files
+(including any internal or external configurations, libraries, scripts and documents) however it excludes backing up repositories and logs due to potential size.
+If configuration/library files are external from the existing installation folder the backup operation will capture those as well.
+
+Install:
+
+During the install operation File Manager will perform installation using the designated NiFi binary file (either tar.gz or zip file)
+to create a new installation or migrate an existing nifi installation to a new one.  Installation can optionally move repositories (if located within the configuration
+folder of the current installation) to the new installation as well as migrate configuration files to the newer installation.
+
+Restore:
+
+The restore operation allows an existing installation to revert back to a previous installation.  Using an existing backup directory (created from the backup operation)
+the FileManager utility will restore libraries, scripts and documents as well as revert to previous configurations. NOTE: If repositories were changed due to the installation
+of a newer version of NiFi these may no longer be compatible during restore.  In that scenario exclude the -m option to ensure new repositories will be created or, if repositories
+live outside of the NiFi directory, remove them so they can be recreated on startup after restore.
 
 
 [[clustering]]
@@ -1829,14 +2221,14 @@ link:https://nifi.apache.org/download.html[Apache NiFi download page].
 
 You can use the following command line options with the ZooKeeper Migrator:
 
-* `-a,--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k,--krb-conf` option.
-* `-f,--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r,--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s,--send` option, the data in the file will be sent to ZooKeeper.
-* `-h,--help`                                   Prints help, displays available parameters with descriptions
-* `--ignore-source`                             Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
-* `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
-* `-r,--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f,--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s,--send` option.
-* `-s,--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f,--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z,--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r,--receive` option.
-* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
+* `-a`,`--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k`,`--krb-conf` option.
+* `-f`,`--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r`,`--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s`,`--send` option, the data in the file will be sent to ZooKeeper.
+* `-h`,`--help`                                   Prints help, displays available parameters with descriptions
+* `--ignore-source`                               Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
+* `-k`,`--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a`,`--auth` option.
+* `-r`,`--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f`,`--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s`,`--send` option.
+* `-s`,`--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f`,`--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z`,`--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r`,`--receive` option.
+* `-z`,`--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
 
 [[migrating_between_source_destination_zookeepers]]
 ==== Migrating Between Source and Destination ZooKeepers
@@ -2553,6 +2945,7 @@ Configure these properties for cluster nodes.
 |nifi.cluster.node.protocol.port|The node's protocol port. It is blank by default.
 |nifi.cluster.node.protocol.threads|The number of threads that should be used to communicate with other nodes
 in the cluster. This property defaults to `10`, but for large clusters, this value may need to be larger.
+|nifi.cluster.node.protocol.max.threads|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`.
 |nifi.cluster.node.event.history.size|When the state of a node in the cluster is changed, an event is generated
 and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is `25`.
 |nifi.cluster.node.connection.timeout|When connecting to another node in the cluster, specifies how long this node should wait before considering

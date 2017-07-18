@@ -135,7 +135,7 @@ public class OutputPortResource extends ApplicationResource {
         final PortEntity entity = serviceFacade.getOutputPort(id);
         populateRemainingOutputPortEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -222,7 +222,7 @@ public class OutputPortResource extends ApplicationResource {
                     final PortEntity entity = serviceFacade.updateOutputPort(revision, portDTO);
                     populateRemainingOutputPortEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -301,7 +301,7 @@ public class OutputPortResource extends ApplicationResource {
                 (revision, portEntity) -> {
                     // delete the specified output port
                     final PortEntity entity = serviceFacade.deleteOutputPort(revision, portEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

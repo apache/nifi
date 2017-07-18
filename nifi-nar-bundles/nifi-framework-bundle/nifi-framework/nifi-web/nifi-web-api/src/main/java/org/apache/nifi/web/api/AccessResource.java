@@ -122,7 +122,7 @@ public class AccessResource extends ApplicationResource {
         entity.setConfig(accessConfiguration);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**

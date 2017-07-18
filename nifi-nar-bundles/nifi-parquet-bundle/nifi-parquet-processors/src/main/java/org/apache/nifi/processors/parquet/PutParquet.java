@@ -185,7 +185,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
         return new AvroParquetHDFSRecordWriter(parquetWriter.build(), avroSchema);
     }
 
-    private void applyCommonConfig(final ParquetWriter.Builder builder, final ProcessContext context, final FlowFile flowFile, final Configuration conf) {
+    private void applyCommonConfig(final ParquetWriter.Builder<?, ?> builder, final ProcessContext context, final FlowFile flowFile, final Configuration conf) {
         builder.withConf(conf);
 
         // Required properties

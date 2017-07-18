@@ -14,33 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.client;
+package rules.v1_2_0
 
-public class StandardCacheEntry<K,V> implements AtomicDistributedMapCacheClient.CacheEntry<K,V> {
+import org.apache.nifi.toolkit.admin.configmigrator.rules.GenericMigrationRule
+import org.apache.nifi.toolkit.admin.util.AdminUtil
+import org.apache.nifi.toolkit.admin.util.Version
 
-    private final K key;
-    private final V value;
-    private final long revision;
+class AuthorizersRule extends GenericMigrationRule{
 
-
-    public StandardCacheEntry(final K key, final V value, final long revision) {
-        this.key = key;
-        this.value = value;
-        this.revision = revision;
+    @Override
+    Boolean supportedVersion(String versionStr) {
+        return AdminUtil.supportedVersion("1.0.0","1.2.0",versionStr)
     }
 
     @Override
-    public long getRevision() {
-        return revision;
+    byte[] migrate(byte[] oldContent, byte[] newContent) {
+        return oldContent
     }
 
-    @Override
-    public K getKey() {
-        return key;
-    }
-
-    @Override
-    public V getValue() {
-        return value;
-    }
 }

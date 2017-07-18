@@ -189,7 +189,7 @@ public class ProcessorResource extends ApplicationResource {
         populateRemainingProcessorEntityContent(entity);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -260,7 +260,7 @@ public class ProcessorResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -276,7 +276,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("/{id}/state")
     @ApiOperation(
             value = "Gets the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = "")
             }
@@ -315,7 +315,7 @@ public class ProcessorResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -332,7 +332,7 @@ public class ProcessorResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a processor",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = "")
             }
@@ -377,7 +377,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -475,7 +475,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorEntity entity = serviceFacade.updateProcessor(revision, processorDTO);
                     populateRemainingProcessorEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -560,7 +560,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, processorEntity.getId());
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

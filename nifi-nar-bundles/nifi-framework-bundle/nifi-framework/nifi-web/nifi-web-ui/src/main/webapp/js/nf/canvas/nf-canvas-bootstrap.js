@@ -325,7 +325,9 @@
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
                     // record whether we can configure the authorizer
+                    nfCanvas.setManagedAuthorizer(configDetails.supportsManagedAuthorizer);
                     nfCanvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
+                    nfCanvas.setConfigurableUsersAndGroups(configDetails.supportsConfigurableUsersAndGroups);
 
                     // init nfStorage
                     nfStorage.init();
@@ -389,7 +391,15 @@
             }).fail(nfErrorHandler.handleAjaxError);
 
             //initialize toolbox components tooltips
-            $('.component-button').qtip($.extend({}, nfCommon.config.tooltipConfig));
+            $('.component-button').qtip($.extend({}, nfCommon.config.tooltipConfig, {
+                position: {
+                    at: 'bottom center',
+                    my: 'top center',
+                    adjust: {
+                        y: 5
+                    }
+                }
+            }));
         } else {
             $('#message-title').text('Unsupported Browser');
             $('#message-content').text('Flow graphs are shown using SVG. Please use a browser that supports rendering SVG.');

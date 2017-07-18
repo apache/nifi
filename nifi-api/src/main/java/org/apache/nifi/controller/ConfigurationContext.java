@@ -16,23 +16,17 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 
 /**
  * This context is passed to ControllerServices and Reporting Tasks in order
  * to expose their configuration to them.
  */
-public interface ConfigurationContext {
-
-    /**
-     * @param property to retrieve by name
-     * @return the configured value for the property with the given name
-     */
-    PropertyValue getProperty(PropertyDescriptor property);
+public interface ConfigurationContext extends PropertyContext {
 
     /**
      * @return an unmodifiable map of all configured properties for this

@@ -94,6 +94,7 @@ public class CountersResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getCountersResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)
@@ -204,7 +205,7 @@ public class CountersResource extends ApplicationResource {
         entity.setCounters(countersReport);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -265,7 +266,7 @@ public class CountersResource extends ApplicationResource {
                     entity.setCounter(counter);
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

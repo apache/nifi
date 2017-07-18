@@ -195,6 +195,11 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        return new HashMap<>();
+    }
+
+    @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return new HashMap<>();
     }

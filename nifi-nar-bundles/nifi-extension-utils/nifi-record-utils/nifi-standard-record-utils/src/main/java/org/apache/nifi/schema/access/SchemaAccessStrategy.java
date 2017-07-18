@@ -30,9 +30,10 @@ public interface SchemaAccessStrategy {
      *
      * @param flowFile flowfile
      * @param contentStream content of flowfile
+     * @param readSchema the schema that was read from the input FlowFile, or <code>null</code> if there was none
      * @return the RecordSchema for the FlowFile
      */
-    RecordSchema getSchema(FlowFile flowFile, InputStream contentStream) throws SchemaNotFoundException, IOException;
+    RecordSchema getSchema(FlowFile flowFile, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
 
     /**
      * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #getSchema(FlowFile, InputStream)}.

@@ -38,6 +38,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.ConfigParseException;
@@ -48,6 +49,7 @@ import org.apache.nifi.controller.state.config.StateProviderConfiguration;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
@@ -232,12 +234,135 @@ public class StandardStateManagerProvider implements StateManagerProvider{
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            return mgrClass.newInstance();
+            return withNarClassLoader(mgrClass.newInstance());
         } finally {
             if (ctxClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);
             }
         }
+    }
+
+    /**
+     * Wrap the provider so that all method calls set the context class loader to the NAR's class loader before
+     * executing the actual provider.
+     *
+     * @param stateProvider the base provider to wrap
+     * @return the wrapped provider
+     */
+    private static StateProvider withNarClassLoader(final StateProvider stateProvider) {
+        return new StateProvider() {
+            @Override
+            public void initialize(StateProviderInitializationContext context) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.initialize(context);
+                }
+            }
+
+            @Override
+            public void shutdown() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.shutdown();
+                }
+            }
+
+            @Override
+            public void setState(Map<String, String> state, String componentId) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.setState(state, componentId);
+                }
+            }
+
+            @Override
+            public StateMap getState(String componentId) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getState(componentId);
+                }
+            }
+
+            @Override
+            public boolean replace(StateMap oldValue, Map<String, String> newValue, String componentId) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.replace(oldValue, newValue, componentId);
+                }
+            }
+
+            @Override
+            public void clear(String componentId) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.clear(componentId);
+                }
+            }
+
+            @Override
+            public void onComponentRemoved(String componentId) throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.onComponentRemoved(componentId);
+                }
+            }
+
+            @Override
+            public void enable() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.enable();
+                }
+            }
+
+            @Override
+            public void disable() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.disable();
+                }
+            }
+
+            @Override
+            public boolean isEnabled() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.isEnabled();
+                }
+            }
+
+            @Override
+            public Scope[] getSupportedScopes() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getSupportedScopes();
+                }
+            }
+
+            @Override
+            public Collection<ValidationResult> validate(ValidationContext context) {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.validate(context);
+                }
+            }
+
+            @Override
+            public PropertyDescriptor getPropertyDescriptor(String name) {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getPropertyDescriptor(name);
+                }
+            }
+
+            @Override
+            public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    stateProvider.onPropertyModified(descriptor, oldValue, newValue);
+                }
+            }
+
+            @Override
+            public List<PropertyDescriptor> getPropertyDescriptors() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getPropertyDescriptors();
+                }
+            }
+
+            @Override
+            public String getIdentifier() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getIdentifier();
+                }
+            }
+        };
     }
 
     /**

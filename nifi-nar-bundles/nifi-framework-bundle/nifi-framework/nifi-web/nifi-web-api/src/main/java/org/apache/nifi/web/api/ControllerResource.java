@@ -110,6 +110,7 @@ public class ControllerResource extends ApplicationResource {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getControllerResource())
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)
@@ -167,7 +168,7 @@ public class ControllerResource extends ApplicationResource {
         }
 
         final ControllerConfigurationEntity entity = serviceFacade.getControllerConfiguration();
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -226,7 +227,7 @@ public class ControllerResource extends ApplicationResource {
                 null,
                 (revision, configEntity) -> {
                     final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getComponent());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -328,7 +329,7 @@ public class ControllerResource extends ApplicationResource {
                     reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -499,7 +500,7 @@ public class ControllerResource extends ApplicationResource {
                     controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }

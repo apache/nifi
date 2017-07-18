@@ -32,6 +32,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -50,13 +51,16 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPER
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_SCHEMA;
 
 public abstract class SchemaRegistryService extends AbstractControllerService {
 
     private volatile ConfigurationContext configurationContext;
     private volatile SchemaAccessStrategy schemaAccessStrategy;
+    private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
-    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA));
+    private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
+        SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA));
 
     protected PropertyDescriptor getSchemaAcessStrategyDescriptor() {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
@@ -95,6 +99,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         this.schemaAccessStrategy = getSchemaAccessStrategy(schemaAccess, schemaRegistry, context);
     }
 
+    @Override
     protected ConfigurationContext getConfigurationContext() {
         return configurationContext;
     }
@@ -103,13 +108,22 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         return schemaAccessStrategy;
     }
 
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream) throws SchemaNotFoundException, IOException {
+    public final RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final SchemaAccessStrategy accessStrategy = getSchemaAccessStrategy();
         if (accessStrategy == null) {
             throw new SchemaNotFoundException("Could not determine the Schema Access Strategy for this service");
         }
 
-        return getSchemaAccessStrategy().getSchema(flowFile, contentStream);
+        return getSchemaAccessStrategy().getSchema(flowFile, contentStream, readSchema);
+    }
+
+    public RecordSchema getSchema(final FlowFile flowFile, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        final SchemaAccessStrategy accessStrategy = getSchemaAccessStrategy();
+        if (accessStrategy == null) {
+            throw new SchemaNotFoundException("Could not determine the Schema Access Strategy for this service");
+        }
+
+        return getSchemaAccessStrategy().getSchema(flowFile, EMPTY_INPUT_STREAM, readSchema);
     }
 
     @Override

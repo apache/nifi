@@ -177,6 +177,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             try {
                 final SMTPServer server = prepareServer(context, sessionFactory);
                 server.start();
+                getLogger().debug("Started SMTP Server on port " + server.getPort());
                 smtp = server;
             } catch (final Exception ex) {//have to catch exception due to awkward exception handling in subethasmtp
                 smtp = null;
@@ -190,7 +191,10 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
     public void stop() {
         try {
             smtp.stop();
-        } finally {
+            getLogger().debug("Stopped SMTP server on port " + smtp.getPort());
+        }catch (Exception ex){
+            getLogger().error("Error stopping SMTP server: " + ex.getMessage());
+        }finally {
             smtp = null;
         }
     }

@@ -188,7 +188,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
     private void processRelativePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, final Record record, final String replacementValue) {
         destinationFields.forEach(fieldVal -> {
-            final RecordPathResult replacementResult = replacementRecordPath.evaluate(fieldVal);
+            final RecordPathResult replacementResult = replacementRecordPath.evaluate(record, fieldVal);
             final Object replacementObject = getReplacementObject(replacementResult, replacementValue);
             fieldVal.updateValue(replacementObject);
         });

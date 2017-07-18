@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -132,15 +131,6 @@ public class SplitRecord extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSchema schema;
-        try (final InputStream rawIn = session.read(original);
-            final InputStream in = new BufferedInputStream(rawIn)) {
-            schema = writerFactory.getSchema(original, in);
-        } catch (final Exception e) {
-            getLogger().error("Failed to create Record Writer for {}; routing to failure", new Object[] {original, e});
-            session.transfer(original, REL_FAILURE);
-            return;
-        }
 
         final int maxRecords = context.getProperty(RECORDS_PER_SPLIT).evaluateAttributeExpressions(original).asInteger();
 
@@ -150,6 +140,8 @@ public class SplitRecord extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in) throws IOException {
                     try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+
+                        final RecordSchema schema = writerFactory.getSchema(original, reader.getSchema());
 
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushbackSet = new PushBackRecordSet(recordSet);

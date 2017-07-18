@@ -17,7 +17,9 @@
 package org.apache.nifi.nar;
 
 import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.StateProvider;
@@ -64,6 +66,8 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(StreamCallback.class);
         narSpecificClasses.add(ControllerService.class);
         narSpecificClasses.add(Authorizer.class);
+        narSpecificClasses.add(UserGroupProvider.class);
+        narSpecificClasses.add(AccessPolicyProvider.class);
         narSpecificClasses.add(LoginIdentityProvider.class);
         narSpecificClasses.add(ProvenanceRepository.class);
         narSpecificClasses.add(ComponentStatusRepository.class);

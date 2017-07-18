@@ -24,6 +24,6 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 
 public interface RecordPathFilter {
 
-    Stream<FieldValue> filter(FieldValue currentNode, RecordPathEvaluationContext context);
+    Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
 
 }

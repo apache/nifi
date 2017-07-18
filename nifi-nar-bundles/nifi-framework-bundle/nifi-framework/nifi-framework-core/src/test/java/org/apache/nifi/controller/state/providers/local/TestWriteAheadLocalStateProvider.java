@@ -20,6 +20,7 @@ package org.apache.nifi.controller.state.providers.local;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,6 +60,15 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
             @Override
             public Map<PropertyDescriptor, PropertyValue> getProperties() {
                 return Collections.unmodifiableMap(properties);
+            }
+
+            @Override
+            public Map<String,String> getAllProperties() {
+                final Map<String,String> propValueMap = new LinkedHashMap<>();
+                for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
+                    propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
+                }
+                return propValueMap;
             }
 
             @Override

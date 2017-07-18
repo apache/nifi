@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.security.otp;
 
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
@@ -33,8 +34,8 @@ public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
 
     private OtpService otpService;
 
-    public OtpAuthenticationProvider(OtpService otpService, NiFiProperties nifiProperties) {
-        super(nifiProperties);
+    public OtpAuthenticationProvider(OtpService otpService, NiFiProperties nifiProperties, Authorizer authorizer) {
+        super(nifiProperties, authorizer);
         this.otpService = otpService;
     }
 
@@ -49,7 +50,8 @@ public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
             } else {
                 otpPrincipal = otpService.getAuthenticationFromUiExtensionToken(request.getToken());
             }
-            final NiFiUser user = new StandardNiFiUser(mapIdentity(otpPrincipal), request.getClientAddress());
+            final String mappedIdentity = mapIdentity(otpPrincipal);
+            final NiFiUser user = new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build();
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (OtpAuthenticationException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);

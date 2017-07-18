@@ -1083,7 +1083,7 @@ This product bundles HexViewJS available under an MIT License
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
-The binary distribution of this product bundles 'Google Protocol Buffers Java 2.5.0'
+The binary distribution of this product bundles 'Google Protocol Buffers Java 2.5.0 and 3.3.1'
 which is licensed under a BSD license.
 
   This license applies to all parts of Protocol Buffers except the following:
@@ -1128,6 +1128,18 @@ which is licensed under a BSD license.
   of the input file used when generating it.  This code is not
   standalone and requires a support library to be linked with it.  This
   support library is itself covered by the above license.
+
+The binary distribution of this product bundles 'The JSR-305 reference implementation'
+which is licensed under a BSD license.
+
+  The JSR-305 reference implementation (lib/jsr305.jar) is
+  distributed under the terms of the New BSD license:
+
+    http://www.opensource.org/licenses/bsd-license.php
+
+  See the JSR-305 home page for more information:
+
+    http://code.google.com/p/jsr-305/
 
 This product bundles 'JCraft Jzlib' which is available under a 3-Clause BSD License.
 

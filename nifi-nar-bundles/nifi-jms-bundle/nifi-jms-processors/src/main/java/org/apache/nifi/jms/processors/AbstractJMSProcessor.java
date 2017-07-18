@@ -79,6 +79,15 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .defaultValue(QUEUE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
+            .name("Connection Client ID")
+            .description("The client id to be set on the connection, if set. For durable non shared consumer this is mandatory, " +
+                         "for all others it is optional, typically with shared consumers it is undesirable to be set. " +
+                         "Please see JMS spec for further details")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
     static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Session Cache size")
             .description("The maximum limit for the number of cached Sessions.")
@@ -86,6 +95,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
+
 
     // ConnectionFactoryProvider ControllerService
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
@@ -107,6 +117,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         propertyDescriptors.add(DESTINATION_TYPE);
         propertyDescriptors.add(USER);
         propertyDescriptors.add(PASSWORD);
+        propertyDescriptors.add(CLIENT_ID);
         propertyDescriptors.add(SESSION_CACHE_SIZE);
     }
 
@@ -196,7 +207,10 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
             this.cachingConnectionFactory = new CachingConnectionFactory(cfCredentialsAdapter);
             this.cachingConnectionFactory.setSessionCacheSize(Integer.parseInt(context.getProperty(SESSION_CACHE_SIZE).getValue()));
-
+            String clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
+            if (clientId != null) {
+                this.cachingConnectionFactory.setClientId(clientId);
+            }
             JmsTemplate jmsTemplate = new JmsTemplate();
             jmsTemplate.setConnectionFactory(this.cachingConnectionFactory);
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));

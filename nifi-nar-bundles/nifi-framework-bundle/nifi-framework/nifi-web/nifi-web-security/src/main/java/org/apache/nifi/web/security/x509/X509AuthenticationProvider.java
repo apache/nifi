@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -33,6 +28,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
@@ -41,6 +37,13 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -51,7 +54,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
     private Authorizer authorizer;
 
     public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer, final NiFiProperties nifiProperties) {
-        super(nifiProperties);
+        super(nifiProperties, authorizer);
         this.certificateIdentityProvider = certificateIdentityProvider;
         this.authorizer = authorizer;
     }
@@ -70,7 +73,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
-            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(mappedIdentity, request.getClientAddress())));
+            return new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build()));
         } else {
             // build the entire proxy chain if applicable - <end-user><proxy1><proxy2>
             final List<String> proxyChain = new ArrayList<>(ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(request.getProxiedEntitiesChain()));
@@ -89,10 +92,13 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                     identity = mapIdentity(identity);
                 }
 
+                final Set<String> groups = getUserGroups(identity);
+
                 if (chainIter.hasPrevious()) {
                     // authorize this proxy in order to authenticate this user
                     final AuthorizationRequest proxyAuthorizationRequest = new AuthorizationRequest.Builder()
                             .identity(identity)
+                            .groups(groups)
                             .anonymous(isAnonymous)
                             .accessAttempt(true)
                             .action(RequestAction.WRITE)
@@ -108,7 +114,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
                 // Only set the client address for user making the request because we don't know the client address of the proxies
                 String clientAddress = (proxy == null) ? request.getClientAddress() : null;
-                proxy = createUser(identity, proxy, clientAddress, isAnonymous);
+                proxy = createUser(identity, groups, proxy, clientAddress, isAnonymous);
             }
 
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));
@@ -124,11 +130,11 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
      * @param isAnonymous   if true, an anonymous user will be returned (identity will be ignored)
      * @return the populated user
      */
-    protected static NiFiUser createUser(String identity, NiFiUser chain, String clientAddress, boolean isAnonymous) {
+    protected static NiFiUser createUser(String identity, Set<String> groups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
         if (isAnonymous) {
             return StandardNiFiUser.populateAnonymousUser(chain, clientAddress);
         } else {
-            return new StandardNiFiUser(identity, chain, clientAddress);
+            return new Builder().identity(identity).groups(groups).chain(chain).clientAddress(clientAddress).build();
         }
     }
 

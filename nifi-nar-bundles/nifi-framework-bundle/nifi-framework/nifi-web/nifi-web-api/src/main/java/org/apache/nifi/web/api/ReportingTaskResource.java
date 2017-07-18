@@ -175,7 +175,7 @@ public class ReportingTaskResource extends ApplicationResource {
         final ReportingTaskEntity reportingTask = serviceFacade.getReportingTask(id);
         populateRemainingReportingTaskEntityContent(reportingTask);
 
-        return clusterContext(generateOkResponse(reportingTask)).build();
+        return generateOkResponse(reportingTask).build();
     }
 
     /**
@@ -240,7 +240,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -255,7 +255,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }
@@ -294,7 +294,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -310,7 +310,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }
@@ -355,7 +355,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -442,7 +442,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDTO);
                     populateRemainingReportingTaskEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -528,7 +528,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 (revision, reportingTaskEntity) -> {
                     // delete the specified reporting task
                     final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, reportingTaskEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
