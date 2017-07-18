@@ -30,4 +30,4 @@
 
 #Handle particular text files in deterministic fashion
 nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/CompressedData/*.txt text eol=crlf
-nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestEncryptContent/*.txt eol=crlf
+nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestEncryptContent/*.txt text eol=crlf
