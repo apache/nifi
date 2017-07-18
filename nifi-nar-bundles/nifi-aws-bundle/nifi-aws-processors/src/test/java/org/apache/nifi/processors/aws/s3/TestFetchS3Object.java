@@ -178,7 +178,7 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 14, pd.size());
+        assertEquals("size should be eq", 16, pd.size());
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(FetchS3Object.BUCKET));
@@ -191,5 +191,10 @@ public class TestFetchS3Object {
         assertTrue(pd.contains(FetchS3Object.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(FetchS3Object.TIMEOUT));
         assertTrue(pd.contains(FetchS3Object.VERSION_ID));
+        assertTrue(pd.contains(FetchS3Object.PROXY_HOST));
+        assertTrue(pd.contains(FetchS3Object.PROXY_HOST_PORT));
+        assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
+        assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
+
     }
 }
