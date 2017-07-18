@@ -70,7 +70,7 @@ public class GetMongo extends AbstractMongoProcessor {
             try {
                 Document.parse(value);
             } catch (final RuntimeException e) {
-                reason = e.getClass().getName();
+                reason = e.getLocalizedMessage();
             }
 
             return builder.explanation(reason).valid(reason == null).build();

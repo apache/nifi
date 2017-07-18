@@ -60,9 +60,12 @@ public class GetMongoTest {
     @Before
     public void setup() {
         runner = TestRunners.newTestRunner(GetMongo.class);
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
-        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DB_NAME);
-        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
+        runner.setVariable("uri", MONGO_URI);
+        runner.setVariable("db", DB_NAME);
+        runner.setVariable("collection", COLLECTION_NAME);
+        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
+        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
