@@ -297,7 +297,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteFile(String path, String remoteFileName) throws IOException {
+                public void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     if (!allowDelete) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -310,7 +310,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void rename(String source, String target) throws IOException {
+                public void rename(FlowFile flowFile, String source, String target) throws IOException {
                     if (!allowRename) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -324,7 +324,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteDirectory(String remoteDirectoryName) throws IOException {
+                public void deleteDirectory(FlowFile flowFile, String remoteDirectoryName) throws IOException {
 
                 }
 

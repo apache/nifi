@@ -45,11 +45,11 @@ public interface FileTransfer extends Closeable {
 
     String put(FlowFile flowFile, String path, String filename, InputStream content) throws IOException;
 
-    void rename(String source, String target) throws IOException;
+    void rename(FlowFile flowFile, String source, String target) throws IOException;
 
-    void deleteFile(String path, String remoteFileName) throws IOException;
+    void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException;
 
-    void deleteDirectory(String remoteDirectoryName) throws IOException;
+    void deleteDirectory(FlowFile flowFile, String remoteDirectoryName) throws IOException;
 
     boolean isClosed();
 

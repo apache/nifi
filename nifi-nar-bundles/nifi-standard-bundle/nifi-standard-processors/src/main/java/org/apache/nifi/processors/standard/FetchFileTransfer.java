@@ -301,7 +301,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
             try {
-                transfer.deleteFile(null, filename);
+                transfer.deleteFile(flowFile, null, filename);
             } catch (final FileNotFoundException e) {
                 // file doesn't exist -- effectively the same as removing it. Move on.
             } catch (final IOException ioe) {
@@ -317,7 +317,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             final String target = targetDir + simpleFilename;
 
             try {
-                transfer.rename(filename, target);
+                transfer.rename(flowFile, filename, target);
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
                     new Object[] {flowFile, host, port, filename, ioe}, ioe);

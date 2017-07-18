@@ -208,7 +208,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
 
                     if (deleteOriginal) {
                         try {
-                            transfer.deleteFile(null, file.getFullPathFileName());
+                            transfer.deleteFile(flowFile, null, file.getFullPathFileName());
                         } catch (final IOException e) {
                             logger.error("Failed to remove remote file {} due to {}; deleting local copy",
                                     new Object[]{file.getFullPathFileName(), e});

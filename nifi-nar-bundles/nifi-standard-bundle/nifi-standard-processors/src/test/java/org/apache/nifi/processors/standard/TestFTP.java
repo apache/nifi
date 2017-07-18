@@ -184,6 +184,9 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, "${port}");
         runner.setProperty(FetchFTP.REMOTE_FILENAME, "c:\\data\\randombytes-2");
+        runner.setProperty(FetchFTP.COMPLETION_STRATEGY, FetchFTP.COMPLETION_MOVE);
+        runner.setProperty(FetchFTP.MOVE_DESTINATION_DIR, "data");
+
 
         Map<String, String> attrs = new HashMap<String, String>();
         attrs.put("host", "localhost");

@@ -230,7 +230,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
-                transfer.deleteFile(path, fileName);
+                transfer.deleteFile(flowFile, path, fileName);
                 destinationRelationship = REL_SUCCESS;
                 transferFile = true;
                 penalizeFile = false;
