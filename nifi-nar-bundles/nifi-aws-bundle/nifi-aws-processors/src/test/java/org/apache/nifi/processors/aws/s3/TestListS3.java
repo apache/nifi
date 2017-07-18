@@ -311,5 +311,9 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.PREFIX));
         assertTrue(pd.contains(ListS3.USE_VERSIONS));
         assertTrue(pd.contains(ListS3.MIN_AGE));
+        assertTrue(pd.contains(ListS3.PROXY_HOST));
+        assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
+        assertTrue(pd.contains(ListS3.PROXY_USERNAME));
+        assertTrue(pd.contains(ListS3.PROXY_PASSWORD));
     }
 }

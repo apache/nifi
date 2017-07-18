@@ -77,7 +77,7 @@ public class PutSNS extends AbstractSNSProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                    USE_JSON_STRUCTURE, CHARACTER_ENCODING, PROXY_HOST, PROXY_HOST_PORT));
+                    USE_JSON_STRUCTURE, CHARACTER_ENCODING, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     public static final int MAX_SIZE = 256 * 1024;
 

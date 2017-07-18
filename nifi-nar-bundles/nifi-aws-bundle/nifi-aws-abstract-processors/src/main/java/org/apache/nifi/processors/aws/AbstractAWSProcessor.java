@@ -92,6 +92,23 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("Proxy Username")
+            .description("Proxy username")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Proxy Password")
+            .description("Proxy password")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("Region")
             .required(true)
@@ -197,6 +214,13 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             config.setProxyHost(proxyHost);
             Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
             config.setProxyPort(proxyPort);
+        }
+
+        if (context.getProperty(PROXY_USERNAME).isSet()) {
+            String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+            config.setProxyUsername(proxyUsername);
+            String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+            config.setProxyPassword(proxyPassword);
         }
 
         return config;
