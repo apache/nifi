@@ -70,6 +70,10 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(SFTPTransfer.USE_COMPRESSION);
+        properties.add(SFTPTransfer.PROXY_HOST);
+        properties.add(SFTPTransfer.PROXY_PORT);
+        properties.add(SFTPTransfer.PROXY_USERNAME);
+        properties.add(SFTPTransfer.PROXY_PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
