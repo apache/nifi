@@ -55,6 +55,25 @@ public abstract class AbstractGCPProcessor<
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
+            .Builder().name("gcp-proxy-host")
+            .displayName("Proxy host")
+            .description("IP or hostname of the proxy to be used")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor
+            .Builder().name("gcp-proxy-port")
+            .displayName("Proxy port")
+            .description("Proxy port number")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+
     /**
      * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
      */
@@ -78,7 +97,9 @@ public abstract class AbstractGCPProcessor<
         return ImmutableList.of(
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 PROJECT_ID,
-                RETRY_COUNT
+                RETRY_COUNT,
+                PROXY_HOST,
+                PROXY_PORT
         );
     }
 
