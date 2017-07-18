@@ -29,6 +29,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.attributes.UpdateAttribute;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
@@ -984,7 +985,7 @@ public class TestUpdateAttribute {
         try {
             runner.run();
         } catch (Throwable t) {
-            assertEquals(t.getCause().getClass(), PatternSyntaxException.class);
+            assertEquals(ProcessException.class, t.getCause().getClass());
         }
     }
 
@@ -1003,8 +1004,6 @@ public class TestUpdateAttribute {
         } catch (AssertionError e) {
             Assert.assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
         }
-        // runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 0);
-        // final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
     }
 
 }

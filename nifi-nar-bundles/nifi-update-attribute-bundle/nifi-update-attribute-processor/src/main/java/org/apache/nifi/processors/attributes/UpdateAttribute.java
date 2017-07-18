@@ -669,7 +669,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         if (notDeleted) {
                             attributesToUpdate.put(attribute, newAttributeValue);
                         }
-                        // Capture StringIndexOutOfBoundsException caused when evaluating the Expression Language
+                        // Capture Exception thrown when evaluating the Expression Language
                     } catch (final Exception e) {
                         logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
                                 "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
