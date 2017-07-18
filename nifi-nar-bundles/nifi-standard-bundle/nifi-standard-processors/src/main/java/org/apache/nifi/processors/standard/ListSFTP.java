@@ -82,6 +82,10 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
+        properties.add(SFTPTransfer.PROXY_HOST);
+        properties.add(SFTPTransfer.PROXY_PORT);
+        properties.add(SFTPTransfer.PROXY_USERNAME);
+        properties.add(SFTPTransfer.PROXY_PASSWORD);
         return properties;
     }
 

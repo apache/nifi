@@ -66,6 +66,10 @@ public class FetchSFTP extends FetchFileTransfer {
         properties.add(SFTPTransfer.HOST_KEY_FILE);
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_COMPRESSION);
+        properties.add(SFTPTransfer.PROXY_HOST);
+        properties.add(SFTPTransfer.PROXY_PORT);
+        properties.add(SFTPTransfer.PROXY_USERNAME);
+        properties.add(SFTPTransfer.PROXY_PASSWORD);
         return properties;
     }
 
