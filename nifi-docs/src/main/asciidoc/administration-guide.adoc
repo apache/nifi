@@ -2486,6 +2486,63 @@ A complete example of configuring the HTTP service could look like the following
      </service>
 ....
 
+[[proxy_configuration]]
+Proxy Configuration
+-------------------
+​When running Apache NiFi behind a proxy there are a couple of key items to be aware of during deployment.
+
+* NiFi is comprised of a number of web applications (web UI, web API, documentation, custom UIs, data viewers, etc), so the mapping needs to be configured for the *root path*. That way all context
+paths are passed through accordingly. For instance, if only the `/nifi` context path was mapped, the custom UI for `UpdateAttribute` will not work, since it is available at `/update-attribute-ui-<version>`.
+
+* NiFi's REST API will generate URIs for each component on the graph. Since requests are coming through a proxy, certain elements of the URIs being generated need to be overridden. Without
+overriding, the users will be able to view the dataflow on the canvas but will be unable to modify existing components. Requests will be attempting to call back directly to NiFi, not through the
+proxy. The elements of the URI can be overridden by adding the following HTTP headers when the proxy generates the HTTP request to the NiFi instance:
+
+....
+X-ProxyScheme - the scheme to use to connect to the proxy
+X-ProxyHost - the host of the proxy
+X-ProxyPort - the port the proxy is listening on
+X-ProxyContextPath - the path configured to map to the NiFi instance
+....
+
+* If NiFi is running securely, any proxy needs to be authorized to proxy user requests. These can be configured in the NiFi UI through the Global Menu. Once these permissions are in place, proxies
+can begin proxying user requests. The end user identity must be relayed in a HTTP header. For example, if the end user sent a request to the proxy, the proxy must authenticate the user. Following
+this the proxy can send the request to NiFi. In this request an HTTP header should be added as follows.
+
+....
+X-ProxiedEntitiesChain: <end-user-identity>
+....
+
+If the proxy is configured to send to another proxy, the request to NiFi from the second proxy should contain a header as follows.
+
+....
+X-ProxiedEntitiesChain: <end-user-identity><proxy-1-identity>
+....
+
+An example Apache proxy configuration that sets the required properties may look like the following. Complete proxy configuration is outside of the scope of this document. Please refer the
+documentation of the proxy for guidance for your deployment environment and use case.
+
+....
+...
+<Location "/my-nifi">
+    ...
+	SSLEngine On
+	SSLCertificateFile /path/to/proxy/certificate.crt
+	SSLCertificateKeyFile /path/to/proxy/key.key
+	SSLCACertificateFile /path/to/ca/certificate.crt
+	SSLVerifyClient require
+	RequestHeader add X-ProxyScheme "https"
+	RequestHeader add X-ProxyHost "proxy-host"
+	RequestHeader add X-ProxyPort "443"
+	RequestHeader add X-ProxyContextPath "/my-nifi"
+	RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
+	ProxyPass https://nifi-host:8443
+	ProxyPassReverse https://nifi-host:8443
+	...
+</Location>
+...
+....
+
 [[kerberos_service]]
 Kerberos Service
 ----------------
