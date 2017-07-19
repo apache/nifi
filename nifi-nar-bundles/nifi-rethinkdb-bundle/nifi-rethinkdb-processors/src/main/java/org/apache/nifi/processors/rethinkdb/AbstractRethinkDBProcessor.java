@@ -122,6 +122,8 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
     public static final String RESULT_FIRST_ERROR_KEY = "first_error";
     public static final String RESULT_WARNINGS_KEY = "warnings";
 
+    public static final String RETHINKDB_ERROR_MESSAGE = "rethinkdb.error.message";
+
     protected Connection rethinkDbConnection;
     protected String databaseName;
     protected String tableName;

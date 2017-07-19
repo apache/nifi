@@ -56,13 +56,13 @@ public class ITGetRethinkDBTest {
     @Before
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(GetRethinkDB.class);
-        runner.setProperty(GetRethinkDB.DB_NAME, dbName);
-        runner.setProperty(GetRethinkDB.DB_HOST, dbHost);
-        runner.setProperty(GetRethinkDB.DB_PORT, dbPort);
-        runner.setProperty(GetRethinkDB.USERNAME, user);
-        runner.setProperty(GetRethinkDB.PASSWORD, password);
-        runner.setProperty(GetRethinkDB.TABLE_NAME, table);
-        runner.setProperty(GetRethinkDB.CHARSET, "UTF-8");
+        runner.setProperty(AbstractRethinkDBProcessor.DB_NAME, dbName);
+        runner.setProperty(AbstractRethinkDBProcessor.DB_HOST, dbHost);
+        runner.setProperty(AbstractRethinkDBProcessor.DB_PORT, dbPort);
+        runner.setProperty(AbstractRethinkDBProcessor.USERNAME, user);
+        runner.setProperty(AbstractRethinkDBProcessor.PASSWORD, password);
+        runner.setProperty(AbstractRethinkDBProcessor.TABLE_NAME, table);
+        runner.setProperty(AbstractRethinkDBProcessor.CHARSET, "UTF-8");
 
         connection = RethinkDB.r.connection().user(user, password).db(dbName).hostname(dbHost).port(Integer.parseInt(dbPort)).connect();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
@@ -94,11 +94,11 @@ public class ITGetRethinkDBTest {
 
         runner.enqueue(new byte [] {},props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_SUCCESS, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
         assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
+        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
         assertEquals("Content should be same size", message.toString().length(), flowFiles.get(0).getSize());
         flowFiles.get(0).assertContentEquals(message.toString());
     }
@@ -120,11 +120,11 @@ public class ITGetRethinkDBTest {
 
         runner.enqueue(new byte [] {},props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_NOT_FOUND, 1);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_NOT_FOUND, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_NOT_FOUND);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_NOT_FOUND);
         assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertNotNull("Error should not be null", flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
+        assertNotNull("Error should not be null", flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
         assertEquals("Content should be same size", 0, flowFiles.get(0).getSize());
     }
 
@@ -144,11 +144,11 @@ public class ITGetRethinkDBTest {
 
         runner.enqueue(new byte [] {},props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_SUCCESS, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
         assertEquals("Flow file count should be same", 1, flowFiles.size());
-        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
+        assertEquals("Error should be null",null, flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
         assertEquals("Content should be same size", message.toString().length(), flowFiles.get(0).getSize());
         flowFiles.get(0).assertContentEquals(message.toString());
     }
@@ -164,17 +164,17 @@ public class ITGetRethinkDBTest {
         assertEquals("Count should be same", 1, count);
 
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "2");
-        runner.setProperty(GetRethinkDB.MAX_DOCUMENTS_SIZE, "2B");
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "2B");
 
         Map<String, String> props = new HashMap<>();
 
         runner.enqueue(new byte [] {},props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_FAILURE);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
         assertEquals("Flow file count should be same", 1, flowFiles.size());
-        String errorMessage = flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE);
+        String errorMessage = flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE);
         assertNotNull("Error should be not be null", errorMessage);
         assertEquals("Error message should be same", "Document too big size " + message.toJSONString().length() + " bytes",errorMessage);
     }

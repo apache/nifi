@@ -98,7 +98,6 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    public static final String RETHINKDB_ERROR_MESSAGE = "rethinkdb.error.message";
     public static final String RETHINKDB_INSERT_RESULT = "rethinkdb.insert.result";
     public static final String RETHINKDB_INSERT_RESULT_ERROR_KEY = "rethinkdb.insert.errors";
     public static final String RETHINKDB_INSERT_RESULT_DELETED_KEY = "rethinkdb.insert.deleted";

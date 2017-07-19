@@ -36,7 +36,7 @@ import com.rethinkdb.net.Connection;
 public class TestGetRethinkDB {
     private static final String DOCUMENT_ID = "id1";
     private TestRunner runner;
-    private GetRethinkDB mockGetRethinkDB;
+    private AbstractRethinkDBProcessor mockGetRethinkDB;
     private Map<String,Object> document;
 
     @Before
@@ -141,14 +141,14 @@ public class TestGetRethinkDB {
 
         runner.enqueue(new byte[]{}, props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_FAILURE);
-        assertNotNull(flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
     }
 
     @Test
     public void testNotFound() {
-        runner.setProperty(GetRethinkDB.MAX_DOCUMENTS_SIZE, "1 B");
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 B");
         runner.assertValid();
 
         HashMap<String,String> props = new HashMap<>();
@@ -158,30 +158,61 @@ public class TestGetRethinkDB {
 
         runner.run(1,true,true);
 
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_NOT_FOUND, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_NOT_FOUND);
-        assertNotNull(flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
-        flowFiles.get(0).assertAttributeEquals(GetRethinkDB.RETHINKDB_ERROR_MESSAGE,"Document with " + DOCUMENT_ID + " not found");
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_NOT_FOUND, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_NOT_FOUND);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
+        flowFiles.get(0).assertAttributeEquals(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE,"Document with id '" + DOCUMENT_ID + "' not found");
     }
 
     @Test
     public void testBlankId() {
-        runner.setProperty(GetRethinkDB.MAX_DOCUMENTS_SIZE, "1 B");
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 B");
         runner.assertValid();
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
         Map<String,String> props = new HashMap<>();
 
         runner.enqueue(new byte[]{},props);
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_FAILURE);
-        assertNotNull(flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
-        flowFiles.get(0).assertAttributeEquals(GetRethinkDB.RETHINKDB_ERROR_MESSAGE,"Empty id ''");
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
+        flowFiles.get(0).assertAttributeEquals(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE,"Blank id ''");
+    }
+
+    @Test
+    public void testNullId() {
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 B");
+        runner.assertValid();
+        runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
+        Map<String,String> props = new HashMap<>();
+        props.put("rethinkdb.id", null);
+        runner.enqueue(new byte[]{},props);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
+        flowFiles.get(0).assertAttributeEquals(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE,"Blank id ''");
+    }
+
+    @Test
+    public void testSpacesId() {
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 B");
+        runner.assertValid();
+        runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
+        Map<String,String> props = new HashMap<>();
+        String blank = "   ";
+        props.put("rethinkdb.id", blank);
+        runner.enqueue(new byte[]{},props);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
+        flowFiles.get(0).assertAttributeEquals(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE,"Blank id '" + blank + "'");
     }
 
     @Test
     public void testValidSingleMessage() {
-        runner.setProperty(GetRethinkDB.MAX_DOCUMENTS_SIZE, "1 MB");
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 MB");
         runner.assertValid();
         document = new HashMap<>();
         document.put("hello", "rethinkdb");
@@ -192,14 +223,14 @@ public class TestGetRethinkDB {
         runner.enqueue(new byte[]{}, props);
 
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(GetRethinkDB.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(AbstractRethinkDBProcessor.REL_SUCCESS, 1);
         Gson gson = new Gson();
 
         String json = gson.toJson(document);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
         flowFiles.get(0).assertContentEquals(json.toString());
-        assertNull(flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
+        assertNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
 
     }
 
@@ -218,16 +249,16 @@ public class TestGetRethinkDB {
         };
 
         runner = TestRunners.newTestRunner(mockGetRethinkDB);
-        runner.setProperty(GetRethinkDB.DB_NAME, "test");
-        runner.setProperty(GetRethinkDB.DB_HOST, "host1");
-        runner.setProperty(GetRethinkDB.DB_PORT, "1234");
-        runner.setProperty(GetRethinkDB.USERNAME, "u1");
-        runner.setProperty(GetRethinkDB.PASSWORD, "p1");
-        runner.setProperty(GetRethinkDB.TABLE_NAME, "t1");
-        runner.setProperty(GetRethinkDB.CHARSET, "UTF-8");
+        runner.setProperty(AbstractRethinkDBProcessor.DB_NAME, "test");
+        runner.setProperty(AbstractRethinkDBProcessor.DB_HOST, "host1");
+        runner.setProperty(AbstractRethinkDBProcessor.DB_PORT, "1234");
+        runner.setProperty(AbstractRethinkDBProcessor.USERNAME, "u1");
+        runner.setProperty(AbstractRethinkDBProcessor.PASSWORD, "p1");
+        runner.setProperty(AbstractRethinkDBProcessor.TABLE_NAME, "t1");
+        runner.setProperty(AbstractRethinkDBProcessor.CHARSET, "UTF-8");
         runner.setProperty(GetRethinkDB.READ_MODE, "single");
 
-        runner.setProperty(GetRethinkDB.MAX_DOCUMENTS_SIZE, "1 KB");
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 KB");
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, DOCUMENT_ID);
 
         runner.assertValid();
@@ -240,8 +271,8 @@ public class TestGetRethinkDB {
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutRethinkDB.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetRethinkDB.REL_FAILURE);
-        assertNotNull(flowFiles.get(0).getAttribute(GetRethinkDB.RETHINKDB_ERROR_MESSAGE));
-        flowFiles.get(0).assertAttributeEquals(GetRethinkDB.RETHINKDB_ERROR_MESSAGE,"testException");
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_FAILURE);
+        assertNotNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
+        flowFiles.get(0).assertAttributeEquals(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE,"testException");
    }
 }

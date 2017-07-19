@@ -49,7 +49,7 @@ import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @EventDriven
-@Tags({"rethinkdb", "get", "read"})
+@Tags({"rethinkdb", "get", "read", "fetch"})
 @CapabilityDescription("Processor to get a JSON document from RethinkDB (https://www.rethinkdb.com/) using the document id. The FlowFile will contain the retrieved document")
 @WritesAttributes({
     @WritesAttribute(attribute = GetRethinkDB.RETHINKDB_ERROR_MESSAGE, description = "RethinkDB error message"),
@@ -58,7 +58,7 @@ import java.util.Set;
 public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue READ_MODE_SINGLE = new AllowableValue("single", "Single", "Read values from memory from primary replica (Default)");
-    public static AllowableValue READ_MODE_MAJORITY = new AllowableValue("majority", "Majority", "Read values commited to disk on majority of replicas");
+    public static AllowableValue READ_MODE_MAJORITY = new AllowableValue("majority", "Majority", "Read values committed to disk on majority of replicas");
     public static AllowableValue READ_MODE_OUTDATED = new AllowableValue("outdated", "Outdated", "Read values from memory from an arbitrary replica ");
 
     protected static final PropertyDescriptor READ_MODE = new PropertyDescriptor.Builder()
@@ -85,8 +85,6 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
-
-    public static final String RETHINKDB_ERROR_MESSAGE = "rethinkdb.error.message";
 
     protected Gson gson = new Gson();
 
@@ -137,9 +135,9 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
         String id = context.getProperty(RETHINKDB_DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue();
         String readMode = context.getProperty(READ_MODE).evaluateAttributeExpressions(flowFile).getValue();
 
-        if ( StringUtils.isEmpty(id) ) {
-            getLogger().error("Empty id '" + id + "'");
-            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Empty id '" + id + "'");
+        if ( StringUtils.isBlank(id) ) {
+            getLogger().error("Blank id '" + id + "'");
+            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Blank id '" + id + "'");
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -149,8 +147,8 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
             Map<String,Object> document = getDocument(id, readMode);
 
             if ( document == null ) {
-                getLogger().error("Document not found for id " + id);
-                flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Document with " + id + " not found");
+                getLogger().error("Document with id '" + id + "' not found");
+                flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Document with id '" + id + "' not found");
                 session.transfer(flowFile, REL_NOT_FOUND);
                 return;
             }
