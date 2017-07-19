@@ -57,6 +57,7 @@ import java.util.Set;
 @SeeAlso({PutRethinkDB.class})
 public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
+    public static final String DOCUMENT_ID_EMPTY_MESSAGE = "Document Id cannot be empty";
     public static AllowableValue READ_MODE_SINGLE = new AllowableValue("single", "Single", "Read values from memory from primary replica (Default)");
     public static AllowableValue READ_MODE_MAJORITY = new AllowableValue("majority", "Majority", "Read values committed to disk on majority of replicas");
     public static AllowableValue READ_MODE_OUTDATED = new AllowableValue("outdated", "Outdated", "Read values from memory from an arbitrary replica ");
@@ -135,9 +136,9 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
         String id = context.getProperty(RETHINKDB_DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue();
         String readMode = context.getProperty(READ_MODE).evaluateAttributeExpressions(flowFile).getValue();
 
-        if ( StringUtils.isBlank(id) ) {
-            getLogger().error("Blank id '" + id + "'");
-            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Blank id '" + id + "'");
+        if ( StringUtils.isEmpty(id) ) {
+            getLogger().error(DOCUMENT_ID_EMPTY_MESSAGE);
+            flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, DOCUMENT_ID_EMPTY_MESSAGE);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -147,7 +148,7 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
             Map<String,Object> document = getDocument(id, readMode);
 
             if ( document == null ) {
-                getLogger().error("Document with id '" + id + "' not found");
+                getLogger().debug("Document with id '" + id + "' not found");
                 flowFile = session.putAttribute(flowFile, RETHINKDB_ERROR_MESSAGE, "Document with id '" + id + "' not found");
                 session.transfer(flowFile, REL_NOT_FOUND);
                 return;
