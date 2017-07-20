@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.PatternSyntaxException;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessSessionFactory;
