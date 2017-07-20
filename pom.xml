@@ -1145,6 +1145,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kafka-0-11-nar</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-rethinkdb-nar</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
                 <type>nar</type>
