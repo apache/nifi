@@ -2475,6 +2475,30 @@ If the proxy is configured to send to another proxy, the request to NiFi from th
 X-ProxiedEntitiesChain: <end-user-identity><proxy-1-identity>
 ....
 
+An example Apache proxy configuration that sets the required properties may look like the follow. Complete proxy configuration is outside of the scope of this document. Please refer the
+documentation of the proxy for guidance for your deployment environment and use case.
+
+....
+...
+<Location "/my-nifi">
+    ...
+	SSLEngine On
+	SSLCertificateFile /path/to/proxy/certificate.crt
+	SSLCertificateKeyFile /path/to/proxy/key.key
+	SSLCACertificateFile /path/to/ca/certificate.crt
+	SSLVerifyClient require
+	RequestHeader add X-ProxyScheme "https"
+	RequestHeader add X-ProxyHost "proxy-host"
+	RequestHeader add X-ProxyPort "443"
+	RequestHeader add X-ProxyContextPath "/my-nifi"
+	RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}s>"
+	ProxyPass https://nifi-host:8443
+	ProxyPassReverse https://nifi-host:8443
+	...
+</Location>
+...
+....
+
 [[kerberos_service]]
 Kerberos Service
 ----------------
