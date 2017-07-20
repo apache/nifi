@@ -37,7 +37,6 @@ public class StatusHistoryDTO {
     private List<StatusDescriptorDTO> fieldDescriptors;
     private List<StatusSnapshotDTO> aggregateSnapshots;
     private List<NodeStatusSnapshotsDTO> nodeSnapshots;
-    private boolean includeCounters;
 
     /**
      * @return when this status history was generated
@@ -95,14 +94,5 @@ public class StatusHistoryDTO {
 
     public void setNodeSnapshots(List<NodeStatusSnapshotsDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
-    }
-
-    public void setIncludeCounters(boolean include) {
-        this.includeCounters = include;
-    }
-
-    @ApiModelProperty("Whether or not counters are included in the Status History")
-    public boolean isIncludeCounters() {
-        return includeCounters;
     }
 }

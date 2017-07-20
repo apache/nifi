@@ -245,7 +245,7 @@ public class ProcessorStatus implements Cloneable {
         clonedObj.flowFilesRemoved = flowFilesRemoved;
         clonedObj.runStatus = runStatus;
         clonedObj.type = type;
-        clonedObj.counters = new HashMap<>(counters);
+        clonedObj.counters = counters == null ? new HashMap<>() : new HashMap<>(counters);
         return clonedObj;
     }
 

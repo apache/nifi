@@ -42,8 +42,4 @@ public interface StatusHistory {
      */
     List<StatusSnapshot> getStatusSnapshots();
 
-    /**
-     * @return <code>true</code> if counter values are included in the Status History
-     */
-    boolean isIncludeCounters();
 }

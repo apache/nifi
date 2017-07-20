@@ -119,7 +119,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
                 noReadPermissionsComponentDetails = nodeStatus.getComponentDetails();
             }
 
-            if (!nodeStatus.isIncludeCounters()) {
+            if (nodeResponseEntity.getCanRead() != Boolean.TRUE) {
                 includeCounters = false;
             }
 

@@ -77,7 +77,6 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
         final StandardStatusHistory history = new StandardStatusHistory();
         history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
-        history.setIncludeCounters(includeCounters);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
