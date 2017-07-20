@@ -86,6 +86,9 @@ public class FileSystemRepository implements ContentRepository {
     public static final int SECTIONS_PER_CONTAINER = 1024;
     public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
     public static final String ARCHIVE_DIR_NAME = "archive";
+    // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
+    // unnecessarily large resource claim files
+    public static final String APPENDABLE_CLAIM_LENGTH_CAP = "100 MB";
     public static final Pattern MAX_ARCHIVE_SIZE_PATTERN = Pattern.compile("\\d{1,2}%");
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
 
@@ -113,7 +116,7 @@ public class FileSystemRepository implements ContentRepository {
     // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
     // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
     // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
-    private final int maxAppendableClaimLength;
+    private final long maxAppendableClaimLength;
     private final int maxFlowFilesPerClaim;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
@@ -156,8 +159,18 @@ public class FileSystemRepository implements ContentRepository {
         }
         this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
         this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
-        final String maxAppendableClaimSize = nifiProperties.getMaxAppendableClaimSize();
-        this.maxAppendableClaimLength = DataUnit.parseDataSize(maxAppendableClaimSize, DataUnit.B).intValue();
+        final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
+        if (configuredAppendableClaimLength > appendableClaimLengthCap) {
+            LOG.warn("Configured property '{}' with value {} exceeds cap of {}. Setting value to {}",
+                    NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE,
+                    configuredAppendableClaimLength,
+                    APPENDABLE_CLAIM_LENGTH_CAP,
+                    APPENDABLE_CLAIM_LENGTH_CAP);
+            this.maxAppendableClaimLength = appendableClaimLengthCap;
+        } else {
+            this.maxAppendableClaimLength = configuredAppendableClaimLength;
+        }
 
         this.containers = new HashMap<>(fileRespositoryPaths);
         this.containerNames = new ArrayList<>(containers.keySet());
