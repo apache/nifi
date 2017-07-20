@@ -204,7 +204,7 @@
             nfLabel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
             nfFunnel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
             nfPort.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
-            nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
             nfProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
             nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
             nfConnection.init(nfSelectable, nfContextMenu, nfQuickSelect, nfConnectionConfiguration);
