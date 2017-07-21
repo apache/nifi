@@ -261,7 +261,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         if (!hdfs.mkdirs(configuredRootDirPath)) {
                             throw new IOException(configuredRootDirPath.toString() + " could not be created");
                         }
-                        changeOwner(context, hdfs, configuredRootDirPath,flowFile);
+                        changeOwner(context, hdfs, configuredRootDirPath, flowFile);
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
@@ -354,7 +354,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                     + " to its final filename");
                         }
 
-                        changeOwner(context, hdfs, copyFile,flowFile);
+                        changeOwner(context, hdfs, copyFile, flowFile);
                     }
 
                     getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
@@ -391,10 +391,11 @@ public class PutHDFS extends AbstractHadoopProcessor {
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
         try {
             // Change owner and group of file if configured to do so
-//            String owner = context.getProperty(REMOTE_OWNER).getValue();
-//            String group = context.getProperty(REMOTE_GROUP).getValue();
             String owner = context.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
             String group = context.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
+
+            owner = owner == null || owner.isEmpty() ? null : owner;
+            group = group == null || group.isEmpty() ? null : group;
 
             if (owner != null || group != null) {
                 hdfs.setOwner(name, owner, group);
