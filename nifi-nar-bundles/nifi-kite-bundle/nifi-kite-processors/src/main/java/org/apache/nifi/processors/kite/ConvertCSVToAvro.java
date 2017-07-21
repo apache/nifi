@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.apache.avro.Schema;
@@ -160,27 +161,28 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .defaultValue(String.valueOf(DEFAULTS.linesToSkip))
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = ImmutableList.<PropertyDescriptor> builder()
-        .addAll(AbstractKiteProcessor.getProperties())
-        .add(SCHEMA)
-        .add(CHARSET)
-        .add(DELIMITER)
-        .add(QUOTE)
-        .add(ESCAPE)
-        .add(HAS_HEADER)
-        .add(LINES_TO_SKIP)
-        .add(COMPRESSION_TYPE)
-        .build();
-
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet.<Relationship> builder()
         .add(SUCCESS)
         .add(FAILURE)
         .add(INCOMPATIBLE)
         .build();
 
+    // Immutable configuration
+    @VisibleForTesting
+    volatile CSVProperties props;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        List<PropertyDescriptor> props = new ArrayList<>(ABSTRACT_KITE_PROPS);
+        props.add(SCHEMA);
+        props.add(CHARSET);
+        props.add(DELIMITER);
+        props.add(QUOTE);
+        props.add(ESCAPE);
+        props.add(HAS_HEADER);
+        props.add(LINES_TO_SKIP);
+        props.add(COMPRESSION_TYPE);
+        return props;
     }
 
     @Override
@@ -191,6 +193,12 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
     @OnScheduled
     public void createCSVProperties(ProcessContext context) throws IOException {
         super.setDefaultConfiguration(context);
+
+    }
+
+    @OnScheduled
+    public void OnScheduled(ProcessContext context) throws Exception {
+        super.abstractOnScheduled(context);
     }
 
     @Override
