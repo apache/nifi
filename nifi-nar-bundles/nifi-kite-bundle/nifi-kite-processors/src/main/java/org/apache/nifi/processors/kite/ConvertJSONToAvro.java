@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.apache.avro.Schema;
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -80,13 +82,6 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES
-            = ImmutableList.<PropertyDescriptor>builder()
-            .addAll(AbstractKiteProcessor.getProperties())
-            .add(SCHEMA)
-            .add(COMPRESSION_TYPE)
-            .build();
-
     private static final Set<Relationship> RELATIONSHIPS
             = ImmutableSet.<Relationship>builder()
             .add(SUCCESS)
@@ -94,17 +89,26 @@ public class ConvertJSONToAvro extends AbstractKiteConvertProcessor {
             .add(INCOMPATIBLE)
             .build();
 
-    public ConvertJSONToAvro() {
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        List<PropertyDescriptor> props = new ArrayList<>(ABSTRACT_KITE_PROPS);
+        props.add(SCHEMA);
+        props.add(COMPRESSION_TYPE);
+        return props;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    public ConvertJSONToAvro() {
+    }
+
+    @OnScheduled
+    public void OnScheduled(ProcessContext context) throws Exception {
+        super.abstractOnScheduled(context);
+        super.setDefaultConfiguration(context);
     }
 
     @Override

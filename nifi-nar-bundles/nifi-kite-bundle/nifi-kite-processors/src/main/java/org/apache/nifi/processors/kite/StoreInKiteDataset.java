@@ -21,6 +21,7 @@ package org.apache.nifi.processors.kite;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -49,6 +51,9 @@ import org.kitesdk.data.spi.SchemaValidationUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
+import java.security.PrivilegedAction;
+import org.apache.hadoop.security.UserGroupInformation;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"kite", "avro", "parquet", "hadoop", "hive", "hdfs", "hbase"})
@@ -79,12 +84,6 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES
-            = ImmutableList.<PropertyDescriptor>builder()
-            .addAll(AbstractKiteProcessor.getProperties())
-            .add(KITE_DATASET_URI)
-            .build();
-
     private static final Set<Relationship> RELATIONSHIPS
             = ImmutableSet.<Relationship>builder()
             .add(SUCCESS)
@@ -94,12 +93,19 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        List<PropertyDescriptor> props = new ArrayList<>(ABSTRACT_KITE_PROPS);
+        props.add(KITE_DATASET_URI);
+        return props;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @OnScheduled
+    public void OnScheduled(ProcessContext context) throws Exception {
+        super.abstractOnScheduled(context);
     }
 
     @Override
@@ -110,52 +116,61 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
             return;
         }
 
-        final View<Record> target = load(context, flowFile);
-        final Schema schema = target.getDataset().getDescriptor().getSchema();
+                final UserGroupInformation ugi = getUserGroupInformation();
 
-        try {
-            StopWatch timer = new StopWatch(true);
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    try (DataFileStream<Record> stream = new DataFileStream<>(
-                            in, AvroUtil.newDatumReader(schema, Record.class))) {
-                        IncompatibleSchemaException.check(
-                                SchemaValidationUtil.canRead(stream.getSchema(), schema),
-                                "Incompatible file schema %s, expected %s",
-                                stream.getSchema(), schema);
+        ugi.doAs(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                final View<Record> target = load(context, flowFile);
+                final Schema schema = target.getDataset().getDescriptor().getSchema();
 
-                        long written = 0L;
-                        try (DatasetWriter<Record> writer = target.newWriter()) {
-                            for (Record record : stream) {
-                                writer.write(record);
-                                written += 1;
+                try {
+                    StopWatch timer = new StopWatch(true);
+                    session.read(flowFile, new InputStreamCallback() {
+                        @Override
+                        public void process(InputStream in) throws IOException {
+                            try (DataFileStream<Record> stream = new DataFileStream<>(
+                                    in, AvroUtil.newDatumReader(schema, Record.class))) {
+                                IncompatibleSchemaException.check(
+                                    SchemaValidationUtil.canRead(stream.getSchema(), schema),
+                                    "Incompatible file schema %s, expected %s",
+                                    stream.getSchema(), schema);
+
+                                long written = 0L;
+                                try (DatasetWriter<Record> writer = target.newWriter()) {
+                                    for (Record record : stream) {
+                                        writer.write(record);
+                                        written += 1;
+                                    }
+                                } finally {
+                                    session.adjustCounter("Stored records", written,
+                                        true /* cannot roll back the write */);
+                                }
                             }
-                        } finally {
-                            session.adjustCounter("Stored records", written,
-                                    true /* cannot roll back the write */);
                         }
-                    }
+                    });
+
+                    timer.stop();
+
+                    session.getProvenanceReporter().send(flowFile,
+                        target.getUri().toString(),
+                        timer.getDuration(TimeUnit.MILLISECONDS),
+                        true /* cannot roll back the write */);
+
+                    session.transfer(flowFile, SUCCESS);
+
+                } catch (ProcessException | DatasetIOException e) {
+                    getLogger().error("Failed to read FlowFile", e);
+                    session.transfer(flowFile, FAILURE);
+
+                } catch (ValidationException e) {
+                    getLogger().error(e.getMessage());
+                    getLogger().debug("Incompatible schema error", e);
+                    session.transfer(flowFile, INCOMPATIBLE);
                 }
-            });
-            timer.stop();
-
-            session.getProvenanceReporter().send(flowFile,
-                    target.getUri().toString(),
-                    timer.getDuration(TimeUnit.MILLISECONDS),
-                    true /* cannot roll back the write */);
-
-            session.transfer(flowFile, SUCCESS);
-
-        } catch (ProcessException | DatasetIOException e) {
-            getLogger().error("Failed to read FlowFile", e);
-            session.transfer(flowFile, FAILURE);
-
-        } catch (ValidationException e) {
-            getLogger().error(e.getMessage());
-            getLogger().debug("Incompatible schema error", e);
-            session.transfer(flowFile, INCOMPATIBLE);
-        }
+                return null;
+            }
+        });
     }
 
     private View<Record> load(ProcessContext context, FlowFile file) {
