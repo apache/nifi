@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,7 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.xml", "application/xml");
         expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
         expectedMimeTypes.put("flowfilev1.tar", "application/flowfile-v1");
+        expectedMimeTypes.put("fake.csv", "text/csv");
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", ".7z");
@@ -91,6 +93,7 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.xml", ".xml");
         expectedExtensions.put("flowfilev3", "");
         expectedExtensions.put("flowfilev1.tar", "");
+        expectedExtensions.put("fake.csv", ".csv");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
@@ -104,5 +107,19 @@ public class TestIdentifyMimeType {
             assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
             assertEquals("Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension, expectedExtension, extension);
         }
+    }
+
+    @Test
+    public void testIgnoreFileName() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+        runner.setProperty(IdentifyMimeType.USE_FILENAME_IN_DETECTION, "false");
+
+        runner.enqueue(Paths.get("src/test/resources/TestIdentifyMimeType/fake.csv"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals("mime.extension", ".txt");
+        flowFile.assertAttributeEquals("mime.type", "text/plain");
     }
 }
