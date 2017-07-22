@@ -108,6 +108,85 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotExists("key1");
     }
 
+    @Test
+    public void testFirstMessageInAttribute() throws InterruptedException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(1000L));
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
+        runner.setProperty(MonitorActivity.MESSAGE_DESTINATION, MonitorActivity.DEST_ATTRIBUTE);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        Thread.sleep(1000L);
+
+        runNext(runner);
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
+        runner.clearTransferState();
+
+        // ensure we don't keep creating the message
+        for (int i = 0; i < 10; i++) {
+            runNext(runner);
+            runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+            runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+            runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+            Thread.sleep(100L);
+        }
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "value");
+        attributes.put("key1", "value1");
+
+        runner.enqueue("test", attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+
+        MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        String flowFileContent = new String(restoredFlowFile.toByteArray());
+        Assert.assertEquals("test", flowFileContent);
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes",
+                restoredFlowFile.getAttribute(MonitorActivity.MESSAGE_ATTRIBUTE)));
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+
+        runner.clearTransferState();
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
+        Thread.sleep(200L);
+
+        for (int i = 0; i < 10; i++) {
+            runNext(runner);
+            Thread.sleep(200L);
+        }
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 10);
+        MockFlowFile inactiveFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_INACTIVE).get(0);
+        Assert.assertTrue(Pattern.matches("Lacking activity as of time: (.*); flow has been inactive for (.*) minutes",
+                inactiveFlowFile.getAttribute(MonitorActivity.MESSAGE_ATTRIBUTE)));
+
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        runner.enqueue("test", attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+
+        restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        flowFileContent = new String(restoredFlowFile.toByteArray());
+        Assert.assertEquals("test", flowFileContent);
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes",
+                restoredFlowFile.getAttribute(MonitorActivity.MESSAGE_ATTRIBUTE)));
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+    }
+
     private void runNext(TestRunner runner) {
         // Don't initialize, otherwise @OnScheduled is called and state gets reset
         runner.run(1, false, false);
