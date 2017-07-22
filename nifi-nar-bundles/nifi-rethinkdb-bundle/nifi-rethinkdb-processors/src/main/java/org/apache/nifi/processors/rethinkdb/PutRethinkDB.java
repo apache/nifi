@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -62,15 +63,12 @@ import java.util.Set;
     @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY, description = "First error while inserting documents"),
     @WritesAttribute(attribute = PutRethinkDB.RETHINKDB_INSERT_RESULT_WARNINGS_KEY, description = "Warning message in case of large number of ids being returned on insertion")
     })
-@SeeAlso({GetRethinkDB.class})
+@SeeAlso({GetRethinkDB.class,DeleteRethinkDB.class})
 public class PutRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue CONFLICT_STRATEGY_UPDATE = new AllowableValue("update", "Update", "Update the document having same id with new values");
     public static AllowableValue CONFLICT_STRATEGY_REPLACE = new AllowableValue("replace", "Replace", "Replace the document with having same id new document");
     public static AllowableValue CONFLICT_STRATEGY_ERROR = new AllowableValue("error", "Error", "Return error if the document with same id exists");
-
-    public static AllowableValue DURABILITY_SOFT = new AllowableValue("soft", "Soft", "Don't save document on disk before ack");
-    public static AllowableValue DURABILITY_HARD = new AllowableValue("hard", "Hard", "Save document on disk before ack");
 
     protected static final PropertyDescriptor CONFLICT_STRATEGY = new PropertyDescriptor.Builder()
             .name("rethinkdb-conflict-strategy")
@@ -81,19 +79,6 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
             .allowableValues(CONFLICT_STRATEGY_UPDATE, CONFLICT_STRATEGY_REPLACE, CONFLICT_STRATEGY_ERROR)
             .expressionLanguageSupported(true)
             .build();
-
-    protected static final PropertyDescriptor DURABILITY = new PropertyDescriptor.Builder()
-            .name("rethinkdb-durability")
-            .displayName("Durablity of documents")
-            .description("Durability of documents being inserted")
-            .required(true)
-            .defaultValue("hard")
-            .allowableValues(DURABILITY_HARD, DURABILITY_SOFT)
-            .expressionLanguageSupported(true)
-            .build();
-
-    protected String CONFLICT_OPTION_KEY = "conflict";
-    protected String DURABILITY_OPTION_KEY = "durability";
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
@@ -108,6 +93,8 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
     public static final String RETHINKDB_INSERT_RESULT_UNCHANGED_KEY = "rethinkdb.insert.unchanged";
     public static final String RETHINKDB_INSERT_RESULT_FIRST_ERROR_KEY = "rethinkdb.insert.first_error";
     public static final String RETHINKDB_INSERT_RESULT_WARNINGS_KEY = "rethinkdb.insert.warnings";
+
+    public final String CONFLICT_OPTION_KEY = "conflict";
 
     static {
         final Set<Relationship> tempRelationships = new HashSet<>();
@@ -141,6 +128,7 @@ public class PutRethinkDB extends AbstractRethinkDBProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        maxDocumentsSize = context.getProperty(MAX_DOCUMENTS_SIZE).asDataSize(DataUnit.B).longValue();
         super.onScheduled(context);
     }
 

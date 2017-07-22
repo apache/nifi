@@ -24,14 +24,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.net.Connection;
 
 import net.minidev.json.JSONObject;
 
@@ -42,29 +40,13 @@ import net.minidev.json.JSONObject;
  * test accordingly.
  */
 @Ignore("Comment this out for running tests against a real instance of RethinkDB")
-public class ITGetRethinkDBTest {
-
-    private TestRunner runner;
-    private Connection connection;
-    private String dbName = "test";
-    private String dbHost = "localhost";
-    private String dbPort = "28015";
-    private String user = "admin";
-    private String password = "admin";
-    private String table = "test";
+public class ITGetRethinkDBTest extends ITAbstractRethinkDBTest {
 
     @Before
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(GetRethinkDB.class);
-        runner.setProperty(AbstractRethinkDBProcessor.DB_NAME, dbName);
-        runner.setProperty(AbstractRethinkDBProcessor.DB_HOST, dbHost);
-        runner.setProperty(AbstractRethinkDBProcessor.DB_PORT, dbPort);
-        runner.setProperty(AbstractRethinkDBProcessor.USERNAME, user);
-        runner.setProperty(AbstractRethinkDBProcessor.PASSWORD, password);
-        runner.setProperty(AbstractRethinkDBProcessor.TABLE_NAME, table);
-        runner.setProperty(AbstractRethinkDBProcessor.CHARSET, "UTF-8");
-
-        connection = RethinkDB.r.connection().user(user, password).db(dbName).hostname(dbHost).port(Integer.parseInt(dbPort)).connect();
+        super.setUp();
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 KB");
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 0L, count);
@@ -72,9 +54,7 @@ public class ITGetRethinkDBTest {
 
     @After
     public void tearDown() throws Exception {
-        runner = null;
-        connection.close();
-        connection = null;
+        super.tearDown();
     }
 
     @Test
@@ -88,6 +68,7 @@ public class ITGetRethinkDBTest {
         assertEquals("Count should be same", 1L, count);
 
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
+        runner.assertValid();
 
         Map<String, String> props = new HashMap<>();
         props.put("rethinkdb.id","1");
@@ -114,6 +95,7 @@ public class ITGetRethinkDBTest {
         assertEquals("Count should be same", 1L, count);
 
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "${rethinkdb.id}");
+        runner.assertValid();
 
         Map<String, String> props = new HashMap<>();
         props.put("rethinkdb.id", String.valueOf(System.currentTimeMillis()));
@@ -139,6 +121,7 @@ public class ITGetRethinkDBTest {
         assertEquals("Count should be same", 1, count);
 
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "2");
+        runner.assertValid();
 
         Map<String, String> props = new HashMap<>();
 
@@ -165,6 +148,7 @@ public class ITGetRethinkDBTest {
 
         runner.setProperty(GetRethinkDB.RETHINKDB_DOCUMENT_ID, "2");
         runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "2B");
+        runner.assertValid();
 
         Map<String, String> props = new HashMap<>();
 

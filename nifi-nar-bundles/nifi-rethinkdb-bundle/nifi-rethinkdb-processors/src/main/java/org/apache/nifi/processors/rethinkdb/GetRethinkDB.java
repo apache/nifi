@@ -28,13 +28,12 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import com.google.gson.Gson;
 
@@ -54,10 +53,9 @@ import java.util.Set;
 @WritesAttributes({
     @WritesAttribute(attribute = GetRethinkDB.RETHINKDB_ERROR_MESSAGE, description = "RethinkDB error message"),
     })
-@SeeAlso({PutRethinkDB.class})
+@SeeAlso({PutRethinkDB.class,DeleteRethinkDB.class})
 public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
-    public static final String DOCUMENT_ID_EMPTY_MESSAGE = "Document Id cannot be empty";
     public static AllowableValue READ_MODE_SINGLE = new AllowableValue("single", "Single", "Read values from memory from primary replica (Default)");
     public static AllowableValue READ_MODE_MAJORITY = new AllowableValue("majority", "Majority", "Read values committed to disk on majority of replicas");
     public static AllowableValue READ_MODE_OUTDATED = new AllowableValue("outdated", "Outdated", "Read values from memory from an arbitrary replica ");
@@ -69,16 +67,6 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
             .required(true)
             .defaultValue(READ_MODE_SINGLE.getValue())
             .allowableValues(READ_MODE_SINGLE, READ_MODE_MAJORITY, READ_MODE_OUTDATED)
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor RETHINKDB_DOCUMENT_ID = new PropertyDescriptor.Builder()
-            .displayName("Document Identifier")
-            .name("rethinkdb-document-identifier")
-            .description("A FlowFile attribute, or attribute expression used " +
-                "for determining RethinkDB key for the Flow File content")
-            .required(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
             .expressionLanguageSupported(true)
             .build();
 
@@ -122,6 +110,7 @@ public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        maxDocumentsSize = context.getProperty(MAX_DOCUMENTS_SIZE).asDataSize(DataUnit.B).longValue();
         super.onScheduled(context);
     }
 

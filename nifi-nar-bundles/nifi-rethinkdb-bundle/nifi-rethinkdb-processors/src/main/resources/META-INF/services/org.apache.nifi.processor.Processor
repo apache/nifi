@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.rethinkdb.PutRethinkDB
 org.apache.nifi.processors.rethinkdb.GetRethinkDB
+org.apache.nifi.processors.rethinkdb.DeleteRethinkDB
