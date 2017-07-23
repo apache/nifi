@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -80,6 +81,8 @@ import org.apache.nifi.util.Tuple;
     + "that match will be updated. If there is no match in the configured LookupService, then no fields will be updated. I.e., it will not overwrite an existing value in the Record "
     + "with a null value. Please note, however, that if the results returned by the LookupService are not accounted for in your schema (specifically, "
     + "the schema that is configured for your Record Writer) then the fields will not be written out to the FlowFile.")
+@DynamicProperty(name = "Value To Lookup", value = "Valid Record Path", supportsExpressionLanguage = true, description = "A RecordPath that points to the field whose value will be "
+    + "looked up in the configured Lookup Service")
 @SeeAlso(value = {ConvertRecord.class, SplitRecord.class}, classNames = {"org.apache.nifi.lookup.SimpleKeyValueLookupService", "org.apache.nifi.lookup.maxmind.IPLookupService"})
 public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPath>, RecordPath>> {
 
