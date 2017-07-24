@@ -447,6 +447,19 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
+
+        // if the configured protocol isn't supported by Jetty, throw an exception
+        final String[] excludeProtocols = sslFactory.getExcludeProtocols();
+        if (excludeProtocols != null) {
+            for (final String protocol : excludeProtocols) {
+                if (protocol.equals(sslService.getSslAlgorithm())) {
+                    final IllegalArgumentException e = new IllegalArgumentException("The configured SSL Protocol '" + sslService.getSslAlgorithm()
+                            + "' is not supported by this processor. Please choose another.");
+                    getLogger().error("Failed to start HandleHttpRequest.", e);
+                    throw e;
+                }
+            }
+        }
         sslFactory.setProtocol(sslService.getSslAlgorithm());
 
         if (sslService.isKeyStoreConfigured()) {
