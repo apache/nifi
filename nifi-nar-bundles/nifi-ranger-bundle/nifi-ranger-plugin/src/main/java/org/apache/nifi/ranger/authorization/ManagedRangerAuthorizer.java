@@ -18,11 +18,13 @@
  */
 package org.apache.nifi.ranger.authorization;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.AccessPolicyProviderInitializationContext;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
+import org.apache.nifi.authorization.ConfigurableUserGroupProvider;
 import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserGroupProvider;
@@ -31,12 +33,31 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements ManagedAuthorizer {
 
-    private static final String MANAGED_RANGER_FINGERPRINT = "managed-ranger-fingerprint";
+    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
+
+    private static final String USER_GROUP_PROVIDER_ELEMENT = "userGroupProvider";
 
     private UserGroupProviderLookup userGroupProviderLookup;
     private UserGroupProvider userGroupProvider;
@@ -108,14 +129,77 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
 
     @Override
     public String getFingerprint() throws AuthorizationAccessException {
-        return MANAGED_RANGER_FINGERPRINT;
+        final StringWriter out = new StringWriter();
+        try {
+            // create the document
+            final DocumentBuilder documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final Document document = documentBuilder.newDocument();
+
+            // create the root element
+            final Element managedRangerAuthorizationsElement = document.createElement("managedRangerAuthorizations");
+            document.appendChild(managedRangerAuthorizationsElement);
+
+            // create the user group provider element
+            final Element userGroupProviderElement = document.createElement(USER_GROUP_PROVIDER_ELEMENT);
+            managedRangerAuthorizationsElement.appendChild(userGroupProviderElement);
+
+            // append fingerprint if the provider is configurable
+            if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
+                userGroupProviderElement.appendChild(document.createTextNode(((ConfigurableUserGroupProvider) userGroupProvider).getFingerprint()));
+            }
+
+            final Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.transform(new DOMSource(document), new StreamResult(out));
+        } catch (ParserConfigurationException | TransformerException e) {
+            throw new AuthorizationAccessException("Unable to generate fingerprint", e);
+        }
+
+        return out.toString();
     }
 
     @Override
     public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+        if (StringUtils.isBlank(fingerprint)) {
+            return;
+        }
+
+        final String userGroupFingerprint = parseFingerprint(fingerprint);
+
+        if (StringUtils.isNotBlank(userGroupFingerprint) && userGroupProvider instanceof ConfigurableUserGroupProvider) {
+            ((ConfigurableUserGroupProvider) userGroupProvider).inheritFingerprint(userGroupFingerprint);
+        }
     }
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+        final String userGroupFingerprint = parseFingerprint(proposedFingerprint);
+
+        if (StringUtils.isNotBlank(userGroupFingerprint)) {
+            if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
+                ((ConfigurableUserGroupProvider) userGroupProvider).checkInheritability(userGroupFingerprint);
+            } else {
+                throw new UninheritableAuthorizationsException("User/Group fingerprint is not blank and the configured UserGroupProvider does not support fingerprinting.");
+            }
+        }
+    }
+
+    private final String parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
+
+        try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
+            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final Document document = docBuilder.parse(in);
+            final Element rootElement = document.getDocumentElement();
+
+            final NodeList userGroupProviderList = rootElement.getElementsByTagName(USER_GROUP_PROVIDER_ELEMENT);
+            if (userGroupProviderList.getLength() != 1) {
+                throw new AuthorizationAccessException(String.format("Only one %s element is allowed: %s", USER_GROUP_PROVIDER_ELEMENT, fingerprint));
+            }
+
+            final Node userGroupProvider = userGroupProviderList.item(0);
+            return userGroupProvider.getTextContent();
+        } catch (SAXException | ParserConfigurationException | IOException e) {
+            throw new AuthorizationAccessException("Unable to parse fingerprint", e);
+        }
     }
 }
