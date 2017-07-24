@@ -225,7 +225,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        return UserGroupProviderFactory.withNarLoader(instance);
+        return UserGroupProviderFactory.withNarLoader(instance, userGroupProviderClassLoader);
     }
 
     private AccessPolicyProvider createAccessPolicyProvider(final String identifier, final String accessPolicyProviderClassName) throws Exception {
@@ -273,7 +273,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        return AccessPolicyProviderFactory.withNarLoader(instance);
+        return AccessPolicyProviderFactory.withNarLoader(instance, accessPolicyProviderClassLoader);
     }
 
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName, final String classpathResources) throws Exception {
@@ -321,12 +321,12 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        if(StringUtils.isNotEmpty(classpathResources)) {
+        if (StringUtils.isNotEmpty(classpathResources)) {
             URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
             authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
-        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance,authorizerClassLoader));
+        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance, authorizerClassLoader));
     }
 
     private AuthorizerConfigurationContext loadAuthorizerConfiguration(final String identifier, final List<Property> properties) {

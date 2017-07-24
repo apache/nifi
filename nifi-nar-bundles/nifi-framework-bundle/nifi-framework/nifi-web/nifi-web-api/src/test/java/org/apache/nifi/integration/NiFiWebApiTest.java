@@ -84,6 +84,7 @@ public class NiFiWebApiTest {
         processorEntity = response.getEntity(ProcessorEntity.class);
         processorDTO = processorEntity.getComponent();
         String localSelectionId = processorDTO.getId();
+        String localSelectionGroupId = processorDTO.getParentGroupId();
 
         // -----------------------------------------------
         // Create a termination processor
@@ -114,6 +115,7 @@ public class NiFiWebApiTest {
         processorEntity = response.getEntity(ProcessorEntity.class);
         processorDTO = processorEntity.getComponent();
         String terminationId = processorDTO.getId();
+        String terminationGroupId = processorDTO.getParentGroupId();
 
         // -----------------------------------------------
         // Connect the two processors
@@ -121,10 +123,12 @@ public class NiFiWebApiTest {
 
         ConnectableDTO source = new ConnectableDTO();
         source.setId(localSelectionId);
+        source.setGroupId(localSelectionGroupId);
         source.setType(ConnectableType.PROCESSOR.name());
 
         ConnectableDTO target = new ConnectableDTO();
         target.setId(terminationId);
+        target.setGroupId(terminationGroupId);
         target.setType(ConnectableType.PROCESSOR.name());
 
         // create the relationships

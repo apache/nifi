@@ -358,11 +358,13 @@ public class ITConnectionAccessControl {
         // create the source connectable
         ConnectableDTO source = new ConnectableDTO();
         source.setId(one.getId());
+        source.setGroupId(one.getComponent().getParentGroupId());
         source.setType(ConnectableType.PROCESSOR.name());
 
         // create the target connectable
         ConnectableDTO target = new ConnectableDTO();
         target.setId(two.getId());
+        target.setGroupId(two.getComponent().getParentGroupId());
         target.setType(ConnectableType.PROCESSOR.name());
 
         // create the relationships

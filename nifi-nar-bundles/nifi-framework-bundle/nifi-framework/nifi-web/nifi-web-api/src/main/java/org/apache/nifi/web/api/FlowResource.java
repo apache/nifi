@@ -24,15 +24,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
@@ -204,31 +198,10 @@ public class FlowResource extends ApplicationResource {
      * Authorizes access to the flow.
      */
     private void authorizeFlow() {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getFlowResource())
-                .identity(user.getIdentity())
-                .groups(user.getGroups())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.READ)
-                .userContext(userContext)
-                .explanationSupplier(() -> "Unable to view the user interface.")
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable flow = lookup.getFlow();
+            flow.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     // ----
@@ -2225,29 +2198,8 @@ public class FlowResource extends ApplicationResource {
             }
 
             // a component for the specified id could not be found, attempt to authorize based on read to the controller
-            final Map<String, String> userContext;
-            if (!StringUtils.isBlank(user.getClientAddress())) {
-                userContext = new HashMap<>();
-                userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-            } else {
-                userContext = null;
-            }
-
-            final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                    .resource(ResourceFactory.getControllerResource())
-                    .identity(user.getIdentity())
-                    .groups(user.getGroups())
-                    .anonymous(user.isAnonymous())
-                    .accessAttempt(true)
-                    .action(RequestAction.READ)
-                    .userContext(userContext)
-                    .explanationSupplier(() -> String.format("Unable to find component with id '%s' and unable to view the controller.", componentId))
-                    .build();
-
-            final AuthorizationResult result = authorizer.authorize(request);
-            if (!Result.Approved.equals(result.getResult())) {
-                throw new AccessDeniedException(result.getExplanation());
-            }
+            final Authorizable controller = lookup.getController();
+            controller.authorize(authorizer, RequestAction.READ, user);
         });
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently

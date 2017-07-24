@@ -27,11 +27,13 @@ import java.util.stream.Collectors;
 /**
  * Mock implementation of AbstractPolicyBasedAuthorizer.
  */
-public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
+public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer implements AuthorizationAuditor {
 
     private Set<Group> groups = new HashSet<>();
     private Set<User> users = new HashSet<>();
     private Set<AccessPolicy> policies = new HashSet<>();
+
+    private Set<AuthorizationRequest> audited = new HashSet();
 
     public MockPolicyBasedAuthorizer() {
 
@@ -143,7 +145,9 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
         return new UsersAndAccessPolicies() {
             @Override
             public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) {
-                return null;
+                return policies.stream()
+                        .filter(policy -> policy.getResource().equals(resourceIdentifier) && policy.getAction().equals(action))
+                        .findFirst().orElse(null);
             }
 
             @Override
@@ -163,6 +167,15 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
                 }
             }
         };
+    }
+
+    @Override
+    public void auditAccessAttempt(AuthorizationRequest request, AuthorizationResult result) {
+        audited.add(request);
+    }
+
+    public boolean isAudited(AuthorizationRequest request) {
+        return audited.contains(request);
     }
 
     @Override
