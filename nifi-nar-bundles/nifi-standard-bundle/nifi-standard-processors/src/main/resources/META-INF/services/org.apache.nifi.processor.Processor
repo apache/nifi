@@ -35,6 +35,7 @@ org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FetchFile
 org.apache.nifi.processors.standard.FlattenJson
+org.apache.nifi.processors.standard.ForkRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
