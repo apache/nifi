@@ -33,7 +33,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -110,8 +109,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
-    public static final String INTIIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
-
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -175,18 +172,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
-    }
-
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
-                .dynamic(true)
-                .build();
     }
 
     @OnScheduled
@@ -415,23 +400,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         }
 
         return query.toString();
-    }
-
-
-    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
-        final Map<String,String> defaultMaxValues = new HashMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            final String key = entry.getKey().getName();
-
-            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) {
-                continue;
-            }
-
-            defaultMaxValues.put(key.substring(INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
-        }
-
-        return defaultMaxValues;
     }
 
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
