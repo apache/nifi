@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -81,6 +82,8 @@ import static java.sql.Types.VARCHAR;
  * A base class for common code shared by processors that fetch RDBMS data.
  */
 public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFactoryProcessor {
+
+    public static final String INITIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -165,6 +168,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 
+    // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
+    protected Map<String,String> maxValueProperties;
+
     static {
         // Load the DatabaseAdapters
         ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
@@ -182,6 +188,18 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
                 .defaultValue("Generic")
                 .required(true)
+                .build();
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
                 .build();
     }
 
@@ -423,5 +441,21 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             sb.append(columnName.toLowerCase());
         }
         return sb.toString();
+    }
+
+    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
+        final Map<String,String> defaultMaxValues = new HashMap<>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final String key = entry.getKey().getName();
+
+            if(!key.startsWith(INITIAL_MAX_VALUE_PROP_START)) {
+                continue;
+            }
+
+            defaultMaxValues.put(key.substring(INITIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
+        }
+
+        return defaultMaxValues;
     }
 }
