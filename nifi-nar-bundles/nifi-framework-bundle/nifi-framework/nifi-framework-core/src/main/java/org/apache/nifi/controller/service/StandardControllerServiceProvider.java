@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
@@ -62,7 +63,9 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
@@ -148,8 +151,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, serviceLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, serviceLogger);
 
+            final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                    id, validationContextFactory, this, variableRegistry, flowController);
+                    id, validationContextFactory, this, componentVarRegistry, flowController);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
@@ -226,8 +230,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
 
+        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
-                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, flowController, true);
+                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController, true);
 
         serviceCache.putIfAbsent(id, serviceNode);
         return serviceNode;
@@ -235,9 +240,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
-        // Get a list of all Controller Services that need to be disabled, in the order that they need to be
-        // disabled.
-        final List<ControllerServiceNode> toDisable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+        // Get a list of all Controller Services that need to be disabled, in the order that they need to be disabled.
+        final List<ControllerServiceNode> toDisable = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
 
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
@@ -258,8 +262,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Set<ConfiguredComponent> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
-        final List<ProcessorNode> processors = findRecursiveReferences(serviceNode, ProcessorNode.class);
-        final List<ReportingTaskNode> reportingTasks = findRecursiveReferences(serviceNode, ReportingTaskNode.class);
+        final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
+        final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
         final Set<ConfiguredComponent> updated = new HashSet<>();
 
@@ -298,8 +302,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Set<ConfiguredComponent> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
-        final List<ProcessorNode> processors = findRecursiveReferences(serviceNode, ProcessorNode.class);
-        final List<ReportingTaskNode> reportingTasks = findRecursiveReferences(serviceNode, ReportingTaskNode.class);
+        final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
+        final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
         final Set<ConfiguredComponent> updated = new HashSet<>();
 
@@ -333,7 +337,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Future<Void> enableControllerService(final ControllerServiceNode serviceNode) {
+    public CompletableFuture<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanEnable();
         return processScheduler.enableControllerService(serviceNode);
     }
@@ -450,9 +454,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void disableControllerService(final ControllerServiceNode serviceNode) {
+    public CompletableFuture<Void> disableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanDisable();
-        processScheduler.disableControllerService(serviceNode);
+        return processScheduler.disableControllerService(serviceNode);
     }
 
     @Override
@@ -589,43 +593,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return allServices;
     }
 
-    /**
-     * Returns a List of all components that reference the given referencedNode
-     * (either directly or indirectly through another service) that are also of
-     * the given componentType. The list that is returned is in the order in
-     * which they will need to be 'activated' (enabled/started).
-     *
-     * @param referencedNode node
-     * @param componentType type
-     * @return list of components
-     */
-    private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType) {
-        final List<T> references = new ArrayList<>();
-
-        for (final ConfiguredComponent referencingComponent : referencedNode.getReferences().getReferencingComponents()) {
-            if (componentType.isAssignableFrom(referencingComponent.getClass())) {
-                references.add(componentType.cast(referencingComponent));
-            }
-
-            if (referencingComponent instanceof ControllerServiceNode) {
-                final ControllerServiceNode referencingNode = (ControllerServiceNode) referencingComponent;
-
-                // find components recursively that depend on referencingNode.
-                final List<T> recursive = findRecursiveReferences(referencingNode, componentType);
-
-                // For anything that depends on referencing node, we want to add it to the list, but we know
-                // that it must come after the referencing node, so we first remove any existing occurrence.
-                references.removeAll(recursive);
-                references.addAll(recursive);
-            }
-        }
-
-        return references;
-    }
 
     @Override
     public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
-        final List<ControllerServiceNode> recursiveReferences = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+        final List<ControllerServiceNode> recursiveReferences = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
         logger.debug("Enabling the following Referencing Services for {}: {}", serviceNode, recursiveReferences);
         return enableReferencingServices(serviceNode, recursiveReferences);
     }
@@ -658,7 +629,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void verifyCanEnableReferencingServices(final ControllerServiceNode serviceNode) {
-        final List<ControllerServiceNode> referencingServices = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+        final List<ControllerServiceNode> referencingServices = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
         final Set<ControllerServiceNode> referencingServiceSet = new HashSet<>(referencingServices);
 
         for (final ControllerServiceNode referencingService : referencingServices) {
@@ -668,9 +639,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void verifyCanScheduleReferencingComponents(final ControllerServiceNode serviceNode) {
-        final List<ControllerServiceNode> referencingServices = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
-        final List<ReportingTaskNode> referencingReportingTasks = findRecursiveReferences(serviceNode, ReportingTaskNode.class);
-        final List<ProcessorNode> referencingProcessors = findRecursiveReferences(serviceNode, ProcessorNode.class);
+        final List<ControllerServiceNode> referencingServices = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
+        final List<ReportingTaskNode> referencingReportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
+        final List<ProcessorNode> referencingProcessors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
 
         final Set<ControllerServiceNode> referencingServiceSet = new HashSet<>(referencingServices);
 
@@ -689,9 +660,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void verifyCanDisableReferencingServices(final ControllerServiceNode serviceNode) {
-        // Get a list of all Controller Services that need to be disabled, in the order that they need to be
-        // disabled.
-        final List<ControllerServiceNode> toDisable = findRecursiveReferences(serviceNode, ControllerServiceNode.class);
+        // Get a list of all Controller Services that need to be disabled, in the order that they need to be disabled.
+        final List<ControllerServiceNode> toDisable = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
         for (final ControllerServiceNode nodeToDisable : toDisable) {

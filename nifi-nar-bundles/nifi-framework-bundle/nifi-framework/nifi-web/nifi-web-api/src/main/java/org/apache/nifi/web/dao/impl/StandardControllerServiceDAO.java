@@ -124,7 +124,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public Set<ControllerServiceNode> getControllerServices(final String groupId) {
+    public Set<ControllerServiceNode> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups) {
         if (groupId == null) {
             return flowController.getRootControllerServices();
         } else {
@@ -134,7 +134,12 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
             }
 
-            return procGroup.getControllerServices(true);
+            final Set<ControllerServiceNode> serviceNodes = procGroup.getControllerServices(includeAncestorGroups);
+            if (includeDescendantGroups) {
+                serviceNodes.addAll(procGroup.findAllControllerServices());
+            }
+
+            return serviceNodes;
         }
     }
 

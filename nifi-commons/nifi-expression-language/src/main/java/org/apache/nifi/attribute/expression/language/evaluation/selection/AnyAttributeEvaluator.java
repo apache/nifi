@@ -70,4 +70,8 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     public Evaluator<Boolean> getLogicEvaluator() {
         return booleanEvaluator;
     }
+
+    public MultiAttributeEvaluator getVariableIteratingEvaluator() {
+        return multiAttributeEvaluator;
+    }
 }

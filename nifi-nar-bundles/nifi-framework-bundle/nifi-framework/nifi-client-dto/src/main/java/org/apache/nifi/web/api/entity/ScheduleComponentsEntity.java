@@ -16,17 +16,21 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.RevisionDTO;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Map;
+
+import org.apache.nifi.web.api.dto.RevisionDTO;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
  */
 @XmlRootElement(name = "scheduleComponentEntity")
 public class ScheduleComponentsEntity extends Entity {
+    public static final String STATE_RUNNING = "RUNNING";
+    public static final String STATE_STOPPED = "STOPPED";
 
     private String id;
     private String state;
@@ -51,7 +55,7 @@ public class ScheduleComponentsEntity extends Entity {
      */
     @ApiModelProperty(
         value = "The desired state of the descendant components",
-        allowableValues = "RUNNING, STOPPED"
+        allowableValues = STATE_RUNNING + ", " + STATE_STOPPED
     )
     public String getState() {
         return state;
