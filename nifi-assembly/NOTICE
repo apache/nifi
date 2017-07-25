@@ -156,6 +156,11 @@ The following binary components are provided under the Apache Software License v
       This project contains annotations derived from JCIP-ANNOTATIONS
       Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
 
+  (ASLv2) Apache Oltu
+    The following NOTICE information applies:
+     Apache Oltu
+     Copyright 2010-2013 The Apache Software Foundation
+
   (ASLv2) Apache Jakarta HttpClient
     The following NOTICE information applies:
       Apache Jakarta HttpClient

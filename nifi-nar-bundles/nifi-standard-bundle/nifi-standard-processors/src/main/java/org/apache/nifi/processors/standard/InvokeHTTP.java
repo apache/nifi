@@ -31,6 +31,37 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.internal.tls.OkHostnameVerifier;
 import okio.BufferedSink;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Proxy.Type;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -49,6 +80,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth.OAuth2ClientService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -63,7 +95,6 @@ import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -140,7 +171,6 @@ public final class InvokeHTTP extends AbstractProcessor {
     public final static String REMOTE_DN = "invokehttp.remote.dn";
     public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
     public final static String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
-
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
@@ -393,6 +423,13 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_OAUTH_CLIENT_SERVICE = new PropertyDescriptor.Builder()
+            .name("OAuth2 Controller Service")
+            .description("The OAuth2 controller service which contains the valid credentials for this processor to use.")
+            .required(false)
+            .identifiesControllerService(OAuth2ClientService.class)
+            .build();
+
     public static final PropertyDescriptor PROP_USE_ETAG = new PropertyDescriptor.Builder()
             .name("use-etag")
             .description("Enable HTTP entity tag (ETag) support for HTTP requests.")
@@ -438,7 +475,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY,
             PROP_USE_ETAG,
-            PROP_ETAG_MAX_CACHE_SIZE));
+            PROP_ETAG_MAX_CACHE_SIZE,
+            PROP_OAUTH_CLIENT_SERVICE));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -938,8 +976,28 @@ public final class InvokeHTTP extends AbstractProcessor {
         requestBuilder = requestBuilder.url(url);
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
 
-        // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
+        // Handle OAuth2 authentication if configured.
+        if (context.getProperty(PROP_OAUTH_CLIENT_SERVICE).isSet()) {
+            OAuth2ClientService oaCs =
+                    context.getProperty(PROP_OAUTH_CLIENT_SERVICE).asControllerService(OAuth2ClientService.class);
+
+            String accessToken = null;
+            if (!oaCs.isOAuthTokenExpired()) {
+                accessToken = oaCs.getAccessToken();
+            } else {
+                // Attempt a re-authentication.
+                boolean authenticationSucceded = oaCs.authenticate();
+                if (authenticationSucceded) {
+                    accessToken = oaCs.getAccessToken();
+                }
+            }
+
+            if (accessToken != null) {
+                String oauthAccessToken = "Bearer " + accessToken;
+                requestBuilder = requestBuilder.header("Authorization", oauthAccessToken);
+            }
+
+        } else if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
             final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
             String credential = Credentials.basic(authUser, authPass);

@@ -58,14 +58,14 @@
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
         <module>nifi-amqp-bundle</module>
-	<module>nifi-splunk-bundle</module>
+	    <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-lumberjack-bundle</module>
         <module>nifi-beats-bundle</module>
         <module>nifi-cassandra-bundle</module>
         <module>nifi-spring-bundle</module>
         <module>nifi-hive-bundle</module>
-	<module>nifi-site-to-site-reporting-bundle</module>
+	    <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
         <module>nifi-slack-bundle</module>
@@ -93,6 +93,7 @@
         <module>nifi-spark-bundle</module>
         <module>nifi-atlas-bundle</module>
         <module>nifi-druid-bundle</module>
+        <module>nifi-oauth-bundle</module>
   </modules>
 
     <build>
@@ -115,7 +116,7 @@
                     <doUpdate>false</doUpdate>
                     <shortRevisionLength>7</shortRevisionLength>
                     <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
-                    <revisionOnScmFailure />
+                    <revisionOnScmFailure/>
                     <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
                     <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
                 </configuration>
@@ -134,8 +135,8 @@
                 </file>
             </activation>
             <properties>
-                <buildRevision />
-                <buildBranch />
+                <buildRevision/>
+                <buildBranch/>
             </properties>
         </profile>
         <profile>
