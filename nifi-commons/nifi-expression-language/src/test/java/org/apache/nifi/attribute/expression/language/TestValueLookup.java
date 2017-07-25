@@ -25,12 +25,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 
-/**
- *
- */
 public class TestValueLookup {
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testCreateCustomVariableRegistry() {
 
         final VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;

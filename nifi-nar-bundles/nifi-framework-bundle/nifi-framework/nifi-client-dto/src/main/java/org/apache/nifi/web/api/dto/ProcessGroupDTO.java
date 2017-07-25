@@ -17,6 +17,9 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import java.util.Map;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -27,6 +30,7 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
+    private Map<String, String> variables;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -200,4 +204,13 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
+
+    @ApiModelProperty("The variables that are configured for the Process Group")
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(final Map<String, String> variables) {
+        this.variables = variables;
+    }
 }

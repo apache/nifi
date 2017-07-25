@@ -28,7 +28,7 @@ import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.util.FileBasedVariableRegistry;
+import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;

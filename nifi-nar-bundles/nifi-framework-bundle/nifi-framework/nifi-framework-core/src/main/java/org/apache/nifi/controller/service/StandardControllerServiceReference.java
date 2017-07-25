@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.controller.ConfiguredComponent;
@@ -101,4 +103,35 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
 
         return references;
     }
+
+
+    @Override
+    public <T> List<T> findRecursiveReferences(final Class<T> componentType) {
+        return findRecursiveReferences(referenced, componentType);
+    }
+
+    private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType) {
+        final List<T> references = new ArrayList<>();
+
+        for (final ConfiguredComponent referencingComponent : referencedNode.getReferences().getReferencingComponents()) {
+            if (componentType.isAssignableFrom(referencingComponent.getClass())) {
+                references.add(componentType.cast(referencingComponent));
+            }
+
+            if (referencingComponent instanceof ControllerServiceNode) {
+                final ControllerServiceNode referencingNode = (ControllerServiceNode) referencingComponent;
+
+                // find components recursively that depend on referencingNode.
+                final List<T> recursive = findRecursiveReferences(referencingNode, componentType);
+
+                // For anything that depends on referencing node, we want to add it to the list, but we know
+                // that it must come after the referencing node, so we first remove any existing occurrence.
+                references.removeAll(recursive);
+                references.addAll(recursive);
+            }
+        }
+
+        return references;
+    }
+
 }

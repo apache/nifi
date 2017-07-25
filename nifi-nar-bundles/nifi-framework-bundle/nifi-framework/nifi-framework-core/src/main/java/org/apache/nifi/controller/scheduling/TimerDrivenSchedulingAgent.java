@@ -37,7 +37,6 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -51,7 +50,6 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
     private final StringEncryptor encryptor;
-    private final VariableRegistry variableRegistry;
 
     private volatile String adminYieldDuration = "1 sec";
 
@@ -60,13 +58,11 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
             final FlowEngine flowEngine,
             final ProcessContextFactory contextFactory,
             final StringEncryptor encryptor,
-            final VariableRegistry variableRegistry,
             final NiFiProperties nifiProperties) {
         super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
         this.encryptor = encryptor;
-        this.variableRegistry = variableRegistry;
 
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
         try {
@@ -109,7 +105,7 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
             // Determine the task to run and create it.
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()), variableRegistry);
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()));
                 final ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController,
                         contextFactory, scheduleState, standardProcContext);
 

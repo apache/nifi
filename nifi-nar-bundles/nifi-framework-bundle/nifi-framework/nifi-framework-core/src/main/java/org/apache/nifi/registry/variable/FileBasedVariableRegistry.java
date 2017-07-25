@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.util;
+package org.apache.nifi.registry.variable;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -76,13 +76,14 @@ public class FileBasedVariableRegistry implements VariableRegistry {
         } catch (final IOException ioe) {
             LOG.error("Unable to complete variable registry loading from files due to ", ioe);
         }
+
         LOG.info("Loaded a total of {} properties.  Including precedence overrides effective accessible registry key size is {}", totalPropertiesLoaded, newMap.size());
-        map = newMap;
+        map = Collections.unmodifiableMap(newMap);
     }
 
     @Override
     public Map<VariableDescriptor, String> getVariableMap() {
-        return Collections.unmodifiableMap(map);
+        return map;
     }
 
 }

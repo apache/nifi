@@ -19,7 +19,7 @@ package org.apache.nifi.controller.service;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -72,7 +72,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param serviceNode the service node
      * @return a Future that can be used to wait for the service to finish being enabled.
      */
-    Future<Void> enableControllerService(ControllerServiceNode serviceNode);
+    CompletableFuture<Void> enableControllerService(ControllerServiceNode serviceNode);
 
     /**
      * Enables the collection of services. If a service in this collection
@@ -90,7 +90,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    void disableControllerService(ControllerServiceNode serviceNode);
+    CompletableFuture<Void> disableControllerService(ControllerServiceNode serviceNode);
 
     /**
      * @return a Set of all Controller Services that exist for this service

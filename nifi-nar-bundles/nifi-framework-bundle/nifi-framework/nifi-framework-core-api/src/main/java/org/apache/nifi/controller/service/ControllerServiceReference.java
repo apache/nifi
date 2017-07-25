@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.controller.ConfiguredComponent;
@@ -43,4 +44,13 @@ public interface ControllerServiceReference {
      * Controller Services)
      */
     Set<ConfiguredComponent> getActiveReferences();
+
+    /**
+     * Returns a List of all components that reference this Controller Service (recursively) that
+     * are of the given type
+     *
+     * @param componentType the type of component that is desirable
+     * @return a List of all components that reference this Controller Service that are of the given type
+     */
+    <T> List<T> findRecursiveReferences(Class<T> componentType);
 }

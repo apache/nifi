@@ -70,4 +70,8 @@ public class AllAttributesEvaluator extends BooleanEvaluator implements Iteratin
     public Evaluator<?> getLogicEvaluator() {
         return booleanEvaluator;
     }
+
+    public MultiAttributeEvaluator getVariableIteratingEvaluator() {
+        return multiAttributeEvaluator;
+    }
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
@@ -41,7 +42,7 @@ public interface ProcessScheduler {
      * @param procNode to start
      * @throws IllegalStateException if the Processor is disabled
      */
-    void startProcessor(ProcessorNode procNode);
+    Future<Void> startProcessor(ProcessorNode procNode);
 
     /**
      * Stops scheduling the given processor to run and invokes all methods on
@@ -52,7 +53,7 @@ public interface ProcessScheduler {
      *
      * @param procNode to stop
      */
-    void stopProcessor(ProcessorNode procNode);
+    Future<Void> stopProcessor(ProcessorNode procNode);
 
     /**
      * Starts scheduling the given Port to run. If the Port is already scheduled
@@ -169,12 +170,12 @@ public interface ProcessScheduler {
      * Disables all of the given Controller Services in the order provided by the List
      * @param services the controller services to disable
      */
-    void disableControllerServices(List<ControllerServiceNode> services);
+    CompletableFuture<Void> disableControllerServices(List<ControllerServiceNode> services);
 
     /**
      * Disables the Controller Service so that it can be updated
      *
      * @param service to disable
      */
-    void disableControllerService(ControllerServiceNode service);
+    CompletableFuture<Void> disableControllerService(ControllerServiceNode service);
 }

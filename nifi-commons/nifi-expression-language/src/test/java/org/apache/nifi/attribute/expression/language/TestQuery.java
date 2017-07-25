@@ -19,11 +19,11 @@ package org.apache.nifi.attribute.expression.language;
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -47,14 +48,10 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.antlr.runtime.tree.Tree;
-
 import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Assert;
-
 import org.junit.Ignore;
 import org.junit.Test;
-
 import org.mockito.Mockito;
 
 public class TestQuery {
@@ -304,7 +301,7 @@ public class TestQuery {
 
     @Test(expected = AttributeExpressionLanguageException.class)
     public void testCannotCombineWithNonReducingFunction() {
-        Query.compileTree("${allAttributes( 'a.1' ):plus(1)}");
+        Query.compile("${allAttributes( 'a.1' ):plus(1)}");
     }
 
     @Test
@@ -357,6 +354,7 @@ public class TestQuery {
         assertEquals("Val", evaluateQueryForEscape("${attr:replaceAll(\"My (Val)ue{1,2}\", '$1')}", attributes));
     }
 
+    @SuppressWarnings("unchecked")
     private String evaluateQueryForEscape(final String queryString, final Map<String, String> attributes) {
         final FlowFile mockFlowFile = Mockito.mock(FlowFile.class);
         Mockito.when(mockFlowFile.getAttributes()).thenReturn(attributes);
@@ -639,7 +637,7 @@ public class TestQuery {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         Query.validateExpression(query, false);
-        assertEquals("true", Query.evaluateExpressions(query, Collections.EMPTY_MAP));
+        assertEquals("true", Query.evaluateExpressions(query, Collections.emptyMap()));
     }
 
     @Test
@@ -1675,25 +1673,25 @@ public class TestQuery {
         verifyEquals("${string:escapeHtml4()}", attributes, "special &clubs;");
       }
 
-      @Test
-      public void testUnescapeFunctions() {
-          final Map<String, String> attributes = new HashMap<>();
+    @Test
+    public void testUnescapeFunctions() {
+        final Map<String, String> attributes = new HashMap<>();
 
-          attributes.put("string", "making air \\\"QUOTES\\\".");
-          verifyEquals("${string:unescapeJson()}", attributes, "making air \"QUOTES\".");
+        attributes.put("string", "making air \\\"QUOTES\\\".");
+        verifyEquals("${string:unescapeJson()}", attributes, "making air \"QUOTES\".");
 
-          attributes.put("string", "M &amp; M");
-          verifyEquals("${string:unescapeXml()}", attributes, "M & M");
+        attributes.put("string", "M &amp; M");
+        verifyEquals("${string:unescapeXml()}", attributes, "M & M");
 
-          attributes.put("string", "\"making air \"\"QUOTES\"\".\"");
-          verifyEquals("${string:unescapeCsv()}", attributes, "making air \"QUOTES\".");
+        attributes.put("string", "\"making air \"\"QUOTES\"\".\"");
+        verifyEquals("${string:unescapeCsv()}", attributes, "making air \"QUOTES\".");
 
-          attributes.put("string", "special &iexcl;");
-          verifyEquals("${string:unescapeHtml3()}", attributes, "special ¡");
+        attributes.put("string", "special &iexcl;");
+        verifyEquals("${string:unescapeHtml3()}", attributes, "special ¡");
 
-          attributes.put("string", "special &clubs;");
-          verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
-        }
+        attributes.put("string", "special &clubs;");
+        verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
+    }
 
     @Test
     public void testIfElse() {
@@ -1709,8 +1707,8 @@ public class TestQuery {
         verifyEquals("${attr2:isNull():ifElse('a', 'b')}", attributes, "a");
         verifyEquals("${literal(true):ifElse('a', 'b')}", attributes, "a");
         verifyEquals("${literal(true):ifElse(false, 'b')}", attributes, "false");
-
     }
+
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, expectedResult);

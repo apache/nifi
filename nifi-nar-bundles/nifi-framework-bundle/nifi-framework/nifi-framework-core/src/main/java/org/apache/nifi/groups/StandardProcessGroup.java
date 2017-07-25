@@ -16,13 +16,31 @@
  */
 package org.apache.nifi.groups;
 
-import com.google.common.collect.Sets;
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -39,6 +57,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -50,13 +69,15 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.NiFiProperties;
@@ -66,20 +87,7 @@ import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
+import com.google.common.collect.Sets;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -104,7 +112,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
     private final Map<String, Template> templates = new HashMap<>();
     private final StringEncryptor encryptor;
-    private final VariableRegistry variableRegistry;
+    private final MutableVariableRegistry variableRegistry;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -114,7 +122,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final StandardProcessScheduler scheduler,
             final NiFiProperties nifiProps, final StringEncryptor encryptor, final FlowController flowController,
-            final VariableRegistry variableRegistry) {
+            final MutableVariableRegistry variableRegistry) {
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
@@ -361,7 +369,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(node.getProcessor().getClass(), node.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), variableRegistry);
+                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()));
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -548,6 +556,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             group.setParent(this);
+            group.getVariableRegistry().setParent(getVariableRegistry());
+
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
             flowController.onProcessGroupAdded(group);
         } finally {
@@ -709,6 +719,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             processor.setProcessGroup(this);
+            processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
             flowController.onProcessorAdded(processor);
         } finally {
@@ -732,7 +743,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getProcessor().getClass(), processor.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), variableRegistry);
+                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()));
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
@@ -1081,7 +1092,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void startProcessor(final ProcessorNode processor) {
+    public CompletableFuture<Void> startProcessor(final ProcessorNode processor) {
         readLock.lock();
         try {
             if (getProcessor(processor.getIdentifier()) == null) {
@@ -1092,10 +1103,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("Processor is disabled");
             } else if (state == ScheduledState.RUNNING) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
-            scheduler.startProcessor(processor);
+            return scheduler.startProcessor(processor);
         } finally {
             readLock.unlock();
         }
@@ -1162,7 +1173,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void stopProcessor(final ProcessorNode processor) {
+    public CompletableFuture<Void> stopProcessor(final ProcessorNode processor) {
         readLock.lock();
         try {
             if (!processors.containsKey(processor.getIdentifier())) {
@@ -1173,10 +1184,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("Processor is disabled");
             } else if (state == ScheduledState.STOPPED) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
-            scheduler.stopProcessor(processor);
+            return scheduler.stopProcessor(processor);
         } finally {
             readLock.unlock();
         }
@@ -1854,6 +1865,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             service.setProcessGroup(this);
+            service.getVariableRegistry().setParent(getVariableRegistry());
             this.controllerServices.put(service.getIdentifier(), service);
             LOG.info("{} added to {}", service, this);
         } finally {
@@ -2583,4 +2595,129 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
     }
+
+    @Override
+    public MutableVariableRegistry getVariableRegistry() {
+        return variableRegistry;
+    }
+
+    @Override
+    public void verifyCanUpdateVariables(final Map<String, String> updatedVariables) {
+        if (updatedVariables == null || updatedVariables.isEmpty()) {
+            return;
+        }
+
+        readLock.lock();
+        try {
+            final Set<String> updatedVariableNames = getUpdatedVariables(updatedVariables);
+            if (updatedVariableNames.isEmpty()) {
+                return;
+            }
+
+            for (final ProcessorNode processor : findAllProcessors()) {
+                if (!processor.isRunning()) {
+                    continue;
+                }
+
+                for (final String variableName : updatedVariableNames) {
+                    for (final VariableImpact impact : getVariableImpact(processor)) {
+                        if (impact.isImpacted(variableName)) {
+                            throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + processor + ", which is currently running");
+                        }
+                    }
+                }
+            }
+
+            for (final ControllerServiceNode service : findAllControllerServices()) {
+                if (!service.isActive()) {
+                    continue;
+                }
+
+                for (final String variableName : updatedVariableNames) {
+                    for (final VariableImpact impact : getVariableImpact(service)) {
+                        if (impact.isImpacted(variableName)) {
+                            throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + service + ", which is currently running");
+                        }
+                    }
+                }
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<ConfiguredComponent> getComponentsAffectedByVariable(final String variableName) {
+        final Set<ConfiguredComponent> affected = new HashSet<>();
+
+        // Determine any Processors that references the variable
+        for (final ProcessorNode processor : findAllProcessors()) {
+            for (final VariableImpact impact : getVariableImpact(processor)) {
+                if (impact.isImpacted(variableName)) {
+                    affected.add(processor);
+                }
+            }
+        }
+
+        // Determine any Controller Service that references the variable. If Service A references a variable,
+        // then that means that any other component that references that service is also affected, so recursively
+        // find any references to that service and add it.
+        for (final ControllerServiceNode service : findAllControllerServices()) {
+            for (final VariableImpact impact : getVariableImpact(service)) {
+                if (impact.isImpacted(variableName)) {
+                    affected.add(service);
+
+                    final ControllerServiceReference reference = service.getReferences();
+                    affected.addAll(reference.findRecursiveReferences(ConfiguredComponent.class));
+                }
+            }
+        }
+
+        return affected;
+    }
+
+
+    private Set<String> getUpdatedVariables(final Map<String, String> newVariableValues) {
+        final Set<String> updatedVariableNames = new HashSet<>();
+
+        final MutableVariableRegistry registry = getVariableRegistry();
+        for (final Map.Entry<String, String> entry : newVariableValues.entrySet()) {
+            final String varName = entry.getKey();
+            final String newValue = entry.getValue();
+
+            final String curValue = registry.getVariableValue(varName);
+            if (!Objects.equals(newValue, curValue)) {
+                updatedVariableNames.add(varName);
+            }
+        }
+
+        return updatedVariableNames;
+    }
+
+    private List<VariableImpact> getVariableImpact(final ConfiguredComponent component) {
+        return component.getProperties().values().stream()
+            .map(propVal -> Query.prepare(propVal).getVariableImpact())
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public void setVariables(final Map<String, String> variables) {
+        writeLock.lock();
+        try {
+            verifyCanUpdateVariables(variables);
+
+            if (variables == null) {
+                return;
+            }
+
+            final Map<VariableDescriptor, String> variableMap = new HashMap<>();
+            variables.entrySet().stream() // cannot use Collectors.toMap because value may be null
+                .forEach(entry -> variableMap.put(new VariableDescriptor(entry.getKey()), entry.getValue()));
+
+            variableRegistry.setVariables(variableMap);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
 }

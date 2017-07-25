@@ -53,8 +53,8 @@ public class StandardValidationContext implements ValidationContext {
     private final String componentId;
 
     public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties,
-            final String annotationData, final String groupId, final String componentId, VariableRegistry variableRegistry) {
-        this(controllerServiceProvider, Collections.<String> emptySet(), properties, annotationData, groupId, componentId,variableRegistry);
+            final String annotationData, final String groupId, final String componentId, final VariableRegistry variableRegistry) {
+        this(controllerServiceProvider, Collections.<String> emptySet(), properties, annotationData, groupId, componentId, variableRegistry);
     }
 
     public StandardValidationContext(
@@ -63,7 +63,8 @@ public class StandardValidationContext implements ValidationContext {
             final Map<PropertyDescriptor, String> properties,
             final String annotationData,
             final String groupId,
-            final String componentId, VariableRegistry variableRegistry) {
+            final String componentId,
+            final VariableRegistry variableRegistry) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;

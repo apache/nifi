@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.util.CharacterFilterUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -53,6 +35,24 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
     private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
 
@@ -64,7 +64,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final AtomicReference<ValidationContext> validationContext = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final VariableRegistry variableRegistry;
+    private final ComponentVariableRegistry variableRegistry;
     private final ReloadComponent reloadComponent;
 
     private final AtomicBoolean isExtensionMissing;
@@ -74,7 +74,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                       final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
+                                       final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
                                        final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
@@ -541,7 +541,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         }
     }
 
-    protected VariableRegistry getVariableRegistry() {
+    public ComponentVariableRegistry getVariableRegistry() {
         return this.variableRegistry;
     }
 

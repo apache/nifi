@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -33,7 +41,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -41,14 +49,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
-
-import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
 
@@ -66,7 +66,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-                                     final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry,
+                                     final ValidationContextFactory validationContextFactory, final ComponentVariableRegistry variableRegistry,
                                      final ReloadComponent reloadComponent) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
@@ -77,7 +77,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
+                                     final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
                                      final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
 
         super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, isExtensionMissing);

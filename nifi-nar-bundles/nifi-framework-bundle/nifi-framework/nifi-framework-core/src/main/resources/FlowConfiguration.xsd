@@ -147,7 +147,13 @@
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
         </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="VariableType">
+        <xs:attribute name="name" />
+        <xs:attribute name="value" />
     </xs:complexType>
     
     <!-- Same as ProcessGroupType except that instead of input ports & output ports being of type PortType,

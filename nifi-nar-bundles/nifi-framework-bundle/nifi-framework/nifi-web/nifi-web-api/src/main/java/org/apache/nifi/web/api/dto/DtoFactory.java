@@ -16,6 +16,33 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -47,6 +74,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -110,6 +138,9 @@ import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
+import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
@@ -163,32 +194,6 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
-
-import javax.ws.rs.WebApplicationException;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -1712,9 +1717,34 @@ public final class DtoFactory {
      * @return dto
      */
     public PermissionsDTO createPermissionsDto(final Authorizable authorizable) {
+        return createPermissionsDto(authorizable, NiFiUserUtils.getNiFiUser());
+    }
+
+    /**
+     * Creates the PermissionsDTO based on the specified Authorizable for the given user
+     *
+     * @param authorizable authorizable
+     * @param user the NiFi User for which the Permissions are being created
+     * @return dto
+     */
+    public PermissionsDTO createPermissionsDto(final Authorizable authorizable, final NiFiUser user) {
         final PermissionsDTO dto = new PermissionsDTO();
-        dto.setCanRead(authorizable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser()));
-        dto.setCanWrite(authorizable.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
+        dto.setCanRead(authorizable.isAuthorized(authorizer, RequestAction.READ, user));
+        dto.setCanWrite(authorizable.isAuthorized(authorizer, RequestAction.WRITE, user));
+        return dto;
+    }
+
+    public AffectedComponentDTO createAffectedComponentDto(final ConfiguredComponent component) {
+        final AffectedComponentDTO dto = new AffectedComponentDTO();
+        dto.setComponentId(component.getIdentifier());
+        dto.setParentGroupId(component.getProcessGroupIdentifier());
+
+        if (component instanceof ProcessorNode) {
+            dto.setComponentType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
+        } else if (component instanceof ControllerServiceNode) {
+            dto.setComponentType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        }
+
         return dto;
     }
 
@@ -2078,6 +2108,117 @@ public final class DtoFactory {
         final DeprecationNotice deprecationNotice = cls.getAnnotation(DeprecationNotice.class);
         return deprecationNotice == null ? null : deprecationNotice.reason();
     }
+
+
+    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup) {
+        final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
+
+        final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
+            .map(descriptor -> descriptor.getName())
+            .collect(Collectors.toList());
+
+        final Set<VariableDTO> variableDtos = new LinkedHashSet<>();
+
+        for (final String variableName : variableNames) {
+            final VariableDTO variableDto = new VariableDTO();
+            variableDto.setName(variableName);
+            variableDto.setValue(variableRegistry.getVariableValue(variableName));
+
+            final Set<ConfiguredComponent> affectedComponents = processGroup.getComponentsAffectedByVariable(variableName);
+            final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
+                .map(component -> createAffectedComponentDto(component))
+                .collect(Collectors.toSet());
+
+            boolean canUpdate = true;
+            for (final ConfiguredComponent component : affectedComponents) {
+                final PermissionsDTO permissions = createPermissionsDto(component);
+                if (!permissions.getCanRead() || !permissions.getCanWrite()) {
+                    canUpdate = false;
+                    break;
+                }
+            }
+
+            variableDto.setCanUpdate(canUpdate);
+            variableDto.setAffectedComponents(affectedComponentDtos);
+
+            variableDtos.add(variableDto);
+        }
+
+        final VariableRegistryDTO registryDto = new VariableRegistryDTO();
+        registryDto.setProcessGroupId(processGroup.getIdentifier());
+        registryDto.setVariables(variableDtos);
+
+        return registryDto;
+    }
+
+    public VariableRegistryUpdateRequestDTO createVariableRegistryUpdateRequestDto(final VariableRegistryUpdateRequest request) {
+        final VariableRegistryUpdateRequestDTO dto = new VariableRegistryUpdateRequestDTO();
+        dto.setComplete(request.isComplete());
+        dto.setFailureReason(request.getFailureReason());
+        dto.setLastUpdated(request.getLastUpdated());
+        dto.setProcessGroupId(request.getProcessGroupId());
+        dto.setRequestId(request.getRequestId());
+        dto.setSubmissionTime(request.getSubmissionTime());
+
+        final List<VariableRegistryUpdateStepDTO> updateSteps = new ArrayList<>();
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getIdentifyRelevantComponentsStep()));
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getStopProcessorsStep()));
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getDisableServicesStep()));
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getApplyUpdatesStep()));
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getEnableServicesStep()));
+        updateSteps.add(createVariableRegistryUpdateStepDto(request.getStartProcessorsStep()));
+        dto.setUpdateSteps(updateSteps);
+
+        return dto;
+    }
+
+    public VariableRegistryUpdateStepDTO createVariableRegistryUpdateStepDto(final VariableRegistryUpdateStep step) {
+        final VariableRegistryUpdateStepDTO dto = new VariableRegistryUpdateStepDTO();
+        dto.setComplete(step.isComplete());
+        dto.setDescription(step.getDescription());
+        dto.setFailureReason(step.getFailureReason());
+        return dto;
+    }
+
+
+    public VariableRegistryDTO populatedAffectedComponents(final VariableRegistryDTO variableRegistry, final ProcessGroup group) {
+        if (!group.getIdentifier().equals(variableRegistry.getProcessGroupId())) {
+            throw new IllegalArgumentException("Variable Registry does not have the same Group ID as the given Process Group");
+        }
+
+        final Set<VariableDTO> variableDtos = new LinkedHashSet<>();
+
+        for (final VariableDTO inputDto : variableRegistry.getVariables()) {
+            final VariableDTO variableDto = new VariableDTO();
+            variableDto.setName(inputDto.getName());
+            variableDto.setValue(inputDto.getValue());
+
+            final Set<ConfiguredComponent> affectedComponents = group.getComponentsAffectedByVariable(variableDto.getName());
+            final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
+                .map(component -> createAffectedComponentDto(component))
+                .collect(Collectors.toSet());
+
+            boolean canUpdate = true;
+            for (final ConfiguredComponent component : affectedComponents) {
+                final PermissionsDTO permissions = createPermissionsDto(component);
+                if (!permissions.getCanRead() || !permissions.getCanWrite()) {
+                    canUpdate = false;
+                    break;
+                }
+            }
+
+            variableDto.setCanUpdate(canUpdate);
+            variableDto.setAffectedComponents(affectedComponentDtos);
+            variableDtos.add(variableDto);
+        }
+
+        final VariableRegistryDTO registryDto = new VariableRegistryDTO();
+        registryDto.setProcessGroupId(group.getIdentifier());
+        registryDto.setVariables(variableDtos);
+
+        return registryDto;
+    }
+
 
     /**
      * Gets the capability description from the specified class.
@@ -3015,6 +3156,10 @@ public final class DtoFactory {
         copy.setDisabledCount(original.getDisabledCount());
         copy.setActiveRemotePortCount(original.getActiveRemotePortCount());
         copy.setInactiveRemotePortCount(original.getInactiveRemotePortCount());
+
+        if (original.getVariables() != null) {
+            copy.setVariables(new HashMap<>(original.getVariables()));
+        }
 
         return copy;
     }

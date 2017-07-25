@@ -23,7 +23,7 @@
     </bean>
 
     <!-- variable registry -->
-    <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
+    <bean id="variableRegistry" class="org.apache.nifi.registry.variable.FileBasedVariableRegistry">
         <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
     </bean>
 

@@ -108,7 +108,7 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            implementation of {@link ScheduledExecutorService} used to
      *            initiate service disabling task
      */
-    void disable(ScheduledExecutorService scheduler);
+    CompletableFuture<Void> disable(ScheduledExecutorService scheduler);
 
     /**
      * @return the ControllerServiceReference that describes which components are referencing this Controller Service

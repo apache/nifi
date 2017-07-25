@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.web.dao;
 
+import java.util.Set;
+import java.util.concurrent.Future;
+
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-
-import java.util.Set;
+import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 
 public interface ProcessGroupDAO {
 
@@ -65,12 +68,32 @@ public interface ProcessGroupDAO {
     void verifyScheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
 
     /**
+     * Verifies the specified controller services can be modified
+     *
+     * @param groupId the ID of the process group
+     * @param state the desired state
+     * @param serviceIds the ID's of the controller services
+     */
+    void verifyActivateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
+
+    /**
      * Schedules the components in the specified process group.
      *
      * @param groupId id
      * @param state scheduled state
+     *
+     * @return a Future that can be used to wait for the services to finish starting or stopping
      */
-    void scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+    Future<Void> scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+
+    /**
+     * Enables or disables the controller services in the specified process group
+     *
+     * @param groupId the id of the group
+     * @param state the desired state
+     * @param serviceIds the ID's of the services to enable or disable
+     */
+    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
 
     /**
      * Updates the specified process group.
@@ -79,6 +102,21 @@ public interface ProcessGroupDAO {
      * @return The process group
      */
     ProcessGroup updateProcessGroup(ProcessGroupDTO processGroup);
+
+    /**
+     * Updates the specified variable registry
+     *
+     * @param variableRegistry the Variable Registry
+     * @return the Process Group that was updated
+     */
+    ProcessGroup updateVariableRegistry(VariableRegistryDTO variableRegistry);
+
+    /**
+     * Verifies that the specified updates to a current Process Group can be applied at this time
+     *
+     * @param processGroup the DTO That describes the changes to occur
+     */
+    void verifyUpdate(ProcessGroupDTO processGroup);
 
     /**
      * Verifies the specified process group can be removed.

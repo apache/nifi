@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.attribute.expression.language.evaluation.functions;
+package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import java.util.Map;
 
@@ -41,5 +41,9 @@ public class AttributeEvaluator extends StringEvaluator {
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return null;
+    }
+
+    public Evaluator<String> getNameEvaluator() {
+        return nameEvaluator;
     }
 }
