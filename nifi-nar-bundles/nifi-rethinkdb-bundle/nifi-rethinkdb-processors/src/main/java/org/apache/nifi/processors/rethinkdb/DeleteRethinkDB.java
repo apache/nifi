@@ -58,7 +58,6 @@ import java.util.Set;
     @WritesAttribute(attribute = DeleteRethinkDB.RETHINKDB_DELETE_RESULT_REPLACED_KEY, description = "Number of documents replaced"),
     @WritesAttribute(attribute = DeleteRethinkDB.RETHINKDB_DELETE_RESULT_SKIPPED_KEY, description = "Number of documents skipped"),
     @WritesAttribute(attribute = DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY, description = "Number of documents unchanged since they already existed"),
-    @WritesAttribute(attribute = DeleteRethinkDB.RETHINKDB_DELETE_RESULT_CHANGES_KEY, description = "The old document which was changed")
     })
 @SeeAlso({PutRethinkDB.class,GetRethinkDB.class})
 public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
@@ -68,8 +67,8 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
 
     protected static final PropertyDescriptor RETURN_CHANGES = new PropertyDescriptor.Builder()
             .name("rethinkdb-return-result")
-            .displayName("Return old Changes from the delete")
-            .description("Return old values which were deleted")
+            .displayName("Return deleted value")
+            .description("Return old value which were deleted")
             .required(true)
             .defaultValue(RETURN_CHANGES_TRUE.getValue())
             .allowableValues(RETURN_CHANGES_TRUE, RETURN_CHANGES_FALSE)
@@ -79,14 +78,12 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    public static final String RETHINKDB_DELETE_RESULT = "rethinkdb.delete.result";
     public static final String RETHINKDB_DELETE_RESULT_ERROR_KEY = "rethinkdb.delete.errors";
     public static final String RETHINKDB_DELETE_RESULT_DELETED_KEY = "rethinkdb.delete.deleted";
     public static final String RETHINKDB_DELETE_RESULT_INSERTED_KEY = "rethinkdb.delete.inserted";
     public static final String RETHINKDB_DELETE_RESULT_REPLACED_KEY = "rethinkdb.delete.replaced";
     public static final String RETHINKDB_DELETE_RESULT_SKIPPED_KEY = "rethinkdb.delete.skipped";
     public static final String RETHINKDB_DELETE_RESULT_UNCHANGED_KEY = "rethinkdb.delete.unchanged";
-    public static final String RETHINKDB_DELETE_RESULT_CHANGES_KEY = "rethinkdb.delete.changes";
 
     public static final String RESULT_CHANGES_KEY = "changes";
     public static final String RETURN_CHANGES_OPTION_KEY = "return_changes";
@@ -151,6 +148,11 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
         try {
             long startTimeMillis = System.currentTimeMillis();
             Map<String,Object> result = deleteDocument(id, durablity, returnChanges);
+            final long endTimeMillis = System.currentTimeMillis();
+
+            getLogger().debug("Json document {} deleted Result: {}", new Object[] {id, result});
+
+            flowFile = populateAttributes(session, flowFile, result);
 
             Long deletedCount = ((Long)result.get(RESULT_DELETED_KEY)).longValue();
 
@@ -171,18 +173,14 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
 
                 ByteArrayInputStream bais = new ByteArrayInputStream(documentBytes);
                 session.importFrom(bais, flowFile);
+
+                session.getProvenanceReporter().modifyContent(flowFile,
+                        new StringBuilder("rethinkdb://").append(databaseName).append("/").append(tableName).append("/").append(id).toString(),
+                        (endTimeMillis - startTimeMillis));
             }
 
-            final long endTimeMillis = System.currentTimeMillis();
-
-            getLogger().debug("Json document {} deleted Result: {}", new Object[] {id, result});
-
-            flowFile = populateAttributes(session, flowFile, result);
-
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(flowFile,
-                new StringBuilder("rethinkdb://").append(databaseName).append("/").append(tableName).append("/").append(id).toString(),
-                (endTimeMillis - startTimeMillis));
+
 
         } catch (Exception exception) {
             getLogger().error("Failed to delete document from RethinkDB due to error {}",
@@ -196,14 +194,12 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
     private FlowFile populateAttributes(final ProcessSession session, FlowFile flowFile,
             Map<String, Object> result) {
         Map<String,String> resultAttributes = new HashMap<>();
-        resultAttributes.put(RETHINKDB_DELETE_RESULT, result.toString());
         resultAttributes.put(RETHINKDB_DELETE_RESULT_ERROR_KEY, String.valueOf(result.get(RESULT_ERROR_KEY)));
         resultAttributes.put(RETHINKDB_DELETE_RESULT_DELETED_KEY, String.valueOf(result.get(RESULT_DELETED_KEY)));
         resultAttributes.put(RETHINKDB_DELETE_RESULT_INSERTED_KEY, String.valueOf(result.get(RESULT_INSERTED_KEY)));
         resultAttributes.put(RETHINKDB_DELETE_RESULT_REPLACED_KEY, String.valueOf(result.get(RESULT_REPLACED_KEY)));
         resultAttributes.put(RETHINKDB_DELETE_RESULT_SKIPPED_KEY, String.valueOf(result.get(RESULT_SKIPPED_KEY)));
         resultAttributes.put(RETHINKDB_DELETE_RESULT_UNCHANGED_KEY, String.valueOf(result.get(RESULT_UNCHANGED_KEY)));
-        resultAttributes.put(RETHINKDB_DELETE_RESULT_CHANGES_KEY, String.valueOf(result.get(RESULT_CHANGES_KEY)));
         flowFile = session.putAllAttributes(flowFile, resultAttributes);
         return flowFile;
     }
