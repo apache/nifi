@@ -176,6 +176,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) {
+        maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
         super.setup(context);
     }
 
@@ -204,8 +205,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 .defaultPrecision(context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger())
                 .defaultScale(context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger())
                 .build();
-
-        final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;

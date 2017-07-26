@@ -168,6 +168,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 
+    // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
+    protected Map<String,String> maxValueProperties;
+
     static {
         // Load the DatabaseAdapters
         ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();

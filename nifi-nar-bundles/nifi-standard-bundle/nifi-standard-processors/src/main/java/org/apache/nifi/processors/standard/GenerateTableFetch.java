@@ -153,6 +153,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
+        maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
         // Pre-fetch the column types if using a static table name and max-value columns
         if (!isDynamicTableName && !isDynamicMaxValues) {
             super.setup(context);
@@ -202,7 +203,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
             // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
-            final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
             for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
                 String maxPropKey = maxProp.getKey().toLowerCase();
                 String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
