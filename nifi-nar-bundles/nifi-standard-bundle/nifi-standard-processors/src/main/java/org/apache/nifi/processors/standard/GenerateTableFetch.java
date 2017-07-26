@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -94,6 +95,8 @@ import java.util.stream.IntStream;
         @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
         @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
+@DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
+        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
@@ -150,6 +153,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
+        maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
         // Pre-fetch the column types if using a static table name and max-value columns
         if (!isDynamicTableName && !isDynamicMaxValues) {
             super.setup(context);
@@ -197,6 +201,24 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
             // set as the current state map (after the session has been committed)
             final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
+
+            // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
+            for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
+                String maxPropKey = maxProp.getKey().toLowerCase();
+                String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
+                if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
+                    String newMaxPropValue;
+                    // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
+                    // the value has been stored under a key that is only the column name. Fall back to check the column name,
+                    // but store the new initial max value under the fully-qualified key.
+                    if (statePropertyMap.containsKey(maxPropKey)) {
+                        newMaxPropValue = statePropertyMap.get(maxPropKey);
+                    } else {
+                        newMaxPropValue = maxProp.getValue();
+                    }
+                    statePropertyMap.put(fullyQualifiedMaxPropKey, newMaxPropValue);
+                }
+            }
 
             // Build a WHERE clause with maximum-value columns (if they exist), and a list of column names that will contain MAX(<column>) aliases. The
             // executed SQL query will retrieve the count of all records after the filter(s) have been applied, as well as the new maximum values for the
