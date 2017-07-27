@@ -64,7 +64,7 @@
         <nifi.swap.out.threads>4</nifi.swap.out.threads>
 
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
-        <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
+        <nifi.content.claim.max.appendable.size>1 MB</nifi.content.claim.max.appendable.size>
         <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
         <nifi.content.repository.archive.max.retention.period>12 hours</nifi.content.repository.archive.max.retention.period>
