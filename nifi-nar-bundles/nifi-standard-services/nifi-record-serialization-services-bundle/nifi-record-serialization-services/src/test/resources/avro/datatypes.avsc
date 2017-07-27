@@ -29,10 +29,10 @@
       "type": [ "null", "long" ]
     }, {
       "name": "array",
-      "type" : {
+      "type" : [ "null", {
       	"type": "array",
       	"items": "int"
-      }
+      } ]
     }, {
       "name": "record",
       "type": {
