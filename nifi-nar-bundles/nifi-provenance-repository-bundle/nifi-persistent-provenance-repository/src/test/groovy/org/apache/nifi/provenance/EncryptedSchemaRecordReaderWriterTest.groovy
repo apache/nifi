@@ -24,6 +24,7 @@ import org.apache.nifi.provenance.toc.StandardTocWriter
 import org.apache.nifi.provenance.toc.TocReader
 import org.apache.nifi.provenance.toc.TocUtil
 import org.apache.nifi.provenance.toc.TocWriter
+import org.apache.nifi.security.kms.KeyProvider
 import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex

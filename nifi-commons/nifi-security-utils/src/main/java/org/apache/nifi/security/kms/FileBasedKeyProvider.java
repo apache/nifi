@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.kms;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -31,11 +31,11 @@ public class FileBasedKeyProvider extends StaticKeyProvider {
 
     private String filepath;
 
-    FileBasedKeyProvider(String location) throws KeyManagementException {
+    public FileBasedKeyProvider(String location) throws KeyManagementException {
         this(location, getMasterKey());
     }
 
-    FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
+    public FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
         super(CryptoUtils.readKeys(location, masterKey));
         this.filepath = location;
     }

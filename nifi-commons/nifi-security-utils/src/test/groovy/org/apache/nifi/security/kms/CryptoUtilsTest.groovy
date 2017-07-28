@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance
+package org.apache.nifi.security.kms
 
 import org.apache.commons.lang3.SystemUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
