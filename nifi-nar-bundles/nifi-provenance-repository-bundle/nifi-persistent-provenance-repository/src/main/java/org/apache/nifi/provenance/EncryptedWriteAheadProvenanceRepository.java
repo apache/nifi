@@ -18,9 +18,6 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
-import java.util.Map;
-import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.serialization.RecordReaders;
@@ -30,10 +27,8 @@ import org.apache.nifi.provenance.store.RecordWriterFactory;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.security.kms.CryptoUtils;
-import org.apache.nifi.security.kms.FileBasedKeyProvider;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.apache.nifi.security.kms.StaticKeyProvider;
+import org.apache.nifi.security.kms.KeyProviderFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,38 +121,6 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
                     + NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
         }
 
-        // TODO: Extract to factory
-        KeyProvider keyProvider;
-        if (StaticKeyProvider.class.getName().equals(implementationClassName)) {
-            // Get all the keys (map) from config
-            if (CryptoUtils.isValidKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys())) {
-                Map<String, SecretKey> formedKeys = config.getEncryptionKeys().entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> {
-                                    try {
-                                        return CryptoUtils.formKeyFromHex(e.getValue());
-                                    } catch (KeyManagementException e1) {
-                                        // This should never happen because the hex has already been validated
-                                        logger.error("Encountered an error: ", e1);
-                                        return null;
-                                    }
-                                }));
-                keyProvider = new StaticKeyProvider(formedKeys);
-            } else {
-                final String msg = "The StaticKeyProvider definition is not valid";
-                logger.error(msg);
-                throw new KeyManagementException(msg);
-            }
-        } else if (FileBasedKeyProvider.class.getName().equals(implementationClassName)) {
-            keyProvider = new FileBasedKeyProvider(config.getKeyProviderLocation());
-            if (!keyProvider.keyExists(config.getKeyId())) {
-                throw new KeyManagementException("The specified key ID " + config.getKeyId() + " is not in the key definition file");
-            }
-        } else {
-            throw new KeyManagementException("Invalid key provider implementation provided: " + implementationClassName);
-        }
-
-        return keyProvider;
+        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys());
     }
 }
