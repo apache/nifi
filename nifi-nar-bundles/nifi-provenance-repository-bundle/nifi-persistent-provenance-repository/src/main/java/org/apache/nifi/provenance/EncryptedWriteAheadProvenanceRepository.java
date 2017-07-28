@@ -18,11 +18,13 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
-import java.util.Map;
-import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.store.EventFileManager;
 import org.apache.nifi.provenance.store.RecordReaderFactory;
@@ -30,6 +32,8 @@ import org.apache.nifi.provenance.store.RecordWriterFactory;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.security.kms.KeyProvider;
+import org.apache.nifi.security.kms.KeyProviderFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +74,13 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         ProvenanceEventEncryptor provenanceEventEncryptor;
         if (getConfig().supportsEncryption()) {
             try {
-                KeyProvider keyProvider = buildKeyProvider();
+                KeyProvider keyProvider;
+                if (KeyProviderFactory.requiresMasterKey(getConfig().getKeyProviderImplementation())) {
+                    SecretKey masterKey = getMasterKey();
+                    keyProvider = buildKeyProvider(masterKey);
+                } else {
+                    keyProvider = buildKeyProvider();
+                }
                 provenanceEventEncryptor = new AESProvenanceEventEncryptor();
                 provenanceEventEncryptor.initialize(keyProvider);
             } catch (KeyManagementException e) {
@@ -111,6 +121,10 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     }
 
     private KeyProvider buildKeyProvider() throws KeyManagementException {
+        return buildKeyProvider(null);
+    }
+
+    private KeyProvider buildKeyProvider(SecretKey masterKey) throws KeyManagementException {
         RepositoryConfiguration config = super.getConfig();
         if (config == null) {
             throw new KeyManagementException("The repository configuration is missing");
@@ -122,38 +136,17 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
                     + NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
         }
 
-        // TODO: Extract to factory
-        KeyProvider keyProvider;
-        if (StaticKeyProvider.class.getName().equals(implementationClassName)) {
-            // Get all the keys (map) from config
-            if (CryptoUtils.isValidKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys())) {
-                Map<String, SecretKey> formedKeys = config.getEncryptionKeys().entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> {
-                                    try {
-                                        return CryptoUtils.formKeyFromHex(e.getValue());
-                                    } catch (KeyManagementException e1) {
-                                        // This should never happen because the hex has already been validated
-                                        logger.error("Encountered an error: ", e1);
-                                        return null;
-                                    }
-                                }));
-                keyProvider = new StaticKeyProvider(formedKeys);
-            } else {
-                final String msg = "The StaticKeyProvider definition is not valid";
-                logger.error(msg);
-                throw new KeyManagementException(msg);
-            }
-        } else if (FileBasedKeyProvider.class.getName().equals(implementationClassName)) {
-            keyProvider = new FileBasedKeyProvider(config.getKeyProviderLocation());
-            if (!keyProvider.keyExists(config.getKeyId())) {
-                throw new KeyManagementException("The specified key ID " + config.getKeyId() + " is not in the key definition file");
-            }
-        } else {
-            throw new KeyManagementException("Invalid key provider implementation provided: " + implementationClassName);
-        }
+        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), masterKey);
+    }
 
-        return keyProvider;
+    private static SecretKey getMasterKey() throws KeyManagementException {
+        try {
+            // Get the master encryption key from bootstrap.conf
+            String masterKeyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decodeHex(masterKeyHex.toCharArray()), "AES");
+        } catch (IOException | DecoderException e) {
+            logger.error("Encountered an error: ", e);
+            throw new KeyManagementException(e);
+        }
     }
 }

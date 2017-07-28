@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.kms;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,8 +43,13 @@ import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
     private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
-    private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.StaticKeyProvider";
-    private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.provenance.FileBasedKeyProvider";
+    private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
+    private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
+
+    private static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
+    private static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
+
+
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
 
     private static final List<Integer> UNLIMITED_KEY_LENGTHS = Arrays.asList(32, 48, 64);
@@ -101,6 +106,24 @@ public class CryptoUtils {
      * @return true if the provided configuration is valid
      */
     public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) {
+        logger.debug("Attempting to validate the key provider: keyProviderImplementation = "
+                + keyProviderImplementation + " , keyProviderLocation = "
+                + keyProviderLocation + " , keyId = "
+                + keyId + " , encryptionKeys = "
+                + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
+
+        try {
+            keyProviderImplementation = handleLegacyPackages(keyProviderImplementation);
+        } catch (KeyManagementException e) {
+            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
+                    + keyProviderImplementation + " , keyProviderLocation = "
+                    + keyProviderLocation + " , keyId = "
+                    + keyId + " , encryptionKeys = "
+                    + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
+
+            return false;
+        }
+
         if (STATIC_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
             // Ensure the keyId and key(s) are valid
             if (encryptionKeys == null) {
@@ -121,6 +144,19 @@ public class CryptoUtils {
                     + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
 
             return false;
+        }
+    }
+
+    static String handleLegacyPackages(String implementationClassName) throws KeyManagementException {
+        if (org.apache.nifi.util.StringUtils.isBlank(implementationClassName)) {
+            throw new KeyManagementException("Invalid key provider implementation provided: " + implementationClassName);
+        }
+        if (implementationClassName.equalsIgnoreCase(LEGACY_SKP_FQCN)) {
+            return StaticKeyProvider.class.getName();
+        } else if (implementationClassName.equalsIgnoreCase(LEGACY_FBKP_FQCN)) {
+            return FileBasedKeyProvider.class.getName();
+        } else {
+            return implementationClassName;
         }
     }
 
@@ -177,6 +213,10 @@ public class CryptoUtils {
         if (StringUtils.isBlank(filepath)) {
             throw new KeyManagementException("The key provider file is not present and readable");
         }
+        if (masterKey == null) {
+            throw new KeyManagementException("The master key must be provided to decrypt the individual keys");
+        }
+
         File file = new File(filepath);
         if (!file.exists() || !file.canRead()) {
             throw new KeyManagementException("The key provider file is not present and readable");

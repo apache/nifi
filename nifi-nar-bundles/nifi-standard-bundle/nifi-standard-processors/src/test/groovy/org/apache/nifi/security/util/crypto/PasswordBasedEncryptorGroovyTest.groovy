@@ -18,6 +18,7 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.processor.io.StreamCallback
+import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.stream.io.ByteArrayOutputStream
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory
 import javax.crypto.Cipher
 import java.security.Security
 
-public class PasswordBasedEncryptorGroovyTest {
+class PasswordBasedEncryptorGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PasswordBasedEncryptorGroovyTest.class)
 
     private static final String TEST_RESOURCES_PREFIX = "src/test/resources/TestEncryptContent/"
@@ -44,7 +45,7 @@ public class PasswordBasedEncryptorGroovyTest {
     private static final String LEGACY_PASSWORD = "Hello, World!"
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -53,15 +54,15 @@ public class PasswordBasedEncryptorGroovyTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
     }
 
     @Test
-    public void testShouldEncryptAndDecrypt() throws Exception {
+    void testShouldEncryptAndDecrypt() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext message."
         logger.info("Plaintext: {}", PLAINTEXT)
@@ -107,7 +108,7 @@ public class PasswordBasedEncryptorGroovyTest {
     }
 
     @Test
-    public void testShouldDecryptLegacyOpenSSLSaltedCipherText() throws Exception {
+    void testShouldDecryptLegacyOpenSSLSaltedCipherText() throws Exception {
         // Arrange
         Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
 
@@ -136,7 +137,7 @@ public class PasswordBasedEncryptorGroovyTest {
     }
 
     @Test
-    public void testShouldDecryptLegacyOpenSSLUnsaltedCipherText() throws Exception {
+    void testShouldDecryptLegacyOpenSSLUnsaltedCipherText() throws Exception {
         // Arrange
         Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
 
@@ -165,7 +166,7 @@ public class PasswordBasedEncryptorGroovyTest {
     }
 
     @Test
-    public void testShouldDecryptNiFiLegacySaltedCipherTextWithVariableSaltLength() throws Exception {
+    void testShouldDecryptNiFiLegacySaltedCipherTextWithVariableSaltLength() throws Exception {
         // Arrange
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)
@@ -201,7 +202,7 @@ public class PasswordBasedEncryptorGroovyTest {
                 byte[] cipherBytes = legacyCipher.doFinal(PLAINTEXT.bytes)
                 logger.info("Cipher bytes: ${Hex.encodeHexString(cipherBytes)}")
 
-                byte[] completeCipherStreamBytes = CipherUtility.concatBytes(legacySalt, cipherBytes)
+                byte[] completeCipherStreamBytes = CryptoUtils.concatByteArrays(legacySalt, cipherBytes)
                 logger.info("Complete cipher stream: ${Hex.encodeHexString(completeCipherStreamBytes)}")
 
                 InputStream cipherStream = new ByteArrayInputStream(completeCipherStreamBytes)

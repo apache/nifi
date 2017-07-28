@@ -14,15 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.kms;
 
-import java.io.IOException;
 import java.security.KeyManagementException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.naming.OperationNotSupportedException;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,24 +27,9 @@ public class FileBasedKeyProvider extends StaticKeyProvider {
 
     private String filepath;
 
-    FileBasedKeyProvider(String location) throws KeyManagementException {
-        this(location, getMasterKey());
-    }
-
-    FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
+    public FileBasedKeyProvider(String location, SecretKey masterKey) throws KeyManagementException {
         super(CryptoUtils.readKeys(location, masterKey));
         this.filepath = location;
-    }
-
-    private static SecretKey getMasterKey() throws KeyManagementException {
-        try {
-            // Get the master encryption key from bootstrap.conf
-            String masterKeyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decode(masterKeyHex), "AES");
-        } catch (IOException e) {
-            logger.error("Encountered an error: ", e);
-            throw new KeyManagementException(e);
-        }
     }
 
     /**

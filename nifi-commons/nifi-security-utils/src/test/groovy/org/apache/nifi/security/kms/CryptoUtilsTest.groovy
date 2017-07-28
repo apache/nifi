@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance
+package org.apache.nifi.security.kms
 
 import org.apache.commons.lang3.SystemUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -127,6 +127,20 @@ class CryptoUtilsTest {
     }
 
     @Test
+    void testShouldValidateLegacyStaticKeyProvider() {
+        // Arrange
+        String staticProvider = StaticKeyProvider.class.name.replaceFirst("security.kms", "provenance")
+        String providerLocation = null
+
+        // Act
+        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+        logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} is ${keyProviderIsValid ? "valid" : "invalid"}")
+
+        // Assert
+        assert keyProviderIsValid
+    }
+
+    @Test
     void testShouldNotValidateStaticKeyProviderMissingKeyId() {
         // Arrange
         String staticProvider = StaticKeyProvider.class.name
@@ -172,6 +186,22 @@ class CryptoUtilsTest {
     void testShouldValidateFileBasedKeyProvider() {
         // Arrange
         String fileBasedProvider = FileBasedKeyProvider.class.name
+        File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
+        String providerLocation = fileBasedProviderFile.path
+        logger.info("Created temporary file based key provider: ${providerLocation}")
+
+        // Act
+        boolean keyProviderIsValid = CryptoUtils.isValidKeyProvider(fileBasedProvider, providerLocation, KEY_ID, null)
+        logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${null} is ${keyProviderIsValid ? "valid" : "invalid"}")
+
+        // Assert
+        assert keyProviderIsValid
+    }
+
+    @Test
+    void testShouldValidateLegacyFileBasedKeyProvider() {
+        // Arrange
+        String fileBasedProvider = FileBasedKeyProvider.class.name.replaceFirst("security.kms", "provenance")
         File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
         String providerLocation = fileBasedProviderFile.path
         logger.info("Created temporary file based key provider: ${providerLocation}")

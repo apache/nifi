@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.kms;
 
 import java.security.KeyManagementException;
 import java.util.ArrayList;
@@ -34,11 +34,11 @@ public class StaticKeyProvider implements KeyProvider {
 
     private Map<String, SecretKey> keys = new HashMap<>();
 
-    StaticKeyProvider(String keyId, String keyHex) throws KeyManagementException {
+    public StaticKeyProvider(String keyId, String keyHex) throws KeyManagementException {
         this.keys.put(keyId, CryptoUtils.formKeyFromHex(keyHex));
     }
 
-    StaticKeyProvider(Map<String, SecretKey> keys) throws KeyManagementException {
+    public StaticKeyProvider(Map<String, SecretKey> keys) throws KeyManagementException {
         this.keys.putAll(keys);
     }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.provenance
 
+import org.apache.nifi.security.kms.CryptoUtils
+import org.apache.nifi.security.kms.KeyProvider
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider

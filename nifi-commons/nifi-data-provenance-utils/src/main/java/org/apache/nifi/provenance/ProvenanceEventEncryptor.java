@@ -17,6 +17,7 @@
 package org.apache.nifi.provenance;
 
 import java.security.KeyManagementException;
+import org.apache.nifi.security.kms.KeyProvider;
 
 public interface ProvenanceEventEncryptor {
 

@@ -1920,7 +1920,7 @@ The `StaticKeyProvider` implementation defines keys directly in `nifi.properties
 
 The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
 ....
-nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.provenance.StaticKeyProvider
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
 nifi.provenance.repository.encryption.key.id=Key1
 nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 nifi.provenance.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
