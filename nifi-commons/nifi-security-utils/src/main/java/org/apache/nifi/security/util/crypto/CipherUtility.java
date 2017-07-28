@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,7 +33,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class CipherUtility {
@@ -315,14 +315,5 @@ public class CipherUtility {
         } else {
             return -1;
         }
-    }
-
-    public static byte[] concatBytes(byte[]... arrays) throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        for (byte[] bytes : arrays) {
-            outputStream.write(bytes);
-        }
-
-        return outputStream.toByteArray();
     }
 }
