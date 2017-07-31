@@ -2106,8 +2106,16 @@ lines:
 
 [source]
 authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+kerberos.removeHostFromPrincipal=true
+kerberos.removeRealmFromPrincipal=true
 jaasLoginRenew=3600000
 requireClientAuthScheme=sasl
+
+The kerberos.removeHostFromPrincipal and the kerberos.removeRealmFromPrincipal properties are used to normalize the user principal name before comparing an identity to acls
+applied on a Znode.  By default the full principal is used however setting the removeHostFromPrincipal and removeRealmFromPrincipal kerberos properties to true will instruct
+Zookeeper to remove the host and the realm from the logged in user's identity for comparison.  In cases where NiFi nodes (within the same cluster) use principals that
+have different host(s)/realm(s) values, these kerberos properties can be configured to ensure that the nodes' identity will be normalized and that the nodes will have
+appropriate access to shared Znodes in Zookeeper.
 
 The last line is optional but specifies that clients MUST use Kerberos to communicate with our ZooKeeper instance.
 
@@ -2157,11 +2165,21 @@ Client {
 };
 
 
-Finally, we need to tell NiFi to use this as our JAAS configuration. This is done by setting a JVM System Property, so we will edit the _conf/bootstrap.conf_ file.
+We then need to tell NiFi to use this as our JAAS configuration. This is done by setting a JVM System Property, so we will edit the _conf/bootstrap.conf_ file.
 We add the following line anywhere in this file in order to tell the NiFi JVM to use this configuration:
 
 [source]
 java.arg.15=-Djava.security.auth.login.config=./conf/zookeeper-jaas.conf
+
+Finally we need to update `nifi.properties` to ensure that NiFi knows to apply SASL specific ACLs for the Znodes it will create in Zookeeper for cluster management.
+To enable this, in the `$NIFI_HOME/conf/nifi.properties` file and edit the following properties as shown below:
+
+[source]
+nifi.zookeeper.auth.type=sasl
+nifi.zookeeper.kerberos.removeHostFromPrincipal=true
+nifi.zookeeper.kerberos.removeRealmFromPrincipal=true
+
+Note: The kerberos.removeHostFromPrincipal and kerberos.removeRealmFromPrincipal should be consistent with what is set in Zookeeper configuration.
 
 We can initialize our Kerberos ticket by running the following command:
 

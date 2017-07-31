@@ -294,12 +294,14 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     private CuratorFramework createClient() {
         // Create a new client because we don't want to try indefinitely for this to occur.
         final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
+        final CuratorACLProviderFactory aclProviderFactory = new CuratorACLProviderFactory();
 
         final CuratorFramework client = CuratorFrameworkFactory.builder()
             .connectString(zkConfig.getConnectString())
             .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
             .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
             .retryPolicy(retryPolicy)
+            .aclProvider(aclProviderFactory.create(zkConfig))
             .defaultData(new byte[0])
             .build();
 
