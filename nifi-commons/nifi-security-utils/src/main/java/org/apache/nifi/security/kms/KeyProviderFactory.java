@@ -20,14 +20,20 @@ import java.security.KeyManagementException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KeyProviderFactory {
     private static final Logger logger = LoggerFactory.getLogger(KeyProviderFactory.class);
+    private static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
+    private static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
 
     public static KeyProvider buildKeyProvider(String implementationClassName, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) throws KeyManagementException {
         KeyProvider keyProvider;
+
+       implementationClassName = handleLegacyPackages(implementationClassName);
+
         if (StaticKeyProvider.class.getName().equals(implementationClassName)) {
             // Get all the keys (map) from config
             if (CryptoUtils.isValidKeyProvider(implementationClassName, keyProviderLocation, keyId, encryptionKeys)) {
@@ -59,5 +65,18 @@ public class KeyProviderFactory {
         }
 
         return keyProvider;
+    }
+
+    private static String handleLegacyPackages(String implementationClassName) throws KeyManagementException {
+        if (StringUtils.isBlank(implementationClassName)) {
+            throw new KeyManagementException("Invalid key provider implementation provided: " + implementationClassName);
+        }
+        if (implementationClassName.equalsIgnoreCase(LEGACY_SKP_FQCN)) {
+            return StaticKeyProvider.class.getName();
+        } else if (implementationClassName.equalsIgnoreCase(LEGACY_FBKP_FQCN)) {
+            return FileBasedKeyProvider.class.getName();
+        } else {
+            return implementationClassName;
+        }
     }
 }
