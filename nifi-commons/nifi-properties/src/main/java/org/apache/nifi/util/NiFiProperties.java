@@ -148,6 +148,14 @@ public abstract class NiFiProperties {
     public static final String SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX = "nifi.security.identity.mapping.pattern.";
     public static final String SECURITY_IDENTITY_MAPPING_VALUE_PREFIX = "nifi.security.identity.mapping.value.";
 
+    // oidc
+    public static final String SECURITY_USER_OIDC_DISCOVERY_URL = "nifi.security.user.oidc.discovery.url";
+    public static final String SECURITY_USER_OIDC_CONNECT_TIMEOUT = "nifi.security.user.oidc.connect.timeout";
+    public static final String SECURITY_USER_OIDC_READ_TIMEOUT = "nifi.security.user.oidc.read.timeout";
+    public static final String SECURITY_USER_OIDC_CLIENT_ID = "nifi.security.user.oidc.client.id";
+    public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
+    public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
+
     // web properties
     public static final String WEB_WAR_DIR = "nifi.web.war.directory";
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
@@ -244,6 +252,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_ENABLED = "true";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "30 days";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "500 MB";
+    public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
+    public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -804,17 +814,90 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns true if the login identity provider has been configured.
+     *
+     * @return true if the login identity provider has been configured
+     */
+    public boolean isLoginIdentityProviderEnabled() {
+        return !StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER));
+    }
+
+    /**
+     * Returns whether an OpenId Connect (OIDC) URL is set.
+     *
+     * @return whether an OpenId Connection URL is set
+     */
+    public boolean isOidcEnabled() {
+        return !StringUtils.isBlank(getOidcDiscoveryUrl());
+    }
+
+    /**
+     * Returns the OpenId Connect (OIDC) URL. Null otherwise.
+     *
+     * @return OIDC discovery url
+     */
+    public String getOidcDiscoveryUrl() {
+        return getProperty(SECURITY_USER_OIDC_DISCOVERY_URL);
+    }
+
+    /**
+     * Returns the OpenId Connect connect timeout. Non null.
+     *
+     * @return OIDC connect timeout
+     */
+    public String getOidcConnectTimeout() {
+        return getProperty(SECURITY_USER_OIDC_CONNECT_TIMEOUT, DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT);
+    }
+
+    /**
+     * Returns the OpenId Connect read timeout. Non null.
+     *
+     * @return OIDC read timeout
+     */
+    public String getOidcReadTimeout() {
+        return getProperty(SECURITY_USER_OIDC_READ_TIMEOUT, DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT);
+    }
+
+    /**
+     * Returns the OpenId Connect client id.
+     *
+     * @return OIDC client id
+     */
+    public String getOidcClientId() {
+        return getProperty(SECURITY_USER_OIDC_CLIENT_ID);
+    }
+
+    /**
+     * Returns the OpenId Connect client secret.
+     *
+     * @return OIDC client secret
+     */
+    public String getOidcClientSecret() {
+        return getProperty(SECURITY_USER_OIDC_CLIENT_SECRET);
+    }
+
+    /**
+     * Returns the preferred json web signature algorithm. May be null/blank.
+     *
+     * @return OIDC preferred json web signature algorithm
+     */
+    public String getOidcPreferredJwsAlgorithm() {
+        return getProperty(SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM);
+    }
+
+    /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      * <p>
      * - login identity provider is not populated
      * - Kerberos service support is not enabled
+     * - openid connect is not enabled
      *
      * @return true if client certificates are required for access to the REST
      * API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosSpnegoSupportEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {

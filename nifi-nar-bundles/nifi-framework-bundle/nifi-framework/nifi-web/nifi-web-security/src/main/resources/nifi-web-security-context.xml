@@ -78,4 +78,13 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
+    <!-- oidc -->
+    <bean id="oidcProvider" class="org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider">
+        <constructor-arg ref="jwtService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+    </bean>
+    <bean id="oidcService" class="org.apache.nifi.web.security.oidc.OidcService">
+        <constructor-arg ref="oidcProvider"/>
+    </bean>
+
 </beans>
