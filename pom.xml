@@ -95,7 +95,7 @@
         <jetty.version>9.4.3.v20170317</jetty.version>
         <lucene.version>4.10.4</lucene.version>
         <spring.version>4.2.4.RELEASE</spring.version>
-        <spring.security.version>4.0.3.RELEASE</spring.security.version>
+        <spring.security.version>4.2.3.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
         <hadoop.version>2.7.3</hadoop.version>
         <hadoop.guava.version>12.0.1</hadoop.guava.version>
@@ -375,6 +375,11 @@
                         <artifactId>spring-beans</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>oauth2-oidc-sdk</artifactId>
+                <version>5.34</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey.contribs</groupId>

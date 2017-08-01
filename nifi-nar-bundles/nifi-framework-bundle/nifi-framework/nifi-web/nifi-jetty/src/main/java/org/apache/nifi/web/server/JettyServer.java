@@ -289,7 +289,9 @@ public class JettyServer implements NiFiServer {
         }
 
         // load the web ui app
-        handlers.addHandler(loadWar(webUiWar, "/nifi", frameworkClassLoader));
+        final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
+        webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
+        handlers.addHandler(webUiContext);
 
         // load the web api app
         webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);

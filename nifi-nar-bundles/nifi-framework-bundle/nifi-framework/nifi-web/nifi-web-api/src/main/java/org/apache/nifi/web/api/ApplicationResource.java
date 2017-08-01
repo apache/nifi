@@ -295,6 +295,10 @@ public abstract class ApplicationResource {
         return uriInfo.getAbsolutePath();
     }
 
+    protected URI getRequestUri() {
+        return uriInfo.getRequestUri();
+    }
+
     protected MultivaluedMap<String, String> getRequestParameters() {
         final MultivaluedMap<String, String> entity = new MultivaluedMapImpl();
 
