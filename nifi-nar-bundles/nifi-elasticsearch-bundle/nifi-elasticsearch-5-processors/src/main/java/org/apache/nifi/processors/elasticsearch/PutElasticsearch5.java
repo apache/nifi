@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -62,6 +63,7 @@ import java.util.Set;
         + "the index to insert into and the type of the document. If the cluster has been configured for authorization "
         + "and/or secure transport (SSL/TLS), and the X-Pack plugin is available, secure connections can be made. This processor "
         + "supports Elasticsearch 5.x clusters.")
+@SeeAlso({FetchElasticsearch5.class,PutElasticsearch5.class})
 public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProcessor {
 
     private static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {

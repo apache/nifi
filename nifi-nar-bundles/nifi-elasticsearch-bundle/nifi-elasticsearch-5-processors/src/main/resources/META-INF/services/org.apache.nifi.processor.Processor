@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.elasticsearch.FetchElasticsearch5
 org.apache.nifi.processors.elasticsearch.PutElasticsearch5
+org.apache.nifi.processors.elasticsearch.DeleteElasticsearch5
