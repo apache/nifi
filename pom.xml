@@ -105,6 +105,7 @@ limitations under the License.
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
+        <system.rules.version>1.16.1</system.rules.version>
     </properties>
 
     <dependencies>

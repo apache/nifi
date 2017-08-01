@@ -17,21 +17,23 @@
 
 package org.apache.nifi.minifi.c2.api.cache;
 
-import org.apache.nifi.minifi.c2.api.InvalidParameterException;
-
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.minifi.c2.api.InvalidParameterException;
+
 /**
- * Cache for storing configurations so they don't have to be pulled from the provider more often than necessary
+ * Cache for storing configurations so they don't have to be pulled from
+ * the provider more often than necessary.
  */
 public interface ConfigurationCache {
-    /**
-     * Returns the information on a given cache entry
-     *
-     * @param parameters the parameters that identify the entry
-     * @return information on the entry
-     * @throws InvalidParameterException if there are illegal/invalid parameters
-     */
-    ConfigurationCacheFileInfo getCacheFileInfo(String contentType, Map<String, List<String>> parameters) throws InvalidParameterException;
+  /**
+  * Returns the information on a given cache entry.
+  *
+  * @param parameters The parameters that identify the entry.
+  * @return {@link ConfigurationCacheFileInfo information} on the entry.
+  * @throws InvalidParameterException Thrown when there are illegal/invalid parameters.
+  */
+  ConfigurationCacheFileInfo getCacheFileInfo(String contentType,
+      Map<String, List<String>> parameters) throws InvalidParameterException;
 }

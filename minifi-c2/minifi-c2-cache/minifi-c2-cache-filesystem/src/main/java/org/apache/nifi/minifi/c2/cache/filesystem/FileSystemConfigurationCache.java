@@ -17,13 +17,6 @@
 
 package org.apache.nifi.minifi.c2.cache.filesystem;
 
-import org.apache.nifi.minifi.c2.api.InvalidParameterException;
-import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
-import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
-import org.apache.nifi.minifi.c2.api.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,18 +26,45 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.minifi.c2.api.InvalidParameterException;
+import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
+import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
+import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Implementation of {@link ConfigurationCache} that uses the local file
+ * system for caching configurations.
+ *
+ */
 public class FileSystemConfigurationCache implements ConfigurationCache {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemConfigurationCache.class);
 
     private final Path pathRoot;
     private final String pathPattern;
 
+    /**
+     * Creates a new cache.
+     * @param pathRoot The root path for configurations. This path will be appended
+     * to the environment variable <code>C2_SERVER_HOME</code>.
+     * @param pathPattern The pattern to determine the path.
+     * @throws IOException Thrown if the path cannot be created.
+     */
     public FileSystemConfigurationCache(String pathRoot, String pathPattern) throws IOException {
         this.pathRoot = Paths.get(System.getenv("C2_SERVER_HOME")).resolve(pathRoot).toAbsolutePath();
         Files.createDirectories(this.pathRoot);
         this.pathPattern = pathPattern;
     }
 
+    /**
+     * Resolves a parent {@link Path path} and child directory.
+     * @param parent The parent {@link Path path}.
+     * @param s The child directory.
+     * @return The resolved {@link Path}.
+     * @throws InvalidParameterException Thrown if the child directory is
+     * not actually a child directory of the parent.
+     */
     protected Path resolveChildAndVerifyParent(Path parent, String s) throws InvalidParameterException {
         Path child = parent.resolve(s).toAbsolutePath();
         if (child.toAbsolutePath().getParent().equals(parent)) {
