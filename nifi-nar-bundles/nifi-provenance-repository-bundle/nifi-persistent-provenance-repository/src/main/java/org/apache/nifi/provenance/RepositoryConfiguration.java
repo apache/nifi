@@ -372,6 +372,8 @@ public class RepositoryConfiguration {
         return keyProviderIsConfigured;
     }
 
+    // TODO: Add verbose error output for encryption support failure if requested
+
     public Map<String, String> getEncryptionKeys() {
         return encryptionKeys;
     }
