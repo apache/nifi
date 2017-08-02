@@ -146,6 +146,15 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .expressionLanguageSupported(true)
             .build();
 
+    public static final PropertyDescriptor WHERE_CLAUSE = new PropertyDescriptor.Builder()
+            .name("db-fetch-where-clause")
+            .displayName("Additional WHERE clause")
+            .description("A custom clause to be added in the WHERE condition when generating SQL requests.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     protected List<PropertyDescriptor> propDescriptors;
 
     // The delimiter to use when referencing qualified names (such as table@!@column in the state map)

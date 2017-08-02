@@ -132,6 +132,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
+        pds.add(WHERE_CLAUSE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -185,6 +186,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -247,6 +249,11 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
             });
+
+            if(customWhereClause != null) {
+                // adding the custom WHERE clause (if defined) to the list of existing clauses.
+                maxValueClauses.add("(" + customWhereClause + ")");
+            }
 
             whereClause = StringUtils.join(maxValueClauses, " AND ");
             columnsClause = StringUtils.join(maxValueSelectColumns, ", ");
