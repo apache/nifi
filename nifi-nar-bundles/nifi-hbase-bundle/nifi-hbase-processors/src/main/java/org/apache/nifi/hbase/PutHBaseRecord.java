@@ -55,7 +55,7 @@ import java.util.Set;
 public class PutHBaseRecord extends AbstractPutHBase {
 
     protected static final PropertyDescriptor ROW_FIELD_NAME = new PropertyDescriptor.Builder()
-            .name("Row Identifier Field Path")
+            .name("Row Identifier Field Name")
             .description("Specifies the name of a record field whose value should be used as the row id for the given record.")
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -209,7 +209,9 @@ public class PutHBaseRecord extends AbstractPutHBase {
         } else {
             String restartIndex = Integer.toString(index - flowFiles.size());
             flowFile = session.putAttribute(flowFile, "restart.index", restartIndex);
-            sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+            if (columns > 0) {
+                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+            }
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -235,7 +237,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         return null;
     }
 
-    protected byte[] asBytes(String field, RecordFieldType fieldType, Record record, boolean asString, String complexFieldStrategy) {
+    protected byte[] asBytes(String field, RecordFieldType fieldType, Record record, boolean asString, String complexFieldStrategy) throws PutCreationFailedInvokedException {
 
         byte[] retVal;
 
@@ -266,7 +268,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
                     switch (complexFieldStrategy) {
                         case FAIL_VALUE:
                             getLogger().error("Complex value found for {}; routing to failure", new Object[]{field});
-                            break;
+                            throw new PutCreationFailedInvokedException(String.format("Complex value found for %s; routing to failure", field));
                         case WARN_VALUE:
                             getLogger().warn("Complex value found for {}; skipping", new Object[]{field});
                             break;
@@ -286,7 +288,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
     }
 
     protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile,
-                                    String rowFieldName, String columnFamily, String fieldEncodingStrategy, String rowEncodingStrategy, String complexFieldStrategy) {
+                                    String rowFieldName, String columnFamily, String fieldEncodingStrategy, String rowEncodingStrategy, String complexFieldStrategy) throws PutCreationFailedInvokedException {
         PutFlowFile retVal = null;
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
@@ -294,7 +296,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
         final byte[] fam  = clientService.toBytes(columnFamily);
 
-        try {
+        //try {
             if (record != null) {
                 List<PutColumn> columns = new ArrayList<>();
                 for (String name : schema.getFieldNames()) {
@@ -306,18 +308,24 @@ public class PutHBaseRecord extends AbstractPutHBase {
                 }
                 String rowIdValue = record.getAsString(rowFieldName);
                 if (rowIdValue == null) {
-                    throw new Exception(String.format("Row ID was null for flowfile with ID %s", flowFile.getAttribute("uuid")));
+                    throw new PutCreationFailedInvokedException(String.format("Row ID was null for flowfile with ID %s", flowFile.getAttribute("uuid")));
                 }
                 byte[] rowId =  getRow(rowIdValue, rowEncodingStrategy);
 
                 retVal = new PutFlowFile(tableName, rowId, columns, flowFile);
             }
 
-        } catch (Exception ex) {
+/*        } catch (Exception ex) {
             getLogger().error("Error running createPuts", ex);
             throw new RuntimeException(ex);
-        }
+        }*/
 
         return retVal;
+    }
+
+    static class PutCreationFailedInvokedException extends Exception {
+        PutCreationFailedInvokedException(String msg) {
+            super(msg);
+        }
     }
 }
