@@ -19,6 +19,7 @@ package org.apache.nifi.web.api;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
@@ -214,14 +215,27 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
-        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse = AuthenticationResponseParser.parse(getRequestUri());
+        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse;
+        try {
+            oidcResponse = AuthenticationResponseParser.parse(getRequestUri());
+        } catch (final ParseException e) {
+            logger.error("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
+
+            // remove the oidc request cookie
+            removeOidcRequestCookie(httpServletResponse);
+
+            // forward to the error page
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
+            return;
+        }
+
         if (oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
 
             // confirm state
             final State state = successfulOidcResponse.getState();
-            if (!oidcService.isStateValid(oidcRequestIdentifier, state)) {
-                logger.error("Purposed state does not match the stored state. Unable to continue login process.");
+            if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
+                logger.error("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue login process.");
 
                 // remove the oidc request cookie
                 removeOidcRequestCookie(httpServletResponse);
@@ -641,6 +655,13 @@ public class AccessResource extends ApplicationResource {
         return proposedTokenExpiration;
     }
 
+    /**
+     * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
+     *
+     * @param cookies the cookies
+     * @param name the name of the cookie
+     * @return the value of the corresponding cookie, or null if the cookie does not exist
+     */
     private String getCookieValue(final Cookie[] cookies, final String name) {
         if (cookies != null) {
             for (final Cookie cookie : cookies) {

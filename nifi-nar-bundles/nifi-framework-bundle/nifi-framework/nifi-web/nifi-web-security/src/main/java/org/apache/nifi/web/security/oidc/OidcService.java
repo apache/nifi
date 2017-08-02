@@ -26,6 +26,8 @@ import org.apache.nifi.web.security.util.CacheKey;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -42,7 +44,9 @@ public class OidcService {
     private Cache<CacheKey, String> jwtLookupForCompletedRequests; // identifier from cookie -> jwt or identity (and generate jwt on retrieval)
 
     /**
-     * Creates a new OtpService with an expiration of 5 minutes.
+     * Creates a new OtpService with an expiration of 1 minute.
+     *
+     * @param identityProvider          The identity provider
      */
     public OidcService(final OidcIdentityProvider identityProvider) {
         this(identityProvider, 60, TimeUnit.SECONDS);
@@ -51,12 +55,17 @@ public class OidcService {
     /**
      * Creates a new OtpService.
      *
+     * @param identityProvider          The identity provider
      * @param duration                  The expiration duration
      * @param units                     The expiration units
      * @throws NullPointerException     If units is null
      * @throws IllegalArgumentException If duration is negative
      */
     public OidcService(final OidcIdentityProvider identityProvider, final int duration, final TimeUnit units) {
+        if (identityProvider == null) {
+            throw new RuntimeException("The OidcIdentityProvider must be specified.");
+        }
+
         this.identityProvider = identityProvider;
         this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
         this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
@@ -110,12 +119,12 @@ public class OidcService {
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        final State state = new State(new BigInteger(130, new SecureRandom()).toString(32));
+        final State state = new State(generateStateValue());
 
         try {
             synchronized (stateLookupForPendingRequests) {
                 final State cachedState = stateLookupForPendingRequests.get(oidcRequestIdentifierKey, () -> state);
-                if (!state.equals(cachedState)) {
+                if (!timeConstantEqualityCheck(state.getValue(), cachedState.getValue())) {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
@@ -127,16 +136,32 @@ public class OidcService {
     }
 
     /**
-     * Validates the purposed state with the given request identifier. Will return false if the
+     * Generates a value to use as State in the OpenId Connect login sequence. 128 bits is considered cryptographically strong
+     * with current hardware/software, but a Base32 digit needs 5 bits to be fully encoded, so 128 is rounded up to 130. Base32
+     * is chosen because it encodes data with a single case and without including confusing or URI-incompatible characters,
+     * unlike Base64, but is approximately 20% more compact than Base16/hexadecimal
+     *
+     * @return
+     */
+    private String generateStateValue() {
+        return new BigInteger(130, new SecureRandom()).toString(32);
+    }
+
+    /**
+     * Validates the proposed state with the given request identifier. Will return false if the
      * state does not match or if entry for this request identifier has expired.
      *
      * @param oidcRequestIdentifier request identifier
-     * @param purposedState purposed state
+     * @param proposedState proposed state
      * @return whether the state is valid or not
      */
-    public boolean isStateValid(final String oidcRequestIdentifier, final State purposedState) {
+    public boolean isStateValid(final String oidcRequestIdentifier, final State proposedState) {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        if (proposedState == null) {
+            throw new IllegalArgumentException("Proposed state must be specified.");
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
@@ -147,7 +172,7 @@ public class OidcService {
                 stateLookupForPendingRequests.invalidate(oidcRequestIdentifierKey);
             }
 
-            return state != null && state.equals(purposedState);
+            return state != null && timeConstantEqualityCheck(state.getValue(), proposedState.getValue());
         }
     }
 
@@ -170,7 +195,7 @@ public class OidcService {
             // cache the jwt for later retrieval
             synchronized (jwtLookupForCompletedRequests) {
                 final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> nifiJwt);
-                if (!nifiJwt.equals(cachedJwt)) {
+                if (!timeConstantEqualityCheck(nifiJwt, cachedJwt)) {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
@@ -204,4 +229,18 @@ public class OidcService {
         }
     }
 
+    /**
+     * Implements a time constant equality check. If either value is null, false is returned.
+     *
+     * @param value1 value1
+     * @param value2 value2
+     * @return if value1 equals value2
+     */
+    private boolean timeConstantEqualityCheck(final String value1, final String value2) {
+        if (value1 == null || value2 == null) {
+            return false;
+        }
+
+        return MessageDigest.isEqual(value1.getBytes(StandardCharsets.UTF_8), value2.getBytes(StandardCharsets.UTF_8));
+    }
 }

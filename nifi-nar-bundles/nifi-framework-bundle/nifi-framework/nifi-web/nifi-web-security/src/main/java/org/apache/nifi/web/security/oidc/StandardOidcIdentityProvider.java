@@ -96,6 +96,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
         // attempt to process the oidc configuration if configured
         if (properties.isOidcEnabled()) {
+            if (properties.isLoginIdentityProviderEnabled()) {
+                throw new RuntimeException("OpenId Connect support cannot be enabled if the Login Identity Provider is configured.");
+            }
+
             // oidc connect timeout
             final String rawConnectTimeout = properties.getOidcConnectTimeout();
             try {
@@ -135,6 +139,27 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 oidcProviderMetadata = retrieveOidcProviderMetadata(properties.getOidcDiscoveryUrl());
             } catch (IOException | ParseException e) {
                 throw new RuntimeException("Unable to retrieve OpenId Connect Provider metadata from: " + properties.getOidcDiscoveryUrl(), e);
+            }
+
+            // ensure the authorization endpoint is present
+            if (oidcProviderMetadata.getAuthorizationEndpointURI() == null) {
+                throw new RuntimeException("OpenId Connect Provider metadata does not contain an Authorization Endpoint.");
+            }
+
+            // ensure the token endpoint is present
+            if (oidcProviderMetadata.getTokenEndpointURI() == null) {
+                throw new RuntimeException("OpenId Connect Provider metadata does not contain a Token Endpoint.");
+            }
+
+            // ensure the required scopes are present
+            if (oidcProviderMetadata.getScopes() == null) {
+                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.OPENID)) {
+                    throw new RuntimeException("OpenId Connect Provider does not support the required scope: " + OIDCScopeValue.OPENID.getValue());
+                }
+
+                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.EMAIL) && oidcProviderMetadata.getUserInfoEndpointURI() == null) {
+                    throw new RuntimeException(String.format("OpenId Connect Provider does not support '%s' scope and does not provide a UserInfo Endpoint.", OIDCScopeValue.EMAIL.getValue()));
+                }
             }
 
             // ensure the oidc provider supports basic or post client auth

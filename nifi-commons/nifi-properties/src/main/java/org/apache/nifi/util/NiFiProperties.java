@@ -808,6 +808,15 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns true if the login identity provider has been configured.
+     *
+     * @return true if the login identity provider has been configured
+     */
+    public boolean isLoginIdentityProviderEnabled() {
+        return !StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER));
+    }
+
+    /**
      * Returns whether an OpenId Connect (OIDC) URL is set.
      *
      * @return whether an OpenId Connection URL is set
@@ -882,7 +891,7 @@ public abstract class NiFiProperties {
      * API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {
