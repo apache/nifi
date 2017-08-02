@@ -50,6 +50,12 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
 
+    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String QUERY_QUERY_PARAM = "q";
+    static final String SORT_QUERY_PARAM = "sort";
+    static final String SIZE_QUERY_PARAM = "size";
+
+
     public static final PropertyDescriptor ES_URL = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-url")
             .displayName("Elasticsearch URL")
@@ -96,6 +102,17 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .build();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
 
     @Override
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {

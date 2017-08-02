@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -52,7 +54,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.codehaus.jackson.JsonNode;
 
 import okhttp3.HttpUrl;
@@ -73,18 +74,19 @@ import okhttp3.ResponseBody;
 @WritesAttributes({
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type") })
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 @Stateful(description = "After each successful scroll page, the latest scroll_id is persisted in scrollId as input for the next scroll call.  "
         + "Once the entire query is complete, finishedQuery state will be set to true, and the processor will not execute unless this is cleared.", scopes = { Scope.LOCAL })
 public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private static final String FINISHED_QUERY_STATE = "finishedQuery";
     private static final String SCROLL_ID_STATE = "scrollId";
-    private static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
-    private static final String QUERY_QUERY_PARAM = "q";
-    private static final String SORT_QUERY_PARAM = "sort";
     private static final String SCROLL_QUERY_PARAM = "scroll";
     private static final String SCROLL_ID_QUERY_PARAM = "scroll_id";
-    private static final String SIZE_QUERY_PARAM = "size";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -249,7 +251,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                     .getValue());
             if (scrollId != null) {
                 final URL scrollurl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll);
+                        scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, scrollurl,
@@ -262,7 +264,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
                 // read the url property from the context
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll);
+                        scrollId, pageSize, scroll, context);
                 final long startNanos = System.nanoTime();
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
@@ -399,7 +401,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     }
 
     private URL buildRequestURL(String baseUrl, String query, String index, String type, String fields,
-            String sort, String scrollId, int pageSize, String scroll) throws MalformedURLException {
+            String sort, String scrollId, int pageSize, String scroll, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -426,6 +428,17 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             }
         }
         builder.addQueryParameter(SCROLL_QUERY_PARAM, scroll);
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    builder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
+        }
+
 
         return builder.build().url();
     }
