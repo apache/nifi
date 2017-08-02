@@ -161,6 +161,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(USE_AVRO_LOGICAL_TYPES);
         pds.add(DEFAULT_PRECISION);
         pds.add(DEFAULT_SCALE);
+        pds.add(WHERE_CLAUSE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -192,6 +193,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions().getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
@@ -243,7 +245,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, statePropertyMap);
+        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, customWhereClause, statePropertyMap);
         final StopWatch stopWatch = new StopWatch(true);
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
@@ -363,15 +365,15 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     }
 
     protected String getQuery(DatabaseAdapter dbAdapter, String tableName, String columnNames, List<String> maxValColumnNames,
-                              Map<String, String> stateMap) {
+                              String customWhereClause, Map<String, String> stateMap) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name must be specified");
         }
         final StringBuilder query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
 
+        List<String> whereClauses = new ArrayList<>();
         // Check state map for last max values
         if (stateMap != null && !stateMap.isEmpty() && maxValColumnNames != null) {
-            List<String> whereClauses = new ArrayList<>(maxValColumnNames.size());
             IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
                 String colName = maxValColumnNames.get(index);
                 String maxValueKey = getStateKey(tableName, colName);
@@ -392,10 +394,15 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     whereClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
             });
-            if (!whereClauses.isEmpty()) {
-                query.append(" WHERE ");
-                query.append(StringUtils.join(whereClauses, " AND "));
-            }
+        }
+
+        if (customWhereClause != null) {
+            whereClauses.add("(" + customWhereClause + ")");
+        }
+
+        if (!whereClauses.isEmpty()) {
+            query.append(" WHERE ");
+            query.append(StringUtils.join(whereClauses, " AND "));
         }
 
         return query.toString();
