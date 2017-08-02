@@ -112,17 +112,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor RIGHT_BOUND_WHERE = new PropertyDescriptor.Builder()
-            .name("gen-table-fetch-right-bounded")
-            .displayName("Right Bounded")
-            .description("Whether to include the new max value(s) as a right hand boundary in the where statement. "
-                    + "If this is set to false duplicate data may be returned by consecutive executions of the "
-                    + "processor if there are deletions or if the table is high volume.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .required(true)
-            .build();
-
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
@@ -141,7 +130,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(TABLE_NAME);
         pds.add(COLUMN_NAMES);
         pds.add(MAX_VALUE_COLUMN_NAMES);
-        pds.add(RIGHT_BOUND_WHERE);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
@@ -197,7 +185,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final Boolean rightBounded = context.getProperty(RIGHT_BOUND_WHERE).asBoolean();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -320,24 +307,22 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
 
-                // If Right Bounded, for each maximum-value column get a right bounding WHERE condition
-                if(rightBounded){
-                    IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
-                        String colName = maxValueColumnNameList.get(index);
+                // for each maximum-value column get a right bounding WHERE condition
+                IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+                    String colName = maxValueColumnNameList.get(index);
 
-                        maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                        String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
-                        if (!StringUtils.isEmpty(maxValue)) {
-                            Integer type = getColumnType(tableName, colName);
+                    maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
+                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                    if (!StringUtils.isEmpty(maxValue)) {
+                        Integer type = getColumnType(tableName, colName);
 
-                            // Add a condition for the WHERE clause
-                            maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
-                        }
-                    });
+                        // Add a condition for the WHERE clause
+                        maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
+                    }
+                });
 
-                    //Update WHERE list to include new right hand boundaries
-                    whereClause = StringUtils.join(maxValueClauses, " AND ");
-                }
+                //Update WHERE list to include new right hand boundaries
+                whereClause = StringUtils.join(maxValueClauses, " AND ");
 
                 final long numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
