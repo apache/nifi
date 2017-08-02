@@ -21,6 +21,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -37,9 +38,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.codehaus.jackson.JsonNode;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -65,9 +67,12 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type")
 })
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
-
-    private static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -212,7 +217,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
-            final URL url = buildRequestURL(urlstr, docId, index, docType, fields);
+            final URL url = buildRequestURL(urlstr, docId, index, docType, fields, context);
             final long startNanos = System.nanoTime();
 
             getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "GET", null);
@@ -304,7 +309,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
     }
 
-    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields) throws MalformedURLException {
+    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -315,6 +320,16 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
             builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+        }
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    builder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
         }
 
         return builder.build().url();

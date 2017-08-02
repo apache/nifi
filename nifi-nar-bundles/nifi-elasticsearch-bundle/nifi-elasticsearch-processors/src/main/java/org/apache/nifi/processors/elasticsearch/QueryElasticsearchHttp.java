@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -49,7 +51,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.codehaus.jackson.JsonNode;
 
 import okhttp3.HttpUrl;
@@ -73,13 +74,14 @@ import okhttp3.ResponseBody;
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type"),
         @WritesAttribute(attribute = "es.result.*", description = "If Target is 'Flow file attributes', the JSON attributes of "
                 + "each result will be placed into corresponding attributes with this prefix.") })
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
-    private static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
-    private static final String QUERY_QUERY_PARAM = "q";
-    private static final String SORT_QUERY_PARAM = "sort";
     private static final String FROM_QUERY_PARAM = "from";
-    private static final String SIZE_QUERY_PARAM = "size";
 
     public static final String TARGET_FLOW_FILE_CONTENT = "Flow file content";
     public static final String TARGET_FLOW_FILE_ATTRIBUTES = "Flow file attributes";
@@ -281,7 +283,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 }
 
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        mPageSize, fromIndex);
+                        mPageSize, fromIndex, context);
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
@@ -403,7 +405,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     }
 
     private URL buildRequestURL(String baseUrl, String query, String index, String type, String fields,
-            String sort, int pageSize, int fromIndex) throws MalformedURLException {
+            String sort, int pageSize, int fromIndex, ProcessContext context) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -423,6 +425,16 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         if (!StringUtils.isEmpty(sort)) {
             String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));
             builder.addQueryParameter(SORT_QUERY_PARAM, trimmedFields);
+        }
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    builder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
         }
 
         return builder.build().url();

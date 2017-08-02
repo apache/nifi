@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -39,13 +41,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.util.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
@@ -65,6 +67,11 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @Tags({"elasticsearch", "insert", "update", "upsert", "delete", "write", "put", "http"})
 @CapabilityDescription("Writes the contents of a FlowFile to Elasticsearch, using the specified parameters such as "
         + "the index to insert into and the type of the document.")
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -223,14 +230,18 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
         final StringBuilder sb = new StringBuilder();
         final String baseUrl = trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
-        final URL url;
-        try {
-            url = new URL((baseUrl.endsWith("/") ? baseUrl : baseUrl + "/") + "_bulk");
-        } catch (MalformedURLException mue) {
-            // Since we have a URL validator, something has gone very wrong, throw a ProcessException
-            context.yield();
-            throw new ProcessException(mue);
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder().addPathSegment("_bulk");
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    urlBuilder = urlBuilder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
         }
+        final URL url = urlBuilder.build().url();
 
         for (FlowFile file : flowFiles) {
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();

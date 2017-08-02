@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -66,7 +68,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -87,6 +88,11 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
         + "the index to insert into and the type of the document, as well as the operation type (index, upsert, delete, etc.). Note: The Bulk API is used to "
         + "send the records. This means that the entire contents of the incoming flow file are read into memory, and each record is transformed into a JSON document "
         + "which is added to a single HTTP request body. For very large flow files (files with a large number of records, e.g.), this could cause memory usage issues.")
+@DynamicProperty(
+        name = "A URL query parameter",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -239,14 +245,18 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final ComponentLog logger = getLogger();
 
         final String baseUrl = trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
-        final URL url;
-        try {
-            url = new URL((baseUrl.endsWith("/") ? baseUrl : baseUrl + "/") + "_bulk");
-        } catch (MalformedURLException mue) {
-            // Since we have a URL validator, something has gone very wrong, throw a ProcessException
-            context.yield();
-            throw new ProcessException(mue);
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder().addPathSegment("_bulk");
+
+        // Find the user-added properties and set them as query parameters on the URL
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            PropertyDescriptor pd = property.getKey();
+            if (pd.isDynamic()) {
+                if (property.getValue() != null) {
+                    urlBuilder = urlBuilder.addQueryParameter(pd.getName(), context.getProperty(pd).evaluateAttributeExpressions().getValue());
+                }
+            }
         }
+        final URL url = urlBuilder.build().url();
 
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isEmpty(index)) {

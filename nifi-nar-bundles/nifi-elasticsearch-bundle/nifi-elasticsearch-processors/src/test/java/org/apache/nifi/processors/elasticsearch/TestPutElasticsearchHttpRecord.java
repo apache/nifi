@@ -44,6 +44,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -332,6 +333,37 @@ public class TestPutElasticsearchHttpRecord {
         assertNotNull(out);
     }
 
+    @Test
+    public void testPutElasticSearchOnTriggerQueryParameter() throws IOException {
+        PutElasticsearchHttpRecordTestProcessor p = new PutElasticsearchHttpRecordTestProcessor(false); // no failures
+        p.setExpectedUrl("http://127.0.0.1:9200/_bulk?pipeline=my-pipeline");
+        runner = TestRunners.newTestRunner(p);
+        generateTestData();
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+
+        // Set dynamic property, to be added to the URL as a query parameter
+        runner.setProperty("pipeline", "my-pipeline");
+
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertNotNull(provEvents);
+        assertEquals(1, provEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -340,6 +372,7 @@ public class TestPutElasticsearchHttpRecord {
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
+        String expectedUrl = null;
 
         PutElasticsearchHttpRecordTestProcessor(boolean responseHasFailures) {
             this.responseHasFailures = responseHasFailures;
@@ -350,6 +383,10 @@ public class TestPutElasticsearchHttpRecord {
             statusMessage = message;
         }
 
+        void setExpectedUrl(String url) {
+            expectedUrl = url;
+        }
+
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -358,6 +395,7 @@ public class TestPutElasticsearchHttpRecord {
                 final Call call = mock(Call.class);
                 if (statusCode != -1) {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                    assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
                     StringBuilder sb = new StringBuilder("{\"took\": 1, \"errors\": \"");
                     sb.append(responseHasFailures);
                     sb.append("\", \"items\": [");
