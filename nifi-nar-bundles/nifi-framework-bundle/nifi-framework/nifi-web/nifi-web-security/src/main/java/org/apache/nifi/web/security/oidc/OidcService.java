@@ -141,7 +141,7 @@ public class OidcService {
      * is chosen because it encodes data with a single case and without including confusing or URI-incompatible characters,
      * unlike Base64, but is approximately 20% more compact than Base16/hexadecimal
      *
-     * @return
+     * @return the state value
      */
     private String generateStateValue() {
         return new BigInteger(130, new SecureRandom()).toString(32);

@@ -187,7 +187,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
                     preferredJwsAlgorithm = oidcProviderMetadata.getIDTokenJWSAlgs().get(0);
                 } else {
-                    if ("none".equals(rawPreferredJwsAlgorithm)) {
+                    if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
                         preferredJwsAlgorithm = null;
                     } else {
                         preferredJwsAlgorithm = JWSAlgorithm.parse(rawPreferredJwsAlgorithm);
@@ -295,7 +295,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
                 // attempt to extract the email from the id token if possible
                 String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
-                if (email == null) {
+                if (StringUtils.isBlank(email)) {
                     // extract the bearer access token
                     final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
                     if (bearerAccessToken == null) {
@@ -348,7 +348,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 final String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
 
                 // ensure we were able to get the user email
-                if (email == null) {
+                if (StringUtils.isBlank(email)) {
                     throw new IllegalStateException("Unable to extract email from the UserInfo token.");
                 } else {
                     return email;
