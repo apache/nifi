@@ -1192,9 +1192,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (record == null) {
                 throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
             }
-            if (record.getCurrent() != flowFile) {
-                throw new FlowFileHandlingException(flowFile + " is not the most recent version of this FlowFile within this session (" + toString() + ")");
-            }
         }
 
         // If we have a FORK event for one of the given FlowFiles, then all children must also be migrated. Otherwise, we
