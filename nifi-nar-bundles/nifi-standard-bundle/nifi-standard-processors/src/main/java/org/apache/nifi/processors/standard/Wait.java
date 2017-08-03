@@ -444,7 +444,15 @@ public class Wait extends AbstractProcessor {
                         getFlowFilesFor.apply(REL_WAIT).addAll(candidates);
                         // If releasableFlowFileCount == 0, leave signal as it is,
                         // so that any number of FlowFile can be released as long as target count condition matches.
-                        waitCompleted = true;
+
+                        // update the counter
+                        try {
+                            waitCompleted = targetCounterName == null ? true :
+                                protocol.notify(signalId, targetCounterName, (int) -targetCount, null).getCount(targetCounterName) == 0L;
+                        } catch (final IOException e) {
+                            session.rollback();
+                            throw new ProcessException(String.format("Unable to communicate with cache while updating %s due to %s", signalId, e), e);
+                        }
                     }
                 } else {
                     getFlowFilesFor.apply(REL_WAIT).addAll(candidates);
