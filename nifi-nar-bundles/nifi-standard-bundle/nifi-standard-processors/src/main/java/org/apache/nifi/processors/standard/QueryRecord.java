@@ -46,6 +46,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -546,7 +547,12 @@ public class QueryRecord extends AbstractProcessor {
             }
 
             final String substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-            final SqlParser parser = SqlParser.create(substituted);
+
+            final Config config = SqlParser.configBuilder()
+                .setLex(Lex.MYSQL_ANSI)
+                .build();
+
+            final SqlParser parser = SqlParser.create(substituted, config);
             try {
                 parser.parseStmt();
                 return new ValidationResult.Builder()
