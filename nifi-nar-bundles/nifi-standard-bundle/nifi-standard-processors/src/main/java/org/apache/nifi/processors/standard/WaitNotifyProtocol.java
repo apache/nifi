@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
@@ -45,6 +46,7 @@ public class WaitNotifyProtocol {
     private static final Logger logger = LoggerFactory.getLogger(WaitNotifyProtocol.class);
 
     public static final String DEFAULT_COUNT_NAME = "default";
+    public static final String CONSUMED_COUNT_NAME = "consumed";
     private static final int MAX_REPLACE_RETRY_COUNT = 5;
     private static final int REPLACE_RETRY_WAIT_MILLIS = 10;
 
@@ -86,9 +88,13 @@ public class WaitNotifyProtocol {
             this.attributes = attributes;
         }
 
+        @JsonIgnore
+        public long getTotalCount() {
+            return counts.values().stream().mapToLong(Long::longValue).sum();
+        }
+
         public boolean isTotalCountReached(final long targetCount) {
-            final long totalCount = counts.values().stream().mapToLong(Long::longValue).sum();
-            return totalCount >= targetCount;
+            return getTotalCount() >= targetCount;
         }
 
         public boolean isCountReached(final String counterName, final long targetCount) {
@@ -96,6 +102,10 @@ public class WaitNotifyProtocol {
         }
 
         public long getCount(final String counterName) {
+            if (counterName == null || counterName.isEmpty()) {
+                return getTotalCount();
+            }
+
             final Long count = counts.get(counterName);
             return count != null ? count : 0;
         }
@@ -115,7 +125,7 @@ public class WaitNotifyProtocol {
          * Caller of this method is responsible for updating cache storage after processing released and waiting candidates
          * by calling {@link #replace(Signal)}. Caller should rollback what it processed with these candidates if complete call failed.</p>
          *
-         * @param _counterName signal counter name to consume from.
+         * @param counterName signal counter name to consume from. If not specified, total counter is used, and 'consumed' counter is added to subtract consumed counters from total counter.
          * @param requiredCountForPass number of required signals to acquire a pass.
          * @param releasableCandidateCountPerPass number of releasable candidate per pass.
          * @param candidates candidates waiting for being allowed to pass.
@@ -123,12 +133,9 @@ public class WaitNotifyProtocol {
          * @param waiting function to process candidates those should remain in waiting queue.
          * @param <E> Type of candidate
          */
-        public <E> void releaseCandidatese(final String _counterName, final long requiredCountForPass,
-                                           final int releasableCandidateCountPerPass, final List<E> candidates,
-                                           final Consumer<List<E>> released, final Consumer<List<E>> waiting) {
-
-            // counterName is mandatory otherwise, we can't decide which counter to convert into pass count.
-            final String counterName = _counterName == null || _counterName.length() == 0 ? DEFAULT_COUNT_NAME : _counterName;
+        public <E> void releaseCandidates(final String counterName, final long requiredCountForPass,
+                                          final int releasableCandidateCountPerPass, final List<E> candidates,
+                                          final Consumer<List<E>> released, final Consumer<List<E>> waiting) {
 
             final int candidateSize = candidates.size();
             if (releasableCount < candidateSize) {
@@ -137,11 +144,18 @@ public class WaitNotifyProtocol {
                 final long signalCount = getCount(counterName);
                 releasableCount += (signalCount / requiredCountForPass) * releasableCandidateCountPerPass;
                 final long reducedSignalCount = signalCount % requiredCountForPass;
-                counts.put(counterName, reducedSignalCount);
+                if (counterName != null && !counterName.isEmpty()) {
+                    // Update target counter with reduced count.
+                    counts.put(counterName, reducedSignalCount);
+                } else {
+                    // If target counter name is not specified, add consumed count to subtract from accumulated total count.
+                    Long consumedCount = counts.getOrDefault(CONSUMED_COUNT_NAME, 0L);
+                    consumedCount -= signalCount - reducedSignalCount;
+                    counts.put(CONSUMED_COUNT_NAME, consumedCount);
+                }
             }
 
             int releaseCount = Math.min(releasableCount, candidateSize);
-
             released.accept(candidates.subList(0, releaseCount));
             waiting.accept(candidates.subList(releaseCount, candidateSize));
 

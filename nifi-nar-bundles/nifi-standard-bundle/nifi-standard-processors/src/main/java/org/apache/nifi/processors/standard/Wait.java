@@ -305,6 +305,8 @@ public class Wait extends AbstractProcessor {
         final String attributeCopyMode = context.getProperty(ATTRIBUTE_COPY_MODE).getValue();
         final boolean replaceOriginalAttributes = ATTRIBUTE_COPY_REPLACE.getValue().equals(attributeCopyMode);
         final AtomicReference<Signal> signalRef = new AtomicReference<>();
+        // This map contains original counts before those are consumed to release incoming FlowFiles.
+        final HashMap<String, Long> originalSignalCounts = new HashMap<>();
 
         final Consumer<FlowFile> transferToFailure = flowFile -> {
             flowFile = session.penalize(flowFile);
@@ -324,7 +326,7 @@ public class Wait extends AbstractProcessor {
             }
 
             final List<FlowFile> flowFilesWithSignalAttributes = routedFlowFiles.getValue().stream()
-                    .map(f -> copySignalAttributes(session, f, signalRef.get(), replaceOriginalAttributes)).collect(Collectors.toList());
+                    .map(f -> copySignalAttributes(session, f, signalRef.get(), originalSignalCounts, replaceOriginalAttributes)).collect(Collectors.toList());
             session.transfer(flowFilesWithSignalAttributes, relationship);
         };
 
@@ -349,6 +351,9 @@ public class Wait extends AbstractProcessor {
         // get notifying signal
         try {
             signal = protocol.getSignal(signalId);
+            if (signal != null) {
+                originalSignalCounts.putAll(signal.getCounts());
+            }
             signalRef.set(signal);
         } catch (final IOException e) {
             throw new ProcessException(String.format("Failed to get signal for %s due to %s", signalId, e), e);
@@ -423,29 +428,20 @@ public class Wait extends AbstractProcessor {
         boolean waitProgressed = false;
         if (signal != null && !candidates.isEmpty()) {
 
-            if (releasableFlowFileCount > 1) {
-                signal.releaseCandidatese(targetCounterName, targetCount, releasableFlowFileCount, candidates,
+            if (releasableFlowFileCount > 0) {
+                signal.releaseCandidates(targetCounterName, targetCount, releasableFlowFileCount, candidates,
                         released -> getFlowFilesFor.apply(REL_SUCCESS).addAll(released),
                         waiting -> getFlowFilesFor.apply(REL_WAIT).addAll(waiting));
+                waitCompleted = signal.getTotalCount() == 0 && signal.getReleasableCount() == 0;
                 waitProgressed = !getFlowFilesFor.apply(REL_SUCCESS).isEmpty();
 
             } else {
-                // releasableFlowFileCount = 0 or 1
                 boolean reachedTargetCount = StringUtils.isBlank(targetCounterName)
                         ? signal.isTotalCountReached(targetCount)
                         : signal.isCountReached(targetCounterName, targetCount);
 
                 if (reachedTargetCount) {
-                    if (releasableFlowFileCount == 0) {
-                        getFlowFilesFor.apply(REL_SUCCESS).addAll(candidates);
-                    } else {
-                        // releasableFlowFileCount = 1
-                        getFlowFilesFor.apply(REL_SUCCESS).add(candidates.remove(0));
-                        getFlowFilesFor.apply(REL_WAIT).addAll(candidates);
-                        // If releasableFlowFileCount == 0, leave signal as it is,
-                        // so that any number of FlowFile can be released as long as target count condition matches.
-                        waitCompleted = true;
-                    }
+                    getFlowFilesFor.apply(REL_SUCCESS).addAll(candidates);
                 } else {
                     getFlowFilesFor.apply(REL_WAIT).addAll(candidates);
                 }
@@ -470,7 +466,7 @@ public class Wait extends AbstractProcessor {
 
     }
 
-    private FlowFile copySignalAttributes(final ProcessSession session, final FlowFile flowFile, final Signal signal, final boolean replaceOriginal) {
+    private FlowFile copySignalAttributes(final ProcessSession session, final FlowFile flowFile, final Signal signal, final Map<String, Long> originalCount, final boolean replaceOriginal) {
         if (signal == null) {
             return flowFile;
         }
@@ -488,8 +484,7 @@ public class Wait extends AbstractProcessor {
         }
 
         // Copy counter attributes
-        final Map<String, Long> counts = signal.getCounts();
-        final long totalCount = counts.entrySet().stream().mapToLong(e -> {
+        final long totalCount = originalCount.entrySet().stream().mapToLong(e -> {
             final Long count = e.getValue();
             attributesToCopy.put("wait.counter." + e.getKey(), String.valueOf(count));
             return count;

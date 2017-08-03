@@ -37,6 +37,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.apache.nifi.processors.standard.WaitNotifyProtocol.CONSUMED_COUNT_NAME;
 import static org.apache.nifi.processors.standard.WaitNotifyProtocol.DEFAULT_COUNT_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -267,12 +268,12 @@ public class TestWaitNotifyProtocol {
         final List<Integer> waiting = new ArrayList<>();
 
         // Test default name.
-        final String counterName = null;
+        final String counterName = DEFAULT_COUNT_NAME;
 
         final BiConsumer<Long, Integer> releaseCandidate = (requiredCountForPass, releasableCandidatePerPass) -> {
             released.clear();
             waiting.clear();
-            signal.releaseCandidatese(counterName, requiredCountForPass, releasableCandidatePerPass, candidates,
+            signal.releaseCandidates(counterName, requiredCountForPass, releasableCandidatePerPass, candidates,
                     r -> released.addAll(r), w -> waiting.addAll(w));
         };
 
@@ -336,4 +337,108 @@ public class TestWaitNotifyProtocol {
 
     }
 
+
+    @Test
+    public void testReleaseCandidateTotal() throws Exception {
+        final List<Integer> candidates = IntStream.range(0, 10).boxed().collect(Collectors.toList());
+        final Signal signal = new Signal();
+        final List<Integer> released = new ArrayList<>();
+        final List<Integer> waiting = new ArrayList<>();
+
+        // Test empty counter name, should use total counters.
+        final String emptyCounterName = null;
+
+        final BiConsumer<Long, Integer> releaseCandidate = (requiredCountForPass, releasableCandidatePerPass) -> {
+            released.clear();
+            waiting.clear();
+            signal.releaseCandidates(emptyCounterName, requiredCountForPass, releasableCandidatePerPass, candidates,
+                    r -> released.addAll(r), w -> waiting.addAll(w));
+        };
+
+        final String counterA = "counterA";
+        final String counterB = "counterB";
+        final String counterC = "counterC";
+
+        final Field releasableCount = Signal.class.getDeclaredField("releasableCount");
+        releasableCount.setAccessible(true);
+
+        // No counter, should wait.
+        releaseCandidate.accept(3L, 1);
+        assertEquals(0, released.size());
+        assertEquals(10, waiting.size());
+        assertEquals(0, signal.getCount(emptyCounterName));
+        assertEquals(0, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // Counter is not enough yet.
+        signal.getCounts().put(counterA, 1L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 1);
+        assertEquals(0, released.size());
+        assertEquals(10, waiting.size());
+        assertEquals(1, signal.getCount(emptyCounterName)); // Counter incremented, but not enough
+        assertEquals(0, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // Counter reached the target.
+        signal.getCounts().put(counterA, 1L);
+        signal.getCounts().put(counterB, 1L);
+        signal.getCounts().put(counterC, 1L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 1);
+        assertEquals(1, released.size());
+        assertEquals(9, waiting.size());
+        assertEquals(0, signal.getCount(emptyCounterName)); // Counter 3 was converted into 1 release
+        assertEquals(-3, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // Counter reached the target for two candidates.
+        signal.getCounts().put(counterA, 1L);
+        signal.getCounts().put(counterB, 2L);
+        signal.getCounts().put(counterC, 3L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 1);
+        assertEquals(2, released.size());
+        assertEquals(8, waiting.size());
+        assertEquals(0, signal.getCount(emptyCounterName)); // Counter 3 was converted into 1 release
+        assertEquals(-6, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // Counter reached the target for two candidates, and reminder is 2.
+        signal.getCounts().put(counterA, 3L);
+        signal.getCounts().put(counterB, 3L);
+        signal.getCounts().put(counterC, 5L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 1);
+        assertEquals(3, released.size()); // 11 / 3 = 3
+        assertEquals(7, waiting.size());
+        assertEquals(2, signal.getCount(emptyCounterName));
+        assertEquals(-9, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // Counter reached the target for two pass count and each pass can release 2 candidates.
+        signal.getCounts().put(counterA, 1L);
+        signal.getCounts().put(counterB, 2L);
+        signal.getCounts().put(counterC, 3L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 2);
+        assertEquals(4, released.size()); // (6 / 3) * 2 = 4
+        assertEquals(6, waiting.size());
+        assertEquals(0, signal.getCount(emptyCounterName));
+        assertEquals(-6, signal.getCount(CONSUMED_COUNT_NAME));
+        assertEquals(0, releasableCount.getInt(signal));
+
+        // If there are counts more than enough to release current candidates, unused releasableCount should remain.
+        signal.getCounts().put(counterA, 10L);
+        signal.getCounts().put(counterB, 20L);
+        signal.getCounts().put(counterC, 20L);
+        signal.getCounts().remove(CONSUMED_COUNT_NAME);
+        releaseCandidate.accept(3L, 2);
+        assertEquals(10, released.size()); // (50 / 3) * 2 = 32. Used 10.
+        assertEquals(0, waiting.size());
+        assertEquals(2, signal.getCount(emptyCounterName)); // 50 % 3 = 2.
+        assertEquals(-48, signal.getCount(CONSUMED_COUNT_NAME)); // 50 % 3 = 2.
+        assertEquals(22, releasableCount.getInt(signal)); // 32 - 10 = 22.
+
+    }
 }
