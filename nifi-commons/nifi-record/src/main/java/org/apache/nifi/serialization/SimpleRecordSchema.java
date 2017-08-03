@@ -32,8 +32,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SimpleRecordSchema implements RecordSchema {
-    private final List<RecordField> fields;
-    private final Map<String, Integer> fieldIndices;
+    private List<RecordField> fields = null;
+    private Map<String, Integer> fieldIndices = null;
     private final boolean textAvailable;
     private final String text;
     private final String schemaFormat;
@@ -47,34 +47,24 @@ public class SimpleRecordSchema implements RecordSchema {
         this(fields, createText(fields), null, false, id);
     }
 
+    public SimpleRecordSchema(final String text, final String schemaFormat, final SchemaIdentifier id) {
+        this(text, schemaFormat, true, id);
+    }
+
     public SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final SchemaIdentifier id) {
         this(fields, text, schemaFormat, true, id);
     }
 
     private SimpleRecordSchema(final List<RecordField> fields, final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
+        this(text, schemaFormat, textAvailable, id);
+        setFields(fields);
+    }
+
+    private SimpleRecordSchema(final String text, final String schemaFormat, final boolean textAvailable, final SchemaIdentifier id) {
         this.text = text;
         this.schemaFormat = schemaFormat;
         this.schemaIdentifier = id;
         this.textAvailable = textAvailable;
-        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
-        this.fieldIndices = new HashMap<>(fields.size());
-
-        int index = 0;
-        for (final RecordField field : fields) {
-            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
-            if (previousValue != null) {
-                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
-            }
-
-            for (final String alias : field.getAliases()) {
-                previousValue = fieldIndices.put(alias, index);
-                if (previousValue != null) {
-                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
-                }
-            }
-
-            index++;
-        }
     }
 
     @Override
@@ -95,6 +85,33 @@ public class SimpleRecordSchema implements RecordSchema {
     @Override
     public List<RecordField> getFields() {
         return fields;
+    }
+
+    public void setFields(final List<RecordField> fields) {
+
+        if (this.fields != null) {
+            throw new IllegalArgumentException("Fields have already been set.");
+        }
+
+        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
+        this.fieldIndices = new HashMap<>(fields.size());
+
+        int index = 0;
+        for (final RecordField field : fields) {
+            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
+            if (previousValue != null) {
+                throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+            }
+
+            for (final String alias : field.getAliases()) {
+                previousValue = fieldIndices.put(alias, index);
+                if (previousValue != null) {
+                    throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
+                }
+            }
+
+            index++;
+        }
     }
 
     @Override

@@ -218,6 +218,15 @@ public class AvroTypeUtil {
      * @return a Data Type that corresponds to the given Avro Schema
      */
     public static DataType determineDataType(final Schema avroSchema) {
+        return determineDataType(avroSchema, new HashMap<>());
+    }
+
+    public static DataType determineDataType(final Schema avroSchema, Map<String, DataType> knownRecordTypes) {
+
+        if (knownRecordTypes == null) {
+            throw new IllegalArgumentException("'knownRecordTypes' cannot be null.");
+        }
+
         final Type avroType = avroSchema.getType();
 
         final LogicalType logicalType = avroSchema.getLogicalType();
@@ -241,7 +250,7 @@ public class AvroTypeUtil {
 
         switch (avroType) {
             case ARRAY:
-                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType()));
+                return RecordFieldType.ARRAY.getArrayDataType(determineDataType(avroSchema.getElementType(), knownRecordTypes));
             case BYTES:
             case FIXED:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
@@ -259,40 +268,50 @@ public class AvroTypeUtil {
             case LONG:
                 return RecordFieldType.LONG.getDataType();
             case RECORD: {
-                final List<Field> avroFields = avroSchema.getFields();
-                final List<RecordField> recordFields = new ArrayList<>(avroFields.size());
+                String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
 
-                for (final Field field : avroFields) {
-                    final String fieldName = field.name();
-                    final Schema fieldSchema = field.schema();
-                    final DataType fieldType = determineDataType(fieldSchema);
+                if (knownRecordTypes.containsKey(schemaFullName)) {
+                    return knownRecordTypes.get(schemaFullName);
+                } else {
+                    SimpleRecordSchema recordSchema = new SimpleRecordSchema(avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
+                    DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
+                    knownRecordTypes.put(schemaFullName, recordSchemaType);
 
-                    if (field.defaultVal() == JsonProperties.NULL_VALUE) {
-                        recordFields.add(new RecordField(fieldName, fieldType, field.aliases()));
-                    } else {
-                        recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
+                    final List<Field> avroFields = avroSchema.getFields();
+                    final List<RecordField> recordFields = new ArrayList<>(avroFields.size());
+
+                    for (final Field field : avroFields) {
+                        final String fieldName = field.name();
+                        final Schema fieldSchema = field.schema();
+                        final DataType fieldType = determineDataType(fieldSchema, knownRecordTypes);
+
+                        if (field.defaultVal() == JsonProperties.NULL_VALUE) {
+                            recordFields.add(new RecordField(fieldName, fieldType, field.aliases()));
+                        } else {
+                            recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
+                        }
                     }
-                }
 
-                final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
-                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
+                    recordSchema.setFields(recordFields);
+                    return recordSchemaType;
+                }
             }
             case NULL:
                 return RecordFieldType.STRING.getDataType();
             case MAP:
                 final Schema valueSchema = avroSchema.getValueType();
-                final DataType valueType = determineDataType(valueSchema);
+                final DataType valueType = determineDataType(valueSchema, knownRecordTypes);
                 return RecordFieldType.MAP.getMapDataType(valueType);
             case UNION: {
                 final List<Schema> nonNullSubSchemas = getNonNullSubSchemas(avroSchema);
 
                 if (nonNullSubSchemas.size() == 1) {
-                    return determineDataType(nonNullSubSchemas.get(0));
+                    return determineDataType(nonNullSubSchemas.get(0), knownRecordTypes);
                 }
 
                 final List<DataType> possibleChildTypes = new ArrayList<>(nonNullSubSchemas.size());
                 for (final Schema subSchema : nonNullSubSchemas) {
-                    final DataType childDataType = determineDataType(subSchema);
+                    final DataType childDataType = determineDataType(subSchema, knownRecordTypes);
                     possibleChildTypes.add(childDataType);
                 }
 
@@ -334,10 +353,16 @@ public class AvroTypeUtil {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
+        String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
+        SimpleRecordSchema recordSchema = new SimpleRecordSchema(schemaText, AVRO_SCHEMA_FORMAT, schemaId);
+        DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
+        Map<String, DataType> knownRecords = new HashMap<>();
+        knownRecords.put(schemaFullName, recordSchemaType);
+
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
-            final DataType dataType = AvroTypeUtil.determineDataType(field.schema());
+            final DataType dataType = AvroTypeUtil.determineDataType(field.schema(), knownRecords);
 
             if (field.defaultVal() == JsonProperties.NULL_VALUE) {
                recordFields.add(new RecordField(fieldName, dataType, field.aliases()));
@@ -346,7 +371,7 @@ public class AvroTypeUtil {
             }
         }
 
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields, schemaText, AVRO_SCHEMA_FORMAT, schemaId);
+        recordSchema.setFields(recordFields);
         return recordSchema;
     }
 
