@@ -86,6 +86,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
+import org.apache.nifi.processor.util.bin.BinProcessingResult;
 import org.apache.nifi.processors.standard.merge.AttributeStrategy;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
@@ -132,7 +133,8 @@ import org.apache.nifi.util.FlowFilePackagerV3;
         + "if Merge Format is FlowFileStream, then the filename will be appended with .pkg"),
     @WritesAttribute(attribute = "merge.count", description = "The number of FlowFiles that were merged into this bundle"),
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
-        + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output") })
+        + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output"),
+    @WritesAttribute(attribute = "merge.uuid", description = "UUID of the merged flow file that will be added to the original flow files attributes.")})
 @SeeAlso({SegmentContent.class, MergeRecord.class})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While content is not stored in memory, the FlowFiles' attributes are. " +
         "The configuration of MergeContent (maximum bin size, maximum group size, maximum bin age, max number of entries) will influence how much " +
@@ -242,6 +244,7 @@ public class MergeContent extends BinFiles {
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
+    public static final String MERGE_UUID_ATTRIBUTE = "merge.uuid";
 
     public static final PropertyDescriptor MERGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Merge Strategy")
@@ -438,8 +441,8 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected boolean processBin(final Bin bin, final ProcessContext context) throws ProcessException {
-
+    protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
+        final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
         final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
         MergeBin merger;
         switch (mergeFormat) {
@@ -483,7 +486,7 @@ public class MergeContent extends BinFiles {
                 binSession.transfer(contents, REL_FAILURE);
                 binSession.commit();
 
-                return true;
+                return binProcessingResult;
             }
 
             Collections.sort(contents, new FragmentComparator());
@@ -507,6 +510,7 @@ public class MergeContent extends BinFiles {
         final String inputDescription = contents.size() < 10 ? contents.toString() : contents.size() + " FlowFiles";
         getLogger().info("Merged {} into {}", new Object[]{inputDescription, bundle});
         binSession.transfer(bundle, REL_MERGED);
+        binProcessingResult.getAttributes().put(MERGE_UUID_ATTRIBUTE, bundle.getAttribute(CoreAttributes.UUID.key()));
 
         for (final FlowFile unmerged : merger.getUnmergedFlowFiles()) {
             final FlowFile unmergedCopy = binSession.clone(unmerged);
@@ -514,7 +518,8 @@ public class MergeContent extends BinFiles {
         }
 
         // We haven't committed anything, parent will take care of it
-        return false;
+        binProcessingResult.setCommitted(false);
+        return binProcessingResult;
     }
 
     private String getDefragmentValidationError(final List<FlowFile> binContents) {

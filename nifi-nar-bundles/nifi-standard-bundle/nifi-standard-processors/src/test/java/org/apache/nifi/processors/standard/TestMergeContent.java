@@ -86,6 +86,8 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        assertEquals(runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0).getAttribute(CoreAttributes.UUID.key()),
+                runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).get(0).getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE));
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assertEquals(1024 * 6, bundle.getSize());
@@ -492,6 +494,9 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+
+        runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).stream().forEach(
+                ff -> assertEquals(bundle.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
@@ -982,6 +987,9 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+
+        runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).stream().forEach(
+                ff -> assertEquals(assembled.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
