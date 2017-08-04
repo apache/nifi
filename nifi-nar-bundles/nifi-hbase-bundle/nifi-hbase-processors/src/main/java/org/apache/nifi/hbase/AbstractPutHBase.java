@@ -107,11 +107,11 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .defaultValue("25")
             .build();
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after it has been successfully stored in HBase")
             .build();
-    protected static final Relationship REL_FAILURE = new Relationship.Builder()
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship if it cannot be sent to HBase")
             .build();
