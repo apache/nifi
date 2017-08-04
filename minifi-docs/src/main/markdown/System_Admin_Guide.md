@@ -110,6 +110,7 @@ nifi.minifi.notifier.ingestors.pull.http.proxy.username | Proxy username
 nifi.minifi.notifier.ingestors.pull.http.proxy.password | Proxy password
 nifi.minifi.notifier.ingestors.pull.http.path | Path on which to pull configurations from
 nifi.minifi.notifier.ingestors.pull.http.period.ms | Period on which to pull configurations from, defaults to 5 minutes if not set.
+nifi.minifi.notifier.ingestors.pull.http.query | Querystring value for the URL
 nifi.minifi.notifier.ingestors.pull.http.use.etag | If the destination server is set up with cache control ability and utilizes an "ETag" header, then this should be set to true to utilize it. Very simply, the Ingestor remembers the "ETag" of the last successful pull (returned 200) then uses that "ETag" in a "If-None-Match" header on the next request.
 nifi.minifi.notifier.ingestors.pull.http.connect.timeout.ms | Sets the connect timeout for new connections. A value of 0 means no timeout, otherwise values must be a positive whole number in milliseconds.
 nifi.minifi.notifier.ingestors.pull.http.read.timeout.ms | Sets the read timeout for new connections. A value of 0 means no timeout, otherwise values must be a positive whole number in milliseconds.
