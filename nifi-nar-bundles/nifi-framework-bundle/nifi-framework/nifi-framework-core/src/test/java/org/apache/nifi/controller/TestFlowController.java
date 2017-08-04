@@ -846,6 +846,62 @@ public class TestFlowController {
         assertEquals(1, controller.getRootGroup().getProcessors().size());
     }
 
+    @Test
+    public void testInstantiateSnippetWithDisabledProcessor() throws ProcessorInstantiationException {
+        final String id = UUID.randomUUID().toString();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ProcessorNode processorNode = controller.createProcessor(DummyProcessor.class.getName(), id, coordinate);
+        processorNode.disable();
+
+        // create a processor dto
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
+        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setStyle(processorNode.getStyle());
+        processorDTO.setParentGroupId("1234");
+        processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
+        processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
+
+        processorDTO.setType(processorNode.getCanonicalClassName());
+        processorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+        processorDTO.setName(processorNode.getName());
+        processorDTO.setState(processorNode.getScheduledState().toString());
+
+        processorDTO.setRelationships(new ArrayList<>());
+
+        processorDTO.setDescription("description");
+        processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
+        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
+        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+
+        ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
+        configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
+        configDTO.setPenaltyDuration(processorNode.getPenalizationPeriod());
+        configDTO.setYieldDuration(processorNode.getYieldPeriod());
+        configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+        configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
+        configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setComments(processorNode.getComments());
+        configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
+        configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
+        configDTO.setExecutionNode(processorNode.getExecutionNode().name());
+        configDTO.setAnnotationData(processorNode.getAnnotationData());
+
+        processorDTO.setConfig(configDTO);
+
+        // create the snippet with the processor
+        final FlowSnippetDTO flowSnippetDTO = new FlowSnippetDTO();
+        flowSnippetDTO.setProcessors(Collections.singleton(processorDTO));
+
+        // instantiate the snippet
+        assertEquals(0, controller.getRootGroup().getProcessors().size());
+        controller.instantiateSnippet(controller.getRootGroup(), flowSnippetDTO);
+        assertEquals(1, controller.getRootGroup().getProcessors().size());
+        assertTrue(controller.getRootGroup().getProcessors().iterator().next().getScheduledState().equals(ScheduledState.DISABLED));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
