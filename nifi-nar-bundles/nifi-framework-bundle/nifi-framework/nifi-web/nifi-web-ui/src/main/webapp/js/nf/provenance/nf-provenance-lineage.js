@@ -1011,6 +1011,10 @@
                     })
                     .on('mousedown', function (d) {
                         d3.event.stopPropagation();
+                    })
+                    .on('dblclick', function (d) {
+                        // show the event details
+                        provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
                     });
 
                 events
