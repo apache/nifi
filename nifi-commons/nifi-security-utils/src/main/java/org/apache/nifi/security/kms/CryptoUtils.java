@@ -213,6 +213,10 @@ public class CryptoUtils {
         if (StringUtils.isBlank(filepath)) {
             throw new KeyManagementException("The key provider file is not present and readable");
         }
+        if (masterKey == null) {
+            throw new KeyManagementException("The master key must be provided to decrypt the individual keys");
+        }
+
         File file = new File(filepath);
         if (!file.exists() || !file.canRead()) {
             throw new KeyManagementException("The key provider file is not present and readable");

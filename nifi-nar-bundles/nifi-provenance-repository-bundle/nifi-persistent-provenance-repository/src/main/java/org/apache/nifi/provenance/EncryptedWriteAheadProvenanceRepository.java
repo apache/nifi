@@ -18,8 +18,13 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.store.EventFileManager;
 import org.apache.nifi.provenance.store.RecordReaderFactory;
@@ -69,7 +74,13 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         ProvenanceEventEncryptor provenanceEventEncryptor;
         if (getConfig().supportsEncryption()) {
             try {
-                KeyProvider keyProvider = buildKeyProvider();
+                KeyProvider keyProvider;
+                if (KeyProviderFactory.requiresMasterKey(getConfig().getKeyProviderImplementation())) {
+                    SecretKey masterKey = getMasterKey();
+                    keyProvider = buildKeyProvider(masterKey);
+                } else {
+                    keyProvider = buildKeyProvider();
+                }
                 provenanceEventEncryptor = new AESProvenanceEventEncryptor();
                 provenanceEventEncryptor.initialize(keyProvider);
             } catch (KeyManagementException e) {
@@ -110,6 +121,10 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     }
 
     private KeyProvider buildKeyProvider() throws KeyManagementException {
+        return buildKeyProvider(null);
+    }
+
+    private KeyProvider buildKeyProvider(SecretKey masterKey) throws KeyManagementException {
         RepositoryConfiguration config = super.getConfig();
         if (config == null) {
             throw new KeyManagementException("The repository configuration is missing");
@@ -121,6 +136,17 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
                     + NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
         }
 
-        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys());
+        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), masterKey);
+    }
+
+    private static SecretKey getMasterKey() throws KeyManagementException {
+        try {
+            // Get the master encryption key from bootstrap.conf
+            String masterKeyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decodeHex(masterKeyHex.toCharArray()), "AES");
+        } catch (IOException | DecoderException e) {
+            logger.error("Encountered an error: ", e);
+            throw new KeyManagementException(e);
+        }
     }
 }

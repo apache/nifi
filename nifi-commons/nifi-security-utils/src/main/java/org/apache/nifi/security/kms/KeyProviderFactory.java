@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 public class KeyProviderFactory {
     private static final Logger logger = LoggerFactory.getLogger(KeyProviderFactory.class);
 
-    public static KeyProvider buildKeyProvider(String implementationClassName, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) throws KeyManagementException {
+    public static KeyProvider buildKeyProvider(String implementationClassName, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys,
+                                               SecretKey masterKey) throws KeyManagementException {
         KeyProvider keyProvider;
 
        implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
@@ -53,7 +54,7 @@ public class KeyProviderFactory {
                 throw new KeyManagementException(msg);
             }
         } else if (FileBasedKeyProvider.class.getName().equals(implementationClassName)) {
-            keyProvider = new FileBasedKeyProvider(keyProviderLocation);
+            keyProvider = new FileBasedKeyProvider(keyProviderLocation, masterKey);
             if (!keyProvider.keyExists(keyId)) {
                 throw new KeyManagementException("The specified key ID " + keyId + " is not in the key definition file");
             }
@@ -62,5 +63,10 @@ public class KeyProviderFactory {
         }
 
         return keyProvider;
+    }
+
+    public static boolean requiresMasterKey(String implementationClassName) throws KeyManagementException {
+        implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
+        return FileBasedKeyProvider.class.getName().equals(implementationClassName);
     }
 }

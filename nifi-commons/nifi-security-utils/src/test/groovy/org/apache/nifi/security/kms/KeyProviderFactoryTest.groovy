@@ -35,7 +35,6 @@ import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyManagementException
 import java.security.SecureRandom
 import java.security.Security
@@ -56,8 +55,7 @@ class KeyProviderFactoryTest {
 
     private static final String ORIGINAL_PROPERTIES_PATH = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
 
-    private static
-    final Set<PosixFilePermission> ALL_POSIX_ATTRS = PosixFilePermission.values() as Set<PosixFilePermission>
+    private static final SecretKey MASTER_KEY = new SecretKeySpec(Hex.decode(KEY_HEX), "AES")
 
     @ClassRule
     public static TemporaryFolder tempFolder = new TemporaryFolder()
@@ -135,7 +133,7 @@ class KeyProviderFactoryTest {
         String providerLocation = null
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], null)
         logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
@@ -150,7 +148,7 @@ class KeyProviderFactoryTest {
         String providerLocation = null
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(staticProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], null)
         logger.info("Key Provider ${staticProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
@@ -168,7 +166,7 @@ class KeyProviderFactoryTest {
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], MASTER_KEY)
         logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
@@ -186,12 +184,31 @@ class KeyProviderFactoryTest {
         logger.info("Created temporary file based key provider: ${providerLocation}")
 
         // Act
-        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+        KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], MASTER_KEY)
         logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
 
         // Assert
         assert keyProvider instanceof FileBasedKeyProvider
         assert keyProvider.getAvailableKeyIds() == [KEY_ID]
+    }
+
+    @Test
+    void testShouldNotBuildFileBasedKeyProviderWithoutMasterKey() {
+        // Arrange
+        String fileBasedProvider = FileBasedKeyProvider.class.name
+        File fileBasedProviderFile = tempFolder.newFile("filebased.kp")
+        String providerLocation = fileBasedProviderFile.path
+        populateKeyDefinitionsFile(providerLocation)
+        logger.info("Created temporary file based key provider: ${providerLocation}")
+
+        // Act
+        def msg = shouldFail(KeyManagementException) {
+            KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(fileBasedProvider, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], null)
+            logger.info("Key Provider ${fileBasedProvider} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
+        }
+
+        // Assert
+        assert msg =~ "The master key must be provided to decrypt the individual keys"
     }
 
     @Test
@@ -202,7 +219,7 @@ class KeyProviderFactoryTest {
 
         // Act
         def msg = shouldFail(KeyManagementException) {
-            KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(providerImplementation, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX])
+            KeyProvider keyProvider = KeyProviderFactory.buildKeyProvider(providerImplementation, providerLocation, KEY_ID, [(KEY_ID): KEY_HEX], null)
             logger.info("Key Provider ${providerImplementation} with location ${providerLocation} and keyId ${KEY_ID} / ${KEY_HEX} formed: ${keyProvider}")
         }
 
