@@ -58,6 +58,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,7 +109,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Read Timeout")
             .description("The amount of time to wait before timing out when reading from a connection.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("30 seconds")
+            .defaultValue("10 seconds")
             .required(true)
             .build();
 
@@ -337,7 +338,33 @@ public class ListenTCPRecord extends AbstractProcessor {
                     recordReader = socketRecordReader.createRecordReader(flowFile, getLogger());
                 }
 
-                Record record = recordReader.nextRecord();
+                Record record;
+                try {
+                    record = recordReader.nextRecord();
+                } catch (final Exception e) {
+                    boolean timeout = false;
+
+                    // some of the underlying record libraries wrap the real exception in RuntimeException, so check each
+                    // throwable (starting with the current one) to see if its a SocketTimeoutException
+                    Throwable cause = e;
+                    while (cause != null) {
+                        if (cause instanceof SocketTimeoutException) {
+                            timeout = true;
+                            break;
+                        }
+                        cause = cause.getCause();
+                    }
+
+                    if (timeout) {
+                        getLogger().debug("Timeout reading records, will try again later", e);
+                        socketReaders.offer(socketRecordReader);
+                        session.remove(flowFile);
+                        return;
+                    } else {
+                        throw e;
+                    }
+                }
+
                 if (record == null) {
                     getLogger().debug("No records available from {}, closing connection", new Object[]{getRemoteAddress(socketRecordReader)});
                     IOUtils.closeQuietly(socketRecordReader);
@@ -362,11 +389,13 @@ public class ListenTCPRecord extends AbstractProcessor {
                         // if keeping then null out the record to break out of the loop, which will transfer what we have and close the connection
                         try {
                             record = recordReader.nextRecord();
+                        } catch (final SocketTimeoutException ste) {
+                            getLogger().debug("Timeout reading records, will try again later", ste);
+                            break;
                         } catch (final Exception e) {
                             if (ERROR_HANDLING_DISCARD.getValue().equals(readerErrorHandling)) {
                                 throw e;
                             } else {
-                                getLogger().error("Error reading records: " + e.getMessage(), e);
                                 record = null;
                             }
                         }
@@ -402,15 +431,8 @@ public class ListenTCPRecord extends AbstractProcessor {
                     session.transfer(flowFile, REL_SUCCESS);
                 }
 
-                // if record is not null then we broke out of the loop because we reached the batch size which means there are
-                // possibly still more records available so we need to re-queue for further processing
-                if (record != null && !socketRecordReader.isClosed()) {
-                    getLogger().debug("More records may be available, re-queuing for further processing");
-                    socketReaders.offer(socketRecordReader);
-                } else {
-                    getLogger().debug("No records available, or socket is closed, closing SocketRecordReader");
-                    IOUtils.closeQuietly(socketRecordReader);
-                }
+                getLogger().debug("Re-queuing connection for further processing...");
+                socketReaders.offer(socketRecordReader);
 
             } catch (Exception e) {
                 getLogger().error("Error processing records: " + e.getMessage(), e);

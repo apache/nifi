@@ -98,7 +98,37 @@ public class SocketChannelSender extends ChannelSender {
     }
 
     public OutputStream getOutputStream() {
-        return socketChannelOutput;
+        return new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+               socketChannelOutput.write(b);
+            }
+
+            @Override
+            public void write(byte[] b) throws IOException {
+                socketChannelOutput.write(b);
+            }
+
+            @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                socketChannelOutput.write(b, off, len);
+            }
+
+            @Override
+            public void close() throws IOException {
+                socketChannelOutput.close();
+            }
+
+            @Override
+            public void flush() throws IOException {
+                socketChannelOutput.flush();
+                updateLastUsed();
+            }
+        };
+    }
+
+    private void updateLastUsed() {
+        this.lastUsed = System.currentTimeMillis();
     }
 
 }
