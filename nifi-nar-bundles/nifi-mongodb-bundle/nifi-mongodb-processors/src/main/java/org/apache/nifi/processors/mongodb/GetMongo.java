@@ -18,15 +18,6 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -35,6 +26,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -49,7 +41,18 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
+import org.bson.json.JsonWriterSettings;
 import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 @Tags({ "mongodb", "read", "get" })
@@ -120,12 +123,31 @@ public class GetMongo extends AbstractMongoProcessor {
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
+    static final String JSON_TYPE_EXTENDED = "Extended";
+    static final String JSON_TYPE_STANDARD   = "Standard";
+    static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
+            "Use MongoDB's \"extended JSON\". This is the JSON generated with toJson() on a MongoDB Document from the Java driver");
+    static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
+            "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
+    static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
+            .allowableValues(JSON_EXTENDED, JSON_STANDARD)
+            .defaultValue(JSON_TYPE_EXTENDED)
+            .displayName("JSON Type")
+            .name("json-type")
+            .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
+            " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
+            " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
+            .expressionLanguageSupported(false)
+            .required(true)
+            .build();
+
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
+        _propertyDescriptors.add(JSON_TYPE);
         _propertyDescriptors.add(QUERY);
         _propertyDescriptors.add(PROJECTION);
         _propertyDescriptors.add(SORT);
@@ -151,17 +173,34 @@ public class GetMongo extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper;
 
     //Turn a list of Mongo result documents into a String representation of a JSON array
-    private String buildBatch(List<Document> documents) throws IOException {
-        List<Map> docs = new ArrayList<>();
-        for (Document document : documents) {
-            String asJson = document.toJson();
-            docs.add(mapper.readValue(asJson, Map.class));
+    private String buildBatch(List<Document> documents, String jsonTypeSetting) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < documents.size(); index++) {
+            Document document = documents.get(index);
+            String asJson;
+            if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
+                asJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(document);
+            } else {
+                asJson = document.toJson(new JsonWriterSettings(true));
+            }
+            builder
+                .append(asJson)
+                .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
         }
 
-        return mapper.writeValueAsString(docs);
+        return "[" + builder.toString() + "]";
+    }
+
+    private void configureMapper(String setting) {
+        mapper = new ObjectMapper();
+        if (setting.equals(JSON_TYPE_STANDARD)) {
+            mapper.registerModule(ObjectIdSerializer.getModule());
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            mapper.setDateFormat(df);
+        }
     }
 
     private void writeBatch(String payload, ProcessContext context, ProcessSession session) {
@@ -187,6 +226,9 @@ public class GetMongo extends AbstractMongoProcessor {
                 ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions().getValue()) : null;
         final Document sort = context.getProperty(SORT).isSet()
                 ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions().getValue()) : null;
+        final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
+        configureMapper(jsonTypeSetting);
+
 
         final MongoCollection<Document> collection = getCollection(context);
 
@@ -220,7 +262,7 @@ public class GetMongo extends AbstractMongoProcessor {
                                 if (log.isDebugEnabled()) {
                                     log.debug("Writing batch...");
                                 }
-                                String payload = buildBatch(batch);
+                                String payload = buildBatch(batch, jsonTypeSetting);
                                 writeBatch(payload, context, session);
                                 batch = new ArrayList<>();
                             } catch (IOException ex) {
@@ -230,7 +272,7 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                     if (batch.size() > 0) {
                         try {
-                            writeBatch(buildBatch(batch), context, session);
+                            writeBatch(buildBatch(batch, jsonTypeSetting), context, session);
                         } catch (IOException ex) {
                             getLogger().error("Error sending remainder of batch", ex);
                         }
@@ -241,7 +283,13 @@ public class GetMongo extends AbstractMongoProcessor {
                         flowFile = session.write(flowFile, new OutputStreamCallback() {
                             @Override
                             public void process(OutputStream out) throws IOException {
-                                IOUtils.write(cursor.next().toJson(), out);
+                                String json;
+                                if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
+                                    json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cursor.next());
+                                } else {
+                                    json = cursor.next().toJson();
+                                }
+                                IOUtils.write(json, out);
                             }
                         });
                         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
