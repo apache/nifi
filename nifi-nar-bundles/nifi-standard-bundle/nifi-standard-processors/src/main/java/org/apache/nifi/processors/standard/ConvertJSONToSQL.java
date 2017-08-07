@@ -26,6 +26,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,11 +39,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -478,10 +479,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final Integer colSize = desc.getColumnSize();
                 final JsonNode fieldNode = rootNode.get(fieldName);
                 if (!fieldNode.isNull()) {
-                    String fieldValue = fieldNode.asText();
-                    if (colSize != null && fieldValue.length() > colSize) {
-                        fieldValue = fieldValue.substring(0, colSize);
-                    }
+                    String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
                     attributes.put("sql.args." + fieldCount + ".value", fieldValue);
                 }
             }
@@ -503,6 +501,63 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         return sqlBuilder.toString();
+    }
+
+    /**
+     *  Try to create correct SQL String representation of value.
+     *
+     */
+    protected static String createSqlStringValue(final JsonNode fieldNode, final Integer colSize, final int sqlType) {
+        String fieldValue = fieldNode.asText();
+
+        switch (sqlType) {
+
+        // only "true" is considered true, everything else is false
+        case Types.BOOLEAN:
+            fieldValue = Boolean.valueOf(fieldValue).toString();
+            break;
+
+        // Don't truncate numeric types.
+        case Types.BIT:
+        case Types.TINYINT:
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.BIGINT:
+        case Types.REAL:
+        case Types.FLOAT:
+        case Types.DOUBLE:
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+            if (fieldNode.isBoolean()) {
+                // Convert boolean to number representation for databases those don't support boolean type.
+                fieldValue = fieldNode.asBoolean() ? "0" : "1";
+            }
+            break;
+
+        // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
+        // Specifically, milliseconds since January 1, 1970, 00:00:00 GMT
+        // However, for TIMESTAMP, PutSQL accepts optional timestamp format via FlowFile attribute.
+        // See PutSQL.setParameter method and NIFI-3430 for detail.
+        // Alternatively, user can use JSONTreeReader and PutDatabaseRecord to handle date format more efficiently.
+        case Types.DATE:
+        case Types.TIME:
+        case Types.TIMESTAMP:
+            break;
+
+        // Truncate string data types only.
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+            if (colSize != null && fieldValue.length() > colSize) {
+                fieldValue = fieldValue.substring(0, colSize);
+            }
+            break;
+        }
+
+        return fieldValue;
     }
 
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
@@ -599,10 +654,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (!fieldNode.isNull()) {
-                String fieldValue = rootNode.get(fieldName).asText();
-                if (colSize != null && fieldValue.length() > colSize) {
-                    fieldValue = fieldValue.substring(0, colSize);
-                }
+                String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
                 attributes.put("sql.args." + fieldCount + ".value", fieldValue);
             }
         }

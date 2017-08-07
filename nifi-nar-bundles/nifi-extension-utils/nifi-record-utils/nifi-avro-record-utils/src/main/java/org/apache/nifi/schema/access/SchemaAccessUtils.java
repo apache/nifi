@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.schema.access;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.nifi.avro.AvroSchemaValidator;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 public class SchemaAccessUtils {
 
@@ -45,10 +44,13 @@ public class SchemaAccessUtils {
             "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'");
     public static final AllowableValue INHERIT_RECORD_SCHEMA = new AllowableValue("inherit-record-schema", "Inherit Record Schema",
         "The schema used to write records will be the same schema that was given to the Record when the Record was created.");
+    public static final AllowableValue CONFLUENT_ENCODED_SCHEMA = new AllowableValue("confluent-encoded", "Confluent Content-Encoded Schema Reference",
+        "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single "
+            + "'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. "
+            + "This is based on version 3.2.x of the Confluent Schema Registry.");
 
 
-
-    public  static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
             .name("schema-registry")
             .displayName("Schema Registry")
             .description("Specifies the Controller Service to use for the Schema Registry")
@@ -56,11 +58,11 @@ public class SchemaAccessUtils {
             .required(false)
             .build();
 
-    public  static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
             .name("schema-access-strategy")
             .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
-            .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA)
+            .allowableValues(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
             .defaultValue(SCHEMA_NAME_PROPERTY.getValue())
             .required(true)
             .build();
@@ -115,10 +117,11 @@ public class SchemaAccessUtils {
 
     private static boolean isSchemaRegistryRequired(final String schemaAccessValue) {
         return HWX_CONTENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue) || SCHEMA_NAME_PROPERTY.getValue().equalsIgnoreCase(schemaAccessValue)
-                || HWX_SCHEMA_REF_ATTRIBUTES.getValue().equalsIgnoreCase(schemaAccessValue);
+            || HWX_SCHEMA_REF_ATTRIBUTES.getValue().equalsIgnoreCase(schemaAccessValue) || CONFLUENT_ENCODED_SCHEMA.getValue().equalsIgnoreCase(schemaAccessValue);
     }
 
-    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ProcessContext context) {
+
+    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
         if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
             return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
         } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
@@ -129,38 +132,8 @@ public class SchemaAccessUtils {
             return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
         } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
             return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
-        }
-
-        return null;
-    }
-
-    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
-        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
-            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
-        } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
-            return new InheritSchemaFromRecord();
-        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
-            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
-        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
-            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
-        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
-            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
-        }
-
-        return null;
-    }
-
-    public static SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
-        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
-            return new SchemaNamePropertyStrategy(schemaRegistry, context.getProperty(SCHEMA_NAME));
-        } else if (allowableValue.equalsIgnoreCase(INHERIT_RECORD_SCHEMA.getValue())) {
-            return new InheritSchemaFromRecord();
-        } else if (allowableValue.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
-            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
-        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
-            return new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
-        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
-            return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
+            return new ConfluentSchemaRegistryStrategy(schemaRegistry);
         }
 
         return null;

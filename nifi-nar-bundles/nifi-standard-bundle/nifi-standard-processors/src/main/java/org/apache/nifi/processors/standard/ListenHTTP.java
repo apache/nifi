@@ -329,7 +329,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         for (final String id : findOldFlowFileIds(context)) {
             final FlowFileEntryTimeWrapper wrapper = flowFileMap.remove(id);
             if (wrapper != null) {
-                getLogger().warn("failed to received acknowledgment for HOLD with ID {}; rolling back session", new Object[] {id});
+                getLogger().warn("failed to received acknowledgment for HOLD with ID {} sent by {}; rolling back session", new Object[] {id, wrapper.getClientIP()});
                 wrapper.session.rollback();
             }
         }
@@ -342,11 +342,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         private final Set<FlowFile> flowFiles;
         private final long entryTime;
         private final ProcessSession session;
+        private final String clientIP;
 
-        public FlowFileEntryTimeWrapper(final ProcessSession session, final Set<FlowFile> flowFiles, final long entryTime) {
+        public FlowFileEntryTimeWrapper(final ProcessSession session, final Set<FlowFile> flowFiles, final long entryTime, final String clientIP) {
             this.flowFiles = flowFiles;
             this.entryTime = entryTime;
             this.session = session;
+            this.clientIP = clientIP;
         }
 
         public Set<FlowFile> getFlowFiles() {
@@ -359,6 +361,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         public ProcessSession getSession() {
             return session;
+        }
+
+        public String getClientIP() {
+            return clientIP;
         }
     }
 }

@@ -48,6 +48,7 @@ table {
 	-webkit-border-radius:3px;
 	border-radius:3px;
 	width: 100%;
+	word-wrap: break-word;
 }
 
 table th {
@@ -113,6 +114,11 @@ table tr:last-child td:last-child {
 }
 
 td#allowable-values, td#default-value, td#name, td#value {
+	max-width: 200px;
+}
+
+td#description {
+	vertical-align: middle;
 }
 
 /* links */

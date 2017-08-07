@@ -60,12 +60,6 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     private final ConcurrentMap<String, Tuple<SchemaVersionInfo, Long>> schemaVersionByNameCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<SchemaVersionKey, Tuple<SchemaVersionInfo, Long>> schemaVersionByKeyCache = new ConcurrentHashMap<>();
 
-    private static final String LOGICAL_TYPE_DATE = "date";
-    private static final String LOGICAL_TYPE_TIME_MILLIS = "time-millis";
-    private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
-    private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
-
     private volatile long versionInfoCacheNanos;
 
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()

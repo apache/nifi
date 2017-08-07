@@ -207,7 +207,7 @@ public class RunNiFi {
                 return;
         }
 
-        final File configFile = getBootstrapConfFile();
+        final File configFile = getDefaultBootstrapConfFile();
         final RunNiFi runNiFi = new RunNiFi(configFile, verbose);
 
         Integer exitStatus = null;
@@ -240,7 +240,7 @@ public class RunNiFi {
         }
     }
 
-    private static File getBootstrapConfFile() {
+    private static File getDefaultBootstrapConfFile() {
         String configFilename = System.getProperty("org.apache.nifi.bootstrap.config.file");
 
         if (configFilename == null) {
@@ -261,7 +261,7 @@ public class RunNiFi {
     }
 
     private NotificationServiceManager loadServices() throws IOException {
-        final File bootstrapConfFile = getBootstrapConfFile();
+        final File bootstrapConfFile = this.bootstrapConfigFile;
         final Properties properties = new Properties();
         try (final FileInputStream fis = new FileInputStream(bootstrapConfFile)) {
             properties.load(fis);
@@ -341,7 +341,7 @@ public class RunNiFi {
     }
 
 
-    private File getBootstrapFile(final Logger logger, String directory, String defaultDirectory, String fileName) throws IOException {
+    protected File getBootstrapFile(final Logger logger, String directory, String defaultDirectory, String fileName) throws IOException {
 
         final File confDir = bootstrapConfigFile.getParentFile();
         final File nifiHome = confDir.getParentFile();
@@ -362,19 +362,19 @@ public class RunNiFi {
         return statusFile;
     }
 
-    File getPidFile(final Logger logger) throws IOException {
+    protected File getPidFile(final Logger logger) throws IOException {
         return getBootstrapFile(logger, NIFI_PID_DIR_PROP, DEFAULT_PID_DIR, NIFI_PID_FILE_NAME);
     }
 
-    File getStatusFile(final Logger logger) throws IOException {
+    protected File getStatusFile(final Logger logger) throws IOException {
         return getBootstrapFile(logger, NIFI_PID_DIR_PROP, DEFAULT_PID_DIR, NIFI_STATUS_FILE_NAME);
     }
 
-    File getLockFile(final Logger logger) throws IOException {
+    protected File getLockFile(final Logger logger) throws IOException {
         return getBootstrapFile(logger, NIFI_PID_DIR_PROP, DEFAULT_PID_DIR, NIFI_LOCK_FILE_NAME);
     }
 
-    File getStatusFile() throws IOException {
+    protected File getStatusFile() throws IOException {
         return getStatusFile(defaultLogger);
     }
 

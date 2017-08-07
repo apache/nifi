@@ -188,6 +188,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-platform-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-http-context-map-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -279,6 +284,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ignite-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-rethinkdb-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -454,6 +464,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-grpc-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>

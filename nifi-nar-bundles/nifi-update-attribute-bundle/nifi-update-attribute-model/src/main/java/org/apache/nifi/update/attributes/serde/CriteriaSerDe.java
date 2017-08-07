@@ -35,6 +35,15 @@ import org.apache.nifi.update.attributes.Rule;
  *
  */
 public class CriteriaSerDe {
+    private static final JAXBContext JAXB_CONTEXT;
+
+    static {
+        try {
+            JAXB_CONTEXT = JAXBContext.newInstance(CriteriaBinding.class);
+        } catch (JAXBException e) {
+            throw new RuntimeException("Could not create JAXB Context for UpdateAttribute", e);
+        }
+    }
 
     /**
      * Handles the Criteria binding during the (de)serialization process. This
@@ -86,8 +95,7 @@ public class CriteriaSerDe {
             binding.setRules(criteria.getRules());
 
             // serialize the binding
-            final JAXBContext context = JAXBContext.newInstance(CriteriaBinding.class);
-            final Marshaller marshaller = context.createMarshaller();
+            final Marshaller marshaller = JAXB_CONTEXT.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshaller.marshal(binding, writer);
@@ -110,8 +118,7 @@ public class CriteriaSerDe {
         if (string != null && !string.trim().equals("")) {
             try {
                 // deserialize the binding
-                final JAXBContext context = JAXBContext.newInstance(CriteriaBinding.class);
-                final Unmarshaller unmarshaller = context.createUnmarshaller();
+                final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 final Source source = new StreamSource(new StringReader(string));
                 final JAXBElement<CriteriaBinding> element = unmarshaller.unmarshal(source, CriteriaBinding.class);
 

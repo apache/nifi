@@ -964,9 +964,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isValid() {
         try {
-            final ValidationContext validationContext = this.getValidationContextFactory()
-                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
-
+            final ValidationContext validationContext = getValidationContext();
             final Collection<ValidationResult> validationResults = super.validate(validationContext);
 
             for (final ValidationResult result : validationResults) {
@@ -1011,8 +1009,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             // Processors may go invalid while RUNNING, but only validating while STOPPED is a trade-off
             // we are willing to make in order to save on validation costs that would be unnecessary most of the time.
             if (getScheduledState() == ScheduledState.STOPPED) {
-                final ValidationContext validationContext = this.getValidationContextFactory()
-                        .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
+                final ValidationContext validationContext = getValidationContext();
 
                 final Collection<ValidationResult> validationResults = super.validate(validationContext);
 
@@ -1111,6 +1108,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setProcessGroup(final ProcessGroup group) {
         this.processGroup.set(group);
+        invalidateValidationContext();
     }
 
     @Override

@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -78,6 +80,7 @@ public class ConvertExcelToCSVProcessor
     public static final String SOURCE_FILE_NAME = "sourcefilename";
     private static final String SAX_CELL_REF = "c";
     private static final String SAX_CELL_TYPE = "t";
+    private static final String SAX_CELL_ADDRESS = "r";
     private static final String SAX_CELL_STRING = "s";
     private static final String SAX_CELL_CONTENT_REF = "v";
     private static final String SAX_ROW_REF = "row";
@@ -85,6 +88,7 @@ public class ConvertExcelToCSVProcessor
     private static final String DESIRED_SHEETS_DELIMITER = ",";
     private static final String UNKNOWN_SHEET_NAME = "UNKNOWN";
     private static final String SAX_PARSER = "org.apache.xerces.parsers.SAXParser";
+    private static final Pattern CELL_ADDRESS_REGEX = Pattern.compile("^([a-zA-Z]+)([\\d]+)$");
 
     public static final PropertyDescriptor DESIRED_SHEETS = new PropertyDescriptor
             .Builder().name("extract-sheets")
@@ -279,6 +283,27 @@ public class ConvertExcelToCSVProcessor
         }
     }
 
+    static Integer columnToIndex(String col) {
+        int length = col.length();
+        int accumulator = 0;
+        for (int i = length; i > 0; i--) {
+            char c = col.charAt(i - 1);
+            int x = ((int) c) - 64;
+            accumulator += x * Math.pow(26, length - i);
+        }
+        // Make it to start with 0.
+        return accumulator - 1;
+    }
+
+    private static class CellAddress {
+        final int row;
+        final int col;
+
+        private CellAddress(int row, int col) {
+            this.row = row;
+            this.col = col;
+        }
+    }
 
     /**
      * Extracts every row from an Excel Sheet and generates a corresponding JSONObject whose key is the Excel CellAddress and value
@@ -290,6 +315,10 @@ public class ConvertExcelToCSVProcessor
         private SharedStringsTable sst;
         private String currentContent;
         private boolean nextIsString;
+        private CellAddress firstCellAddress;
+        private CellAddress firstRowLastCellAddress;
+        private CellAddress previousCellAddress;
+        private CellAddress nextCellAddress;
         private OutputStream outputStream;
         private boolean firstColInRow;
         long rowCount;
@@ -306,23 +335,50 @@ public class ConvertExcelToCSVProcessor
             this.outputStream = outputStream;
         }
 
+
         public void startElement(String uri, String localName, String name,
                 Attributes attributes) throws SAXException {
 
             if (name.equals(SAX_CELL_REF)) {
                 String cellType = attributes.getValue(SAX_CELL_TYPE);
-                if(cellType != null && cellType.equals(SAX_CELL_STRING)) {
+                // Analyze cell address.
+                Matcher cellAddressMatcher = CELL_ADDRESS_REGEX.matcher(attributes.getValue(SAX_CELL_ADDRESS));
+                if (cellAddressMatcher.matches()) {
+                    String col = cellAddressMatcher.group(1);
+                    String row = cellAddressMatcher.group(2);
+                    nextCellAddress = new CellAddress(Integer.parseInt(row), columnToIndex(col));
+
+                    if (firstCellAddress == null) {
+                        firstCellAddress = nextCellAddress;
+                    }
+                }
+                if (cellType != null && cellType.equals(SAX_CELL_STRING)) {
                     nextIsString = true;
                 } else {
                     nextIsString = false;
                 }
             } else if (name.equals(SAX_ROW_REF)) {
+                if (firstRowLastCellAddress == null) {
+                    firstRowLastCellAddress = previousCellAddress;
+                }
                 firstColInRow = true;
+                previousCellAddress = null;
+                nextCellAddress = null;
             } else if (name.equals(SAX_SHEET_NAME_REF)) {
                 sheetName = attributes.getValue(0);
             }
 
             currentContent = "";
+        }
+
+        private void fillEmptyColumns(int nextColumn) throws IOException {
+            final CellAddress previousCell = previousCellAddress != null ? previousCellAddress : firstCellAddress;
+            if (previousCell != null) {
+                for (int i = 0; i < (nextColumn - previousCell.col); i++) {
+                    // Fill columns.
+                    outputStream.write(",".getBytes());
+                }
+            }
         }
 
         public void endElement(String uri, String localName, String name)
@@ -334,22 +390,20 @@ public class ConvertExcelToCSVProcessor
                 nextIsString = false;
             }
 
-            if (name.equals(SAX_CELL_CONTENT_REF)) {
-                if (firstColInRow) {
+            if (name.equals(SAX_CELL_CONTENT_REF)
+                    // Limit scanning from the first column, and up to the last column.
+                    && (firstCellAddress == null || firstCellAddress.col <= nextCellAddress.col)
+                    && (firstRowLastCellAddress == null || nextCellAddress.col <= firstRowLastCellAddress.col)) {
+                try {
+                    // A cell is found.
+                    fillEmptyColumns(nextCellAddress.col);
                     firstColInRow = false;
-                    try {
-                        outputStream.write(currentContent.getBytes());
-                    } catch (IOException e) {
-                        getLogger().error("IO error encountered while writing content of parsed cell " +
-                                "value from sheet {}", new Object[]{getSheetName()}, e);
-                    }
-                } else {
-                    try {
-                        outputStream.write(("," + currentContent).getBytes());
-                    } catch (IOException e) {
-                        getLogger().error("IO error encountered while writing content of parsed cell " +
-                                "value from sheet {}", new Object[]{getSheetName()}, e);
-                    }
+                    outputStream.write(currentContent.getBytes());
+                    // Keep previously found cell address.
+                    previousCellAddress = nextCellAddress;
+                } catch (IOException e) {
+                    getLogger().error("IO error encountered while writing content of parsed cell " +
+                            "value from sheet {}", new Object[]{getSheetName()}, e);
                 }
             }
 
@@ -357,6 +411,9 @@ public class ConvertExcelToCSVProcessor
                 //If this is the first row and the end of the row element has been encountered then that means no columns were present.
                 if (!firstColInRow) {
                     try {
+                        if (firstRowLastCellAddress != null) {
+                            fillEmptyColumns(firstRowLastCellAddress.col);
+                        }
                         rowCount++;
                         outputStream.write("\n".getBytes());
                     } catch (IOException e) {

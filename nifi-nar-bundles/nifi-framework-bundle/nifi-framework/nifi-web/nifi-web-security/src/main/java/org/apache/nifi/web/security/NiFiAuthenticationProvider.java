@@ -46,6 +46,7 @@ public abstract class NiFiAuthenticationProvider implements AuthenticationProvid
     public NiFiAuthenticationProvider(final NiFiProperties properties, final Authorizer authorizer) {
         this.properties = properties;
         this.mappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
+        this.authorizer = authorizer;
     }
 
     public List<IdentityMapping> getMappings() {

@@ -60,7 +60,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             return;
         }
 
-        if (quorumPeerConfig.isDistributed() && quorumPeerConfig.getPurgeInterval() > 0) {
+        if (quorumPeerConfig.getPurgeInterval() > 0) {
             datadirCleanupManager = new DatadirCleanupManager(quorumPeerConfig
                     .getDataDir(), quorumPeerConfig.getDataLogDir(), quorumPeerConfig
                     .getSnapRetainCount(), quorumPeerConfig.getPurgeInterval());

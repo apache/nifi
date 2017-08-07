@@ -24,7 +24,7 @@ language governing permissions and limitations under the License. -->
     <packaging>pom</packaging>
 
     <properties>
-        <nifi.version>1.2.0-SNAPSHOT</nifi.version>
+        <nifi.version>1.4.0-SNAPSHOT</nifi.version>
     </properties>
 
     <profiles>

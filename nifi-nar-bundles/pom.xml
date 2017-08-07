@@ -35,6 +35,7 @@
         <module>nifi-kafka-bundle</module>
         <module>nifi-kite-bundle</module>
         <module>nifi-solr-bundle</module>
+        <module>nifi-confluent-platform-bundle</module>
         <module>nifi-aws-bundle</module>
         <module>nifi-social-media-bundle</module>
         <module>nifi-enrich-bundle</module>
@@ -71,6 +72,7 @@
         <module>nifi-datadog-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
         <module>nifi-ignite-bundle</module>
+        <module>nifi-rethinkdb-bundle</module>
         <module>nifi-email-bundle</module>
     	<module>nifi-ranger-bundle</module>
         <module>nifi-websocket-bundle</module>
@@ -83,7 +85,8 @@
         <module>nifi-cybersecurity-bundle</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
-	<module>nifi-redis-bundle</module>
+        <module>nifi-grpc-bundle</module>
+        <module>nifi-redis-bundle</module>
   </modules>
 
     <build>

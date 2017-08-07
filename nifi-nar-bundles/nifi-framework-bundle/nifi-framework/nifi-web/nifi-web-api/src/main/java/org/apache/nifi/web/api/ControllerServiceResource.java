@@ -268,7 +268,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a controller service",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller-services/{uuid}", type = "")
             }
@@ -323,7 +323,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a controller service",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller-services/{uuid}", type = "")
             }
@@ -385,7 +385,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/references")
     @ApiOperation(
             value = "Gets a controller service",
-            response = ControllerServiceEntity.class,
+            response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller-services/{uuid}", type = "")
             }

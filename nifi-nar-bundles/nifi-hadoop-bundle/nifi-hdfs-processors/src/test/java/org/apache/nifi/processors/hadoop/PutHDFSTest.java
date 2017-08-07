@@ -21,6 +21,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
@@ -268,7 +269,7 @@ public class PutHDFSTest {
         final KerberosProperties testKerberosProperties = kerberosProperties;
         TestRunner runner = TestRunners.newTestRunner(new PutHDFS() {
             @Override
-            protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name) {
+            protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name, FlowFile flowFile) {
                 throw new ProcessException("Forcing Exception to get thrown in order to verify proper handling");
             }
 

@@ -63,6 +63,9 @@
     <li><b>Password</b> - [REQUIRED] password to use with user name to connect to AMQP broker. 
     Usually provided by the administrator. Defaults to 'guest'.
     </li>
+    <li><b>Use Certificate Authentication</b> - [OPTIONAL] whether or not to use the SSL certificate common name for authentication rather than user name/password.
+    This can only be used in conjunction with SSL. Defaults to 'false'.
+    </li>
     <li><b>Virtual Host</b> - [OPTIONAL] Virtual Host name which segregates AMQP system for enhanced security.
     Please refer to <a href="http://blog.dtzq.com/2012/06/rabbitmq-users-and-virtual-hosts.html">this blog</a> for more details on Virtual Host.
     </li>

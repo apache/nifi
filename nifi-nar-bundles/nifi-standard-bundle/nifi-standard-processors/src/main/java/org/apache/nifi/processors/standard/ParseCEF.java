@@ -25,11 +25,14 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.parser.CEFParser;
 
 import com.martiansoftware.macnificent.MacAddress;
+
+import org.apache.bval.jsr.ApacheValidationProvider;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -58,6 +61,8 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import javax.validation.Validation;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -170,6 +175,9 @@ public class ParseCEF extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a CEF message will be transferred to this Relationship.")
         .build();
 
+    // Create a Bean validator to be shared by the parser instances.
+    final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();;
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor>properties = new ArrayList<>();
@@ -219,7 +227,8 @@ public class ParseCEF extends AbstractProcessor {
             return;
         }
 
-        final CEFParser parser = new CEFParser();
+        final CEFParser parser = new CEFParser(validator);
+
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
             @Override
@@ -312,6 +321,8 @@ public class ParseCEF extends AbstractProcessor {
         } catch (CEFHandlingException e) {
             // The flowfile has failed parsing & validation, routing to failure and committing
             getLogger().error("Failed to parse {} as a CEF message due to {}; routing to failure", new Object[] {flowFile, e});
+            // Create a provenance event recording the routing to failure
+            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
             session.commit();
             return;

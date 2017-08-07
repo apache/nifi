@@ -163,8 +163,9 @@ public class NiFi {
                 bootstrapListener.sendStartedStatus(true);
             }
 
-            final long endTime = System.nanoTime();
-            LOGGER.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+            final long duration = System.nanoTime() - startTime;
+            LOGGER.info("Controller initialization took " + duration + " nanoseconds "
+                    + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
         }
     }
 

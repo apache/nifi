@@ -25,10 +25,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.PatternSyntaxException;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.attributes.UpdateAttribute;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
@@ -36,6 +36,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.apache.nifi.processors.attributes.UpdateAttribute.STORE_STATE_LOCALLY;
@@ -983,7 +984,25 @@ public class TestUpdateAttribute {
         try {
             runner.run();
         } catch (Throwable t) {
-            assertEquals(t.getCause().getClass(), PatternSyntaxException.class);
+            assertEquals(ProcessException.class, t.getCause().getClass());
         }
     }
+
+    @Test
+    public void testDataIsTooShort() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("attribute.1", "${test:substring(1, 20)}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("test", "chocolate");
+        runner.enqueue(new byte[0], attributes);
+        try {
+            runner.run();
+        } catch (AssertionError e) {
+            Assert.assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
+        }
+    }
+
 }

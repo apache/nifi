@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
+import java.util.Map;
+
 public interface FlowFileEvent {
 
     String getComponentIdentifier();
@@ -51,4 +53,7 @@ public interface FlowFileEvent {
     long getBytesSent();
 
     int getInvocations();
+
+    Map<String, Long> getCounters();
+
 }

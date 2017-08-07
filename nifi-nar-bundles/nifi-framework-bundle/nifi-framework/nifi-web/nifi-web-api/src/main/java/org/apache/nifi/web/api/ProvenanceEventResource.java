@@ -79,6 +79,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/input")
     @ApiOperation(
             value = "Gets the input content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
@@ -161,6 +162,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/output")
     @ApiOperation(
             value = "Gets the output content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }

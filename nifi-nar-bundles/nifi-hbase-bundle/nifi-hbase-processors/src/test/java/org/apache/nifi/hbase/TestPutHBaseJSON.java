@@ -19,6 +19,8 @@ package org.apache.nifi.hbase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import static org.apache.nifi.hbase.HBaseTestUtil.getHBaseClientService;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -445,14 +447,6 @@ public class TestPutHBaseJSON {
         runner.setProperty(PutHBaseJSON.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseJSON.BATCH_SIZE, batchSize);
         return runner;
-    }
-
-    private MockHBaseClientService getHBaseClientService(final TestRunner runner) throws InitializationException {
-        final MockHBaseClientService hBaseClient = new MockHBaseClientService();
-        runner.addControllerService("hbaseClient", hBaseClient);
-        runner.enableControllerService(hBaseClient);
-        runner.setProperty(PutHBaseCell.HBASE_CLIENT_SERVICE, "hbaseClient");
-        return hBaseClient;
     }
 
 }

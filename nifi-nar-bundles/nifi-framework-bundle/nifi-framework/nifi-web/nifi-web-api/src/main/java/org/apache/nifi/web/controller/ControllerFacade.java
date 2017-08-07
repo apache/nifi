@@ -289,10 +289,12 @@ public class ControllerFacade implements Authorizable {
             throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
         }
 
-        final StatusHistoryDTO statusHistory = flowController.getProcessorStatusHistory(processorId);
+        final boolean authorized = processor.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+        final StatusHistoryDTO statusHistory = flowController.getProcessorStatusHistory(processorId, authorized);
 
         // if not authorized
-        if (!processor.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
+        if (!authorized) {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, processorId);
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Processor");
         }
@@ -1105,12 +1107,12 @@ public class ControllerFacade implements Authorizable {
         final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission result;
 
-        // submit the event
         if (LineageRequestType.FLOWFILE.equals(requestDto.getLineageRequestType())) {
-            // submit uuid
-            if (requestDto.getEventId() == null) {
+            if (requestDto.getUuid() != null) {
+                // submit uuid if it is specified
                 result = provenanceRepository.submitLineageComputation(requestDto.getUuid(), NiFiUserUtils.getNiFiUser());
             } else {
+                // submit the event if the flowfile uuid needs to be looked up
                 result = provenanceRepository.submitLineageComputation(requestDto.getEventId(), NiFiUserUtils.getNiFiUser());
             }
         } else {

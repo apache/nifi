@@ -41,5 +41,35 @@ public final class AuthorizerCapabilityDetection {
         return accessPolicyProvider.getUserGroupProvider() instanceof ConfigurableUserGroupProvider;
     }
 
+    public static boolean isUserConfigurable(final Authorizer authorizer, final User user) {
+        if (!isConfigurableUserGroupProvider(authorizer)) {
+            return false;
+        }
+
+        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
+        final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) managedAuthorizer.getAccessPolicyProvider().getUserGroupProvider();
+        return configurableUserGroupProvider.isConfigurable(user);
+    }
+
+    public static boolean isGroupConfigurable(final Authorizer authorizer, final Group group) {
+        if (!isConfigurableUserGroupProvider(authorizer)) {
+            return false;
+        }
+
+        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
+        final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) managedAuthorizer.getAccessPolicyProvider().getUserGroupProvider();
+        return configurableUserGroupProvider.isConfigurable(group);
+    }
+
+    public static boolean isAccessPolicyConfigurable(final Authorizer authorizer, final AccessPolicy accessPolicy) {
+        if (!isConfigurableAccessPolicyProvider(authorizer)) {
+            return false;
+        }
+
+        final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
+        final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) managedAuthorizer.getAccessPolicyProvider();
+        return configurableAccessPolicyProvider.isConfigurable(accessPolicy);
+    }
+
     private AuthorizerCapabilityDetection() {}
 }
