@@ -754,7 +754,7 @@
                             // update URL deep linking params
                             nfCanvasUtils.setURLParameters();
                         })
-                        .call(nfContextMenu.activate).call(nfQuickSelect.activate);
+                        .call(nfContextMenu.activate);
 
                     // update the midpoints
                     nfCanvasUtils.transition(midpoints, transition)
