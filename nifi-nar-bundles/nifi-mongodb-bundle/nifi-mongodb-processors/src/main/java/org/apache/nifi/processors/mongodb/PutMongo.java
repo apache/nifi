@@ -148,7 +148,7 @@ public class PutMongo extends AbstractMongoProcessor {
         final String mode = context.getProperty(MODE).getValue();
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
         try {
             // Read the contents of the FlowFile into a byte array
@@ -176,7 +176,7 @@ public class PutMongo extends AbstractMongoProcessor {
                 logger.info("updated {} into MongoDB", new Object[] { flowFile });
             }
 
-            session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue());
+            session.getProvenanceReporter().send(flowFile, getURI(context));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             logger.error("Failed to insert {} into MongoDB due to {}", new Object[] {flowFile, e}, e);

@@ -59,14 +59,21 @@ public class GetMongo extends AbstractMongoProcessor {
     public static final Validator DOCUMENT_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            final ValidationResult.Builder builder = new ValidationResult.Builder();
+            builder.subject(subject).input(value);
+
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return builder.valid(true).explanation("Contains Expression Language").build();
+            }
+
             String reason = null;
             try {
                 Document.parse(value);
             } catch (final RuntimeException e) {
-                reason = e.getClass().getName();
+                reason = e.getLocalizedMessage();
             }
 
-            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+            return builder.explanation(reason).valid(reason == null).build();
         }
     };
 
@@ -76,18 +83,21 @@ public class GetMongo extends AbstractMongoProcessor {
         .name("Query")
         .description("The selection criteria; must be a valid MongoDB Extended JSON format; if omitted the entire collection will be queried")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
         .name("Projection")
         .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
         .name("Sort")
         .description("The fields by which to sort; must be a valid BSON document")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
@@ -163,7 +173,7 @@ public class GetMongo extends AbstractMongoProcessor {
             }
         });
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
+        session.getProvenanceReporter().receive(flowFile, getURI(context));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -171,9 +181,12 @@ public class GetMongo extends AbstractMongoProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
 
-        final Document query = context.getProperty(QUERY).isSet() ? Document.parse(context.getProperty(QUERY).getValue()) : null;
-        final Document projection = context.getProperty(PROJECTION).isSet() ? Document.parse(context.getProperty(PROJECTION).getValue()) : null;
-        final Document sort = context.getProperty(SORT).isSet() ? Document.parse(context.getProperty(SORT).getValue()) : null;
+        final Document query = context.getProperty(QUERY).isSet()
+                ? Document.parse(context.getProperty(QUERY).evaluateAttributeExpressions().getValue()) : null;
+        final Document projection = context.getProperty(PROJECTION).isSet()
+                ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions().getValue()) : null;
+        final Document sort = context.getProperty(SORT).isSet()
+                ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions().getValue()) : null;
 
         final MongoCollection<Document> collection = getCollection(context);
 
@@ -233,7 +246,7 @@ public class GetMongo extends AbstractMongoProcessor {
                         });
                         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
 
-                        session.getProvenanceReporter().receive(flowFile, context.getProperty(URI).getValue());
+                        session.getProvenanceReporter().receive(flowFile, getURI(context));
                         session.transfer(flowFile, REL_SUCCESS);
                     }
                 }
