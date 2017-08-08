@@ -41,6 +41,7 @@ import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
+import org.apache.nifi.processors.aws.s3.encryption.service.S3ClientSideEncryptionService;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
@@ -125,16 +126,31 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
                     new AllowableValue("S3SignerType", "Signature v2"))
             .defaultValue("Default Signature")
             .build();
+
+    public static final PropertyDescriptor CLIENT_SIDE_ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
+            .name("Client Side Encryption Service")
+            .description("Specifies an optional Client Side Encryption Service that, if provided, will be used to create connections")
+            .required(false)
+            .identifiesControllerService(S3ClientSideEncryptionService.class)
+            .build();
+
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client with credentials provider");
+        S3ClientSideEncryptionService encryptionService = context.getProperty(CLIENT_SIDE_ENCRYPTION_SERVICE).asControllerService(S3ClientSideEncryptionService.class);
+        AmazonS3Client s3;
 
         initializeSignerOverride(context, config);
 
-        final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
+        if (encryptionService != null && encryptionService.needsEncryptedClient()) {
+            getLogger().info("Creating encrypted client with credentials provider");
+            s3 = encryptionService.encryptedClient(credentialsProvider, config);
+        }else{
+            getLogger().info("Creating unencrypted client with credentials provider");
+            s3 = new AmazonS3Client(credentialsProvider, config);
+        }
 
         initalizeEndpointOverride(context, s3);
 
@@ -165,11 +181,18 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with AWS credentials");
+        S3ClientSideEncryptionService encryptionService = context.getProperty(CLIENT_SIDE_ENCRYPTION_SERVICE).asControllerService(S3ClientSideEncryptionService.class);
+        AmazonS3Client s3;
 
         initializeSignerOverride(context, config);
 
-        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
+        if (encryptionService != null && encryptionService.needsEncryptedClient()) {
+            getLogger().info("Creating encrypted client with credentials provider");
+            s3 = encryptionService.encryptedClient(credentials, config);
+        }else{
+            getLogger().info("Creating unencrypted client with credentials provider");
+            s3 = new AmazonS3Client(credentials, config);
+        }
 
         initalizeEndpointOverride(context, s3);
 
