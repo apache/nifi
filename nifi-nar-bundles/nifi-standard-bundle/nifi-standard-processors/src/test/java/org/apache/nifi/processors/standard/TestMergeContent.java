@@ -197,6 +197,251 @@ public class TestMergeContent {
         Assert.assertTrue(places.containsKey("Some Place"));
     }
 
+    @Test
+    public void testAvroConcatWithDifferentMetadataDoNotMerge() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_DO_NOT_MERGE);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 2);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(1, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataIgnore() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_IGNORE);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(3, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("Ben"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataUseFirst() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_USE_FIRST);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(3, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("Ben"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataKeepCommon() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_ALL_COMMON);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 1);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(2, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
     private Map<String, GenericRecord> getGenericRecordMap(byte[] data, Schema schema, String key) throws IOException {
         // create a reader for the merged contet
         DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
@@ -213,8 +458,15 @@ public class TestMergeContent {
     }
 
     private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter) throws IOException {
+        return serializeAvroRecord(schema, user2, datumWriter, null);
+    }
+
+    private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter, Map<String, String> metadata) throws IOException {
         ByteArrayOutputStream out2 = new ByteArrayOutputStream();
-        DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<GenericRecord>(datumWriter);
+        DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<>(datumWriter);
+        if (metadata != null) {
+            metadata.forEach(dataFileWriter2::setMeta);
+        }
         dataFileWriter2.create(schema, out2);
         dataFileWriter2.append(user2);
         dataFileWriter2.close();
