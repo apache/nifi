@@ -374,10 +374,11 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
         // get the URL
         final String url = context.getProperty(URL).evaluateAttributeExpressions().getValue();
-        final URI uri;
+        URI uri = null;
         String source = url;
         try {
-            uri = new URI(url);
+            java.net.URL url1 = new java.net.URL(url);
+            uri = new URI(url1.getProtocol(), url1.getHost(), url1.getPath(), url1.getQuery(), null);
             source = uri.getHost();
         } catch (final URISyntaxException swallow) {
             // this won't happen as the url has already been validated
@@ -472,7 +473,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             }
 
             // create request
-            final HttpGet get = new HttpGet(url);
+            final HttpGet get = new HttpGet(uri);
             get.setConfig(requestConfigBuilder.build());
 
             final StateMap beforeStateMap;
