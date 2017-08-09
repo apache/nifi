@@ -98,6 +98,12 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    protected static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
+            .name("Timestamp")
+            .description("The timestamp for the cells being created in HBase. This field can be left blank and HBase will use the current time.")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .build();
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("The maximum number of FlowFiles to process in a single execution. The FlowFiles will be " +

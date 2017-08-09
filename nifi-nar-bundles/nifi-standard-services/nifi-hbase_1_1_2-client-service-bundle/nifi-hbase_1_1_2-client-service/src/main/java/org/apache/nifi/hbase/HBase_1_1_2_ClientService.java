@@ -284,10 +284,18 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 }
 
                 for (final PutColumn column : putFlowFile.getColumns()) {
-                    put.addColumn(
-                            column.getColumnFamily(),
-                            column.getColumnQualifier(),
-                            column.getBuffer());
+                    if (column.getTimestamp() != null) {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getTimestamp(),
+                                column.getBuffer());
+                    } else {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getBuffer());
+                    }
                 }
             }
 
