@@ -34,6 +34,10 @@ import org.apache.nifi.util.TestRunner;
 public class HBaseTestUtil {
 
     public static void verifyPut(final String row, final String columnFamily, final Map<String,byte[]> columns, final List<PutFlowFile> puts) {
+        verifyPut(row, columnFamily, null, columns, puts);
+    }
+
+    public static void verifyPut(final String row, final String columnFamily, final Long timestamp, final Map<String,byte[]> columns, final List<PutFlowFile> puts) {
         boolean foundPut = false;
 
         for (final PutFlowFile put : puts) {
@@ -54,7 +58,9 @@ public class HBaseTestUtil {
                 for (PutColumn putColumn : put.getColumns()) {
                     if (columnFamily.equals(new String(putColumn.getColumnFamily(), StandardCharsets.UTF_8))
                             && entry.getKey().equals(new String(putColumn.getColumnQualifier(), StandardCharsets.UTF_8))
-                            && Arrays.equals(entry.getValue(), putColumn.getBuffer())) {
+                            && Arrays.equals(entry.getValue(), putColumn.getBuffer())
+                            && ((timestamp == null && putColumn.getTimestamp() == null)
+                                    || (timestamp != null && timestamp.equals(putColumn.getTimestamp())) )) {
                         foundColumn = true;
                         break;
                     }

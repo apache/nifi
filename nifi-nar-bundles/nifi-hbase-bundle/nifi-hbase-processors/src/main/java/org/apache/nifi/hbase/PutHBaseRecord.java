@@ -38,6 +38,8 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +60,17 @@ public class PutHBaseRecord extends AbstractPutHBase {
     protected static final PropertyDescriptor ROW_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("Row Identifier Field Name")
             .description("Specifies the name of a record field whose value should be used as the row id for the given record.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected static final PropertyDescriptor TIMESTAMP_FIELD_NAME = new PropertyDescriptor.Builder()
+            .name("timestamp-field-name")
+            .displayName("Timestamp Field Name")
+            .description("Specifies the name of a record field whose value should be used as the timestamp for the cells in HBase. " +
+                    "The value of this field must be a number, string, or date that can be converted to a long. " +
+                    "If this field is left blank, HBase will use the current time.")
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -123,6 +136,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
+        properties.add(TIMESTAMP_FIELD_NAME);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
         properties.add(FIELD_ENCODING_STRATEGY);
@@ -161,6 +175,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String rowFieldName = context.getProperty(ROW_FIELD_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
+        final String timestampFieldName = context.getProperty(TIMESTAMP_FIELD_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String rowEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
@@ -184,7 +199,8 @@ public class PutHBaseRecord extends AbstractPutHBase {
             }
 
             while ((record = reader.nextRecord()) != null) {
-                PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), flowFile, rowFieldName, columnFamily, fieldEncodingStrategy, rowEncodingStrategy, complexFieldStrategy);
+                PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), flowFile, rowFieldName, columnFamily,
+                        timestampFieldName, fieldEncodingStrategy, rowEncodingStrategy, complexFieldStrategy);
                 flowFiles.add(putFlowFile);
                 index++;
 
@@ -307,8 +323,9 @@ public class PutHBaseRecord extends AbstractPutHBase {
         }
     }
 
-    protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile,
-                                    String rowFieldName, String columnFamily, String fieldEncodingStrategy, String rowEncodingStrategy, String complexFieldStrategy)
+    protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile, String rowFieldName,
+                                    String columnFamily, String timestampFieldName, String fieldEncodingStrategy, String rowEncodingStrategy,
+                                    String complexFieldStrategy)
             throws PutCreationFailedInvokedException {
         PutFlowFile retVal = null;
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -318,17 +335,33 @@ public class PutHBaseRecord extends AbstractPutHBase {
         final byte[] fam  = clientService.toBytes(columnFamily);
 
         if (record != null) {
+            final Long timestamp;
+            if (!StringUtils.isBlank(timestampFieldName)) {
+                try {
+                    timestamp = record.getAsLong(timestampFieldName);
+                } catch (IllegalTypeConversionException e) {
+                    throw new PutCreationFailedInvokedException("Could not convert " + timestampFieldName + " to a long", e);
+                }
+
+                if (timestamp == null) {
+                    getLogger().warn("The value of timestamp field " + timestampFieldName + " was null, record will be inserted with latest timestamp");
+                }
+            } else {
+                timestamp = null;
+            }
+
             List<PutColumn> columns = new ArrayList<>();
             for (String name : schema.getFieldNames()) {
-                if (name.equals(rowFieldName)) {
+                if (name.equals(rowFieldName) || name.equals(timestampFieldName)) {
                     continue;
                 }
 
                 final byte[] fieldValueBytes = asBytes(name, schema.getField(name).get().getDataType().getFieldType(), record, asString, complexFieldStrategy);
                 if (fieldValueBytes != null) {
-                    columns.add(new PutColumn(fam, clientService.toBytes(name), fieldValueBytes));
+                    columns.add(new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp));
                 }
             }
+
             String rowIdValue = record.getAsString(rowFieldName);
             if (rowIdValue == null) {
                 throw new PutCreationFailedInvokedException(String.format("Row ID was null for flowfile with ID %s", flowFile.getAttribute("uuid")));
@@ -344,6 +377,9 @@ public class PutHBaseRecord extends AbstractPutHBase {
     static class PutCreationFailedInvokedException extends Exception {
         PutCreationFailedInvokedException(String msg) {
             super(msg);
+        }
+        PutCreationFailedInvokedException(String msg, Exception e) {
+            super(msg, e);
         }
     }
 }

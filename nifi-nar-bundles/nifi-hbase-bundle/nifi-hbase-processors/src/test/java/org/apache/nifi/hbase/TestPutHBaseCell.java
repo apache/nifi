@@ -36,7 +36,7 @@ import static org.junit.Assert.assertNotNull;
 public class TestPutHBaseCell {
 
     @Test
-    public void testSingleFlowFile() throws IOException, InitializationException {
+    public void testSingleFlowFileNoTimestamp() throws IOException, InitializationException {
         final String tableName = "nifi";
         final String row = "row1";
         final String columnFamily = "family1";
@@ -64,9 +64,69 @@ public class TestPutHBaseCell {
 
         List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(1, puts.size());
-        verifyPut(row, columnFamily, columnQualifier, content, puts.get(0));
+        verifyPut(row, columnFamily, columnQualifier, null, content, puts.get(0));
 
         assertEquals(1, runner.getProvenanceEvents().size());
+    }
+
+    @Test
+    public void testSingleFlowFileWithTimestamp() throws IOException, InitializationException {
+        final String tableName = "nifi";
+        final String row = "row1";
+        final String columnFamily = "family1";
+        final String columnQualifier = "qualifier1";
+        final Long timestamp = 1L;
+
+        final TestRunner runner = TestRunners.newTestRunner(PutHBaseCell.class);
+        runner.setProperty(PutHBaseCell.TABLE_NAME, tableName);
+        runner.setProperty(PutHBaseCell.ROW_ID, row);
+        runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
+        runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
+        runner.setProperty(PutHBaseCell.TIMESTAMP, timestamp.toString());
+        runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+
+        final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
+
+        final String content = "some content";
+        runner.enqueue(content.getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_SUCCESS);
+
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
+        outFile.assertContentEquals(content);
+
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
+
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
+        assertEquals(1, puts.size());
+        verifyPut(row, columnFamily, columnQualifier, timestamp, content, puts.get(0));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
+    }
+
+    @Test
+    public void testSingleFlowFileWithInvalidTimestamp() throws IOException, InitializationException {
+        final String tableName = "nifi";
+        final String row = "row1";
+        final String columnFamily = "family1";
+        final String columnQualifier = "qualifier1";
+        final String timestamp = "not-a-timestamp";
+
+        final PutHBaseCell proc = new PutHBaseCell();
+        final TestRunner runner = getTestRunnerWithEL(proc);
+        runner.setProperty(PutHBaseCell.TIMESTAMP, "${hbase.timestamp}");
+        runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+
+        final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
+
+        final String content = "some content";
+        final Map<String, String> attributes = getAttributeMapWithEL(tableName, row, columnFamily, columnQualifier);
+        attributes.put("hbase.timestamp", timestamp);
+        runner.enqueue(content.getBytes("UTF-8"), attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_FAILURE, 1);
     }
 
     @Test
@@ -75,15 +135,18 @@ public class TestPutHBaseCell {
         final String row = "row1";
         final String columnFamily = "family1";
         final String columnQualifier = "qualifier1";
+        final Long timestamp = 1L;
 
         final PutHBaseCell proc = new PutHBaseCell();
         final TestRunner runner = getTestRunnerWithEL(proc);
+        runner.setProperty(PutHBaseCell.TIMESTAMP, "${hbase.timestamp}");
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
 
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
         final String content = "some content";
         final Map<String, String> attributes = getAttributeMapWithEL(tableName, row, columnFamily, columnQualifier);
+        attributes.put("hbase.timestamp", timestamp.toString());
         runner.enqueue(content.getBytes("UTF-8"), attributes);
 
         runner.run();
@@ -97,7 +160,7 @@ public class TestPutHBaseCell {
 
         List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(1, puts.size());
-        verifyPut(row, columnFamily, columnQualifier, content, puts.get(0));
+        verifyPut(row, columnFamily, columnQualifier, timestamp, content, puts.get(0));
 
         assertEquals(1, runner.getProvenanceEvents().size());
     }
@@ -185,8 +248,8 @@ public class TestPutHBaseCell {
 
         List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(2, puts.size());
-        verifyPut(row1, columnFamily, columnQualifier, content1, puts.get(0));
-        verifyPut(row2, columnFamily, columnQualifier, content2, puts.get(1));
+        verifyPut(row1, columnFamily, columnQualifier, null, content1, puts.get(0));
+        verifyPut(row2, columnFamily, columnQualifier, null, content2, puts.get(1));
 
         assertEquals(2, runner.getProvenanceEvents().size());
     }
@@ -247,8 +310,8 @@ public class TestPutHBaseCell {
 
         List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(2, puts.size());
-        verifyPut(row, columnFamily, columnQualifier, content1, puts.get(0));
-        verifyPut(row, columnFamily, columnQualifier, content2, puts.get(1));
+        verifyPut(row, columnFamily, columnQualifier, null, content1, puts.get(0));
+        verifyPut(row, columnFamily, columnQualifier, null, content2, puts.get(1));
 
         assertEquals(2, runner.getProvenanceEvents().size());
     }
@@ -295,10 +358,11 @@ public class TestPutHBaseCell {
 
         List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
         assertEquals(1, puts.size());
-        verifyPut(expectedRowKey, columnFamily.getBytes(StandardCharsets.UTF_8), columnQualifier.getBytes(StandardCharsets.UTF_8), content, puts.get(0));
+        verifyPut(expectedRowKey, columnFamily.getBytes(StandardCharsets.UTF_8), columnQualifier.getBytes(StandardCharsets.UTF_8), null, content, puts.get(0));
 
         assertEquals(1, runner.getProvenanceEvents().size());
     }
+
     private Map<String, String> getAttributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
         final Map<String,String> attributes1 = new HashMap<>();
         attributes1.put("hbase.tableName", tableName);
@@ -325,11 +389,11 @@ public class TestPutHBaseCell {
         return hBaseClient;
     }
 
-    private void verifyPut(String row, String columnFamily, String columnQualifier, String content, PutFlowFile put) {
+    private void verifyPut(String row, String columnFamily, String columnQualifier, Long timestamp, String content, PutFlowFile put) {
         verifyPut(row.getBytes(StandardCharsets.UTF_8),columnFamily.getBytes(StandardCharsets.UTF_8),
-                                columnQualifier.getBytes(StandardCharsets.UTF_8),content,put);
+                                columnQualifier.getBytes(StandardCharsets.UTF_8), timestamp, content, put);
     }
-    private void verifyPut(byte[] row, byte[] columnFamily, byte[] columnQualifier, String content, PutFlowFile put) {
+    private void verifyPut(byte[] row, byte[] columnFamily, byte[] columnQualifier, Long timestamp, String content, PutFlowFile put) {
         assertEquals(new String(row, StandardCharsets.UTF_8), new String(put.getRow(), StandardCharsets.UTF_8));
 
         assertNotNull(put.getColumns());
@@ -339,6 +403,7 @@ public class TestPutHBaseCell {
         assertEquals(new String(columnFamily, StandardCharsets.UTF_8), new String(column.getColumnFamily(), StandardCharsets.UTF_8));
         assertEquals(new String(columnQualifier, StandardCharsets.UTF_8), new String(column.getColumnQualifier(), StandardCharsets.UTF_8));
         assertEquals(content, new String(column.getBuffer(), StandardCharsets.UTF_8));
+        assertEquals(timestamp, column.getTimestamp());
     }
 
 }
