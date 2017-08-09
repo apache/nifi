@@ -37,6 +37,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -57,8 +59,14 @@ import org.xml.sax.SAXException;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"xml", "schema", "validation", "xsd"})
+@WritesAttributes({
+    @WritesAttribute(attribute = "validatexml.invalid.error", description = "If the flow file is routed to the invalid relationship "
+            + "the attribute will contain the error message resulting from the validation failure.")
+})
 @CapabilityDescription("Validates the contents of FlowFiles against a user-specified XML Schema file")
 public class ValidateXml extends AbstractProcessor {
+
+    public static final String ERROR_ATTRIBUTE_KEY = "validatexml.invalid.error";
 
     public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder()
             .name("Schema File")
@@ -127,8 +135,10 @@ public class ValidateXml extends AbstractProcessor {
         final Validator validator = schema.newValidator();
         final ComponentLog logger = getLogger();
 
-        for (final FlowFile flowFile : flowFiles) {
+        for (FlowFile flowFile : flowFiles) {
             final AtomicBoolean valid = new AtomicBoolean(true);
+            final AtomicReference<Exception> exception = new AtomicReference<Exception>(null);
+
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
@@ -136,17 +146,18 @@ public class ValidateXml extends AbstractProcessor {
                         validator.validate(new StreamSource(in));
                     } catch (final IllegalArgumentException | SAXException e) {
                         valid.set(false);
-                        logger.debug("Failed to validate {} against schema due to {}", new Object[]{flowFile, e});
+                        exception.set(e);
                     }
                 }
             });
 
             if (valid.get()) {
-                logger.info("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
                 session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             } else {
-                logger.info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
+                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, exception.get().getLocalizedMessage());
+                logger.info("Failed to validate {} against schema due to {}; routing to 'invalid'", new Object[]{flowFile, exception.get().getLocalizedMessage()});
                 session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             }
