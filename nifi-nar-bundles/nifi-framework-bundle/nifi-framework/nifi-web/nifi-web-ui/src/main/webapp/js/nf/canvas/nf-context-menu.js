@@ -452,6 +452,18 @@
     };
 
     /**
+     * Closes sub menu's starting from the specified menu.
+     *
+     * @param menu menu
+     */
+    var closeSubMenus = function (menu) {
+        menu.remove().find('.group-menu-item').each(function () {
+            var siblingGroupId = $(this).attr('id');
+            closeSubMenus($('#' + siblingGroupId + '-sub-menu'));
+        });
+    };
+
+    /**
      * Adds a menu item to the context menu.
      *
      * {
@@ -464,29 +476,30 @@
      * @param {object} item The menu item configuration
      */
     var addMenuItem = function (contextMenu, item) {
-        if (typeof item.click === 'function') {
-            var menuItem = $('<div class="context-menu-item"></div>').on('click', item['click']).on('contextmenu', function (evt) {
-                // invoke the desired action
-                item['click'](evt);
+        var menuItem = $('<div class="context-menu-item"></div>').attr('id', item.id).on('mouseenter', function () {
+            $(this).addClass('hover');
 
-                // stop propagation and prevent default
-                evt.preventDefault();
-                evt.stopPropagation();
-            }).on('mouseenter', function () {
-                $(this).addClass('hover');
-            }).on('mouseleave', function () {
-                $(this).removeClass('hover');
-            }).appendTo(contextMenu);
+            contextMenu.find('.group-menu-item').not('#' + item.id).each(function () {
+                var siblingGroupId = $(this).attr('id');
+                closeSubMenus($('#' + siblingGroupId + '-sub-menu'));
+            });
+        }).on('mouseleave', function () {
+            $(this).removeClass('hover');
+        }).appendTo(contextMenu);
 
-            // create the img and conditionally add the style
-            var img = $('<div class="context-menu-item-img"></div>').addClass(item['clazz']).appendTo(menuItem);
-            if (nfCommon.isDefinedAndNotNull(item['imgStyle'])) {
-                img.addClass(item['imgStyle']);
-            }
-
-            $('<div class="context-menu-item-text"></div>').text(item['text']).appendTo(menuItem);
-            $('<div class="clear"></div>').appendTo(menuItem);
+        // create the img and conditionally add the style
+        var img = $('<div class="context-menu-item-img"></div>').addClass(item['clazz']).appendTo(menuItem);
+        if (nfCommon.isDefinedAndNotNull(item['imgStyle'])) {
+            img.addClass(item['imgStyle']);
         }
+
+        $('<div class="context-menu-item-text"></div>').text(item['text']).appendTo(menuItem);
+        if (item.isGroup) {
+            $('<div class="fa fa-caret-right context-menu-group-item-img"></div>').appendTo(menuItem);
+        }
+        $('<div class="clear"></div>').appendTo(menuItem);
+
+        return menuItem;
     };
 
     /**
@@ -518,45 +531,61 @@
     };
 
     // defines the available actions and the conditions which they apply
-    var actions = [
-        {condition: emptySelection, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh', action: 'reload'}},
-        {condition: isNotRootGroup, menuItem: {clazz: 'fa fa-level-up', text: 'Leave group', action: 'leaveGroup'}},
-        {condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
-        {condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
-        {condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
-        {condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
-        {condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
-        {condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
-        {condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
-        {condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
-        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-cloud', text: 'Remote ports', action: 'remotePorts'}},
-        {condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
-        {condition: canStopTransmission, menuItem: { clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
-        {condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'Status History', action: 'showStats'}},
-        {condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
-        {condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
-        {condition: canChangeProcessorVersion, menuItem: {clazz: 'fa fa-exchange', text: 'Change version', action: 'changeVersion'}},
-        {condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
-        {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
-        {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
-        {condition: hasUpstream, menuItem: {clazz: 'icon icon-connect', text: 'Upstream connections', action: 'showUpstream'}},
-        {condition: hasDownstream, menuItem: {clazz: 'icon icon-connect', text: 'Downstream connections', action: 'showDownstream'}},
-        {condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'Usage', action: 'showUsage'}},
-        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh', action: 'refreshRemoteFlow'}},
-        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-external-link', text: 'Go to', action: 'openUri'}},
-        {condition: isColorable, menuItem: {clazz: 'fa fa-paint-brush', text: 'Change color', action: 'fillColor'}},
-        {condition: isNotConnection, menuItem: {clazz: 'fa fa-crosshairs', text: 'Center in view', action: 'center'}},
-        {condition: isCopyable, menuItem: {clazz: 'fa fa-copy', text: 'Copy', action: 'copy'}},
-        {condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},
-        {condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
-        {condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
-        {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
-        {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
-        {condition: canManagePolicies, menuItem: {clazz: 'fa fa-key', text: 'Access policies', action: 'managePolicies'}},
-        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertically', action: 'alignVertical'}},
-        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontally', action: 'alignHorizontal'}},
-        {condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
-        {condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}}
+    var menuItems = [
+        {id: 'reload-menu-item', condition: emptySelection, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh', action: 'reload'}},
+        {id: 'leave-group-menu-item', condition: isNotRootGroup, menuItem: {clazz: 'fa fa-level-up', text: 'Leave group', action: 'leaveGroup'}},
+        {separator: true},
+        {id: 'show-configuration-menu-item', condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
+        {id: 'show-details-menu-item', condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
+        {separator: true},
+        {id: 'enter-group-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
+        {separator: true},
+        {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
+        {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {id: 'enable-menu-item', condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
+        {id: 'disable-menu-item', condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
+        {id: 'enable-transmission-menu-item', condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
+        {id: 'disable-transmission-menu-item', condition: canStopTransmission, menuItem: { clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
+        {separator: true},
+        {id: 'data-provenance-menu-item', condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'View data provenance', action: 'openProvenance'}},
+        {id: 'show-stats-menu-item', condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'View status history', action: 'showStats'}},
+        {id: 'view-state-menu-item', condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
+        {id: 'list-queue-menu-item', condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
+        {id: 'show-usage-menu-item', condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'View usage', action: 'showUsage'}},
+        {id: 'view-menu-item', groupMenuItem: {clazz: 'icon icon-connect', text: 'View connections'}, menuItems: [
+            {id: 'show-upstream-menu-item', condition: hasUpstream, menuItem: {clazz: 'icon', text: 'Upstream', action: 'showUpstream'}},
+            {id: 'show-downstream-menu-item', condition: hasDownstream, menuItem: {clazz: 'icon', text: 'Downstream', action: 'showDownstream'}}
+        ]},
+        {separator: true},
+        {id: 'refresh-remote-flow-menu-item', condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh remote', action: 'refreshRemoteFlow'}},
+        {separator: true},
+        {id: 'remote-ports-menu-item', condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-cloud', text: 'Manage remote ports', action: 'remotePorts'}},
+        {id: 'manage-policies-menu-item', condition: canManagePolicies, menuItem: {clazz: 'fa fa-key', text: 'Manage access policies', action: 'managePolicies'}},
+        {id: 'change-version-menu-item', condition: canChangeProcessorVersion, menuItem: {clazz: 'fa fa-exchange', text: 'Change version', action: 'changeVersion'}},
+        {separator: true},
+        {id: 'show-source-menu-item', condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
+        {id: 'show-destination-menu-item', condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
+        {separator: true},
+        {id: 'align-menu-item', groupMenuItem: {clazz: 'fa', text: 'Align'}, menuItems: [
+            {id: 'align-horizontal-menu-item', condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Horizontally', action: 'alignHorizontal'}},
+            {id: 'align-vertical-menu-item', condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Vertically', action: 'alignVertical'}}
+        ]},
+        {id: 'to-front-menu-item', condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
+        {id: 'center-menu-item', condition: isNotConnection, menuItem: {clazz: 'fa fa-crosshairs', text: 'Center in view', action: 'center'}},
+        {id: 'fill-color-menu-item', condition: isColorable, menuItem: {clazz: 'fa fa-paint-brush', text: 'Change color', action: 'fillColor'}},
+        {id: 'open-uri-menu-item', condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-external-link', text: 'Go to', action: 'openUri'}},
+        {separator: true},
+        {id: 'move-into-parent-menu-item', condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
+        {id: 'group-menu-item', condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
+        {separator: true},
+        {id: 'upload-template-menu-item', condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
+        {id: 'template-menu-item', condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}},
+        {separator: true},
+        {id: 'copy-menu-item', condition: isCopyable, menuItem: {clazz: 'fa fa-copy', text: 'Copy', action: 'copy'}},
+        {id: 'paste-menu-item', condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},
+        {separator: true},
+        {id: 'empty-queue-menu-item', condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
+        {id: 'delete-menu-item', condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}}
     ];
 
     var nfContextMenu = {
@@ -580,6 +609,9 @@
          * Shows the context menu.
          */
         show: function () {
+            // hide the menu if currently visible
+            nf.ContextMenu.hide();
+
             var contextMenu = $('#context-menu').empty();
             var canvasBody = $('#canvas-body').get(0);
             var bannerFooter = $('#banner-footer').get(0);
@@ -588,32 +620,148 @@
             // get the current selection
             var selection = nfCanvasUtils.getSelection();
 
-            // consider each component action for the current selection
-            $.each(actions, function (_, action) {
-                // determine if this action is application for this selection
-                if (action.condition(selection, nfCanvasUtils.getComponentByType('Connection'))) {
-                    var menuItem = action.menuItem;
-
-                    addMenuItem(contextMenu, {
-                        clazz: menuItem.clazz,
-                        imgStyle: menuItem.imgStyle,
-                        text: menuItem.text,
-                        click: function (evt) {
-                            executeAction(menuItem.action, selection, evt);
-                        }
-                    });
-                }
-            });
-
             // get the location for the context menu
             var position = d3.mouse(canvasBody);
 
-            // nifi 1864 make sure the context menu is not hidden by the browser boundaries
-            if (position[0] + contextMenu.width() > canvasBody.clientWidth) {
+            // determines if the specified menu positioned at x would overflow the available width
+            var overflowRight = function (x, menu) {
+                return x + menu.width() > canvasBody.clientWidth;
+            };
+
+            // determines if the specified menu positioned at y would overflow the available height
+            var overflowBottom = function (y, menu) {
+                return y + menu.height() > (canvasBody.clientHeight - breadCrumb.clientHeight - bannerFooter.clientHeight);
+            };
+
+            // adds a menu item
+            var addItem = function (menu, id, item) {
+                // add the menu item
+                addMenuItem(menu, {
+                    id: id,
+                    clazz: item.clazz,
+                    imgStyle: item.imgStyle,
+                    text: item.text,
+                    isGroup: false
+                }).on('click', function (evt) {
+                    executeAction(item.action, selection, evt);
+                }).on('contextmenu', function (evt) {
+                    executeAction(item.action, selection, evt);
+
+                    // stop propagation and prevent default
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                });
+            };
+
+            // adds a group item
+            var addGroupItem = function (menu, groupId, groupItem, applicableGroupItems) {
+                // add the menu item
+                addMenuItem(menu, {
+                    id: groupId,
+                    clazz: groupItem.clazz,
+                    imgStyle: groupItem.imgStyle,
+                    text: groupItem.text,
+                    isGroup: true
+                }).addClass('group-menu-item').on('mouseenter', function () {
+                    // see if this submenu item is already open
+                    if ($('#' + groupId + '-sub-menu').length == 0) {
+                        var groupMenuItem = $(this);
+                        var contextMenuPosition = menu.position();
+                        var groupMenuItemPosition = groupMenuItem.position();
+
+                        var x = contextMenuPosition.left + groupMenuItemPosition.left + groupMenuItem.width();
+                        var y = contextMenuPosition.top + groupMenuItemPosition.top;
+
+                        var subMenu = $('<div class="context-menu unselectable sub-menu"></div>').attr('id', groupId + '-sub-menu').appendTo('body');
+
+                        processMenuItems(subMenu, applicableGroupItems);
+
+                        // make sure the sub menu is not hidden by the browser boundaries
+                        if (overflowRight(x, subMenu)) {
+                            x -= (subMenu.width() + groupMenuItem.width() - 4);
+                        }
+                        if (overflowBottom(y, subMenu)) {
+                            y -= (subMenu.height() - groupMenuItem.height());
+                        }
+
+                        subMenu.css({
+                            top: y + 'px',
+                            left: x + 'px'
+                        }).show();
+                    }
+                });
+            };
+
+            // whether or not a group item should be included
+            var includeGroupItem = function (groupItem) {
+                if (groupItem.menuItem) {
+                    return groupItem.condition(selection);
+                } else {
+                    var descendantItems = [];
+                    $.each(groupItem.menuItems, function (_, descendantItem) {
+                        if (includeGroupItem(descendantItem)) {
+                            descendantItems.push(descendantItem);
+                        }
+                    });
+                    return descendantItems.length > 0;
+                }
+            };
+
+            // adds the specified items to the specified menu
+            var processMenuItems = function (menu, items) {
+                var allowSeparator = false;
+                $.each(items, function (_, item) {
+                    if (item.separator && allowSeparator) {
+                        $('<div class="context-menu-item-separator"></div>').appendTo(menu);
+                        allowSeparator = false;
+                    } else {
+                        if (processMenuItem(menu, item)) {
+                            allowSeparator = true;
+                        }
+                    }
+                });
+
+                // ensure the last child isn't a separator
+                var last = menu.children().last();
+                if (last.hasClass('context-menu-item-separator')) {
+                    last.remove();
+                }
+            };
+
+            // adds the specified item to the specified menu if the conditions are met, returns if the item was added
+            var processMenuItem = function (menu, i) {
+                var included = false;
+
+                if (i.menuItem) {
+                    included = i.condition(selection);
+                    if (included) {
+                        addItem(menu, i.id, i.menuItem);
+                    }
+                } else if (i.groupMenuItem) {
+                    var applicableGroupItems = [];
+                    $.each(i.menuItems, function (_, groupItem) {
+                        if (includeGroupItem(groupItem)) {
+                            applicableGroupItems.push(groupItem);
+                        }
+                    });
+                    included = applicableGroupItems.length > 0;
+                    if (included) {
+                        addGroupItem(menu, i.id, i.groupMenuItem, applicableGroupItems);
+                    }
+                }
+
+                return included;
+            };
+
+            // consider each component action for the current selection
+            processMenuItems(contextMenu, menuItems);
+
+            // make sure the context menu is not hidden by the browser boundaries
+            if (overflowRight(position[0], contextMenu)) {
                 position[0] = canvasBody.clientWidth - contextMenu.width() - 2;
             }
-            if (position[1] + contextMenu.height() > (canvasBody.clientHeight - breadCrumb.clientHeight - bannerFooter.clientHeight)) {
-                position[1] = canvasBody.clientHeight - breadCrumb.clientHeight - bannerFooter.clientHeight - contextMenu.height() - 3;
+            if (overflowBottom(position[1], contextMenu)) {
+                position[1] = canvasBody.clientHeight - breadCrumb.clientHeight - bannerFooter.clientHeight - contextMenu.height() - 9;
             }
 
             // show the context menu
@@ -630,7 +778,7 @@
          * Hides the context menu.
          */
         hide: function () {
-            $('#context-menu').hide();
+            $('.context-menu').hide();
         },
 
         /**
