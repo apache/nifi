@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.ssl;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -34,20 +46,7 @@ import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
+@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
         + "keystore and/or truststore properties once and reuse that configuration throughout the application")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
@@ -108,10 +107,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
+            .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
             .allowableValues(buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this SSL context")
+            .description("The algorithm to use for this TLS/SSL context")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -178,19 +178,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             // allow expression language
             @Override
             public ValidationResult validate(String subject, String input, ValidationContext context) {
-                final String substituted;
-                try {
-                    substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(false)
-                            .explanation("Not a valid Expression Language value: " + e.getMessage())
-                            .build();
-                }
-
-                final File file = new File(substituted);
+                final File file = new File(input);
                 final boolean valid = file.exists() && file.canRead();
                 final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
                 return new ValidationResult.Builder()
