@@ -30,6 +30,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String name;
     private String comments;
     private Map<String, String> variables;
+    private VersionControlInformationDTO versionControlInfo;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -203,7 +204,6 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-
     @ApiModelProperty(value = "The variables that are configured for the Process Group. Note that this map contains only "
         + "those variables that are defined on this Process Group and not any variables that are defined in the parent "
         + "Process Group, etc. I.e., this Map will not contain all variables that are accessible by components in this "
@@ -214,5 +214,15 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setVariables(final Map<String, String> variables) {
         this.variables = variables;
+    }
+
+    @ApiModelProperty("The Version Control information that indicates which Flow Registry, and where in the Flow Registry, "
+        + "this Process Group is tracking to; or null if this Process Group is not under version control")
+    public VersionControlInformationDTO getVersionControlInformation() {
+        return versionControlInfo;
+    }
+
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlInfo) {
+        this.versionControlInfo = versionControlInfo;
     }
 }

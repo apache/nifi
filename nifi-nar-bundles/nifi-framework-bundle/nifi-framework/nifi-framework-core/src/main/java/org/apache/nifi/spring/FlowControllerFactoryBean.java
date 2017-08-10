@@ -26,6 +26,7 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.BeansException;
@@ -49,6 +50,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ClusterCoordinator clusterCoordinator;
     private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
+    private FlowRegistryClient flowRegistryClient;
 
     @Override
     public Object getObject() throws Exception {
@@ -69,7 +71,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     clusterCoordinator,
                     heartbeatMonitor,
                     leaderElectionManager,
-                    variableRegistry);
+                    variableRegistry,
+                    flowRegistryClient);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -77,7 +80,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     authorizer,
                     auditService,
                     encryptor,
-                    bulletinRepository, variableRegistry);
+                    bulletinRepository,
+                    variableRegistry,
+                    flowRegistryClient);
             }
 
         }
@@ -132,5 +137,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
         this.leaderElectionManager = leaderElectionManager;
+    }
+
+    public void setFlowRegistryClient(final FlowRegistryClient flowRegistryClient) {
+        this.flowRegistryClient = flowRegistryClient;
     }
 }

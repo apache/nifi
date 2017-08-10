@@ -195,8 +195,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         maintenanceExecutor.shutdown();
     }
 
+
     @Override
     public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
+        return replicate(NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
+    }
+
+    @Override
+    public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method, uri.getPath());
 
@@ -237,11 +243,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, method, uri, entity, headers, true, true);
+        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true);
     }
 
-    void updateRequestHeaders(final Map<String, String> headers) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+    void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
         if (user == null) {
             throw new AccessDeniedException("Unknown user");
         }
@@ -279,6 +284,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
+                final boolean indicateReplicated, final boolean performVerification) {
+
+        return replicate(nodeIds, NiFiUserUtils.getNiFiUser(), method, uri, entity, headers, indicateReplicated, performVerification);
+    }
+
+    @Override
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
@@ -288,7 +300,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         // include the proxied entities header
-        updateRequestHeaders(updatedHeaders);
+        updateRequestHeaders(updatedHeaders, user);
 
         if (indicateReplicated) {
             // If we are replicating a request and indicating that it is replicated, then this means that we are
@@ -324,12 +336,19 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
+
     @Override
     public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
+        return forwardToCoordinator(coordinatorNodeId, NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
+    }
+
+    @Override
+    public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final NiFiUser user, final String method,
+                final URI uri, final Object entity, final Map<String, String> headers) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         // include the proxied entities header
-        updateRequestHeaders(updatedHeaders);
+        updateRequestHeaders(updatedHeaders, user);
 
         return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false, false, null);
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.groups;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -39,6 +41,10 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.UnknownResourceException;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 /**
@@ -50,7 +56,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup extends ComponentAuthorizable, Positionable {
+public interface ProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
      * Predicate for filtering schedulable Processors.
@@ -772,6 +778,17 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void move(final Snippet snippet, final ProcessGroup destination);
 
     /**
+     * Updates the Process Group to match the proposed flow
+     *
+     * @param proposedSnapshot the proposed flow
+     * @param componentIdSeed a seed value to use when generating ID's for new components
+     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If this value is <code>true</code>,
+     *            and the Process Group has been modified since it was last synchronized with the Flow Registry, then this method will
+     *            throw an IllegalStateException
+     */
+    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty);
+
+    /**
      * Verifies a template with the specified name can be created.
      *
      * @param name name of the template
@@ -830,6 +847,18 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
      */
     void verifyCanUpdateVariables(Map<String, String> updatedVariables);
+
+    /**
+     * Ensure that the contents of the Process Group can be update to match the given new flow
+     *
+     * @param updatedFlow the updated version of the flow
+     * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
+     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If <code>true</code> and the Process Group has been changed since
+     *            it was last synchronized with the FlowRegistry, then this method will throw an IllegalStateException
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow the update
+     */
+    void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
 
     /**
      * Adds the given template to this Process Group
@@ -894,4 +923,30 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @return a set of all components that are affected by the variable with the given name
      */
     Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName);
+
+    /**
+     * @return the version control information that indicates where this flow is stored in a Flow Registry,
+     *         or <code>null</code> if this Process Group is not under version control.
+     */
+    VersionControlInformation getVersionControlInformation();
+
+    /**
+     * Updates the Version Control Information for this Process Group
+     *
+     * @param versionControlInformation specification of where the flow is tracked in Version Control
+     * @param versionedComponentIds a mapping of component ID's to Versioned Component ID's. This is used to update the components in the
+     *            Process Group so that the components that exist in the Process Group can be associated with the corresponding components in the
+     *            Version Controlled flow
+     */
+    void setVersionControlInformation(VersionControlInformation versionControlInformation, Map<String, String> versionedComponentIds);
+
+    /**
+     * Synchronizes the Process Group with the given Flow Registry, determining whether or not the local flow
+     * is up to date with the newest version of the flow in the Registry and whether or not the local flow has been
+     * modified since it was last synced with the Flow Registry. If this Process Group is not under Version Control,
+     * this method will have no effect.
+     *
+     * @param flowRegistry the Flow Registry to synchronize with
+     */
+    void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry);
 }

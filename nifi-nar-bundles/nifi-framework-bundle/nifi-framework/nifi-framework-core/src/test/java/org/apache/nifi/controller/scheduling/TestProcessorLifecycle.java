@@ -46,6 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -714,7 +715,8 @@ public class TestProcessorLifecycle {
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
-                new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()));
+            new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
+            mock(FlowRegistryClient.class));
 
         return new FlowControllerAndSystemBundle(flowController, systemBundle);
     }

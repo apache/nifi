@@ -85,6 +85,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -113,6 +115,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -1048,6 +1051,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
         final ProcessGroup processGroup = controller.createProcessGroup(processGroupDTO.getId());
         processGroup.setComments(processGroupDTO.getComments());
+        processGroup.setVersionedComponentId(processGroupDTO.getVersionedComponentId());
         processGroup.setPosition(toPosition(processGroupDTO.getPosition()));
         processGroup.setName(processGroupDTO.getName());
         processGroup.setParent(parentGroup);
@@ -1071,6 +1075,20 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
 
         processGroup.setVariables(variables);
+
+        final VersionControlInformationDTO versionControlInfoDto = processGroupDTO.getVersionControlInformation();
+        if (versionControlInfoDto != null) {
+            final String registryId = versionControlInfoDto.getRegistryId();
+            final String bucketId = versionControlInfoDto.getBucketId();
+            final String flowId = versionControlInfoDto.getFlowId();
+            final int version = versionControlInfoDto.getVersion();
+            final boolean modified = false;
+            final boolean current = true;
+
+            final VersionControlInformation versionControlInformation = new StandardVersionControlInformation(registryId, bucketId, flowId, version, null, modified, current);
+            // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components
+            processGroup.setVersionControlInformation(versionControlInformation, Collections.emptyMap());
+        }
 
         // Add Controller Services
         final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
@@ -1097,6 +1115,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), coordinate, false);
+            procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
             processGroup.addProcessor(procNode);
             updateProcessor(procNode, processorDTO, processGroup, controller);
         }
@@ -1113,6 +1132,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 port = controller.createLocalInputPort(portDTO.getId(), portDTO.getName());
             }
 
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1156,6 +1176,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             } else {
                 port = controller.createLocalOutputPort(portDTO.getId(), portDTO.getName());
             }
+
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1193,6 +1215,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element funnelElement : funnelNodeList) {
             final FunnelDTO funnelDTO = FlowFromDOMFactory.getFunnel(funnelElement);
             final Funnel funnel = controller.createFunnel(funnelDTO.getId());
+            funnel.setVersionedComponentId(funnelDTO.getVersionedComponentId());
             funnel.setPosition(toPosition(funnelDTO.getPosition()));
 
             // Since this is called during startup, we want to add the funnel without enabling it
@@ -1207,6 +1230,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element labelElement : labelNodeList) {
             final LabelDTO labelDTO = FlowFromDOMFactory.getLabel(labelElement);
             final Label label = controller.createLabel(labelDTO.getId(), labelDTO.getLabel());
+            label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             label.setStyle(labelDTO.getStyle());
 
             label.setPosition(toPosition(labelDTO.getPosition()));
@@ -1225,6 +1249,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
             final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
             final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUris());
+            remoteGroup.setVersionedComponentId(remoteGroupDto.getVersionedComponentId());
             remoteGroup.setComments(remoteGroupDto.getComments());
             remoteGroup.setPosition(toPosition(remoteGroupDto.getPosition()));
             final String name = remoteGroupDto.getName();
@@ -1332,6 +1357,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             final Connection connection = controller.createConnection(dto.getId(), dto.getName(), source, destination, dto.getSelectedRelationships());
+            connection.setVersionedComponentId(dto.getVersionedComponentId());
             connection.setProcessGroup(processGroup);
 
             final List<Position> bendPoints = new ArrayList<>();

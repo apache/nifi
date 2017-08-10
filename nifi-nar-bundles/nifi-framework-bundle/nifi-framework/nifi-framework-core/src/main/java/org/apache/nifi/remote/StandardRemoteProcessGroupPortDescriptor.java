@@ -22,6 +22,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
 
     private String id;
     private String targetId;
+    private String versionedComponentId;
     private String groupId;
     private String name;
     private String comments;
@@ -184,5 +185,14 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
             return false;
         }
         return name.equals(other.getName());
+    }
+
+    @Override
+    public String getVersionedComponentId() {
+        return versionedComponentId;
+    }
+
+    public void setVersionedComponentId(String versionedId) {
+        this.versionedComponentId = versionedId;
     }
 }

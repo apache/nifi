@@ -763,7 +763,6 @@ public class ProcessGroupResource extends ApplicationResource {
     private void updateVariableRegistryReplicated(final String groupId, final URI originalUri, final Collection<AffectedComponentDTO> affectedProcessors,
                                                   final Collection<AffectedComponentDTO> affectedServices, final VariableRegistryUpdateRequest updateRequest,
                                                   final VariableRegistryEntity requestEntity) throws InterruptedException, IOException {
-
         final Pause pause = createPause(updateRequest);
 
         // stop processors
@@ -805,8 +804,6 @@ public class ProcessGroupResource extends ApplicationResource {
             logger.info("In order to update Variable Registry for Process Group with ID {}, no Processors are affected.", groupId);
             updateRequest.getStartProcessorsStep().setComplete(true);
         }
-
-        updateRequest.setComplete(true);
     }
 
     /**
@@ -1414,6 +1411,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * @param <T> type of class
      * @return the response entity
      */
+    @SuppressWarnings("unchecked")
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {

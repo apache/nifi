@@ -17,6 +17,8 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
@@ -31,6 +33,7 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
             final ProcessGroupEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
+                mergeVersionControlInformation(clientEntity, entityStatus);
             }
         }
     }
@@ -40,5 +43,19 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
                             NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
+    }
+
+    private void mergeVersionControlInformation(ProcessGroupEntity targetGroup, ProcessGroupEntity toMerge) {
+        final ProcessGroupDTO targetGroupDto = targetGroup.getComponent();
+        final ProcessGroupDTO toMergeGroupDto = toMerge.getComponent();
+
+        final VersionControlInformationDTO targetVersionControl = targetGroupDto.getVersionControlInformation();
+        final VersionControlInformationDTO toMergeVersionControl = toMergeGroupDto.getVersionControlInformation();
+
+        if (targetVersionControl == null) {
+            targetGroupDto.setVersionControlInformation(toMergeGroupDto.getVersionControlInformation());
+        } else if (toMergeVersionControl != null) {
+            targetVersionControl.setCurrent(Boolean.TRUE.equals(targetVersionControl.getCurrent()) && Boolean.TRUE.equals(toMergeVersionControl.getCurrent()));
+        }
     }
 }

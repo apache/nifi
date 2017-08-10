@@ -67,6 +67,7 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
 import java.util.List;
@@ -535,6 +536,13 @@ public final class EntityFactory {
                 entity.setBulletin(dto);
             }
         }
+        return entity;
+    }
+
+    public VersionControlInformationEntity createVersionControlInformationEntity(final VersionControlInformationDTO dto, final RevisionDTO processGroupRevision) {
+        final VersionControlInformationEntity entity = new VersionControlInformationEntity();
+        entity.setVersionControlInformation(dto);
+        entity.setProcessGroupRevision(processGroupRevision);
         return entity;
     }
 }
