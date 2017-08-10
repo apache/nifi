@@ -185,7 +185,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
                 final JWSAlgorithm preferredJwsAlgorithm;
                 if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
-                    preferredJwsAlgorithm = oidcProviderMetadata.getIDTokenJWSAlgs().get(0);
+                    preferredJwsAlgorithm = JWSAlgorithm.RS256;
                 } else {
                     if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
                         preferredJwsAlgorithm = null;

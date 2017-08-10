@@ -148,7 +148,8 @@ public class AccessResource extends ApplicationResource {
     @Produces(MediaType.WILDCARD)
     @Path("oidc/request")
     @ApiOperation(
-            value = "Initiates a request to authenticate through the configured OpenId Connect provider."
+            value = "Initiates a request to authenticate through the configured OpenId Connect provider.",
+            notes = NON_GUARANTEED_ENDPOINT
     )
     public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
@@ -194,7 +195,8 @@ public class AccessResource extends ApplicationResource {
     @Produces(MediaType.WILDCARD)
     @Path("oidc/callback")
     @ApiOperation(
-            value = "Redirect/callback URI for processing the result of the OpenId Connect login sequence."
+            value = "Redirect/callback URI for processing the result of the OpenId Connect login sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
     )
     public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
@@ -279,7 +281,8 @@ public class AccessResource extends ApplicationResource {
     @Path("oidc/exchange")
     @ApiOperation(
             value = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
-            response = String.class
+            response = String.class,
+            notes = NON_GUARANTEED_ENDPOINT
     )
     public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
