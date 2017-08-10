@@ -198,6 +198,7 @@ public class ControllerServiceLoader {
         final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
+        node.setVersionedComponentId(dto.getVersionedComponentId());
         return node;
     }
 

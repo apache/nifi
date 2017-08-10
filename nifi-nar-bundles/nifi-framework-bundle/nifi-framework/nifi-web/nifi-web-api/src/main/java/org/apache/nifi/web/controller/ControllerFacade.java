@@ -1599,6 +1599,7 @@ public class ControllerFacade implements Authorizable {
         final List<String> matches = new ArrayList<>();
 
         addIfAppropriate(searchStr, port.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, port.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, port.getName(), "Name", matches);
         addIfAppropriate(searchStr, port.getComments(), "Comments", matches);
 
@@ -1649,6 +1650,7 @@ public class ControllerFacade implements Authorizable {
         final Processor processor = procNode.getProcessor();
 
         addIfAppropriate(searchStr, procNode.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, procNode.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, procNode.getName(), "Name", matches);
         addIfAppropriate(searchStr, procNode.getComments(), "Comments", matches);
 
@@ -1753,6 +1755,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
 
@@ -1783,6 +1786,7 @@ public class ControllerFacade implements Authorizable {
 
         // search id and name
         addIfAppropriate(searchStr, connection.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, connection.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, connection.getName(), "Name", matches);
 
         // search relationships
@@ -1864,6 +1868,7 @@ public class ControllerFacade implements Authorizable {
     private ComponentSearchResultDTO search(final String searchStr, final RemoteProcessGroup group) {
         final List<String> matches = new ArrayList<>();
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
         addIfAppropriate(searchStr, group.getTargetUris(), "URLs", matches);
@@ -1889,6 +1894,7 @@ public class ControllerFacade implements Authorizable {
     private ComponentSearchResultDTO search(final String searchStr, final Funnel funnel) {
         final List<String> matches = new ArrayList<>();
         addIfAppropriate(searchStr, funnel.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, funnel.getVersionedComponentId().orElse(null), "Version Control ID", matches);
 
         if (matches.isEmpty()) {
             return null;

@@ -28,6 +28,7 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class StandardLabel implements Label {
@@ -38,6 +39,7 @@ public class StandardLabel implements Label {
     private final AtomicReference<Map<String, String>> style;
     private final AtomicReference<String> value;
     private final AtomicReference<ProcessGroup> processGroup;
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
 
     public StandardLabel(final String identifier, final String value) {
         this(identifier, new Position(0D, 0D), new HashMap<String, String>(), value, null);
@@ -76,6 +78,7 @@ public class StandardLabel implements Label {
         }
     }
 
+    @Override
     public String getIdentifier() {
         return identifier;
     }
@@ -96,10 +99,12 @@ public class StandardLabel implements Label {
         return ResourceFactory.getComponentResource(ResourceType.Label, getIdentifier(),"Label");
     }
 
+    @Override
     public Map<String, String> getStyle() {
         return style.get();
     }
 
+    @Override
     public void setStyle(final Map<String, String> style) {
         if (style != null) {
             boolean updated = false;
@@ -112,19 +117,46 @@ public class StandardLabel implements Label {
         }
     }
 
+    @Override
     public String getValue() {
         return value.get();
     }
 
+    @Override
     public void setValue(final String value) {
         this.value.set(CharacterFilterUtils.filterInvalidXmlCharacters(value));
     }
 
+    @Override
     public void setProcessGroup(final ProcessGroup group) {
         this.processGroup.set(group);
     }
 
+    @Override
     public ProcessGroup getProcessGroup() {
         return processGroup.get();
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
     }
 }

@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -33,9 +32,14 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
@@ -90,24 +94,30 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public void verifyScheduleComponents(final String groupId, final ScheduledState state,final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        final Set<Connectable> connectables = new HashSet<>(componentIds.size());
         for (final String componentId : componentIds) {
             final Connectable connectable = group.findLocalConnectable(componentId);
             if (connectable == null) {
-                throw new ResourceNotFoundException("Unable to find component with id " + componentId);
+                final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
+                if (remotePort == null) {
+                    throw new ResourceNotFoundException("Unable to find component with id " + componentId);
+                }
+
+                if (ScheduledState.RUNNING.equals(state)) {
+                    remotePort.verifyCanStart();
+                } else {
+                    remotePort.verifyCanStop();
+                }
+
+                continue;
             }
 
-            connectables.add(connectable);
-        }
-
-        // verify as appropriate
-        connectables.forEach(connectable -> {
+            // verify as appropriate
             if (ScheduledState.RUNNING.equals(state)) {
                 group.verifyCanStart(connectable);
             } else {
                 group.verifyCanStop(connectable);
             }
-        });
+        }
     }
 
     @Override
@@ -134,22 +144,46 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         for (final String componentId : componentIds) {
             final Connectable connectable = group.findLocalConnectable(componentId);
             if (ScheduledState.RUNNING.equals(state)) {
-                if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    final CompletableFuture<?> processorFuture = connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
-                    future = CompletableFuture.allOf(future, processorFuture);
-                } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().startInputPort((Port) connectable);
-                } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().startOutputPort((Port) connectable);
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        final CompletableFuture<?> processorFuture = connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
+                        future = CompletableFuture.allOf(future, processorFuture);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().startInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().startOutputPort((Port) connectable);
+                        break;
+                    case REMOTE_INPUT_PORT:
+                        final RemoteGroupPort remoteInputPort = group.findRemoteGroupPort(componentId);
+                        remoteInputPort.getRemoteProcessGroup().startTransmitting(remoteInputPort);
+                        break;
+                    case REMOTE_OUTPUT_PORT:
+                        final RemoteGroupPort remoteOutputPort = group.findRemoteGroupPort(componentId);
+                        remoteOutputPort.getRemoteProcessGroup().startTransmitting(remoteOutputPort);
+                        break;
                 }
             } else {
-                if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
-                    future = CompletableFuture.allOf(future, processorFuture);
-                } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().stopInputPort((Port) connectable);
-                } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().stopOutputPort((Port) connectable);
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
+                        future = CompletableFuture.allOf(future, processorFuture);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().stopInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().stopOutputPort((Port) connectable);
+                        break;
+                    case REMOTE_INPUT_PORT:
+                        final RemoteGroupPort remoteInputPort = group.findRemoteGroupPort(componentId);
+                        remoteInputPort.getRemoteProcessGroup().stopTransmitting(remoteInputPort);
+                        break;
+                    case REMOTE_OUTPUT_PORT:
+                        final RemoteGroupPort remoteOutputPort = group.findRemoteGroupPort(componentId);
+                        remoteOutputPort.getRemoteProcessGroup().stopTransmitting(remoteOutputPort);
+                        break;
                 }
             }
         }
@@ -193,6 +227,41 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setComments(comments);
         }
 
+        return group;
+    }
+
+    @Override
+    public ProcessGroup updateVersionControlInformation(final VersionControlInformationDTO versionControlInformation, final Map<String, String> versionedComponentMapping) {
+        final String groupId = versionControlInformation.getGroupId();
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        final String registryId = versionControlInformation.getRegistryId();
+        final String bucketId = versionControlInformation.getBucketId();
+        final String flowId = versionControlInformation.getFlowId();
+        final int version = versionControlInformation.getVersion();
+
+        final VersionControlInformation vci = new StandardVersionControlInformation(registryId, bucketId, flowId, version, null, false, true);
+        group.setVersionControlInformation(vci, versionedComponentMapping);
+
+        return group;
+    }
+
+    @Override
+    public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
+        final String componentIdSeed, final boolean verifyNotModified) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified);
+
+        final StandardVersionControlInformation svci = new StandardVersionControlInformation(
+            versionControlInformation.getRegistryId(),
+            versionControlInformation.getBucketId(),
+            versionControlInformation.getFlowId(),
+            versionControlInformation.getVersion(),
+            proposedSnapshot.getFlowContents(),
+            versionControlInformation.getModified(),
+            versionControlInformation.getCurrent());
+
+        group.setVersionControlInformation(svci, Collections.emptyMap());
         return group;
     }
 

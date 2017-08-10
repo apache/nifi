@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,6 +72,7 @@ public final class StandardConnection implements Connection {
     private final StandardFlowFileQueue flowFileQueue;
     private final AtomicInteger labelIndex = new AtomicInteger(1);
     private final AtomicLong zIndex = new AtomicLong(0L);
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler scheduler;
     private final int hashCode;
 
@@ -516,6 +518,29 @@ public final class StandardConnection implements Connection {
         if (dest.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(dest.getConnectableType())) {
                 throw new IllegalStateException("Destination of Connection (" + dest.getIdentifier() + ") is running");
+            }
+        }
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
             }
         }
     }

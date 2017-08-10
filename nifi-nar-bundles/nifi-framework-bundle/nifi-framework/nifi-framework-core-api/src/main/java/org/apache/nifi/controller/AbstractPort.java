@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -81,6 +82,7 @@ public abstract class AbstractPort implements Port {
     private final AtomicReference<String> penalizationPeriod;
     private final AtomicReference<String> yieldPeriod;
     private final AtomicReference<String> schedulingPeriod;
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicLong schedulingNanos;
     private final AtomicLong yieldExpiration;
     private final ProcessScheduler processScheduler;
@@ -634,5 +636,28 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void verifyCanClearState() {
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
     }
 }

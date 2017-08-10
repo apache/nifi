@@ -26,6 +26,8 @@ import java.util.Collection;
 public class AffectedComponentDTO {
     public static final String COMPONENT_TYPE_PROCESSOR = "PROCESSOR";
     public static final String COMPONENT_TYPE_CONTROLLER_SERVICE = "CONTROLLER_SERVICE";
+    public static final String COMPONENT_TYPE_REMOTE_INPUT_PORT = "REMOTE_INPUT_PORT";
+    public static final String COMPONENT_TYPE_REMOTE_OUTPUT_PORT = "REMOTE_OUTPUT_PORT";
 
     private String processGroupId;
     private String id;
@@ -54,7 +56,9 @@ public class AffectedComponentDTO {
         this.id = id;
     }
 
-    @ApiModelProperty(value = "The type of this component", allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE)
+    @ApiModelProperty(value = "The type of this component",
+        allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
+            + COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
     public String getReferenceType() {
         return referenceType;
     }
@@ -70,21 +74,6 @@ public class AffectedComponentDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    /**
-     * @return scheduled state of the processor referencing a controller service. If this component is another service, this field represents the controller service state
-     */
-    @ApiModelProperty(
-            value = "The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
-                    + "service, this field represents the controller service state."
-    )
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
     }
 
     /**
@@ -113,5 +102,15 @@ public class AffectedComponentDTO {
 
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
+    }
+
+    @ApiModelProperty("The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
+        + "service, this field represents the controller service state.")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

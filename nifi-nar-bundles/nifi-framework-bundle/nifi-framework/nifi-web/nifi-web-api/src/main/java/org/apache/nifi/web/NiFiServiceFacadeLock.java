@@ -138,6 +138,12 @@ public class NiFiServiceFacadeLock {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* register*(..))")
+    public Object registerLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithReadLock(proceedingJoinPoint);
+    }
+
 
     private Object proceedWithReadLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         final long beforeLock = System.nanoTime();

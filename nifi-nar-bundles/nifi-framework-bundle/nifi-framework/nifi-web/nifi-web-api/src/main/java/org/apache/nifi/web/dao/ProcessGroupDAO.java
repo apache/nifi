@@ -16,14 +16,17 @@
  */
 package org.apache.nifi.web.dao;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 public interface ProcessGroupDAO {
 
@@ -102,6 +105,27 @@ public interface ProcessGroupDAO {
      * @return The process group
      */
     ProcessGroup updateProcessGroup(ProcessGroupDTO processGroup);
+
+    /**
+     * Updates the process group so that it matches the proposed flow
+     *
+     * @param groupId the ID of the process group
+     * @param proposedSnapshot Flow the new version of the flow
+     * @param versionControlInformation the new Version Control Information
+     * @param the seed value to use for generating ID's for new components
+     * @return the process group
+     */
+    ProcessGroup updateProcessGroupFlow(String groupId, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
+        boolean verifyNotModified);
+
+    /**
+     * Applies the given Version Control Information to the Process Group
+     *
+     * @param versionControlInformation the Version Control Information to apply
+     * @param versionedComponentMapping a mapping of Component ID to Versioned Component ID
+     * @return the Process Group
+     */
+    ProcessGroup updateVersionControlInformation(VersionControlInformationDTO versionControlInformation, Map<String, String> versionedComponentMapping);
 
     /**
      * Updates the specified variable registry
