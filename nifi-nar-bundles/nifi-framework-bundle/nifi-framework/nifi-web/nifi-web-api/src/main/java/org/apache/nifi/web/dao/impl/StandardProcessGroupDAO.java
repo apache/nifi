@@ -36,6 +36,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
@@ -72,12 +73,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyUpdate(final ProcessGroupDTO processGroup) {
-        final Map<String, String> variables = processGroup.getVariables();
-        if (variables != null && !variables.isEmpty()) {
-            final String groupId = processGroup.getId();
-            ProcessGroup group = locateProcessGroup(flowController, groupId);
-            group.verifyCanUpdateVariables(variables);
-        }
     }
 
     @Override
@@ -210,6 +205,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final Map<String, String> variableMap = new HashMap<>();
         variableRegistry.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
+            .map(VariableEntity::getVariable)
             .forEach(var -> variableMap.put(var.getName(), var.getValue()));
 
         group.setVariables(variableMap);

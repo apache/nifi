@@ -48,7 +48,7 @@ public class VariableRegistryUpdateRequestDTO {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty("The unique ID of this request.")
+    @ApiModelProperty(value = "The unique ID of this request.", readOnly = true)
     public String getRequestId() {
         return requestId;
     }
@@ -57,7 +57,7 @@ public class VariableRegistryUpdateRequestDTO {
         this.requestId = requestId;
     }
 
-    @ApiModelProperty("The URI for future requests to this drop request.")
+    @ApiModelProperty(value = "The URI for future requests to this drop request.", readOnly = true)
     public String getUri() {
         return uri;
     }
@@ -67,7 +67,7 @@ public class VariableRegistryUpdateRequestDTO {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The time at which this request was submitted.", dataType = "string")
+    @ApiModelProperty(value = "The time at which this request was submitted.", dataType = "string", readOnly = true)
     public Date getSubmissionTime() {
         return submissionTime;
     }
@@ -77,7 +77,7 @@ public class VariableRegistryUpdateRequestDTO {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The last time this request was updated.", dataType = "string")
+    @ApiModelProperty(value = "The last time this request was updated.", dataType = "string", readOnly = true)
     public Date getLastUpdated() {
         return lastUpdated;
     }
@@ -86,7 +86,7 @@ public class VariableRegistryUpdateRequestDTO {
         this.lastUpdated = lastUpdated;
     }
 
-    @ApiModelProperty("The steps that are required in order to complete the request, along with the status of each")
+    @ApiModelProperty(value = "The steps that are required in order to complete the request, along with the status of each", readOnly = true)
     public List<VariableRegistryUpdateStepDTO> getUpdateSteps() {
         return updateSteps;
     }
@@ -95,7 +95,7 @@ public class VariableRegistryUpdateRequestDTO {
         this.updateSteps = updateSteps;
     }
 
-    @ApiModelProperty("Whether or not this request has completed")
+    @ApiModelProperty(value = "Whether or not this request has completed", readOnly = true)
     public boolean isComplete() {
         return complete;
     }
@@ -104,7 +104,7 @@ public class VariableRegistryUpdateRequestDTO {
         this.complete = complete;
     }
 
-    @ApiModelProperty("An explanation of why this request failed, or null if this request has not failed")
+    @ApiModelProperty(value = "An explanation of why this request failed, or null if this request has not failed", readOnly = true)
     public String getFailureReason() {
         return failureReason;
     }

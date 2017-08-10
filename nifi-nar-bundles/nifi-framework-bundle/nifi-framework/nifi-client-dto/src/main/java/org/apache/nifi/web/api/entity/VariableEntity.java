@@ -19,31 +19,33 @@ package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.VariableRegistryUpdateRequestDTO;
+import org.apache.nifi.web.api.dto.VariableDTO;
+import org.apache.nifi.web.api.dto.WritablePermission;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
-@XmlRootElement(name = "variableRegistryUpdateRequestEntity")
-public class VariableRegistryUpdateRequestEntity extends Entity {
-    private VariableRegistryUpdateRequestDTO requestDto;
-    private RevisionDTO processGroupRevision;
+@XmlRootElement(name = "variableEntity")
+public class VariableEntity extends Entity implements WritablePermission {
+    private VariableDTO variable;
+    private Boolean canWrite;
 
-    @ApiModelProperty("The revision for the Process Group that owns this variable registry.")
-    public RevisionDTO getProcessGroupRevision() {
-        return processGroupRevision;
+    @Override
+    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", readOnly = true)
+    public Boolean getCanWrite() {
+        return canWrite;
     }
 
-    public void setProcessGroupRevision(RevisionDTO revision) {
-        this.processGroupRevision = revision;
+    @Override
+    public void setCanWrite(Boolean canWrite) {
+        this.canWrite = canWrite;
     }
 
-    @ApiModelProperty("The Variable Registry Update Request")
-    public VariableRegistryUpdateRequestDTO getRequestDto() {
-        return requestDto;
+    @ApiModelProperty("The variable information")
+    public VariableDTO getVariable() {
+        return variable;
     }
 
-    public void setRequestDto(VariableRegistryUpdateRequestDTO requestDto) {
-        this.requestDto = requestDto;
+    public void setVariable(VariableDTO variable) {
+        this.variable = variable;
     }
 }

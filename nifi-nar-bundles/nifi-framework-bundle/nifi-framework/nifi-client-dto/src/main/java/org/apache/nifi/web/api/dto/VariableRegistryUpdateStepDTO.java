@@ -30,7 +30,7 @@ public class VariableRegistryUpdateStepDTO {
     public VariableRegistryUpdateStepDTO() {
     }
 
-    @ApiModelProperty("Explanation of what happens in this step")
+    @ApiModelProperty(value = "Explanation of what happens in this step", readOnly = true)
     public String getDescription() {
         return description;
     }
@@ -39,7 +39,7 @@ public class VariableRegistryUpdateStepDTO {
         this.description = description;
     }
 
-    @ApiModelProperty("Whether or not this step has completed")
+    @ApiModelProperty(value = "Whether or not this step has completed", readOnly = true)
     public boolean isComplete() {
         return complete;
     }
@@ -48,7 +48,7 @@ public class VariableRegistryUpdateStepDTO {
         this.complete = complete;
     }
 
-    @ApiModelProperty("An explanation of why this step failed, or null if this step did not fail")
+    @ApiModelProperty(value = "An explanation of why this step failed, or null if this step did not fail", readOnly = true)
     public String getFailureReason() {
         return failureReason;
     }

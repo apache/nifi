@@ -28,8 +28,8 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 public class VariableDTO {
     private String name;
     private String value;
+    private String processGroupId;
     private Set<AffectedComponentDTO> affectedComponents = new HashSet<>();
-    private boolean canUpdate;
 
     @ApiModelProperty("The name of the variable")
     public String getName() {
@@ -49,21 +49,21 @@ public class VariableDTO {
         this.value = value;
     }
 
-    @ApiModelProperty("A set of all components that will be affected if the value of this variable is changed")
+    @ApiModelProperty(value = "The ID of the Process Group where this Variable is defined", readOnly = true)
+    public String getProcessGroupId() {
+        return processGroupId;
+    }
+
+    public void setProcessGroupId(String groupId) {
+        this.processGroupId = groupId;
+    }
+
+    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", readOnly = true)
     public Set<AffectedComponentDTO> getAffectedComponents() {
         return affectedComponents;
     }
 
     public void setAffectedComponents(Set<AffectedComponentDTO> affectedComponents) {
         this.affectedComponents = affectedComponents;
-    }
-
-    @ApiModelProperty("Whether or not the user making the request has appropriate permissions to update this variable")
-    public boolean getCanUpdate() {
-        return canUpdate;
-    }
-
-    public void setCanUpdate(boolean canUpdate) {
-        this.canUpdate = canUpdate;
     }
 }

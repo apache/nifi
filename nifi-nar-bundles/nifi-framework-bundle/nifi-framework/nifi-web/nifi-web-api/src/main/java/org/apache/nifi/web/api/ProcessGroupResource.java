@@ -65,7 +65,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
@@ -184,8 +183,8 @@ public class ProcessGroupResource extends ApplicationResource {
     private ConnectionResource connectionResource;
     private TemplateResource templateResource;
     private ControllerServiceResource controllerServiceResource;
+    private DtoFactory dtoFactory;
 
-    private final DtoFactory dtoFactory = new DtoFactory();
     private final ConcurrentMap<String, VariableRegistryUpdateRequest> varRegistryUpdateRequests = new ConcurrentHashMap<>();
     private static final int MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS = 100;
     private static final long VARIABLE_REGISTRY_UPDATE_REQUEST_EXPIRATION = TimeUnit.MINUTES.toMillis(1L);
@@ -224,19 +223,6 @@ public class ProcessGroupResource extends ApplicationResource {
         processGroupEntity.setUri(generateResourceUri("process-groups", processGroupEntity.getId()));
         return processGroupEntity;
     }
-
-    /**
-     * Populates the remaining fields in the specified variable registry.
-     *
-     * @param variableRegistry variable registry
-     * @return variable registry entity
-     */
-    public VariableRegistryEntity populateRemainingVariableRegistryEntityContent(VariableRegistryEntity variableRegistry) {
-        variableRegistry.setUri(generateResourceUri("process-groups", variableRegistry.getId(), "variable-registry"));
-        return variableRegistry;
-    }
-
-
 
 
     /**
@@ -324,9 +310,12 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry")
-    @ApiOperation(value = "Gets a process group's variable registry", response = VariableRegistryEntity.class, authorizations = {
-        @Authorization(value = "Read - /process-groups/{uuid}", type = "")
-    })
+    @ApiOperation(value = "Gets a process group's variable registry",
+        response = VariableRegistryEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+        })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -335,7 +324,8 @@ public class ProcessGroupResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response getVariableRegistry(
-        @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+        @ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
+        @ApiParam(value = "Whether or not to include ancestor groups", required = false) @QueryParam("includeAncestorGroups") @DefaultValue("true") final boolean includeAncestorGroups) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -348,9 +338,7 @@ public class ProcessGroupResource extends ApplicationResource {
         });
 
         // get this process group's variable registry
-        final VariableRegistryEntity entity = serviceFacade.getVariableRegistry(groupId);
-        populateRemainingVariableRegistryEntityContent(entity);
-
+        final VariableRegistryEntity entity = serviceFacade.getVariableRegistry(groupId, includeAncestorGroups);
         return generateOkResponse(entity).build();
     }
 
@@ -446,9 +434,12 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{groupId}/variable-registry/update-requests/{updateId}")
-    @ApiOperation(value = "Gets a process group's variable registry", response = VariableRegistryUpdateRequestEntity.class, authorizations = {
-        @Authorization(value = "Read - /process-groups/{uuid}", type = "")
-    })
+    @ApiOperation(value = "Gets a process group's variable registry",
+        response = VariableRegistryUpdateRequestEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+        })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -484,9 +475,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final VariableRegistryUpdateRequestEntity entity = new VariableRegistryUpdateRequestEntity();
-        entity.setId(request.getRequestId());
         entity.setRequestDto(dtoFactory.createVariableRegistryUpdateRequestDto(request));
-        entity.setUri(generateResourceUri("process-groups", groupId, "variable-registry", updateId));
+        entity.getRequestDto().setUri(generateResourceUri("process-groups", groupId, "variable-registry", updateId));
         return generateOkResponse(entity).build();
     }
 
@@ -496,9 +486,11 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{groupId}/variable-registry/update-requests/{updateId}")
     @ApiOperation(value = "Deletes an update request for a process group's variable registry. If the request is not yet complete, it will automatically be cancelled.",
-        response = VariableRegistryUpdateRequestEntity.class, authorizations = {
+        response = VariableRegistryUpdateRequestEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = {
             @Authorization(value = "Read - /process-groups/{uuid}", type = "")
-    })
+        })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -522,6 +514,7 @@ public class ProcessGroupResource extends ApplicationResource {
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         final VariableRegistryUpdateRequest request = varRegistryUpdateRequests.remove(updateId);
@@ -536,9 +529,8 @@ public class ProcessGroupResource extends ApplicationResource {
         request.cancel();
 
         final VariableRegistryUpdateRequestEntity entity = new VariableRegistryUpdateRequestEntity();
-        entity.setId(request.getRequestId());
         entity.setRequestDto(dtoFactory.createVariableRegistryUpdateRequestDto(request));
-        entity.setUri(generateResourceUri("process-groups", groupId, "variable-registry", updateId));
+        entity.getRequestDto().setUri(generateResourceUri("process-groups", groupId, "variable-registry", updateId));
         return generateOkResponse(entity).build();
     }
 
@@ -547,7 +539,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry")
-    @ApiOperation(value = "Updates the contents of a Process Group's variable Registry", response = VariableRegistryEntity.class, authorizations = {
+    @ApiOperation(value = "Updates the contents of a Process Group's variable Registry", response = VariableRegistryEntity.class, notes = NON_GUARANTEED_ENDPOINT, authorizations = {
         @Authorization(value = "Write - /process-groups/{uuid}", type = "")
     })
     @ApiResponses(value = {
@@ -566,8 +558,8 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Variable Registry details must be specified.");
         }
 
-        if (requestEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
+        if (requestEntity.getProcessGroupRevision() == null) {
+            throw new IllegalArgumentException("Process Group Revision must be specified.");
         }
 
         // ensure the same id is being used
@@ -582,7 +574,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(requestEntity, groupId);
+        final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(
             serviceFacade,
             requestEntity,
@@ -595,8 +587,6 @@ public class ProcessGroupResource extends ApplicationResource {
             (revision, processGroupEntity) -> {
                 // update the process group
                 final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(revision, registryDto);
-                populateRemainingVariableRegistryEntityContent(entity);
-
                 return generateOkResponse(entity).build();
             });
     }
@@ -614,9 +604,12 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/variable-registry/update-requests")
-    @ApiOperation(value = "Submits a request to update a process group's variable registry", response = VariableRegistryUpdateRequestEntity.class, authorizations = {
-        @Authorization(value = "Write - /process-groups/{uuid}", type = "")
-    })
+    @ApiOperation(value = "Submits a request to update a process group's variable registry",
+        response = VariableRegistryUpdateRequestEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = {
+            @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+        })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -633,8 +626,8 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Variable Registry details must be specified.");
         }
 
-        if (requestEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
+        if (requestEntity.getProcessGroupRevision() == null) {
+            throw new IllegalArgumentException("Process Group Revision must be specified.");
         }
 
         // In order to update variables in a variable registry, we have to perform the following steps:
@@ -654,7 +647,7 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
 
-        final Set<AffectedComponentDTO> affectedComponents = serviceFacade.identifyComponentsAffectedByVariableRegistryUpdate(requestEntity.getVariableRegistry());
+        final Set<AffectedComponentDTO> affectedComponents = serviceFacade.getComponentsAffectedByVariableRegistryUpdate(requestEntity.getVariableRegistry());
 
         final Map<String, List<AffectedComponentDTO>> affectedComponentsByType = affectedComponents.stream()
             .collect(Collectors.groupingBy(comp -> comp.getComponentType()));
@@ -690,7 +683,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
 
-        final Revision requestRevision = getRevision(requestEntity.getRevision(), requestEntity.getId());
+        final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(
             serviceFacade,
             requestEntity,
@@ -706,26 +699,16 @@ public class ProcessGroupResource extends ApplicationResource {
                 if (affectedProcessors != null) {
                     for (final AffectedComponentDTO affectedComponent : affectedProcessors) {
                         final Authorizable authorizable = lookup.getProcessor(affectedComponent.getComponentId()).getAuthorizable();
-
-                        if (!authorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
-                            throw new AccessDeniedException("User does not have Read permissions to Processor with ID " + affectedComponent.getComponentId());
-                        }
-                        if (!authorizable.isAuthorized(authorizer, RequestAction.WRITE, user)) {
-                            throw new AccessDeniedException("User does not have Write permissions to Processor with ID " + affectedComponent.getComponentId());
-                        }
+                        authorizable.authorize(authorizer, RequestAction.READ, user);
+                        authorizable.authorize(authorizer, RequestAction.WRITE, user);
                     }
                 }
 
                 if (affectedServices != null) {
                     for (final AffectedComponentDTO affectedComponent : affectedServices) {
                         final Authorizable authorizable = lookup.getControllerService(affectedComponent.getComponentId()).getAuthorizable();
-
-                        if (!authorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
-                            throw new AccessDeniedException("User does not have Read permissions to Controller Service with ID " + affectedComponent.getComponentId());
-                        }
-                        if (!authorizable.isAuthorized(authorizer, RequestAction.WRITE, user)) {
-                            throw new AccessDeniedException("User does not have Write permissions to Controller Service with ID " + affectedComponent.getComponentId());
-                        }
+                        authorizable.authorize(authorizer, RequestAction.READ, user);
+                        authorizable.authorize(authorizer, RequestAction.WRITE, user);
                     }
                 }
             },
@@ -1046,7 +1029,7 @@ public class ProcessGroupResource extends ApplicationResource {
         updateRequest.getIdentifyRelevantComponentsStep().setComplete(true);
         final Pause pause = createPause(updateRequest);
 
-        final Revision requestRevision = getRevision(requestEntity.getRevision(), requestEntity.getId());
+        final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Runnable updateTask = new Runnable() {
@@ -3394,5 +3377,9 @@ public class ProcessGroupResource extends ApplicationResource {
 
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
+    }
+
+    public void setDtoFactory(DtoFactory dtoFactory) {
+        this.dtoFactory = dtoFactory;
     }
 }

@@ -434,10 +434,8 @@ public final class EntityFactory {
 
     public VariableRegistryEntity createVariableRegistryEntity(final VariableRegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final VariableRegistryEntity entity = new VariableRegistryEntity();
-        entity.setRevision(revision);
+        entity.setProcessGroupRevision(revision);
         if (dto != null) {
-            entity.setPermissions(permissions);
-            entity.setId(dto.getProcessGroupId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setVariableRegistry(dto);
             }

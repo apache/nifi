@@ -21,19 +21,21 @@ import java.util.Set;
 
 import javax.xml.bind.annotation.XmlType;
 
+import org.apache.nifi.web.api.entity.VariableEntity;
+
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 @XmlType(name = "variableRegistry")
 public class VariableRegistryDTO {
-    private Set<VariableDTO> variables;
+    private Set<VariableEntity> variables;
     private String groupId;
 
-    public void setVariables(final Set<VariableDTO> variables) {
+    public void setVariables(final Set<VariableEntity> variables) {
         this.variables = variables;
     }
 
     @ApiModelProperty("The variables that are available in this Variable Registry")
-    public Set<VariableDTO> getVariables() {
+    public Set<VariableEntity> getVariables() {
         return variables;
     }
 

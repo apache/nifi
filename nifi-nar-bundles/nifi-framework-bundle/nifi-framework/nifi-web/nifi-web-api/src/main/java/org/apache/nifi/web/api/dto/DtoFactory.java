@@ -192,6 +192,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
@@ -2028,6 +2029,10 @@ public final class DtoFactory {
         dto.setComments(group.getComments());
         dto.setName(group.getName());
 
+        final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
+            .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> entry.getValue()));
+        group.setVariables(variables);
+
         final ProcessGroup parentGroup = group.getParent();
         if (parentGroup != null) {
             dto.setParentGroupId(parentGroup.getIdentifier());
@@ -2117,36 +2122,40 @@ public final class DtoFactory {
             .map(descriptor -> descriptor.getName())
             .collect(Collectors.toList());
 
-        final Set<VariableDTO> variableDtos = new LinkedHashSet<>();
+        final Set<VariableEntity> variableEntities = new LinkedHashSet<>();
 
         for (final String variableName : variableNames) {
             final VariableDTO variableDto = new VariableDTO();
             variableDto.setName(variableName);
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
+            variableDto.setProcessGroupId(processGroup.getIdentifier());
 
             final Set<ConfiguredComponent> affectedComponents = processGroup.getComponentsAffectedByVariable(variableName);
             final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
                 .map(component -> createAffectedComponentDto(component))
                 .collect(Collectors.toSet());
 
-            boolean canUpdate = true;
+            boolean canWrite = true;
             for (final ConfiguredComponent component : affectedComponents) {
                 final PermissionsDTO permissions = createPermissionsDto(component);
                 if (!permissions.getCanRead() || !permissions.getCanWrite()) {
-                    canUpdate = false;
+                    canWrite = false;
                     break;
                 }
             }
 
-            variableDto.setCanUpdate(canUpdate);
             variableDto.setAffectedComponents(affectedComponentDtos);
 
-            variableDtos.add(variableDto);
+            final VariableEntity variableEntity = new VariableEntity();
+            variableEntity.setVariable(variableDto);
+            variableEntity.setCanWrite(canWrite);
+
+            variableEntities.add(variableEntity);
         }
 
         final VariableRegistryDTO registryDto = new VariableRegistryDTO();
         registryDto.setProcessGroupId(processGroup.getIdentifier());
-        registryDto.setVariables(variableDtos);
+        registryDto.setVariables(variableEntities);
 
         return registryDto;
     }
@@ -2181,40 +2190,47 @@ public final class DtoFactory {
     }
 
 
-    public VariableRegistryDTO populatedAffectedComponents(final VariableRegistryDTO variableRegistry, final ProcessGroup group) {
+    public VariableRegistryDTO populateAffectedComponents(final VariableRegistryDTO variableRegistry, final ProcessGroup group) {
         if (!group.getIdentifier().equals(variableRegistry.getProcessGroupId())) {
             throw new IllegalArgumentException("Variable Registry does not have the same Group ID as the given Process Group");
         }
 
-        final Set<VariableDTO> variableDtos = new LinkedHashSet<>();
+        final Set<VariableEntity> variableEntities = new LinkedHashSet<>();
 
-        for (final VariableDTO inputDto : variableRegistry.getVariables()) {
+        for (final VariableEntity inputEntity : variableRegistry.getVariables()) {
+            final VariableEntity entity = new VariableEntity();
+
+            final VariableDTO inputDto = inputEntity.getVariable();
             final VariableDTO variableDto = new VariableDTO();
             variableDto.setName(inputDto.getName());
             variableDto.setValue(inputDto.getValue());
+            variableDto.setProcessGroupId(group.getIdentifier());
 
             final Set<ConfiguredComponent> affectedComponents = group.getComponentsAffectedByVariable(variableDto.getName());
             final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
                 .map(component -> createAffectedComponentDto(component))
                 .collect(Collectors.toSet());
 
-            boolean canUpdate = true;
+            boolean canWrite = true;
             for (final ConfiguredComponent component : affectedComponents) {
                 final PermissionsDTO permissions = createPermissionsDto(component);
                 if (!permissions.getCanRead() || !permissions.getCanWrite()) {
-                    canUpdate = false;
+                    canWrite = false;
                     break;
                 }
             }
 
-            variableDto.setCanUpdate(canUpdate);
             variableDto.setAffectedComponents(affectedComponentDtos);
-            variableDtos.add(variableDto);
+
+            entity.setCanWrite(canWrite);
+            entity.setVariable(inputDto);
+
+            variableEntities.add(entity);
         }
 
         final VariableRegistryDTO registryDto = new VariableRegistryDTO();
         registryDto.setProcessGroupId(group.getIdentifier());
-        registryDto.setVariables(variableDtos);
+        registryDto.setVariables(variableEntities);
 
         return registryDto;
     }

@@ -684,12 +684,12 @@ public class FlowResource extends ApplicationResource {
 
         final ControllerServiceState state;
         if (requestEntity.getState() == null) {
-            throw new IllegalArgumentException("The scheduled state must be specified.");
+            throw new IllegalArgumentException("The controller service state must be specified.");
         } else {
             try {
                 state = ControllerServiceState.valueOf(requestEntity.getState());
             } catch (final IllegalArgumentException iae) {
-                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                throw new IllegalArgumentException(String.format("The controller service state must be one of [%s].",
                     StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
             }
         }
@@ -715,6 +715,7 @@ public class FlowResource extends ApplicationResource {
 
                 group.findAllControllerServices().stream()
                     .filter(filter)
+                    .filter(service -> service.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                     .forEach(service -> componentIds.add(service.getIdentifier()));
                 return componentIds;
             });

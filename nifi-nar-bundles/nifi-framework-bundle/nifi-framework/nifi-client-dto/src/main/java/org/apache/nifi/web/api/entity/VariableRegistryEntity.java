@@ -19,13 +19,16 @@ package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 @XmlRootElement(name = "variableRegistryEntity")
-public class VariableRegistryEntity extends ComponentEntity {
+public class VariableRegistryEntity extends Entity {
+    private RevisionDTO groupRevision;
     private VariableRegistryDTO variableRegistry;
+
 
     @ApiModelProperty("The Variable Registry.")
     public VariableRegistryDTO getVariableRegistry() {
@@ -34,5 +37,14 @@ public class VariableRegistryEntity extends ComponentEntity {
 
     public void setVariableRegistry(VariableRegistryDTO variableRegistry) {
         this.variableRegistry = variableRegistry;
+    }
+
+    @ApiModelProperty("The revision of the Process Group that the Variable Registry belongs to")
+    public RevisionDTO getProcessGroupRevision() {
+        return groupRevision;
+    }
+
+    public void setProcessGroupRevision(RevisionDTO revision) {
+        this.groupRevision = revision;
     }
 }

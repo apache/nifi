@@ -218,6 +218,7 @@ import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
@@ -791,7 +792,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<AffectedComponentDTO> identifyComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
+    public Set<AffectedComponentDTO> getComponentsAffectedByVariableRegistryUpdate(final VariableRegistryDTO variableRegistryDto) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
         if (group == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistryDto.getProcessGroupId());
@@ -799,6 +800,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Map<String, String> variableMap = new HashMap<>();
         variableRegistryDto.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
+            .map(VariableEntity::getVariable)
             .forEach(var -> variableMap.put(var.getName(), var.getValue()));
 
         final Set<AffectedComponentDTO> affectedComponentDtos = new HashSet<>();
@@ -3221,19 +3223,34 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VariableRegistryEntity getVariableRegistry(final String groupId) {
+    public VariableRegistryEntity getVariableRegistry(final String groupId, final boolean includeAncestorGroups) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find group with ID " + groupId);
         }
 
-        return createVariableRegistryEntity(processGroup);
+        return createVariableRegistryEntity(processGroup, includeAncestorGroups);
     }
 
-    private VariableRegistryEntity createVariableRegistryEntity(final ProcessGroup processGroup) {
+    private VariableRegistryEntity createVariableRegistryEntity(final ProcessGroup processGroup, final boolean includeAncestorGroups) {
         final VariableRegistryDTO registryDto = dtoFactory.createVariableRegistryDto(processGroup);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
+
+        if (includeAncestorGroups) {
+            ProcessGroup parent = processGroup.getParent();
+            while (parent != null) {
+                final PermissionsDTO parentPerms = dtoFactory.createPermissionsDto(processGroup);
+                if (Boolean.TRUE.equals(parentPerms.getCanRead())) {
+                    final VariableRegistryDTO parentRegistryDto = dtoFactory.createVariableRegistryDto(parent);
+                    final Set<VariableEntity> parentVariables = parentRegistryDto.getVariables();
+                    registryDto.getVariables().addAll(parentVariables);
+                }
+
+                parent = parent.getParent();
+            }
+        }
+
         return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);
     }
 
@@ -3245,7 +3262,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException("Could not find group with ID " + groupId);
         }
 
-        final VariableRegistryDTO registryDto = dtoFactory.populatedAffectedComponents(variableRegistryDto, processGroup);
+        final VariableRegistryDTO registryDto = dtoFactory.populateAffectedComponents(variableRegistryDto, processGroup);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
         return entityFactory.createVariableRegistryEntity(registryDto, revision, permissions);

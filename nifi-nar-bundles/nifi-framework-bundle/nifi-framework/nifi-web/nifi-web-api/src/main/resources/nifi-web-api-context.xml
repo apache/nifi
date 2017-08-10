@@ -284,6 +284,7 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
         <property name="flowController" ref="flowController" />
+        <property name="dtoFactory" ref="dtoFactory" />
     </bean>
     <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

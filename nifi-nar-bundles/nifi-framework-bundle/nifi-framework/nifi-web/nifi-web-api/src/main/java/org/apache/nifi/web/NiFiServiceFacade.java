@@ -894,9 +894,10 @@ public interface NiFiServiceFacade {
      * Returns the Variable Registry for the Process Group with the given ID
      *
      * @param groupId the ID of the Process Group
+     * @param includeAncestorGroups whether or not to include the variables that are defined in the the process group's parent group & its parent group, etc.
      * @return the Variable Registry transfer object
      */
-    VariableRegistryEntity getVariableRegistry(String groupId);
+    VariableRegistryEntity getVariableRegistry(String groupId, boolean includeAncestorGroups);
 
     /**
      * Returns a Variable Registry that includes the variables in the given DTO but has the affected components populated
@@ -929,7 +930,7 @@ public interface NiFiServiceFacade {
      * @param variableRegistryDto the variable registry
      * @return the components that will be affected
      */
-    Set<AffectedComponentDTO> identifyComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+    Set<AffectedComponentDTO> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
 
     /**
      * Gets all process groups in the specified parent group.

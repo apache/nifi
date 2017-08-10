@@ -205,7 +205,10 @@ public class ProcessGroupDTO extends ComponentDTO {
     }
 
 
-    @ApiModelProperty("The variables that are configured for the Process Group")
+    @ApiModelProperty(value = "The variables that are configured for the Process Group. Note that this map contains only "
+        + "those variables that are defined on this Process Group and not any variables that are defined in the parent "
+        + "Process Group, etc. I.e., this Map will not contain all variables that are accessible by components in this "
+        + "Process Group by rather only the variables that are defined for this Process Group itself.", readOnly = true)
     public Map<String, String> getVariables() {
         return variables;
     }
