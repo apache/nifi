@@ -66,7 +66,8 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .build();
 
     protected static final PropertyDescriptor TIMESTAMP_FIELD_NAME = new PropertyDescriptor.Builder()
-            .name("Timestamp Field Name")
+            .name("timestamp-field-name")
+            .displayName("Timestamp Field Name")
             .description("Specifies the name of a record field whose value should be used as the timestamp for the cells in HBase. " +
                     "The value of this field must be a number, string, or date that can be converted to a long. " +
                     "If this field is left blank, HBase will use the current time.")
@@ -333,22 +334,22 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
         final byte[] fam  = clientService.toBytes(columnFamily);
 
-        final Long timestamp;
-        if (!StringUtils.isBlank(timestampFieldName)) {
-            try {
-                timestamp = record.getAsLong(timestampFieldName);
-            } catch (IllegalTypeConversionException e) {
-                throw new PutCreationFailedInvokedException("Could not convert " + timestampFieldName + " to a long", e);
-            }
-
-            if (timestamp == null) {
-                getLogger().warn("The value of timestamp field " + timestampFieldName + " was null, record will be inserted with latest timestamp");
-            }
-        } else {
-            timestamp = null;
-        }
-
         if (record != null) {
+            final Long timestamp;
+            if (!StringUtils.isBlank(timestampFieldName)) {
+                try {
+                    timestamp = record.getAsLong(timestampFieldName);
+                } catch (IllegalTypeConversionException e) {
+                    throw new PutCreationFailedInvokedException("Could not convert " + timestampFieldName + " to a long", e);
+                }
+
+                if (timestamp == null) {
+                    getLogger().warn("The value of timestamp field " + timestampFieldName + " was null, record will be inserted with latest timestamp");
+                }
+            } else {
+                timestamp = null;
+            }
+
             List<PutColumn> columns = new ArrayList<>();
             for (String name : schema.getFieldNames()) {
                 if (name.equals(rowFieldName) || name.equals(timestampFieldName)) {

@@ -99,7 +99,8 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
-            .name("Timestamp")
+            .name("timestamp")
+            .displayName("Timestamp")
             .description("The timestamp for the cells being created in HBase. This field can be left blank and HBase will use the current time.")
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
