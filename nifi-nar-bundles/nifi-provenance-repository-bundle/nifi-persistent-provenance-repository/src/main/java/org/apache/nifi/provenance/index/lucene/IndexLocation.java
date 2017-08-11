@@ -38,6 +38,15 @@ public class IndexLocation {
         return indexStartTimestamp;
     }
 
+    public long getIndexEndTimestamp() {
+        final long lastMod = indexDirectory.lastModified();
+        if (lastMod == 0) {
+            return System.currentTimeMillis();
+        }
+
+        return lastMod;
+    }
+
     public String getPartitionName() {
         return partitionName;
     }
