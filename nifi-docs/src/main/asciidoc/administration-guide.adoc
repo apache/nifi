@@ -2799,7 +2799,7 @@ Providing three total locations, including `nifi.provenance.repository.directory
 |nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is `30 secs`.
 |nifi.provenance.repository.rollover.size|The amount of information to roll over at a time. The default value is `100 MB`.
 |nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is `2`.
-|nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `1`.
+|nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
 	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
 	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
 	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
@@ -2844,7 +2844,7 @@ Providing three total locations, including `nifi.provenance.repository.directory
 |nifi.provenance.repository.rollover.size|The amount of data to write to a single "event file." The default value is `100 MB`. For production
 	environments where a very large amount of Data Provenance is generated, a value of 1 GB is also very reasonable.
 |nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is `2`.
-|nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `1`.
+|nifi.provenance.repository.index.threads|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
 	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
 	value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
 	It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
