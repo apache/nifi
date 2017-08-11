@@ -37,24 +37,15 @@ import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
-import javax.crypto.spec.SecretKeySpec
 import java.security.Security
 
 @RunWith(JUnit4.class)
 class FlowFromDOMFactoryTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactoryTest.class)
 
-    private static final String KEY_128_HEX = "0123456789ABCDEFFEDCBA9876543210"
-    private static final String KEY_256_HEX = KEY_128_HEX * 2
-    private static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_256_HEX : KEY_128_HEX
-
-    private static final SecretKey DEFAULT_KEY = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
     private static final String DEFAULT_PASSWORD = "nififtw!"
     private static final byte[] DEFAULT_SALT = new byte[8]
     private static final int DEFAULT_ITERATION_COUNT = 0
-
-    private static final Base64.Encoder encoder = Base64.encoder
-    private static final Base64.Decoder decoder = Base64.decoder
 
     private static final String ALGO = NiFiProperties.NF_SENSITIVE_PROPS_ALGORITHM
     private static final String PROVIDER = NiFiProperties.NF_SENSITIVE_PROPS_PROVIDER
@@ -79,10 +70,6 @@ class FlowFromDOMFactoryTest extends GroovyTestCase {
 
     }
 
-    private static boolean isUnlimitedStrengthCryptoAvailable() {
-        Cipher.getMaxAllowedKeyLength("AES") > 128
-    }
-
     @Test
     void testShouldDecryptSensitiveFlowValue() throws Exception {
         // Arrange
@@ -90,30 +77,17 @@ class FlowFromDOMFactoryTest extends GroovyTestCase {
 
         // Encrypt the value
 
+        // Hard-coded 0x00 * 16
         byte[] salt = new byte[16]
         Cipher cipher = generateCipher(true, DEFAULT_PASSWORD, salt)
 
         byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
-//        String cipherTextBase64 = encoder.encodeToString(cipherBytes)
         byte[] saltAndCipherBytes = CryptoUtils.concatByteArrays(salt, cipherBytes)
         String cipherTextHex = Hex.encodeHexString(saltAndCipherBytes)
         String wrappedCipherText = "enc{${cipherTextHex}}"
         logger.info("Cipher text: ${wrappedCipherText}")
 
         final Map MOCK_PROPERTIES = [(ALGO): EncryptionMethod.MD5_128AES.algorithm, (PROVIDER): EncryptionMethod.MD5_128AES.provider, (KEY): DEFAULT_PASSWORD]
-
-//        StringEncryptor mockEncryptor = [decrypt: { String ct ->
-//            logger.mock("Decrypting ${ct}")
-//            // Instantiate with the IV from the encryption process (not passed with cipher text)
-//            Cipher c = cipherProvider.getCipher(EncryptionMethod.AES_GCM, DEFAULT_KEY, iv, false)
-//            byte[] plainBytes = c.doFinal(decoder.decode(ct))
-//            new String(plainBytes, "UTF-8")
-//        }] as StringEncryptor
-
-//        NiFiProperties mockProperties = [getProperty: {String key ->
-//            logger.mock("Getting ${key} from nifi.properties")
-//            MOCK_PROPERTIES[key]
-//        }] as StandardNiFiProperties
         NiFiProperties mockProperties = new StandardNiFiProperties(new Properties(MOCK_PROPERTIES))
         StringEncryptor flowEncryptor = StringEncryptor.createEncryptor(mockProperties)
 
