@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.serialization
 
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.encrypt.EncryptionException
 import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
@@ -39,8 +40,10 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
 
+import static groovy.test.GroovyAssert.shouldFail
+
 @RunWith(JUnit4.class)
-class FlowFromDOMFactoryTest extends GroovyTestCase {
+class FlowFromDOMFactoryTest {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactoryTest.class)
 
     private static final String DEFAULT_PASSWORD = "nififtw!"
@@ -122,13 +125,14 @@ class FlowFromDOMFactoryTest extends GroovyTestCase {
         StringEncryptor flowEncryptor = StringEncryptor.createEncryptor(mockProperties)
 
         // Act
-        def msg = shouldFail {
+        def msg = shouldFail(EncryptionException) {
             String recovered = FlowFromDOMFactory.decrypt(wrappedCipherText, flowEncryptor)
             logger.info("Recovered: ${recovered}")
         }
+        logger.expected(msg)
 
         // Assert
-        assert msg =~ "Check that the ${KEY} value in nifi.properties matches the value used to encrypt the flow.xml.gz file"
+        assert msg.message =~ "Check that the ${KEY} value in nifi.properties matches the value used to encrypt the flow.xml.gz file"
     }
 
     private
