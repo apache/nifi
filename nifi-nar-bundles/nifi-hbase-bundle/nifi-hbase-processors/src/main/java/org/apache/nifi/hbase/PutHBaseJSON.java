@@ -117,6 +117,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
+        properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
         properties.add(FIELD_ENCODING_STRATEGY);
@@ -161,10 +162,23 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String rowId = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String rowFieldName = context.getProperty(ROW_FIELD_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
+        final String timestampValue = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
         final boolean extractRowId = !StringUtils.isBlank(rowFieldName);
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String rowIdEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
+
+        final Long timestamp;
+        if (!StringUtils.isBlank(timestampValue)) {
+            try {
+                timestamp = Long.valueOf(timestampValue);
+            } catch (Exception e) {
+                getLogger().error("Invalid timestamp value: " + timestampValue, e);
+                return null;
+            }
+        } else {
+            timestamp = null;
+        }
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
@@ -238,7 +252,10 @@ public class PutHBaseJSON extends AbstractPutHBase {
                 if (extractRowId && fieldName.equals(rowFieldName)) {
                     rowIdHolder.set(fieldNode.asText());
                 } else {
-                    columns.add(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8), fieldName.getBytes(StandardCharsets.UTF_8), fieldValueHolder.get()));
+                    final byte[] colFamBytes = columnFamily.getBytes(StandardCharsets.UTF_8);
+                    final byte[] colQualBytes = fieldName.getBytes(StandardCharsets.UTF_8);
+                    final byte[] colValBytes = fieldValueHolder.get();
+                    columns.add(new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp));
                 }
             }
         }
@@ -253,7 +270,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
 
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
 
-        byte[] rowKeyBytes = getRow(putRowId,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
+        byte[] rowKeyBytes = getRow(putRowId, rowIdEncodingStrategy);
         return new PutFlowFile(tableName, rowKeyBytes, columns, flowFile);
     }
 
