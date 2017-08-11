@@ -99,6 +99,38 @@ class FlowFromDOMFactoryTest extends GroovyTestCase {
         assert plaintext == recovered
     }
 
+    @Test
+    void testShouldProvideBetterErrorMessageOnDecryptionFailure() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        // Encrypt the value
+
+        // Hard-coded 0x00 * 16
+        byte[] salt = new byte[16]
+        Cipher cipher = generateCipher(true, DEFAULT_PASSWORD, salt)
+
+        byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
+        byte[] saltAndCipherBytes = CryptoUtils.concatByteArrays(salt, cipherBytes)
+        String cipherTextHex = Hex.encodeHexString(saltAndCipherBytes)
+        String wrappedCipherText = "enc{${cipherTextHex}}"
+        logger.info("Cipher text: ${wrappedCipherText}")
+
+        // Change the password in "nifi.properties" so it doesn't match the "flow"
+        final Map MOCK_PROPERTIES = [(ALGO): EncryptionMethod.MD5_128AES.algorithm, (PROVIDER): EncryptionMethod.MD5_128AES.provider, (KEY): DEFAULT_PASSWORD.reverse()]
+        NiFiProperties mockProperties = new StandardNiFiProperties(new Properties(MOCK_PROPERTIES))
+        StringEncryptor flowEncryptor = StringEncryptor.createEncryptor(mockProperties)
+
+        // Act
+        def msg = shouldFail {
+            String recovered = FlowFromDOMFactory.decrypt(wrappedCipherText, flowEncryptor)
+            logger.info("Recovered: ${recovered}")
+        }
+
+        // Assert
+        assert msg =~ "Check that the ${KEY} value in nifi.properties matches the value used to encrypt the flow.xml.gz file"
+    }
+
     private
     static Cipher generateCipher(boolean encryptMode, String password = DEFAULT_PASSWORD, byte[] salt = DEFAULT_SALT, int iterationCount = DEFAULT_ITERATION_COUNT) {
         // Initialize secret key from password
