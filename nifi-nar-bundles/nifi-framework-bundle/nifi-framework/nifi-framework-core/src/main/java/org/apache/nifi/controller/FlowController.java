@@ -1870,6 +1870,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
                 }
 
+                if (processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                    procNode.disable();
+                }
+
                 // ensure that the scheduling strategy is set prior to these values
                 procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
                 procNode.setScheduldingPeriod(config.getSchedulingPeriod());

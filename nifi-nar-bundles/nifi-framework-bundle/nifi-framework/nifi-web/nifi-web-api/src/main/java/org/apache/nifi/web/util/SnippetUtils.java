@@ -599,7 +599,11 @@ public final class SnippetUtils {
                     final ProcessorDTO cp = dtoFactory.copy(processorDTO);
                     cp.setId(generateId(processorDTO.getId(), idGenerationSeed, isCopy));
                     cp.setParentGroupId(groupId);
-                    cp.setState(ScheduledState.STOPPED.toString());
+                    if(processorDTO.getState() != null && processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                        cp.setState(ScheduledState.DISABLED.toString());
+                    } else {
+                        cp.setState(ScheduledState.STOPPED.toString());
+                    }
                     processors.add(cp);
 
                     connectableMap.put(processorDTO.getParentGroupId() + "-" + processorDTO.getId(), dtoFactory.createConnectableDto(cp));
