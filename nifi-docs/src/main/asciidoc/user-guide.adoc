@@ -1895,6 +1895,45 @@ Once "Expand" is selected, the graph is re-drawn to show the children and their 
 
 image:expanded-events.png["Expanded Events"]
 
+[[writeahead-provenance]]
+=== Write Ahead Provenance Repository
+By default, the Provenance Repository is implemented in a Persistent Provenance configuration. In Apache NiFi 1.2.0, the Write Ahead configuration was introduced to provide the same capabilities as Persistent Provenance, but with far better performance. Migrating to the Write Ahead configuration is easy to accomplish. Simply change the setting for the `nifi.provenance.repository.implementation` system property in the `nifi.properties` file from the default value of `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and restart NiFi.
+
+However, to increase the chances of a successful migration consider the following factors and recommended actions.
+
+==== Backwards Compatibility
+
+The `WriteAheadProvenanceRepository` can use the Provenance data stored by the `PersistentProvenanceRepository`. However, the `PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without first deleting the data in the Provenance Repository. It is therefore recommended that before changing the implementation to Write Ahead, ensure your version of NiFi is stable, in case an issue arises that requires the need to roll back to a previous version of NiFi that did not support the `WriteAheadProvenanceRepository`.
+
+==== Older Existing NiFi Version
+If you are upgrading from an older version of NiFi to 1.2.0 or later, it is recommended that you do not change the provenance configuration to Write Ahead until you confirm your flows and environment are stable in 1.2.0 first.  This reduces the number of variables in your upgrade and can simplify the debugging process if any issues arise.
+
+==== Bootstrap.conf
+While better performance is achieved with the G1 garbage collector, Java 8 bugs may surface more frequently in the Write Ahead configuration.  It is recommended that the following line is commented out in the `bootstrap.conf` file in the `conf` directory:
+
+....
+java.arg.13=-XX:+UseG1GC
+....
+
+==== System Properties
+Many of the same system properties are supported by both the Persistent and Write Ahead configurations, however the default values have been chosen for a Persistent Provenance configuration. The following exceptions and recommendations should be noted when changing to a Write Ahead configuration:
+
+* `nifi.provenance.repository.journal.count` is not relevant to a Write Ahead configuration
+* `nifi.provenance.repository.concurrent.merge.threads` and `nifi.provenance.repository.warm.cache.frequency` are new properties.  The default values of `2` for threads and blank for frequency (i.e. disabled) should remain for most installations.
+* Change the settings for `nifi.provenance.repository.max.storage.time` (default value of `24 hours`) and `nifi.provenance.repository.max.storage.size` (default value of `1 GB`) to values more suitable for your production environment
+* Change `nifi.provenance.repository.index.shard.size` from the default value of `500 MB` to `4 GB`
+* Change `nifi.provenance.repository.index.threads` from the default value of `2` to either `4` or `8` as the Write Ahead repository enables this to scale better
+* If processing a high volume of events, change `nifi.provenance.repository.rollover.time` from a default of `30 secs` to `1 min` and `nifi.provenance.repository.rollover.size` from the default of `100 MB` to `1 GB`
+
+Once these property changes have been made, restart NiFi.
+
+**Note:** Detailed descriptions for each of these properties can be found in  <<administration-guide.adoc#system_properties,System Properties>>.
+
+==== Encrypted Provenance Considerations
+The above migration recommendations for `WriteAheadProvenanceRepository` also apply to the encrypted version of the configuration, `EncryptedWriteAheadProvenanceRepository`.
+
+The next section has more information about implementing an Encrypted Provenance Repository.
+
 [[encrypted-provenance]]
 === Encrypted Provenance Repository
 While OS-level access control can offer some security over the provenance data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the provenance repository allows for all data to be encrypted before being persisted to the disk.
