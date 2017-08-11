@@ -648,14 +648,19 @@ public class LuceneEventIndex implements EventIndex {
     void performMaintenance() {
         try {
             final List<ProvenanceEventRecord> firstEvents = eventStore.getEvents(0, 1);
+
+            final long earliestEventTime;
             if (firstEvents.isEmpty()) {
-                return;
+                earliestEventTime = System.currentTimeMillis();
+                logger.debug("Found no events in the Provenance Repository. In order to perform maintenace of the indices, "
+                    + "will assume that the first event time is now ({})", System.currentTimeMillis());
+            } else {
+                final ProvenanceEventRecord firstEvent = firstEvents.get(0);
+                earliestEventTime = firstEvent.getEventTime();
+                logger.debug("First Event Time is {} ({}) with Event ID {}; will delete any Lucene Index that is older than this",
+                    earliestEventTime, new Date(earliestEventTime), firstEvent.getEventId());
             }
 
-            final ProvenanceEventRecord firstEvent = firstEvents.get(0);
-            final long earliestEventTime = firstEvent.getEventTime();
-            logger.debug("First Event Time is {} ({}) with Event ID {}; will delete any Lucene Index that is older than this",
-                earliestEventTime, new Date(earliestEventTime), firstEvent.getEventId());
             final List<File> indicesBeforeEarliestEvent = directoryManager.getDirectoriesBefore(earliestEventTime);
 
             for (final File index : indicesBeforeEarliestEvent) {

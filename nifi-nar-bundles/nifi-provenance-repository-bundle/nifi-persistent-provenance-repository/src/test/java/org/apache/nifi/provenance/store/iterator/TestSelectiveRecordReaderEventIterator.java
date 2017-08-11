@@ -18,6 +18,7 @@
 package org.apache.nifi.provenance.store.iterator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -81,6 +83,27 @@ public class TestSelectiveRecordReaderEventIterator {
 
         filteredFiles = SelectiveRecordReaderEventIterator.filterUnneededFiles(files, eventIds);
         assertEquals(Arrays.asList(new File[] {file1, file1000}), filteredFiles);
+    }
+
+    @Test
+    public void testFileNotFound() throws IOException {
+        final File file1 = new File("1.prov");
+
+        // Filter out the first file.
+        final List<File> files = new ArrayList<>();
+        files.add(file1);
+
+        List<Long> eventIds = new ArrayList<>();
+        eventIds.add(1L);
+        eventIds.add(5L);
+
+        final RecordReaderFactory readerFactory = (file, logs, maxChars) -> {
+            return RecordReaders.newRecordReader(file, logs, maxChars);
+        };
+
+        final SelectiveRecordReaderEventIterator itr = new SelectiveRecordReaderEventIterator(files, readerFactory, eventIds, 65536);
+        final Optional<ProvenanceEventRecord> firstRecordOption = itr.nextEvent();
+        assertFalse(firstRecordOption.isPresent());
     }
 
     @Test

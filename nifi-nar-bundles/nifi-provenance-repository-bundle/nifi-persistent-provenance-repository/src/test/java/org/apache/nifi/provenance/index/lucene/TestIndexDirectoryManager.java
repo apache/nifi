@@ -129,6 +129,44 @@ public class TestIndexDirectoryManager {
         }
     }
 
+    @Test
+    public void testGetDirectoriesBefore() throws InterruptedException {
+        final RepositoryConfiguration config = createConfig(2);
+        config.setDesiredIndexSize(4096 * 128);
+
+        final File storageDir = config.getStorageDirectories().get("1");
+
+        final File index1 = new File(storageDir, "index-1");
+        final File index2 = new File(storageDir, "index-2");
+
+        final File[] allIndices = new File[] {index1, index2};
+        for (final File file : allIndices) {
+            if (file.exists()) {
+                assertTrue(file.delete());
+            }
+        }
+
+        assertTrue(index1.mkdirs());
+        // Wait 1500 millis because some file systems use only second-precision timestamps instead of millisecond-precision timestamps and
+        // we want to ensure that the two directories have different timestamps. Also using a value of 1500 instead of 1000 because sleep()
+        // can awake before the given time so we give it a buffer zone.
+        Thread.sleep(1500L);
+        final long timestamp = System.currentTimeMillis();
+        assertTrue(index2.mkdirs());
+
+        try {
+            final IndexDirectoryManager mgr = new IndexDirectoryManager(config);
+            mgr.initialize();
+
+            final List<File> dirsBefore = mgr.getDirectoriesBefore(timestamp);
+            assertEquals(1, dirsBefore.size());
+            assertEquals(index1, dirsBefore.get(0));
+        } finally {
+            for (final File file : allIndices) {
+                file.delete();
+            }
+        }
+    }
 
 
     private IndexLocation createLocation(final long timestamp) {
