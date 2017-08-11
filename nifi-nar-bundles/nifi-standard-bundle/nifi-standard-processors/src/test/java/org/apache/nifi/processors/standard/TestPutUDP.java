@@ -145,6 +145,7 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
+    @Ignore("This test is failing intermittently as documented in NIFI-4288")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testInvalidIPAddress() throws Exception {
         configureProperties(INVALID_IP_ADDRESS, true);
