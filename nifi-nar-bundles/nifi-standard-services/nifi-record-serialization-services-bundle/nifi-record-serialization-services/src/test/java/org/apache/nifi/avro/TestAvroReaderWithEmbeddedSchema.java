@@ -253,8 +253,8 @@ public class TestAvroReaderWithEmbeddedSchema {
             accountValues.put("accountId", 83L);
 
             final List<RecordField> accountRecordFields = new ArrayList<>();
-            accountRecordFields.add(new RecordField("accountId", RecordFieldType.LONG.getDataType()));
-            accountRecordFields.add(new RecordField("accountName", RecordFieldType.STRING.getDataType()));
+            accountRecordFields.add(new RecordField("accountId", RecordFieldType.LONG.getDataType(), false));
+            accountRecordFields.add(new RecordField("accountName", RecordFieldType.STRING.getDataType(), false));
 
             final RecordSchema accountRecordSchema = new SimpleRecordSchema(accountRecordFields);
             final Record mapRecord = new MapRecord(accountRecordSchema, accountValues);
@@ -269,8 +269,8 @@ public class TestAvroReaderWithEmbeddedSchema {
             dogMap.put("dogTailLength", 14);
 
             final List<RecordField> dogRecordFields = new ArrayList<>();
-            dogRecordFields.add(new RecordField("dogTailLength", RecordFieldType.INT.getDataType()));
-            dogRecordFields.add(new RecordField("dogName", RecordFieldType.STRING.getDataType()));
+            dogRecordFields.add(new RecordField("dogTailLength", RecordFieldType.INT.getDataType(), false));
+            dogRecordFields.add(new RecordField("dogName", RecordFieldType.STRING.getDataType(), false));
             final RecordSchema dogRecordSchema = new SimpleRecordSchema(dogRecordFields);
             final Record dogRecord = new MapRecord(dogRecordSchema, dogMap);
 
@@ -281,8 +281,8 @@ public class TestAvroReaderWithEmbeddedSchema {
             catMap.put("catTailLength", 1);
 
             final List<RecordField> catRecordFields = new ArrayList<>();
-            catRecordFields.add(new RecordField("catTailLength", RecordFieldType.INT.getDataType()));
-            catRecordFields.add(new RecordField("catName", RecordFieldType.STRING.getDataType()));
+            catRecordFields.add(new RecordField("catTailLength", RecordFieldType.INT.getDataType(), false));
+            catRecordFields.add(new RecordField("catName", RecordFieldType.STRING.getDataType(), false));
             final RecordSchema catRecordSchema = new SimpleRecordSchema(catRecordFields);
             final Record catRecord = new MapRecord(catRecordSchema, catMap);
 

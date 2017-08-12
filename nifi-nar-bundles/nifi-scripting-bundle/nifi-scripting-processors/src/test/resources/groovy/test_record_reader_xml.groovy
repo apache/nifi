@@ -51,7 +51,7 @@ class GroovyXmlRecordReader implements RecordReader {
         }.iterator()
     }
 
-    Record nextRecord() throws IOException, MalformedRecordException {
+    Record nextRecord(boolean coerceTypes, boolean dropUnknown) throws IOException, MalformedRecordException {
         return recordIterator?.hasNext() ? recordIterator.next() : null
     }
 

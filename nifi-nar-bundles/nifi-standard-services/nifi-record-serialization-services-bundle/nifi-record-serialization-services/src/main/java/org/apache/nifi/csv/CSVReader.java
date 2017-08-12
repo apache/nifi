@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -57,6 +58,8 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
+    private volatile boolean firstLineIsHeader;
+    private volatile boolean ignoreHeader;
 
 
     @Override
@@ -67,7 +70,8 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
-        properties.add(CSVUtils.SKIP_HEADER_LINE);
+        properties.add(CSVUtils.FIRST_LINE_IS_HEADER);
+        properties.add(CSVUtils.IGNORE_CSV_HEADER);
         properties.add(CSVUtils.QUOTE_CHAR);
         properties.add(CSVUtils.ESCAPE_CHAR);
         properties.add(CSVUtils.COMMENT_MARKER);
@@ -82,6 +86,16 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        this.firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).asBoolean();
+        this.ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).asBoolean();
+
+        // Ensure that if we are deriving schema from header that we always treat the first line as a header,
+        // regardless of the 'First Line is Header' property
+        final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
+        if (headerDerivedAllowableValue.getValue().equals(accessStrategy)) {
+            this.csvFormat = this.csvFormat.withFirstRecordAsHeader();
+            this.firstLineIsHeader = true;
+        }
     }
 
     @Override
@@ -92,7 +106,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(flowFile, new NonCloseableInputStream(bufferedIn), null);
         bufferedIn.reset();
 
-        return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, dateFormat, timeFormat, timestampFormat);
+        return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
     }
 
     @Override

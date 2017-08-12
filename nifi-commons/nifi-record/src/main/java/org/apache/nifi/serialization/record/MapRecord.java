@@ -17,12 +17,16 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 
+import org.apache.nifi.serialization.SchemaValidationException;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -32,17 +36,67 @@ public class MapRecord implements Record {
     private RecordSchema schema;
     private final Map<String, Object> values;
     private Optional<SerializedForm> serializedForm;
+    private final boolean checkTypes;
+    private final boolean dropUnknownFields;
+
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values) {
+        this(schema, values, false, false);
+    }
+
+    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final boolean checkTypes, final boolean dropUnknownFields) {
+        Objects.requireNonNull(values);
+
         this.schema = Objects.requireNonNull(schema);
-        this.values = Objects.requireNonNull(values);
+        this.values = checkTypes ? checkTypes(values, schema) : values;
         this.serializedForm = Optional.empty();
+        this.checkTypes = checkTypes;
+        this.dropUnknownFields = dropUnknownFields;
     }
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm) {
+        this(schema, values, serializedForm, false, false);
+    }
+
+    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm, final boolean checkTypes, final boolean dropUnknownFields) {
+        Objects.requireNonNull(values);
+
         this.schema = Objects.requireNonNull(schema);
-        this.values = Objects.requireNonNull(values);
+        this.values = checkTypes ? checkTypes(values, schema) : values;
         this.serializedForm = Optional.ofNullable(serializedForm);
+        this.checkTypes = checkTypes;
+        this.dropUnknownFields = dropUnknownFields;
+    }
+
+    private Map<String, Object> checkTypes(final Map<String, Object> values, final RecordSchema schema) {
+        for (final RecordField field : schema.getFields()) {
+            final Object value = getExplicitValue(field, values);
+
+            if (value == null) {
+                if (field.isNullable()) {
+                    continue;
+                }
+
+                throw new SchemaValidationException("Field " + field.getFieldName() + " cannot be null");
+            }
+
+            if (!DataTypeUtils.isCompatibleDataType(value, field.getDataType())) {
+                throw new SchemaValidationException("Field " + field.getFieldName() + " has a value of " + value
+                    + ", which cannot be coerced into the appropriate data type of " + field.getDataType());
+            }
+        }
+
+        return values;
+    }
+
+    @Override
+    public boolean isDropUnknownFields() {
+        return dropUnknownFields;
+    }
+
+    @Override
+    public boolean isTypeChecked() {
+        return checkTypes;
     }
 
     @Override
@@ -67,7 +121,11 @@ public class MapRecord implements Record {
             return getValue(fieldOption.get());
         }
 
-        return null;
+        if (dropUnknownFields) {
+            return null;
+        }
+
+        return this.values.get(fieldName);
     }
 
     @Override
@@ -115,6 +173,10 @@ public class MapRecord implements Record {
     }
 
     private Object getExplicitValue(final RecordField field) {
+        return getExplicitValue(field, this.values);
+    }
+
+    private Object getExplicitValue(final RecordField field, final Map<String, Object> values) {
         final String canonicalFieldName = field.getFieldName();
 
         // We use containsKey here instead of just calling get() and checking for a null value
@@ -139,11 +201,11 @@ public class MapRecord implements Record {
     @Override
     public String getAsString(final String fieldName) {
         final Optional<DataType> dataTypeOption = schema.getDataType(fieldName);
-        if (!dataTypeOption.isPresent()) {
-            return null;
+        if (dataTypeOption.isPresent()) {
+            return convertToString(getValue(fieldName), dataTypeOption.get().getFormat());
         }
 
-        return convertToString(getValue(fieldName), dataTypeOption.get().getFormat());
+        return DataTypeUtils.toString(getValue(fieldName), (Supplier<DateFormat>) null);
     }
 
     @Override
@@ -239,11 +301,20 @@ public class MapRecord implements Record {
     public void setValue(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
+            if (dropUnknownFields) {
+                return;
+            }
+
+            final Object previousValue = values.put(fieldName, value);
+            if (!Objects.equals(value, previousValue)) {
+                serializedForm = Optional.empty();
+            }
+
             return;
         }
 
         final RecordField recordField = field.get();
-        final Object coerced = DataTypeUtils.convertType(value, recordField.getDataType(), fieldName);
+        final Object coerced = isTypeChecked() ? DataTypeUtils.convertType(value, recordField.getDataType(), fieldName) : value;
         final Object previousValue = values.put(recordField.getFieldName(), coerced);
         if (!Objects.equals(coerced, previousValue)) {
             serializedForm = Optional.empty();
@@ -326,5 +397,10 @@ public class MapRecord implements Record {
     @Override
     public void incorporateSchema(RecordSchema other) {
         this.schema = DataTypeUtils.merge(this.schema, other);
+    }
+
+    @Override
+    public Set<String> getRawFieldNames() {
+        return values.keySet();
     }
 }

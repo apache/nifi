@@ -32,7 +32,7 @@ public abstract class AvroRecordReader implements RecordReader {
     protected abstract GenericRecord nextAvroRecord() throws IOException;
 
     @Override
-    public Record nextRecord() throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         GenericRecord record = nextAvroRecord();
         if (record == null) {
             return null;

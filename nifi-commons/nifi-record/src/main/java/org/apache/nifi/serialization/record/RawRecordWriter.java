@@ -15,17 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization.record.util;
+package org.apache.nifi.serialization.record;
 
-import org.apache.nifi.serialization.SchemaValidationException;
+import java.io.IOException;
 
-public class IllegalTypeConversionException extends SchemaValidationException {
+import org.apache.nifi.serialization.WriteResult;
 
-    public IllegalTypeConversionException(final String message) {
-        super(message);
-    }
-
-    public IllegalTypeConversionException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+public interface RawRecordWriter {
+    /**
+     * Writes the given result set to the underlying stream
+     *
+     * @param record the record to write
+     * @return the results of writing the data
+     * @throws IOException if unable to write to the underlying stream
+     */
+    WriteResult writeRawRecord(Record record) throws IOException;
 }

@@ -75,6 +75,7 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
 
+
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
         if (recordSchema == null) {
             throw new IllegalArgumentException("RecordSchema cannot be null");
@@ -110,7 +111,7 @@ public class AvroTypeUtil {
     }
 
     private static Field buildAvroField(final RecordField recordField) {
-        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName());
+        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
         final Field field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
         for (final String alias : recordField.getAliases()) {
             field.addAlias(alias);
@@ -119,7 +120,7 @@ public class AvroTypeUtil {
         return field;
     }
 
-    private static Schema buildAvroSchema(final DataType dataType, final String fieldName) {
+    private static Schema buildAvroSchema(final DataType dataType, final String fieldName, final boolean nullable) {
         final Schema schema;
 
         switch (dataType.getFieldType()) {
@@ -129,7 +130,7 @@ public class AvroTypeUtil {
                 if (RecordFieldType.BYTE.equals(elementDataType.getFieldType())) {
                     schema = Schema.create(Type.BYTES);
                 } else {
-                    final Schema elementType = buildAvroSchema(elementDataType, fieldName);
+                    final Schema elementType = buildAvroSchema(elementDataType, fieldName, false);
                     schema = Schema.createArray(elementType);
                 }
                 break;
@@ -151,7 +152,7 @@ public class AvroTypeUtil {
 
                 final List<Schema> unionTypes = new ArrayList<>(options.size());
                 for (final DataType option : options) {
-                    unionTypes.add(buildAvroSchema(option, fieldName));
+                    unionTypes.add(buildAvroSchema(option, fieldName, false));
                 }
 
                 schema = Schema.createUnion(unionTypes);
@@ -173,7 +174,7 @@ public class AvroTypeUtil {
                 schema = Schema.create(Type.LONG);
                 break;
             case MAP:
-                schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName));
+                schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
                 break;
             case RECORD:
                 final RecordDataType recordDataType = (RecordDataType) dataType;
@@ -204,7 +205,11 @@ public class AvroTypeUtil {
                 return null;
         }
 
-        return nullable(schema);
+        if (nullable) {
+            return nullable(schema);
+        } else {
+            return schema;
+        }
     }
 
     private static Schema nullable(final Schema schema) {
@@ -362,17 +367,32 @@ public class AvroTypeUtil {
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
-            final DataType dataType = AvroTypeUtil.determineDataType(field.schema(), knownRecords);
+            final Schema fieldSchema = field.schema();
+            final DataType dataType = AvroTypeUtil.determineDataType(fieldSchema, knownRecords);
+            final boolean nullable = isNullable(fieldSchema);
 
             if (field.defaultVal() == JsonProperties.NULL_VALUE) {
-               recordFields.add(new RecordField(fieldName, dataType, field.aliases()));
+                recordFields.add(new RecordField(fieldName, dataType, field.aliases(), nullable));
             } else {
-               recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases()));
+                recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases(), nullable));
             }
         }
 
         recordSchema.setFields(recordFields);
         return recordSchema;
+    }
+
+    public static boolean isNullable(final Schema schema) {
+        final Type schemaType = schema.getType();
+        if (schemaType == Type.UNION) {
+            for (final Schema unionSchema : schema.getTypes()) {
+                if (isNullable(unionSchema)) {
+                    return true;
+                }
+            }
+        }
+
+        return schemaType == Type.NULL;
     }
 
     public static Object[] convertByteArray(final byte[] bytes) {

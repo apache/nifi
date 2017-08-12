@@ -15,14 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.serialization.record;
+package org.apache.nifi.serialization.record.validation;
 
-public class TypeMismatchException extends RuntimeException {
-    public TypeMismatchException(String message) {
-        super(message);
-    }
+public enum ValidationErrorType {
+    /**
+     * A required field (i.e., a field that is not 'nullable') exists in the schema, but the record had no value for this field
+     * or the value for this field was <code>null</code>.
+     */
+    MISSING_FIELD,
 
-    public TypeMismatchException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    /**
+     * The record had a field that was not valid according to the schema.
+     */
+    EXTRA_FIELD,
+
+    /**
+     * The record had a value for a field, but the value was not valid according to the schema.
+     */
+    INVALID_FIELD,
+
+    /**
+     * Some other sort of validation error occurred.
+     */
+    OTHER;
 }
