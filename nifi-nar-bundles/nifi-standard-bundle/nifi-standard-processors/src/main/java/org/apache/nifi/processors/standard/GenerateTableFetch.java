@@ -318,12 +318,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
 
-                final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+                final long numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
                 // Generate SQL statements to read "pages" of data
                 for (long i = 0; i < numberOfFetches; i++) {
-                    long limit = partitionSize == 0 ? null : partitionSize;
-                    long offset = partitionSize == 0 ? null : i * partitionSize;
+                    Long limit = partitionSize == 0 ? null : (long) partitionSize;
+                    Long offset = partitionSize == 0 ? null : i * partitionSize;
                     final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
                     final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset);
                     FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
