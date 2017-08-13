@@ -1014,6 +1014,12 @@
                                     '<div class="new-inline-controller-service-description"></div>' +
                                 '</div>' +
                             '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Controller Service Name</div>' +
+                                '<div class="setting-field">' +
+                                    '<input type="text" class="new-inline-controller-service-name"/>' +
+                                '</div>' +
+                            '</div>' +
                         '</div>' +
                     '</div>';
 
@@ -1023,6 +1029,7 @@
                 var newControllerServiceBundle = newControllerServiceDialog.find('div.new-inline-controller-service-bundle');
                 var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
                 var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
+                var newControllerServiceNameInput = newControllerServiceDialog.find('input.new-inline-controller-service-name');
 
                 // include the required service
                 var formattedType = nfCommon.formatType({
@@ -1089,6 +1096,7 @@
                 var create = function () {
                     var newControllerServiceKey = newControllerServiceCombo.combo('getSelectedOption').value;
                     var newControllerServiceType = controllerServiceLookup.get(newControllerServiceKey);
+                    var newControllerServiceName = newControllerServiceNameInput.val();
 
                     // build the controller service entity
                     var controllerServiceEntity = {
@@ -1102,6 +1110,11 @@
                             'bundle': newControllerServiceType.bundle
                         }
                     };
+
+                    // set custom name when specified
+                    if (newControllerServiceName.trim() !== '') {
+                        controllerServiceEntity.component.name = newControllerServiceName.trim();
+                    }
 
                     // determine the appropriate uri for creating the controller service
                     var uri = '../nifi-api/controller/controller-services';
