@@ -38,11 +38,11 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -58,9 +58,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
-
-import javax.xml.bind.DatatypeConverter;
-import org.junit.Ignore;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
@@ -460,7 +457,6 @@ public class TestPutSQL {
         }
     }
 
-    @Ignore("this test needs fixing due to TestPutSQL.testUsingDateTimeValuesWithFormatAttribute:551 expected:<1012608000000> but was:<1012521600000>")
     @Test
     public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
@@ -474,8 +470,8 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String dateStr = "2002-02-02";
-        final String timeStr = "12:02:02";
+        final String dateStr = "2002-03-04";
+        final String timeStr = "02:03:04";
 
         final String timeFormatString = "HH:mm:ss";
         final String dateFormatString ="yyyy-MM-dd";
@@ -492,19 +488,7 @@ public class TestPutSQL {
         final long expectedTimeInLong = expectedTime.getTime();
         final long expectedDateInLong = expectedDate.getTime();
 
-        //test with time zone GMT to avoid negative value unmatched with long pattern problem.
-        SimpleDateFormat timeFormat = new SimpleDateFormat(timeFormatString);
-        timeFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        java.util.Date parsedTimeGMT = timeFormat.parse(timeStr);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        java.util.Date parsedDateGMT = dateFormat.parse(dateStr);
-
-        Calendar gmtCalendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-
-
-        //test with ISO LOCAL format attribute
+        // test with ISO LOCAL format attribute
         Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
         attributes.put("sql.args.1.value", timeStr);
@@ -515,22 +499,31 @@ public class TestPutSQL {
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
 
-        //test Long pattern without format attribute
+        // Since Derby database which is used for unit test does not have timezone in DATE and TIME type,
+        // and PutSQL converts date string into long representation using local timezone,
+        // we need to use local timezone.
+        SimpleDateFormat timeFormat = new SimpleDateFormat(timeFormatString);
+        java.util.Date parsedLocalTime = timeFormat.parse(timeStr);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
+        java.util.Date parsedLocalDate = dateFormat.parse(dateStr);
+
+        // test Long pattern without format attribute
         attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
-        attributes.put("sql.args.1.value", Long.toString(parsedTimeGMT.getTime()));
+        attributes.put("sql.args.1.value", Long.toString(parsedLocalTime.getTime()));
         attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
-        attributes.put("sql.args.2.value", Long.toString(parsedDateGMT.getTime()));
+        attributes.put("sql.args.2.value", Long.toString(parsedLocalDate.getTime()));
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (2, ?, ?)".getBytes(), attributes);
 
-        //test with format attribute
+        // test with format attribute
         attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
-        attributes.put("sql.args.1.value", "120202000");
+        attributes.put("sql.args.1.value", "020304000");
         attributes.put("sql.args.1.format", "HHmmssSSS");
         attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
-        attributes.put("sql.args.2.value", "20020202");
+        attributes.put("sql.args.2.value", "20020304");
         attributes.put("sql.args.2.format", "yyyyMMdd");
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (3, ?, ?)".getBytes(), attributes);
@@ -549,8 +542,8 @@ public class TestPutSQL {
 
                 assertTrue(rs.next());
                 assertEquals(2, rs.getInt(1));
-                assertEquals(parsedTimeGMT.getTime(), rs.getTime(2).getTime());
-                assertEquals(parsedDateGMT.getTime(), rs.getDate(3,gmtCalendar).getTime());
+                assertEquals(parsedLocalTime.getTime(), rs.getTime(2).getTime());
+                assertEquals(parsedLocalDate.getTime(), rs.getDate(3).getTime());
 
                 assertTrue(rs.next());
                 assertEquals(3, rs.getInt(1));
@@ -692,11 +685,10 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String arg2TS = "00:01:01";
-        final String art3TS = "12:02:02";
+        final String arg2TS = "00:01:02";
+        final String art3TS = "02:03:04";
         final String timeFormatString = "HH:mm:ss";
         SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         java.util.Date parsedDate = dateFormat.parse(arg2TS);
 
 
