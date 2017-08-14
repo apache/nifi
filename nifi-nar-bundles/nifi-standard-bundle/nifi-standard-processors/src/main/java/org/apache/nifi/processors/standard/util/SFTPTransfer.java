@@ -309,7 +309,12 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteFile(final String path, final String remoteFileName) throws IOException {
+    public boolean flush(final FlowFile flowFile) throws IOException {
+        return true;
+    }
+
+    @Override
+    public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
         final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
         try {
             sftp.rm(fullPath);
@@ -326,7 +331,7 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteDirectory(final String remoteDirectoryName) throws IOException {
+    public void deleteDirectory(final FlowFile flowFile, final String remoteDirectoryName) throws IOException {
         try {
             sftp.rm(remoteDirectoryName);
         } catch (final SftpException e) {
@@ -613,8 +618,8 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void rename(final String source, final String target) throws IOException {
-        final ChannelSftp sftp = getChannel(null);
+    public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
+        final ChannelSftp sftp = getChannel(flowFile);
         try {
             sftp.rename(source, target);
         } catch (final SftpException e) {

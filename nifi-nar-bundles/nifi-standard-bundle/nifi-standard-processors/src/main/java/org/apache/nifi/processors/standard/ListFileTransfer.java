@@ -94,7 +94,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(REMOTE_PATH).getValue();
+        return context.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
     }
 
     @Override
