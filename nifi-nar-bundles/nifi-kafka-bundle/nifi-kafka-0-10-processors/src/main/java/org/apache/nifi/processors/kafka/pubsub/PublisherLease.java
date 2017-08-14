@@ -192,6 +192,10 @@ public class PublisherLease implements Closeable {
     }
 
     public InFlightMessageTracker getTracker() {
+        if (tracker == null) {
+            tracker = new InFlightMessageTracker();
+        }
+
         return tracker;
     }
 }
