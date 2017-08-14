@@ -33,9 +33,11 @@ import java.sql.Time;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
@@ -471,8 +473,8 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String dateStr = "2002-02-02";
-        final String timeStr = "12:02:02";
+        final String dateStr = "2002-03-04";
+        final String timeStr = "02:03:04";
 
         final String timeFormatString = "HH:mm:ss";
         final String dateFormatString ="yyyy-MM-dd";
@@ -521,10 +523,10 @@ public class TestPutSQL {
         // test with format attribute
         attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
-        attributes.put("sql.args.1.value", "120202000");
+        attributes.put("sql.args.1.value", "020304000");
         attributes.put("sql.args.1.format", "HHmmssSSS");
         attributes.put("sql.args.2.type", String.valueOf(Types.DATE));
-        attributes.put("sql.args.2.value", "20020202");
+        attributes.put("sql.args.2.value", "20020304");
         attributes.put("sql.args.2.format", "yyyyMMdd");
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST3 (ID, ts1, ts2) VALUES (3, ?, ?)".getBytes(), attributes);
@@ -686,11 +688,10 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String arg2TS = "00:01:01";
-        final String art3TS = "12:02:02";
+        final String arg2TS = "00:01:02";
+        final String art3TS = "02:03:04";
         final String timeFormatString = "HH:mm:ss";
         SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         java.util.Date parsedDate = dateFormat.parse(arg2TS);
 
 
