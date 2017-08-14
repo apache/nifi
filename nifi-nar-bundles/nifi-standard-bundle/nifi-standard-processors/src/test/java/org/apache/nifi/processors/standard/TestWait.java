@@ -460,8 +460,6 @@ public class TestWait {
 
         runner.clearTransferState();
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
-
     }
 
     @Test
@@ -502,8 +500,9 @@ public class TestWait {
         MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
         outputFlowFile.assertAttributeEquals("wait.counter.counter", "2");
 
-        // expect counter to be decremented to 1
-        assertEquals("1", Long.toString(protocol.getSignal("key").getCount("counter")));
+        // expect counter to be decremented to 0 and releasable count remains 1.
+        assertEquals("0", Long.toString(protocol.getSignal("key").getCount("counter")));
+        assertEquals("1", Long.toString(protocol.getSignal("key").getReleasableCount()));
 
         // introduce a second flow file with the same signal attribute
         runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
@@ -515,7 +514,8 @@ public class TestWait {
         runner.run();
         runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
         outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
-        outputFlowFile.assertAttributeEquals("wait.counter.counter", "1");
+        // All counters are consumed.
+        outputFlowFile.assertAttributeEquals("wait.counter.counter", "0");
 
         assertNull("The key no longer exist", protocol.getSignal("key"));
         runner.clearTransferState();
