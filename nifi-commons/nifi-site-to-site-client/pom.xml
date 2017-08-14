@@ -48,6 +48,7 @@
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-mapper-asl</artifactId>
+            <version>${jackson.old.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
