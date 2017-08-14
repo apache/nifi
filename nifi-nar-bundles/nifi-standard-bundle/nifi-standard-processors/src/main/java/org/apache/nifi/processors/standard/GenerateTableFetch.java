@@ -112,6 +112,29 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RIGHT_BOUND_WHERE = new PropertyDescriptor.Builder()
+            .name("gen-table-fetch-right-bounded")
+            .displayName("Right Bounded")
+            .description("Whether to include the new max value(s) as a right hand boundary in the where statement. "
+                    + "If this is set to false duplicate data may be returned by consecutive executions of the "
+                    + "processor if there are deletions or if the table is high volume.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor MAXIMUM_ROWS = new PropertyDescriptor.Builder()
+            .name("gen-table-fetch-max-rows")
+            .displayName("Maximum Rows")
+            .description("When right bounded, the maximum number of rows that will be paged through. "
+                    + "If more rows are available than the maximum row count, a new right bounding maximum value "
+                    + "will be calculated.")
+            .defaultValue("0")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_LONG_VALIDATOR)
+            .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
@@ -130,6 +153,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(TABLE_NAME);
         pds.add(COLUMN_NAMES);
         pds.add(MAX_VALUE_COLUMN_NAMES);
+        pds.add(RIGHT_BOUND_WHERE);
+        pds.add(MAXIMUM_ROWS);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
@@ -185,6 +210,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final long maximumRows = context.getProperty(MAXIMUM_ROWS).evaluateAttributeExpressions(fileToProcess).asLong();
+        final Boolean rightBounded = context.getProperty(RIGHT_BOUND_WHERE).asBoolean();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -224,47 +251,19 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // executed SQL query will retrieve the count of all records after the filter(s) have been applied, as well as the new maximum values for the
             // specified columns. This allows the processor to generate the correctly partitioned SQL statements as well as to update the state with the
             // latest observed maximum values.
-            String whereClause = null;
             List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                     ? new ArrayList<>(0)
                     : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-            List<String> maxValueClauses = new ArrayList<>(maxValueColumnNameList.size());
 
-            String columnsClause = null;
-            List<String> maxValueSelectColumns = new ArrayList<>(maxValueColumnNameList.size() + 1);
-            maxValueSelectColumns.add("COUNT(*)");
-
-            // For each maximum-value column, get a WHERE filter and a MAX(column) alias
-            IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
-                String colName = maxValueColumnNameList.get(index);
-                maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                final String fullyQualifiedStateKey = getStateKey(tableName, colName);
-                String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
-                if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
-                    // If the table name is static and the fully-qualified key was not found, try just the column name
-                    maxValue = statePropertyMap.get(getStateKey(null, colName));
-                }
-                if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(fullyQualifiedStateKey);
-                    if (type == null && !isDynamicTableName) {
-                        // If the table name is static and the fully-qualified key was not found, try just the column name
-                        type = columnTypeMap.get(getStateKey(null, colName));
-                    }
-                    if (type == null) {
-                        // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
-                        throw new IllegalArgumentException("No column type found for: " + colName);
-                    }
-                    // Add a condition for the WHERE clause
-                    maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
-                }
-            });
-
-            whereClause = StringUtils.join(maxValueClauses, " AND ");
-            columnsClause = StringUtils.join(maxValueSelectColumns, ", ");
 
             // Build a SELECT query with maximum-value columns (if present)
-            final String selectQuery = dbAdapter.getSelectStatement(tableName, columnsClause, whereClause, null, null, null);
-            long rowCount = 0;
+            final List<String> maxValueClauses = buildMaxWhereClauseList(maxValueColumnNameList, statePropertyMap, tableName, dbAdapter, BoundaryDirection.Left);
+            final List<String> maxValueSelectColumns = buildMaxColumnsList(maxValueColumnNameList);
+
+            String whereClause = StringUtils.join(maxValueClauses, " AND ");
+            String columnsClause = StringUtils.join(maxValueSelectColumns, ", ");
+
+            String selectQuery = dbAdapter.getSelectStatement(tableName, columnsClause, whereClause, null, null, null);
 
             try (final Connection con = dbcpService.getConnection();
                 final Statement st = con.createStatement()) {
@@ -272,50 +271,32 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
-                logger.debug("Executing {}", new Object[]{selectQuery});
-                ResultSet resultSet;
+                long rowCount = getRowCountAndMaxValues(statePropertyMap, tableName, selectQuery, dbAdapter, st);
 
-                resultSet = st.executeQuery(selectQuery);
-
-                if (resultSet.next()) {
-                    // Total row count is in the first column
-                    rowCount = resultSet.getLong(1);
-
-                    // Update the state map with the newly-observed maximum values
-                    ResultSetMetaData rsmd = resultSet.getMetaData();
-                    for (int i = 2; i <= rsmd.getColumnCount(); i++) {
-                        //Some JDBC drivers consider the columns name and label to be very different things.
-                        // Since this column has been aliased lets check the label first,
-                        // if there is no label we'll use the column name.
-                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i))?rsmd.getColumnLabel(i):rsmd.getColumnName(i)).toLowerCase();
-                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
-                        String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
-                        if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
-                            // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
-                            // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
-                            // maximum value is observed, it will be stored under the fully-qualified key from then on.
-                            resultColumnCurrentMax = statePropertyMap.get(resultColumnName);
-                        }
-
-                        int type = rsmd.getColumnType(i);
-                        if (isDynamicTableName) {
-                            // We haven't pre-populated the column type map if the table name is dynamic, so do it here
-                            columnTypeMap.put(fullyQualifiedStateKey, type);
-                        }
-                        try {
-                            String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
-                            if (newMaxValue != null) {
-                                statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
-                            }
-                        } catch (ParseException | IOException pie) {
-                            // Fail the whole thing here before we start creating flow files and such
-                            throw new ProcessException(pie);
-                        }
-
+                // If we are going to build a Right Boundary for our SQL statement
+                if(rightBounded){
+                    //If we have more rows then we want to return TOTAL (sum of all pages)
+                    // then we need to reduce the count by adjusting the maximum value we will be using for our right boundary/max value
+                    if(maximumRows > 0 && rowCount > maximumRows){
+                        //Build an ordered, limited, SELECT statement
+                        String innerSelect = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), maximumRows, 0L);
+                        String subQuery = "(" + innerSelect + ") S";
+                        selectQuery = dbAdapter.getSelectStatement(subQuery, columnsClause, whereClause, null, null, null);
+                        rowCount = getRowCountAndMaxValues(statePropertyMap, tableName, selectQuery, dbAdapter, st);
+                        //Now update the WHERE statement to only bring back rows with a lower MAX value then the max value found with the limited query
+                        List<String> maxValueClausesLimited = buildMaxWhereClauseList(maxValueColumnNameList, statePropertyMap, tableName, dbAdapter, BoundaryDirection.Limit);
+                        String limitedWhere = StringUtils.join(maxValueClausesLimited, " AND ");
+                        selectQuery = dbAdapter.getSelectStatement(tableName, columnsClause, limitedWhere, StringUtils.join(maxValueColumnNameList, ", "), null, null);
+                        //Keep this smaller row count and Maximum value
+                        rowCount = getRowCountAndMaxValues(statePropertyMap, tableName, selectQuery, dbAdapter, st);
                     }
-                } else {
-                    // Something is very wrong here, one row (even if count is zero) should be returned
-                    throw new SQLException("No rows returned from metadata query: " + selectQuery);
+
+                    //for each maximum-value column get a right bounding WHERE condition
+                    List<String> maxValueClausesRightBounded = buildMaxWhereClauseList(maxValueColumnNameList, statePropertyMap, tableName, dbAdapter, BoundaryDirection.Right);
+                    maxValueClauses.addAll(maxValueClausesRightBounded);
+
+                    //Update WHERE list to include new right hand boundaries
+                    whereClause = StringUtils.join(maxValueClauses, " AND ");
                 }
 
                 final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
@@ -376,5 +357,117 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             session.rollback();
             context.yield();
         }
+    }
+
+    private long getRowCountAndMaxValues(Map<String, String> statePropertyMap, String tableName, String selectQuery, DatabaseAdapter dbAdapter, Statement st) throws SQLException {
+        long rowCount;
+        getLogger().debug("Executing {}", new Object[]{selectQuery});
+        final ResultSet resultSet = st.executeQuery(selectQuery);
+
+        if (resultSet.next()) {
+            // Total row count is in the first column
+            rowCount = resultSet.getLong(1);
+
+            // Update the state map with the newly-observed maximum values
+            ResultSetMetaData rsmd = resultSet.getMetaData();
+            for (int i = 2; i <= rsmd.getColumnCount(); i++) {
+                String resultColumnName = rsmd.getColumnName(i).toLowerCase();
+                String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
+                String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
+                if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
+                    // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
+                    // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
+                    // maximum value is observed, it will be stored under the fully-qualified key from then on.
+                    resultColumnCurrentMax = statePropertyMap.get(resultColumnName);
+                }
+
+                int type = rsmd.getColumnType(i);
+                if (isDynamicTableName) {
+                    // We haven't pre-populated the column type map if the table name is dynamic, so do it here
+                    columnTypeMap.put(fullyQualifiedStateKey, type);
+                }
+                try {
+                    String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
+                    if (newMaxValue != null) {
+                        statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
+                    }
+                } catch (ParseException | IOException pie) {
+                    // Fail the whole thing here before we start creating flow files and such
+                    throw new ProcessException(pie);
+                }
+
+            }
+        } else {
+            // Something is very wrong here, one row (even if count is zero) should be returned
+            throw new SQLException("No rows returned from metadata query: " + selectQuery);
+        }
+        return rowCount;
+    }
+
+    private List<String> buildMaxColumnsList(List<String> maxValueColumnNameList){
+        List<String> maxValueSelectColumns = new ArrayList<>(maxValueColumnNameList.size() + 1);
+        maxValueSelectColumns.add("COUNT(*)");
+
+        // For each maximum-value column, get a WHERE filter and a MAX(column) alias
+        IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+            String colName = maxValueColumnNameList.get(index);
+            maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
+        });
+
+        return maxValueSelectColumns;
+    }
+
+    private enum BoundaryDirection{
+        Left,
+        Right,
+        Limit
+    }
+
+    private List<String> buildMaxWhereClauseList(List<String> maxValueColumnNameList, Map<String, String> statePropertyMap, String tableName, DatabaseAdapter dbAdapter, BoundaryDirection boundaryDirection){
+        List<String> maxValueClauses = new ArrayList<>(maxValueColumnNameList.size());
+
+        // For each maximum-value column, get a WHERE filter
+        IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+            String colName = maxValueColumnNameList.get(index);
+
+            String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+            if (!StringUtils.isEmpty(maxValue)) {
+                Integer type = getColumnType(tableName, colName);
+
+                final String equality = (boundaryDirection==BoundaryDirection.Left)?(index == 0 ? " > " : " >= ")
+                        :(boundaryDirection==BoundaryDirection.Right)?" <= ": " < ";
+
+                // Add a condition for the WHERE clause
+                maxValueClauses.add(colName + equality + getLiteralByType(type, maxValue, dbAdapter.getName()));
+            }
+        });
+
+        return maxValueClauses;
+    }
+
+    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+        String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
+        if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
+            // If the table name is static and the fully-qualified key was not found, try just the column name
+            maxValue = statePropertyMap.get(getStateKey(null, colName));
+        }
+
+        return maxValue;
+    }
+
+    private Integer getColumnType(String tableName, String colName) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+        Integer type = columnTypeMap.get(fullyQualifiedStateKey);
+        if (type == null && !isDynamicTableName) {
+            // If the table name is static and the fully-qualified key was not found, try just the column name
+            type = columnTypeMap.get(getStateKey(null, colName));
+        }
+        if (type == null) {
+            // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
+            throw new IllegalArgumentException("No column type found for: " + colName);
+        }
+
+        return type;
     }
 }
