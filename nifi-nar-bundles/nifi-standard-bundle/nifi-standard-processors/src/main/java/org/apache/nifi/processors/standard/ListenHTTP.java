@@ -34,6 +34,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
@@ -118,7 +119,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("SSL Context Service")
         .description("The Controller Service to use in order to obtain an SSL Context")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
         .name("HTTP Headers to receive as Attributes (Regex)")
@@ -228,18 +229,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
 
         if (sslContextService != null) {
-            // if the configured protocol isn't supported by Jetty, throw an exception
-            final String[] excludeProtocols = contextFactory.getExcludeProtocols();
-            if (excludeProtocols != null) {
-                for (final String protocol : excludeProtocols) {
-                    if (protocol.equals(sslContextService.getSslAlgorithm())) {
-                        final IllegalArgumentException e = new IllegalArgumentException("The configured SSL Protocol '" + sslContextService.getSslAlgorithm()
-                                + "' is not supported by this processor. Please choose another.");
-                        getLogger().error("Failed to start ListenHTTP.", e);
-                        throw e;
-                    }
-                }
-            }
             contextFactory.setProtocol(sslContextService.getSslAlgorithm());
         }
 

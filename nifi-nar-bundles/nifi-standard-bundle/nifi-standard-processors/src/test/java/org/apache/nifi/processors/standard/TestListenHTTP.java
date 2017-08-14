@@ -20,6 +20,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -87,6 +88,7 @@ public class TestListenHTTP {
     public void testPOSTRequestsReceivedWithEL() throws Exception {
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
+        runner.assertValid();
 
         testPOSTRequestsReceived();
     }
@@ -94,11 +96,12 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService();
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
 
         testPOSTRequestsReceived();
     }
@@ -106,25 +109,25 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReceivedWithEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService();
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
+        runner.assertValid();
+
+        testPOSTRequestsReceived();
+    }
+
+    @Test
+    public void testSecureInvalidSSLConfiguration() throws Exception {
+        SSLContextService sslContextService = configureInvalidProcessorSslContextService();
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
-
-        testPOSTRequestsReceived();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testSecurePOSTUnsupportedSSLProtocol() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService();
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "SSLv3");
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
-
-        testPOSTRequestsReceived();
+        runner.assertNotValid();
     }
 
     private int executePOST(String message) throws Exception {
@@ -208,6 +211,20 @@ public class TestListenHTTP {
     }
 
     private SSLContextService configureProcessorSslContextService() throws InitializationException {
+        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
+        runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/localhost-ks.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+
+        runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
+        return sslContextService;
+    }
+
+    private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
@@ -217,7 +234,7 @@ public class TestListenHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
 
-        runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
+        runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
         return sslContextService;
     }
 }

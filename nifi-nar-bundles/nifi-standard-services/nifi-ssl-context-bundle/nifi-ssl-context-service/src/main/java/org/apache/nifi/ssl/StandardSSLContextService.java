@@ -48,7 +48,10 @@ import org.apache.nifi.security.util.SslContextFactory;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
-        + "keystore and/or truststore properties once and reuse that configuration throughout the application")
+        + "keystore and/or truststore properties once and reuse that configuration throughout the application. "
+        + "This service can be used to communicate with both legacy and modern systems. If you only need to "
+        + "communicate with non-legacy systems, then the StandardRestrictedSSLContextService is recommended as it only "
+        + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
     public static final String STORE_TYPE_JKS = "JKS";
@@ -110,14 +113,14 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
-            .allowableValues(buildAlgorithmAllowableValues())
+            .allowableValues(SSLContextServiceUtils.buildSSLAlgorithmAllowableValues(false))
             .description("The algorithm to use for this TLS/SSL context")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
 
     private static final List<PropertyDescriptor> properties;
-    private ConfigurationContext configContext;
+    protected ConfigurationContext configContext;
     private boolean isValidated;
 
     // TODO: This can be made configurable if necessary
@@ -252,8 +255,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return VALIDATION_CACHE_EXPIRATION;
     }
 
+    protected String getSSLProtocolForValidation(final ValidationContext validationContext) {
+        return validationContext.getProperty(SSL_ALGORITHM).getValue();
+    }
+
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
-        final String protocol = validationContext.getProperty(SSL_ALGORITHM).getValue();
+        final String protocol = getSSLProtocolForValidation(validationContext);
         try {
             final PropertyValue keyPasswdProp = validationContext.getProperty(KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
@@ -295,7 +302,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        final String protocol = configContext.getProperty(SSL_ALGORITHM).getValue();
+        final String protocol = getSslAlgorithm();
         try {
             final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
