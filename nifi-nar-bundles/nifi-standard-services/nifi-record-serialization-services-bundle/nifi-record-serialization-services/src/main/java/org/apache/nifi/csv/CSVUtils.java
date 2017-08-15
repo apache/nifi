@@ -33,7 +33,7 @@ public class CSVUtils {
     static final AllowableValue EXCEL = new AllowableValue("excel", "Microsoft Excel", "CSV data follows the format used by Microsoft Excel");
     static final AllowableValue TDF = new AllowableValue("tdf", "Tab-Delimited", "CSV data is Tab-Delimited instead of Comma Delimited");
     static final AllowableValue INFORMIX_UNLOAD = new AllowableValue("informix-unload", "Informix Unload", "The format used by Informix when issuing the UNLOAD TO file_name command");
-    static final AllowableValue INFORMIX_UNLOAD_CSV = new AllowableValue("informix-unload", "Informix Unload Escape Disabled",
+    static final AllowableValue INFORMIX_UNLOAD_CSV = new AllowableValue("informix-unload-csv", "Informix Unload Escape Disabled",
         "The format used by Informix when issuing the UNLOAD TO file_name command with escaping disabled");
     static final AllowableValue MYSQL = new AllowableValue("mysql", "MySQL Format", "CSV data follows the format used by MySQL");
 
