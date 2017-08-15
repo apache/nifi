@@ -44,7 +44,7 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
     ]
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -53,15 +53,15 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
     }
 
     @Test
-    public void testGetCipherProviderShouldResolveRegisteredKDFs() {
+    void testGetCipherProviderShouldResolveRegisteredKDFs() {
         // Arrange
 
         // Act
@@ -77,7 +77,7 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
 
     @Ignore("Cannot mock enum using Groovy map coercion")
     @Test
-    public void testGetCipherProviderShouldHandleUnregisteredKDFs() {
+    void testGetCipherProviderShouldHandleUnregisteredKDFs() {
         // Arrange
 
         // Can't mock this; see http://stackoverflow.com/questions/5323505/mocking-java-enum-to-add-a-value-to-test-fail-case
