@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -543,27 +544,23 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             serviceNodes = flowController.getRootControllerServices();
         } else {
             ProcessGroup group = getRootGroup();
-            if (FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) || group.getIdentifier().equals(groupId)) {
-                serviceNodes = new HashSet<>(serviceCache.values());
-            } else {
+            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
                 group = group.findProcessGroup(groupId);
-                if (group == null) {
-                    return Collections.emptySet();
-                }
-
-                serviceNodes = group.getControllerServices(true);
             }
+
+            if (group == null) {
+                return Collections.emptySet();
+            }
+
+            serviceNodes = group.getControllerServices(true);
         }
 
-        final Set<String> identifiers = new HashSet<>();
-        for (final ControllerServiceNode serviceNode : serviceNodes) {
-            if (requireNonNull(serviceType).isAssignableFrom(serviceNode.getProxiedControllerService().getClass())) {
-                identifiers.add(serviceNode.getIdentifier());
-            }
-        }
-
-        return identifiers;
+        return serviceNodes.stream()
+            .filter(service -> serviceType.isAssignableFrom(service.getProxiedControllerService().getClass()))
+            .map(ControllerServiceNode::getIdentifier)
+            .collect(Collectors.toSet());
     }
+
 
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
