@@ -997,6 +997,12 @@
                                 '</div>' +
                             '</div>' +
                             '<div>' +
+                                '<div class="setting-name">Controller Service Name</div>' +
+                                '<div class="setting-field">' +
+                                    '<input type="text" class="new-inline-controller-service-name"/>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
                                 '<div class="setting-name">Bundle</div>' +
                                 '<div class="setting-field">' +
                                     '<div class="new-inline-controller-service-bundle"></div>' +
@@ -1014,22 +1020,16 @@
                                     '<div class="new-inline-controller-service-description"></div>' +
                                 '</div>' +
                             '</div>' +
-                            '<div>' +
-                                '<div class="setting-name">Controller Service Name</div>' +
-                                '<div class="setting-field">' +
-                                    '<input type="text" class="new-inline-controller-service-name"/>' +
-                                '</div>' +
-                            '</div>' +
                         '</div>' +
                     '</div>';
 
                 var newControllerServiceDialog = $(newControllerServiceDialogMarkup).appendTo(configurationOptions.dialogContainer);
                 var newControllerServiceRequirement = newControllerServiceDialog.find('div.new-inline-controller-service-requirement');
                 var newControllerServiceCombo = newControllerServiceDialog.find('div.new-inline-controller-service-combo');
+                var newControllerServiceNameInput = newControllerServiceDialog.find('input.new-inline-controller-service-name');
                 var newControllerServiceBundle = newControllerServiceDialog.find('div.new-inline-controller-service-bundle');
                 var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
                 var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
-                var newControllerServiceNameInput = newControllerServiceDialog.find('input.new-inline-controller-service-name');
 
                 // include the required service
                 var formattedType = nfCommon.formatType({
@@ -1050,6 +1050,10 @@
                     return aName === bName ? -nfCommon.sortVersion(aCS.bundle.version, bCS.bundle.version) : aName > bName ? 1 : -1;
                 });
 
+                // default to the first service
+                var newControllerServiceNameDefault = nfCommon.formatClassName(controllerServiceLookup.get(0));
+                newControllerServiceNameInput.val(newControllerServiceNameDefault);
+
                 // build the combo field
                 newControllerServiceCombo.combo({
                     options: options,
@@ -1059,6 +1063,12 @@
                         newControllerServiceBundle.text(nfCommon.formatBundle(service.bundle));
                         newControllerServiceTags.text(service.tags.join(', '));
                         newControllerServiceDescription.text(service.description);
+
+                        // update default when no edits were made
+                        if (newControllerServiceNameDefault === newControllerServiceNameInput.val().trim()) {
+                            newControllerServiceNameDefault = nfCommon.formatClassName(service);
+                            newControllerServiceNameInput.val(newControllerServiceNameDefault);
+                        }
                     }
                 });
 
