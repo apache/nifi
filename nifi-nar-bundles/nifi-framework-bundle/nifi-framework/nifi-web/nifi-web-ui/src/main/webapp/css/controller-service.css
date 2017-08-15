@@ -228,7 +228,7 @@ div.disable-referencing-components, div.enable-referencing-components {
     New inline controller service dialog
 */
 
-div.new-inline-controller-service-requirement, div.new-inline-controller-service-combo, div.new-inline-controller-service-bundle, div.new-inline-controller-service-tags, div.new-inline-controller-service-description {
+div.new-inline-controller-service-requirement, div.new-inline-controller-service-combo, input.new-inline-controller-service-name, div.new-inline-controller-service-bundle, div.new-inline-controller-service-tags {
     margin-bottom: 15px;
 }
 
