@@ -418,12 +418,21 @@
         },
 
         /**
+         * Formats the class name of this component.
+         *
+         * @param dataContext component datum
+         */
+        formatClassName: function (dataContext) {
+            return nfCommon.substringAfterLast(dataContext.type, '.');
+        },
+
+        /**
          * Formats the type of this component.
          *
          * @param dataContext component datum
          */
         formatType: function (dataContext) {
-            var typeString = nfCommon.substringAfterLast(dataContext.type, '.');
+            var typeString = nfCommon.formatClassName(dataContext);
             if (dataContext.bundle.version !== 'unversioned') {
                 typeString += (' ' + dataContext.bundle.version);
             }
