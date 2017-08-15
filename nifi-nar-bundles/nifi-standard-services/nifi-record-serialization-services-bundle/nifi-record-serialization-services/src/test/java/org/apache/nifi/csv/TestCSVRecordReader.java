@@ -29,11 +29,14 @@ import java.io.InputStream;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -42,6 +45,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -345,6 +349,69 @@ public class TestCSVRecordReader {
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
             Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    public void testRoughParseIgnoreEscapes() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<>();
+        for (final String fieldName : new String[] {"1","2","3"}) {
+            fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+        }
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        // For the following line to be accepted, we need to be able to have a custom format where no escape character is defined.
+        Assert.assertTrue("Must allow for escape character to be undefined!", !CSVUtils.ESCAPE_CHAR.isRequired());
+        final String inputRecord = "Hello,World,\"How \"\"are\"\" ， &$,\\you?\\\"";
+        final byte[] inputData = inputRecord.getBytes();
+
+        Map<PropertyDescriptor, String> configMap = new HashMap<>();
+        configMap.put(CSVUtils.ESCAPE_CHAR, null);
+
+        MockConfigurationContext mcc = new MockConfigurationContext(configMap, null);
+
+        CSVFormat formatFromConfig = CSVUtils.createCSVFormat(mcc);
+
+        try (final InputStream baos = new ByteArrayInputStream(inputData)) {
+            final CSVRecordReader reader = new CSVRecordReader(baos, Mockito.mock(ComponentLog.class), schema, formatFromConfig, false, false,
+                    RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"Hello", "World", "How \"are\" ， &$,\\you?\\"};
+            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testRoughParseNoQuote() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<>();
+        for (final String fieldName : new String[] {"1","2","3"}) {
+            fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+        }
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        // For the following line to be accepted, we need to be able to have a custom format where no escape character is defined.
+        Assert.assertTrue("Must allow for escape character to be undefined!", !CSVUtils.ESCAPE_CHAR.isRequired());
+        final String inputRecord = "Hello,World,How are ， &$\\,you?";
+        final byte[] inputData = inputRecord.getBytes();
+
+        Map<PropertyDescriptor, String> configMap = new HashMap<>();
+        configMap.put(CSVUtils.QUOTE_CHAR, null);
+
+        MockConfigurationContext mcc = new MockConfigurationContext(configMap, null);
+
+        CSVFormat formatFromConfig = CSVUtils.createCSVFormat(mcc);
+
+        try (final InputStream baos = new ByteArrayInputStream(inputData)) {
+            final CSVRecordReader reader = new CSVRecordReader(baos, Mockito.mock(ComponentLog.class), schema, formatFromConfig, false, false,
+                    RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"Hello", "World", "How are ， &$,you?"};
+            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
 
             assertNull(reader.nextRecord());
         }

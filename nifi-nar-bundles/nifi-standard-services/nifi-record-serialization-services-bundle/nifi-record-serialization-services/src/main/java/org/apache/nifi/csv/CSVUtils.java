@@ -60,7 +60,7 @@ public class CSVUtils {
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(false)
         .defaultValue("\"")
-        .required(true)
+        .required(false)
         .build();
     static final PropertyDescriptor FIRST_LINE_IS_HEADER = new PropertyDescriptor.Builder()
         .name("Skip Header Line")
@@ -100,7 +100,7 @@ public class CSVUtils {
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(false)
         .defaultValue("\\")
-        .required(true)
+        .required(false)
         .build();
     static final PropertyDescriptor NULL_STRING = new PropertyDescriptor.Builder()
         .name("Null String")
@@ -199,8 +199,14 @@ public class CSVUtils {
             format = format.withFirstRecordAsHeader();
         }
 
-        format = format.withQuote(getChar(context, QUOTE_CHAR));
-        format = format.withEscape(getChar(context, ESCAPE_CHAR));
+        if (context.getProperty(QUOTE_CHAR).isSet()) {
+            format = format.withQuote(getChar(context, QUOTE_CHAR));
+        }
+
+        if (context.getProperty(ESCAPE_CHAR).isSet()) {
+            format = format.withEscape(getChar(context, ESCAPE_CHAR));
+        }
+
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
