@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Map;
 
@@ -105,7 +106,16 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
 
     @Override
     public RepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, RepositoryRecord> currentRecordStates, final int version) throws IOException {
-        return deserializeRecord(in, version);
+        final RepositoryRecord record = deserializeRecord(in, version);
+        if (record != null) {
+            return record;
+        }
+
+        // deserializeRecord may return a null if there is no more data. However, when we are deserializing
+        // an edit, we do so only when we know that we should have data. This is why the JavaDocs for this method
+        // on the interface indicate that this method should never return null. As a result, if there is no data
+        // available, we handle this by throwing an EOFException.
+        throw new EOFException();
     }
 
     @Override
