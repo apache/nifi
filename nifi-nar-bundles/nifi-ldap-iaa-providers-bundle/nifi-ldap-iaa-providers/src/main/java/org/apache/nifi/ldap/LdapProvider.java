@@ -38,11 +38,10 @@ import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.encoding.LdapShaPasswordEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.ldap.authentication.AbstractLdapAuthenticationProvider;
-import org.springframework.security.ldap.authentication.BindAuthenticator;
-import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.authentication.*;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
@@ -193,8 +192,41 @@ public class LdapProvider implements LoginIdentityProvider {
 
         final LdapUserSearch userSearch = new FilterBasedLdapUserSearch(userSearchBase, userSearchFilter, context);
 
-        // bind
-        final BindAuthenticator authenticator = new BindAuthenticator(context);
+
+        String rawAuthenticatorType = configurationContext.getProperty("Authenticator Type");
+        AuthenticatorType authenticatorType;
+
+        if (StringUtils.isBlank(rawAuthenticatorType))
+        {
+            logger.info(String.format("Authenticator Type is not configured, defaulting type to %s.", new Object[] { AuthenticatorType.BIND }));
+
+            authenticatorType = AuthenticatorType.BIND;
+        }
+        else
+        {
+            try
+            {
+                authenticatorType = AuthenticatorType.valueOf(rawAuthenticatorType);
+            }
+            catch (IllegalArgumentException iae)
+            {
+                throw new ProviderCreationException(String.format("Unrecognized authenticator type '%s'. Possible values are [%s]", new Object[] { rawAuthenticatorType,
+                        StringUtils.join(AuthenticatorType.values(), ", ") }));
+            }
+        }
+
+        AbstractLdapAuthenticator authenticator;
+
+        if (authenticatorType == AuthenticatorType.BIND)
+        {
+            authenticator = new BindAuthenticator(context);
+        }
+        else
+        {
+            authenticator = new PasswordComparisonAuthenticator(context);
+            ((PasswordComparisonAuthenticator)authenticator).setPasswordEncoder(new LdapShaPasswordEncoder());
+        }
+
         authenticator.setUserSearch(userSearch);
 
         // identity strategy
