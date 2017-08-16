@@ -265,8 +265,8 @@ subject exists and `false` otherwise.#
 
 [.function]
 === isEmpty
-*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null or contains only white-space
-	(new line, carriage return, space, tab), `false` otherwise.#
+*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null, does not contain any characters 
+	or contains only white-space (new line, carriage return, space, tab), `false` otherwise.#
 
 *Subject Type*: [.subject]#String#
 
@@ -275,7 +275,7 @@ subject exists and `false` otherwise.#
 *Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${filename:isEmpty()}` returns `true` if the "filename" attribute does not exist or contains only
-	white space.
+	white space. `${literal(" "):isEmpty()}` returns true as well as `${literal(""):isEmpty()}`.
 
 
 
@@ -2066,7 +2066,7 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === allAttributes
 
-*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+*Description*: [.description]#Checks to see if all of the given attributes match the given condition. This function has no subject and takes one or more
 	arguments that are the names of attributes to which the remainder of the Expression is to be applied. If all of the attributes specified,
 	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
 	will return `false`.#
