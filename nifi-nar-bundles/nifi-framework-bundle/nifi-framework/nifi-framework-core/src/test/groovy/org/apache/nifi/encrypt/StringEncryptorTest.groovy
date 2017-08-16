@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -72,6 +73,7 @@ class StringEncryptorTest {
     private static final NiFiProperties STANDARD_PROPERTIES = new StandardNiFiProperties(new Properties(RAW_PROPERTIES))
 
     private static final byte[] DEFAULT_SALT = new byte[8]
+    private static final byte[] DEFAULT_IV = new byte[16]
     private static final int DEFAULT_ITERATION_COUNT = 0
 
     @BeforeClass
@@ -108,8 +110,19 @@ class StringEncryptorTest {
         cipher
     }
 
+    private
+    static Cipher generateKeyedCipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String keyHex = KEY_HEX, byte[] iv = DEFAULT_IV) {
+        // TODO: Extract cipher family from EncryptionMethod, but currently only AES ciphers are supported
+       SecretKey tempKey = new SecretKeySpec(Hex.decodeHex(keyHex as char[]), "AES")
+
+        IvParameterSpec ivSpec = new IvParameterSpec(iv)
+        Cipher cipher = Cipher.getInstance(em.algorithm, em.provider)
+        cipher.init((encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE) as int, tempKey, ivSpec)
+        cipher
+    }
+
     @Test
-    void testEncryptionShouldBeInternallyConsistent() throws Exception {
+    void testPBEncryptionShouldBeInternallyConsistent() throws Exception {
         // Arrange
         final String plaintext = "This is a plaintext message."
 
@@ -131,7 +144,7 @@ class StringEncryptorTest {
     }
 
     @Test
-    void testEncryptionShouldBeExternallyConsistent() throws Exception {
+    void testPBEncryptionShouldBeExternallyConsistent() throws Exception {
         // Arrange
         final String plaintext = "This is a plaintext message."
 
@@ -156,6 +169,61 @@ class StringEncryptorTest {
             byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
             byte[] saltAndCipherBytes = CryptoUtils.concatByteArrays(salt, cipherBytes)
             String cipherTextHex = Hex.encodeHexString(saltAndCipherBytes)
+            logger.info("Cipher text: ${cipherTextHex}")
+
+            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+
+            // Act
+            String recovered = encryptor.decrypt(cipherTextHex)
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert plaintext == recovered
+        }
+    }
+
+    @Ignore("Jasypt does not support keyed encryption")
+    @Test
+    void testKeyedEncryptionShouldBeInternallyConsistent() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        // Act
+        for (EncryptionMethod em : keyedEncryptionMethods) {
+            logger.info("Using algorithm: ${em.getAlgorithm()}")
+            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+
+            String cipherText = encryptor.encrypt(plaintext)
+            logger.info("Cipher text: ${cipherText}")
+
+            String recovered = encryptor.decrypt(cipherText)
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert plaintext == recovered
+        }
+    }
+
+    @Ignore("Jasypt does not support keyed encryption")
+    @Test
+    void testKeyedEncryptionShouldBeExternallyConsistent() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        for (EncryptionMethod em : keyedEncryptionMethods) {
+
+            // Hard-coded 0x00 * 16
+            byte[] iv = new byte[16]
+            logger.info("Using algorithm: ${em.getAlgorithm()} with ${iv.length} byte IV")
+
+            // Encrypt the value manually
+            Cipher cipher = generateKeyedCipher(true, em, KEY_HEX, iv)
+
+            byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
+            byte[] ivAndCipherBytes = CryptoUtils.concatByteArrays(iv, cipherBytes)
+            String cipherTextHex = Hex.encodeHexString(ivAndCipherBytes)
             logger.info("Cipher text: ${cipherTextHex}")
 
             NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
