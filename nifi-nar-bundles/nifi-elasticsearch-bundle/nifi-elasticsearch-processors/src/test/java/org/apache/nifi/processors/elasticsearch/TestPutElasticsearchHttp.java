@@ -499,4 +499,58 @@ public class TestPutElasticsearchHttp {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 100);
     }
+
+    @Test
+    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
+    public void testPutElasticSearchBasicBehindProxy() {
+        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+        runner.setValidateExpressionUsage(false);
+
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+
+        runner.setProperty(PutElasticsearchHttp.PROXY_HOST, "localhost");
+        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, "3228");
+        runner.setProperty(PutElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+
+        runner.enqueue(docExample);
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+    }
+
+    @Test
+    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
+    public void testPutElasticSearchBasicBehindAuthenticatedProxy() {
+        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+        runner.setValidateExpressionUsage(false);
+
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+
+        runner.setProperty(PutElasticsearchHttp.PROXY_HOST, "localhost");
+        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, "3328");
+        runner.setProperty(PutElasticsearchHttp.PROXY_USERNAME, "squid");
+        runner.setProperty(PutElasticsearchHttp.PROXY_PASSWORD, "changeme");
+        runner.setProperty(PutElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
+
+
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+
+        runner.enqueue(docExample);
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+    }
 }
