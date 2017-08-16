@@ -113,7 +113,7 @@ class StringEncryptorTest {
     private
     static Cipher generateKeyedCipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String keyHex = KEY_HEX, byte[] iv = DEFAULT_IV) {
         // TODO: Extract cipher family from EncryptionMethod, but currently only AES ciphers are supported
-       SecretKey tempKey = new SecretKeySpec(Hex.decodeHex(keyHex as char[]), "AES")
+        SecretKey tempKey = new SecretKeySpec(Hex.decodeHex(keyHex as char[]), "AES")
 
         IvParameterSpec ivSpec = new IvParameterSpec(iv)
         Cipher cipher = Cipher.getInstance(em.algorithm, em.provider)
@@ -311,5 +311,24 @@ class StringEncryptorTest {
                 assert plaintext.equals(recovered)
             }
         }
+    }
+
+    @Test
+    void testStringEncryptorShouldNotBeFinal() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        StringEncryptor mockEncryptor = [encrypt: { String pt -> pt.reverse() },
+                                         decrypt: { String ct -> ct.reverse() }] as StringEncryptor
+
+        // Act
+        String cipherText = mockEncryptor.encrypt(plaintext)
+        logger.info("Encrypted ${plaintext} to ${cipherText}")
+        String recovered = mockEncryptor.decrypt(cipherText)
+        logger.info("Decrypted ${cipherText} to ${recovered}")
+
+        // Assert
+        assert recovered == plaintext
+        assert cipherText != plaintext
     }
 }

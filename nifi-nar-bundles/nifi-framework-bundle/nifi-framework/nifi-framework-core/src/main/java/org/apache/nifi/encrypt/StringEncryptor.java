@@ -50,7 +50,7 @@ import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
  * </p>
  *
  */
-public final class StringEncryptor {
+public class StringEncryptor {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -63,13 +63,17 @@ public final class StringEncryptor {
     private static final String TEST_PLAINTEXT = "this is a test";
     private final StandardPBEStringEncryptor encryptor;
 
-    private StringEncryptor(final String aglorithm, final String provider, final String key) {
+    public StringEncryptor(final String algorithm, final String provider, final String key) {
         encryptor = new StandardPBEStringEncryptor();
-        encryptor.setAlgorithm(aglorithm);
+        encryptor.setAlgorithm(algorithm);
         encryptor.setProviderName(provider);
         encryptor.setPassword(key);
         encryptor.setStringOutputType("hexadecimal");
         encryptor.initialize();
+    }
+
+    protected StringEncryptor() {
+        encryptor = null;
     }
 
     /**
@@ -90,15 +94,15 @@ public final class StringEncryptor {
         final String sensitivePropValueNifiPropVar = niFiProperties.getProperty(NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
 
         if (StringUtils.isBlank(sensitivePropAlgorithmVal)) {
-            throw new EncryptionException(NF_SENSITIVE_PROPS_ALGORITHM + "must bet set");
+            throw new EncryptionException(NF_SENSITIVE_PROPS_ALGORITHM + "must be set");
         }
 
         if (StringUtils.isBlank(sensitivePropProviderVal)) {
-            throw new EncryptionException(NF_SENSITIVE_PROPS_PROVIDER + "must bet set");
+            throw new EncryptionException(NF_SENSITIVE_PROPS_PROVIDER + "must be set");
         }
 
         if (StringUtils.isBlank(sensitivePropValueNifiPropVar)) {
-            throw new EncryptionException(NF_SENSITIVE_PROPS_KEY + "must bet set");
+            throw new EncryptionException(NF_SENSITIVE_PROPS_KEY + "must be set");
         }
 
         final StringEncryptor nifiEncryptor;
