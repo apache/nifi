@@ -211,7 +211,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.addAll(propertyDescriptors);
+        return properties;
     }
 
     @OnScheduled
