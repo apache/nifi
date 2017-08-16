@@ -18,6 +18,7 @@ package org.apache.nifi.encrypt
 
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider
@@ -36,6 +37,9 @@ import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.PBEParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.security.SecureRandom
 import java.security.Security
@@ -67,6 +71,9 @@ class StringEncryptorTest {
     final Map RAW_PROPERTIES = [(ALGORITHM): DEFAULT_ALGORITHM, (PROVIDER): DEFAULT_PROVIDER, (KEY): DEFAULT_PASSWORD]
     private static final NiFiProperties STANDARD_PROPERTIES = new StandardNiFiProperties(new Properties(RAW_PROPERTIES))
 
+    private static final byte[] DEFAULT_SALT = new byte[8]
+    private static final int DEFAULT_ITERATION_COUNT = 0
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
@@ -88,6 +95,19 @@ class StringEncryptorTest {
         Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
+    private
+    static Cipher generateCipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String password = DEFAULT_PASSWORD, byte[] salt = DEFAULT_SALT, int iterationCount = DEFAULT_ITERATION_COUNT) {
+        // Initialize secret key from password
+        final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray())
+        final SecretKeyFactory factory = SecretKeyFactory.getInstance(em.algorithm, em.provider)
+        SecretKey tempKey = factory.generateSecret(pbeKeySpec)
+
+        final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, iterationCount)
+        Cipher cipher = Cipher.getInstance(em.algorithm, em.provider)
+        cipher.init((encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE) as int, tempKey, parameterSpec)
+        cipher
+    }
+
     @Test
     void testEncryptionShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -103,6 +123,50 @@ class StringEncryptorTest {
             logger.info("Cipher text: ${cipherText}")
 
             String recovered = encryptor.decrypt(cipherText)
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert plaintext == recovered
+        }
+    }
+
+    @Test
+    void testEncryptionShouldBeExternallyConsistent() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        def encryptionMethods = pbeEncryptionMethods
+
+        // Failing EM
+//        encryptionMethods = [EncryptionMethod.SHA_128AES]
+        for (EncryptionMethod em : encryptionMethods) {
+            // Encrypt the value manually
+
+            // Hard-coded 0x00 * 16
+            byte[] salt = new byte[16]
+            int iterationCount = DEFAULT_ITERATION_COUNT
+            // DES/RC* algorithms use 8 byte salts and custom iteration counts
+            if (em.algorithm =~ "DES|RC") {
+                salt = new byte[8]
+                iterationCount = 1000
+            } else if (em.algorithm =~ "SHAA|SHA256") {
+                // SHA-1/-256 use 16 byte salts but custom iteration counts
+                iterationCount = 1000
+            }
+            logger.info("Using algorithm: ${em.getAlgorithm()} with ${salt.length} byte salt and ${iterationCount} iterations")
+
+            Cipher cipher = generateCipher(true, em, DEFAULT_PASSWORD, salt, iterationCount)
+
+            byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
+            byte[] saltAndCipherBytes = CryptoUtils.concatByteArrays(salt, cipherBytes)
+            String cipherTextHex = Hex.encodeHexString(saltAndCipherBytes)
+            logger.info("Cipher text: ${cipherTextHex}")
+
+            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+
+            // Act
+            String recovered = encryptor.decrypt(cipherTextHex)
             logger.info("Recovered: ${recovered}")
 
             // Assert
