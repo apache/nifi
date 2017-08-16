@@ -135,12 +135,7 @@ class StringEncryptorTest {
         // Arrange
         final String plaintext = "This is a plaintext message."
 
-        def encryptionMethods = pbeEncryptionMethods
-
-        // Failing EM
-//        encryptionMethods = [EncryptionMethod.SHA_128AES]
-        for (EncryptionMethod em : encryptionMethods) {
-            // Encrypt the value manually
+        for (EncryptionMethod em : pbeEncryptionMethods) {
 
             // Hard-coded 0x00 * 16
             byte[] salt = new byte[16]
@@ -155,6 +150,7 @@ class StringEncryptorTest {
             }
             logger.info("Using algorithm: ${em.getAlgorithm()} with ${salt.length} byte salt and ${iterationCount} iterations")
 
+            // Encrypt the value manually
             Cipher cipher = generateCipher(true, em, DEFAULT_PASSWORD, salt, iterationCount)
 
             byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
