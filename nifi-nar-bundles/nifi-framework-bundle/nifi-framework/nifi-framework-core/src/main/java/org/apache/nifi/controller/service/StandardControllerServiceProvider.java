@@ -540,7 +540,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             serviceNodes = flowController.getRootControllerServices();
         } else {
             ProcessGroup group = getRootGroup();
-            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) || !group.getIdentifier().equals(groupId)) {
+            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
                 group = group.findProcessGroup(groupId);
             }
 
