@@ -586,7 +586,7 @@
         });
 
         // query for the bulletins
-        queryBulletins(referencingComponentIds).done(function (response) {
+        nfCanvasUtils.queryBulletins(referencingComponentIds).done(function (response) {
             var bulletins = response.bulletinBoard.bulletins;
             updateReferencingComponentBulletins(bulletins);
         });
@@ -620,25 +620,6 @@
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Unauthorized', unauthorized);
-    };
-
-    /**
-     * Queries for bulletins for the specified components.
-     *
-     * @param {array} componentIds
-     * @returns {deferred}
-     */
-    var queryBulletins = function (componentIds) {
-        var ids = componentIds.join('|');
-
-        return $.ajax({
-            type: 'GET',
-            url: '../nifi-api/flow/bulletin-board',
-            data: {
-                sourceId: ids
-            },
-            dataType: 'json'
-        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -688,7 +669,7 @@
                         return service.state === 'DISABLED';
                     }
                 }, function (service) {
-                    return queryBulletins([service.id]);
+                    return nfCanvasUtils.queryBulletins([service.id]);
                 }, pollCondition);
 
                 // once the service has updated, resolve and render the updated service
@@ -961,7 +942,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1006,7 +987,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1051,7 +1032,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1164,7 +1145,7 @@
         $('#disable-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
 
         // load the bulletins
-        queryBulletins([controllerService.id]).done(function (response) {
+        nfCanvasUtils.queryBulletins([controllerService.id]).done(function (response) {
             updateBulletins(response.bulletinBoard.bulletins, $('#disable-controller-service-bulletins'));
         });
 
@@ -1216,7 +1197,7 @@
         $('#enable-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
 
         // load the bulletins
-        queryBulletins([controllerService.id]).done(function (response) {
+        nfCanvasUtils.queryBulletins([controllerService.id]).done(function (response) {
             updateBulletins(response.bulletinBoard.bulletins, $('#enable-controller-service-bulletins'));
         });
 

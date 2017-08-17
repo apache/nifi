@@ -129,6 +129,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/reporting-task-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/variable-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/override-policy-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>
