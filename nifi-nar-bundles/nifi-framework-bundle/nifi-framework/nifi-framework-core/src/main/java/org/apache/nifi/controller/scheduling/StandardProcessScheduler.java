@@ -538,7 +538,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service) {
-        LOG.info("Enabling {}", service);
+        LOG.info("Enabling " + service);
         return service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis);
     }
 
