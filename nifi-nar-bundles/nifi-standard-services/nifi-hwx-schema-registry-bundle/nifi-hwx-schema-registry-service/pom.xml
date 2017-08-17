@@ -58,7 +58,7 @@ limitations under the License.
         <dependency>
             <groupId>com.hortonworks.registries</groupId>
             <artifactId>schema-registry-client</artifactId>
-			<version>0.2.1</version>
+			<version>${hwx.registry.version}</version>
 			<exclusions>
                 <exclusion>
                     <groupId>org.apache.avro</groupId>
