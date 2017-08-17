@@ -17,18 +17,16 @@
 
 package org.apache.nifi.web.api.dto;
 
-import java.util.Set;
-
-import javax.xml.bind.annotation.XmlType;
-
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.VariableEntity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 @XmlType(name = "variableRegistry")
 public class VariableRegistryDTO {
     private Set<VariableEntity> variables;
-    private String groupId;
+    private String processGroupId;
 
     public void setVariables(final Set<VariableEntity> variables) {
         this.variables = variables;
@@ -39,12 +37,12 @@ public class VariableRegistryDTO {
         return variables;
     }
 
-    public void setProcessGroupId(final String groupId) {
-        this.groupId = groupId;
+    public void setProcessGroupId(final String processGroupId) {
+        this.processGroupId = processGroupId;
     }
 
     @ApiModelProperty("The UUID of the Process Group that this Variable Registry belongs to")
     public String getProcessGroupId() {
-        return groupId;
+        return processGroupId;
     }
 }

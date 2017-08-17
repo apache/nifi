@@ -17,27 +17,27 @@
 
 package org.apache.nifi.web.api.dto;
 
-import java.util.Date;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.apache.nifi.web.api.dto.util.TimestampAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 @XmlType(name = "variableRegistryUpdateRequest")
 public class VariableRegistryUpdateRequestDTO {
     private String requestId;
     private String processGroupId;
     private String uri;
-    private Date submissionTime = new Date();
-    private Date lastUpdated = new Date();
+    private Date submissionTime;
+    private Date lastUpdated;
     private boolean complete = false;
     private String failureReason;
     private List<VariableRegistryUpdateStepDTO> updateSteps;
-
+    private Set<AffectedComponentEntity> affectedComponents;
 
     @ApiModelProperty("The unique ID of the Process Group that the variable registry belongs to")
     public String getProcessGroupId() {
@@ -111,5 +111,14 @@ public class VariableRegistryUpdateRequestDTO {
 
     public void setFailureReason(String reason) {
         this.failureReason = reason;
+    }
+
+    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", readOnly = true)
+    public Set<AffectedComponentEntity> getAffectedComponents() {
+        return affectedComponents;
+    }
+
+    public void setAffectedComponents(Set<AffectedComponentEntity> affectedComponents) {
+        this.affectedComponents = affectedComponents;
     }
 }
