@@ -106,6 +106,7 @@
         <hive.hadoop.version>2.6.2</hive.hadoop.version>
         <hbase.version>1.1.2</hbase.version>
         <storm.version>1.0.1</storm.version>
+        <hwx.registry.version>0.3.0</hwx.registry.version>
     </properties>
 
     <repositories>

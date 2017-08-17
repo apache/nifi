@@ -98,7 +98,7 @@ public class TestHortonworksSchemaRegistry {
     @Test
     public void testCacheUsed() throws Exception {
         final String text = new String(Files.readAllBytes(Paths.get("src/test/resources/empty-schema.avsc")));
-        final SchemaVersionInfo info = new SchemaVersionInfo(1, text, 2L, "description");
+        final SchemaVersionInfo info = new SchemaVersionInfo(1L, "unit-test", 2, text, System.currentTimeMillis(), "description");
         schemaVersionInfoMap.put("unit-test", info);
 
         final SchemaMetadata metadata = new SchemaMetadata.Builder("unit-test")
@@ -135,7 +135,7 @@ public class TestHortonworksSchemaRegistry {
     @Ignore("This can be useful for manual testing/debugging, but will keep ignored for now because we don't want automated builds to run this, since it depends on timing")
     public void testCacheExpires() throws Exception {
         final String text = new String(Files.readAllBytes(Paths.get("src/test/resources/empty-schema.avsc")));
-        final SchemaVersionInfo info = new SchemaVersionInfo(1, text, 2L, "description");
+        final SchemaVersionInfo info = new SchemaVersionInfo(1L, "unit-test", 2,  text, System.currentTimeMillis(), "description");
         schemaVersionInfoMap.put("unit-test", info);
 
         final SchemaMetadata metadata = new SchemaMetadata.Builder("unit-test")
