@@ -29,6 +29,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 
 import java.net.URL;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import java.util.Set;
 
 public interface ConfiguredComponent extends ComponentAuthorizable {
 
+    @Override
     public String getIdentifier();
 
     public String getName();
@@ -98,6 +100,11 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
      * @return whether or not the underlying implementation is deprecated
      */
     boolean isDeprecated();
+
+    /**
+     * @return the variable registry for this component
+     */
+    ComponentVariableRegistry getVariableRegistry();
 
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {

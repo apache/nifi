@@ -36,6 +36,8 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.NiFiProperties;
@@ -61,6 +63,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
@@ -118,6 +121,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -388,7 +392,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get all the controller services
-        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(null);
+        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(null, false, false);
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
@@ -426,11 +430,10 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getControllerServicesFromGroup(
-            @ApiParam(
-                    value = "The process group id.",
-                    required = true
-            )
-            @PathParam("id") String groupId) throws InterruptedException {
+            @ApiParam(value = "The process group id.", required = true) @PathParam("id") String groupId,
+            @ApiParam("Whether or not to include parent/ancestory process groups") @QueryParam("includeAncestorGroups") @DefaultValue("true") boolean includeAncestorGroups,
+            @ApiParam("Whether or not to include descendant process groups") @QueryParam("includeDescendantGroups") @DefaultValue("false") boolean includeDescendantGroups
+            ) throws InterruptedException {
 
         authorizeFlow();
 
@@ -439,7 +442,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get all the controller services
-        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
+        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
@@ -512,7 +515,7 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
     @ApiOperation(
-            value = "Schedule or unschedule comopnents in the specified Process Group.",
+            value = "Schedule or unschedule components in the specified Process Group.",
             response = ScheduleComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow", type = ""),
@@ -570,7 +573,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
-                        .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
                         .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
@@ -578,7 +581,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
-                        .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
                         .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
@@ -586,7 +589,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
-                        .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
                         .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
@@ -640,7 +643,129 @@ public class FlowResource extends ApplicationResource {
                             componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
 
                     // update the process group
-                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/controller-services")
+    @ApiOperation(value = "Enable or disable Controller Services in the specified Process Group.",
+        response = ActivateControllerServicesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow", type = ""),
+            @Authorization(value = "Write - /{component-type}/{uuid} - For every service being enabled/disabled", type = "")
+        })
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response activateControllerServices(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(value = "The process group id.", required = true)
+            @PathParam("id") String id,
+            @ApiParam(value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
+            final ActivateControllerServicesEntity requestEntity) {
+
+        // ensure the same id is being used
+        if (!id.equals(requestEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                + "not equal the process group id of the requested resource (%s).", requestEntity.getId(), id));
+        }
+
+        final ControllerServiceState state;
+        if (requestEntity.getState() == null) {
+            throw new IllegalArgumentException("The controller service state must be specified.");
+        } else {
+            try {
+                state = ControllerServiceState.valueOf(requestEntity.getState());
+            } catch (final IllegalArgumentException iae) {
+                throw new IllegalArgumentException(String.format("The controller service state must be one of [%s].",
+                    StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
+            }
+        }
+
+        // ensure its a supported scheduled state
+        if (ControllerServiceState.DISABLING.equals(state) || ControllerServiceState.ENABLING.equals(state)) {
+            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
+        }
+
+        // if the components are not specified, gather all components and their current revision
+        if (requestEntity.getComponents() == null) {
+            // get the current revisions for the components being updated
+            final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
+                final Set<String> componentIds = new HashSet<>();
+
+                final Predicate<ControllerServiceNode> filter;
+                if (ControllerServiceState.ENABLED.equals(state)) {
+                    filter = service -> !service.isActive() && service.isValid();
+                } else {
+                    filter = service -> service.isActive();
+                }
+
+                group.findAllControllerServices().stream()
+                    .filter(filter)
+                    .filter(service -> service.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                    .forEach(service -> componentIds.add(service.getIdentifier()));
+                return componentIds;
+            });
+
+            // build the component mapping
+            final Map<String, RevisionDTO> componentsToSchedule = new HashMap<>();
+            revisions.forEach(revision -> {
+                final RevisionDTO dto = new RevisionDTO();
+                dto.setClientId(revision.getClientId());
+                dto.setVersion(revision.getVersion());
+                componentsToSchedule.put(revision.getComponentId(), dto);
+            });
+
+            // set the components and their current revision
+            requestEntity.setComponents(componentsToSchedule);
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestEntity);
+        }
+
+        final Map<String, RevisionDTO> requestComponentsToSchedule = requestEntity.getComponents();
+        final Map<String, Revision> requestComponentRevisions =
+                requestComponentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> requestRevisions = new HashSet<>(requestComponentRevisions.values());
+
+        return withWriteLock(
+                serviceFacade,
+                requestEntity,
+                requestRevisions,
+                lookup -> {
+                    // ensure access to the flow
+                    authorizeFlow();
+
+                    // ensure access to every component being scheduled
+                    requestComponentsToSchedule.keySet().forEach(componentId -> {
+                        final Authorizable authorizable = lookup.getControllerService(componentId).getAuthorizable();
+                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    });
+                },
+                () -> serviceFacade.verifyActivateControllerServices(id, state, requestComponentRevisions.keySet()),
+                (revisions, scheduleComponentsEntity) -> {
+                final ControllerServiceState serviceState = ControllerServiceState.valueOf(scheduleComponentsEntity.getState());
+
+                    final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
+                    final Map<String, Revision> componentRevisions =
+                            componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+
+                    // update the controller services
+                final ActivateControllerServicesEntity entity = serviceFacade.activateControllerServices(id, serviceState, componentRevisions);
                     return generateOkResponse(entity).build();
                 }
         );

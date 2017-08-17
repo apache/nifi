@@ -16,6 +16,24 @@
  */
 package org.apache.nifi.fingerprint;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -37,23 +55,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -324,7 +325,20 @@ public class FingerprintFactory {
             addFunnelFingerprint(builder, funnelElem);
         }
 
+        // add variables
+        final NodeList variableElems = DomUtils.getChildNodesByTagName(processGroupElem, "variable");
+        final List<Element> sortedVarList = sortElements(variableElems, getVariableNameComparator());
+        for (final Element varElem : sortedVarList) {
+            addVariableFingerprint(builder, varElem);
+        }
+
         return builder;
+    }
+
+    private void addVariableFingerprint(final StringBuilder builder, final Element variableElement) {
+        final String variableName = variableElement.getAttribute("name");
+        final String variableValue = variableElement.getAttribute("value");
+        builder.append(variableName).append("=").append(variableValue);
     }
 
     private StringBuilder addFlowFileProcessorFingerprint(final StringBuilder builder, final Element processorElem) throws FingerprintException {
@@ -658,6 +672,27 @@ public class FingerprintFactory {
                 final String e1Id = getFirstValue(DomUtils.getChildNodesByTagName(e1, "id"));
                 final String e2Id = getFirstValue(DomUtils.getChildNodesByTagName(e2, "id"));
                 return e1Id.compareTo(e2Id);
+            }
+        };
+    }
+
+    private Comparator<Element> getVariableNameComparator() {
+        return new Comparator<Element>() {
+            @Override
+            public int compare(final Element e1, final Element e2) {
+                if (e1 == null && e2 == null) {
+                    return 0;
+                }
+                if (e1 == null) {
+                    return 1;
+                }
+                if (e2 == null) {
+                    return -1;
+                }
+
+                final String varName1 = e1.getAttribute("name");
+                final String varName2 = e2.getAttribute("name");
+                return varName1.compareTo(varName2);
             }
         };
     }

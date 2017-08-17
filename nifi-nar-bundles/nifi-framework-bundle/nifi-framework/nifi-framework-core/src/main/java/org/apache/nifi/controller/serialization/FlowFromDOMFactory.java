@@ -144,6 +144,16 @@ public class FlowFromDOMFactory {
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setComments(getString(element, "comment"));
 
+        final Map<String, String> variables = new HashMap<>();
+        final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
+        for (int i = 0; i < variableList.getLength(); i++) {
+            final Element variableElement = (Element) variableList.item(i);
+            final String name = variableElement.getAttribute("name");
+            final String value = variableElement.getAttribute("value");
+            variables.put(name, value);
+        }
+        dto.setVariables(variables);
+
         final Set<ProcessorDTO> processors = new HashSet<>();
         final Set<ConnectionDTO> connections = new HashSet<>();
         final Set<FunnelDTO> funnels = new HashSet<>();

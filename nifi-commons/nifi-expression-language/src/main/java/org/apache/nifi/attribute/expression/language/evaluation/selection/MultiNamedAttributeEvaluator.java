@@ -66,4 +66,8 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     public Evaluator<?> getLogicEvaluator() {
         return this;
     }
+
+    public List<String> getAttributeNames() {
+        return attributeNames;
+    }
 }

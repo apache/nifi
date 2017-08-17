@@ -103,6 +103,18 @@ public class NiFiServiceFacadeLock {
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* activate*(..))")
+    public Object activateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* populate*(..))")
+    public Object populateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* get*(..))")
     public Object getLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
