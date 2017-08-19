@@ -1813,6 +1813,8 @@
                 currentTable = serviceTable;
             }
             var controllerServiceDialog = $('#controller-service-configuration');
+
+            controllerServiceDialog.find('.dialog-header .dialog-header-text').text('Configure Controller Service');
             if (controllerServiceDialog.data('mode') !== config.edit || currentTable !== serviceTable) {
                 // update the visibility
                 $('#controller-service-configuration .controller-service-read-only').hide();
@@ -2014,6 +2016,8 @@
          */
         showDetails: function (serviceTable, controllerServiceEntity) {
             var controllerServiceDialog = $('#controller-service-configuration');
+
+            controllerServiceDialog.find('.dialog-header .dialog-header-text').text('Controller Service Details');
             if (controllerServiceDialog.data('mode') !== config.readOnly) {
                 // update the visibility
                 $('#controller-service-configuration .controller-service-read-only').show();

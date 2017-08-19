@@ -783,11 +783,9 @@
             if (!dataContext.permissions.canRead) {
                 return '';
             }
-            
-            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
+            var markup = '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
@@ -855,9 +853,10 @@
 
                 if (definedByCurrentGroup === true) {
                     if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
+                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Details" style="margin-top: 2px; margin-right: 3px;" ></div>';
                         markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
                     } else if (dataContext.component.state === 'DISABLED') {
-                        markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                        markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                         // if there are no validation errors allow enabling
                         if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
@@ -985,6 +984,8 @@
             if (controllerServicesGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-controller-service')) {
                     nfControllerService.showConfiguration(serviceTable, controllerServiceEntity);
+                } else if (target.hasClass('view-controller-service')) {
+                    nfControllerService.showDetails(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('enable-controller-service')) {
                     nfControllerService.enable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('disable-controller-service')) {
@@ -1021,9 +1022,7 @@
                     });
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
-                if (target.hasClass('view-controller-service')) {
-                    nfControllerService.showDetails(serviceTable, controllerServiceEntity);
-                } else if (target.hasClass('controller-service-usage')) {
+                if (target.hasClass('controller-service-usage')) {
                      // close the settings dialog
                      $('#shell-close-button').click();
 
@@ -1033,7 +1032,7 @@
                             group: controllerServiceEntity.component.bundle.group,
                             artifact: controllerServiceEntity.component.bundle.artifact,
                             version: controllerServiceEntity.component.bundle.version
-                     })).done(function() {
+                    })).done(function() {
                          if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
                              var groupId;
                              var processGroup = nfProcessGroup.get(controllerServiceEntity.component.parentGroupId);
@@ -1048,8 +1047,8 @@
                          } else {
                              showSettings();
                          }
-                     });
-                 }
+                    });
+                }
             }
         });
 
