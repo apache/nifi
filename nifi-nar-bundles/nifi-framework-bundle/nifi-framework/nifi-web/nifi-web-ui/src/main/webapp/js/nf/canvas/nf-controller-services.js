@@ -853,7 +853,7 @@
 
                 if (definedByCurrentGroup === true) {
                     if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Details" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration" style="margin-top: 2px; margin-right: 3px;" ></div>';
                         markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
                     } else if (dataContext.component.state === 'DISABLED') {
                         markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure" style="margin-top: 2px; margin-right: 3px;" ></div>';
