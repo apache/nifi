@@ -23,6 +23,7 @@ import org.apache.nifi.script.impl.GenericScriptRunner;
 import org.apache.nifi.script.impl.GroovyScriptRunner;
 import org.apache.nifi.script.impl.JavascriptScriptRunner;
 import org.apache.nifi.script.impl.JythonScriptRunner;
+import org.apache.nifi.script.impl.KotlinScriptRunner;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
@@ -60,6 +61,9 @@ public class ScriptRunnerFactory {
         }
         if ("ECMAScript".equals(scriptEngineName)) {
             return new JavascriptScriptRunner(scriptEngine, scriptToRun, null);
+        }
+        if ("Kotlin".equalsIgnoreCase(scriptEngineName)) {
+            return new KotlinScriptRunner(scriptEngine, scriptToRun, null);
         }
         return new GenericScriptRunner(scriptEngine, scriptToRun, null);
     }

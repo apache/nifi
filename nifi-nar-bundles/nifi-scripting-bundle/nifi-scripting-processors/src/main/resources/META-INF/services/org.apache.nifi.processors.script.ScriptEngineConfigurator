@@ -15,5 +15,6 @@
 
 org.apache.nifi.script.impl.ClojureScriptRunner
 org.apache.nifi.script.impl.JythonScriptRunner
+org.apache.nifi.script.impl.KotlinScriptRunner
 org.apache.nifi.script.impl.GroovyScriptRunner
 org.apache.nifi.script.impl.JavascriptScriptRunner
