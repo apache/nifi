@@ -80,7 +80,7 @@ public class TestWebSocketMessageRouter {
         try {
             router.sendMessage("session-2", sender -> sender.sendString("message"));
             fail("Should fail because there's no session with id session-2.");
-        } catch (IllegalStateException e) {
+        } catch (SessionNotFoundException e) {
         }
     }
 

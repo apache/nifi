@@ -26,7 +26,8 @@ public final class WebSocketProcessorAttributes{
     public static final String ATTR_WS_MESSAGE_TYPE = "websocket.message.type";
     public static final String ATTR_WS_LOCAL_ADDRESS = "websocket.local.address";
     public static final String ATTR_WS_REMOTE_ADDRESS = "websocket.remote.address";
-    public static final String ATTR_WS_BROADCAST = "websocket.broadcast";
+    public static final String ATTR_WS_BROADCAST_SUCCEEDED = "websocket.broadcast.succeeded";
+    public static final String ATTR_WS_BROADCAST_FAILED = "websocket.broadcast.failed";
 
     private WebSocketProcessorAttributes() {
     }

@@ -19,8 +19,8 @@ package org.apache.nifi.websocket;
 import org.apache.nifi.processor.Processor;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketMessageRouters {
@@ -64,12 +64,12 @@ public class WebSocketMessageRouters {
         router.deregisterProcessor(processor);
     }
 
-    public void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException {
+    public void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException, SessionNotFoundException {
         final WebSocketMessageRouter router = getRouterOrFail(endpointId);
         router.sendMessage(sessionId, sendMessage);
     }
 
-    public HashSet<String> getSessionIds(final String endpointId) throws WebSocketConfigurationException {
+    public Set<String> getSessionIds(final String endpointId) throws WebSocketConfigurationException {
         final WebSocketMessageRouter router = getRouterOrFail(endpointId);
         return router.getSessionIds();
     }
