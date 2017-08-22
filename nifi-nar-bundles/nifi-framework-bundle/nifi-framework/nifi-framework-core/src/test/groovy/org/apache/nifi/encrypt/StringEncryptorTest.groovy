@@ -45,6 +45,8 @@ import javax.crypto.spec.SecretKeySpec
 import java.security.SecureRandom
 import java.security.Security
 
+import static groovy.test.GroovyAssert.shouldFail
+
 @RunWith(JUnit4.class)
 class StringEncryptorTest {
     private static final Logger logger = LoggerFactory.getLogger(StringEncryptorTest.class)
@@ -330,5 +332,44 @@ class StringEncryptorTest {
         // Assert
         assert recovered == plaintext
         assert cipherText != plaintext
+    }
+
+    @Test
+    void testStringEncryptorShouldNotOperateIfNotInitialized() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        StringEncryptor uninitializedEncryptor = new StringEncryptor()
+
+        // Act
+        def encryptMsg = shouldFail(EncryptionException) {
+            String cipherText = uninitializedEncryptor.encrypt(plaintext)
+            logger.info("Encrypted ${plaintext} to ${cipherText}")
+        }
+        def decryptMsg = shouldFail(EncryptionException) {
+            String recovered = uninitializedEncryptor.decrypt(plaintext)
+            logger.info("Decrypted ${plaintext} to ${recovered}")
+        }
+
+        // Assert
+        assert encryptMsg =~ "encryptor is not initialized"
+        assert decryptMsg =~ "encryptor is not initialized"
+    }
+
+    @Test
+    void testStringEncryptorShouldDetermineIfInitialized() throws Exception {
+        // Arrange
+        StringEncryptor uninitializedEncryptor = new StringEncryptor()
+        StringEncryptor initializedEncryptor = new StringEncryptor()
+
+        // Act
+        boolean uninitializedIsInitialized = uninitializedEncryptor.isInitialized()
+        logger.info("Uninitialized encryptor is initialized: ${uninitializedIsInitialized}")
+        boolean initializedIsInitialized = initializedEncryptor.isInitialized()
+        logger.info("Initialized encryptor is initialized: ${initializedIsInitialized}")
+
+        // Assert
+        assert !uninitializedIsInitialized
+        assert initializedIsInitialized
     }
 }
