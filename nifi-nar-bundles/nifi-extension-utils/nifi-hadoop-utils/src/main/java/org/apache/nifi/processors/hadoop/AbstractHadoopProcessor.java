@@ -252,6 +252,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
         getConfigurationFromResources(config, configResources);
 
+        // give sub-classes a chance to process configuration
+        preProcessConfiguration(config, context);
+
         // first check for timeout on HDFS connection, because FileSystem has a hard coded 15 minute timeout
         checkHdfsUriForTimeout(config);
 
@@ -285,6 +288,17 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
 
         return new HdfsResources(config, fs, ugi);
+    }
+
+    /**
+     * This method will be called after the Configuration has been created, but before the FileSystem is created,
+     * allowing sub-classes to take further action on the Configuration before creating the FileSystem.
+     *
+     * @param config the Configuration that will be used to create the FileSystem
+     * @param context the context that can be used to retrieve additional values
+     */
+    protected void preProcessConfiguration(final Configuration config, final ProcessContext context) {
+
     }
 
     /**
