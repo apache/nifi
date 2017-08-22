@@ -210,14 +210,8 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
        return putHdfsRecordProperties;
     }
 
-
-    @OnScheduled
-    public final void onScheduled(final ProcessContext context) throws IOException {
-        super.abstractOnScheduled(context);
-
-        this.remoteOwner = context.getProperty(REMOTE_OWNER).getValue();
-        this.remoteGroup = context.getProperty(REMOTE_GROUP).getValue();
-
+    @Override
+    protected void preProcessConfiguration(Configuration config, ProcessContext context) {
         // Set umask once, to avoid thread safety issues doing it in onTrigger
         final PropertyValue umaskProp = context.getProperty(UMASK);
         final short dfsUmask;
@@ -226,8 +220,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         } else {
             dfsUmask = FsPermission.DEFAULT_UMASK;
         }
-        final Configuration conf = getConfiguration();
-        FsPermission.setUMask(conf, new FsPermission(dfsUmask));
+
+        FsPermission.setUMask(config, new FsPermission(dfsUmask));
+    }
+
+    @OnScheduled
+    public final void onScheduled(final ProcessContext context) throws IOException {
+        super.abstractOnScheduled(context);
+
+        this.remoteOwner = context.getProperty(REMOTE_OWNER).getValue();
+        this.remoteGroup = context.getProperty(REMOTE_GROUP).getValue();
     }
 
     /**
