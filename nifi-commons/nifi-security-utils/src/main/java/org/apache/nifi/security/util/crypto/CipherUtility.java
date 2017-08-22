@@ -51,6 +51,7 @@ public class CipherUtility {
     private static final Pattern KEY_LENGTH_PATTERN = Pattern.compile("([\\d]+)BIT");
 
     private static final Map<String, Integer> MAX_PASSWORD_LENGTH_BY_ALGORITHM;
+    private static final int DEFAULT_MAX_ALLOWED_KEY_LENGTH = 128;
 
     static {
         Map<String, Integer> aMap = new HashMap<>();
@@ -319,11 +320,14 @@ public class CipherUtility {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
         }
+        return MAX_PASSWORD_LENGTH_BY_ALGORITHM.getOrDefault(encryptionMethod.getAlgorithm(), -1);
+    }
 
-        if (MAX_PASSWORD_LENGTH_BY_ALGORITHM.containsKey(encryptionMethod.getAlgorithm())) {
-            return MAX_PASSWORD_LENGTH_BY_ALGORITHM.get(encryptionMethod.getAlgorithm());
-        } else {
-            return -1;
+    public static boolean isUnlimitedStrengthCryptoSupported() {
+        try {
+            return (Cipher.getMaxAllowedKeyLength("AES") > DEFAULT_MAX_ALLOWED_KEY_LENGTH);
+        } catch (NoSuchAlgorithmException e) {
+            return false;
         }
     }
 
