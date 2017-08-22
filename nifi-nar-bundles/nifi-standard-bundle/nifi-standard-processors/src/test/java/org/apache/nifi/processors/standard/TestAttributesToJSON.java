@@ -392,7 +392,8 @@ public class TestAttributesToJSON {
     @Test
     public void testAttributesRegex() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
-        testRunner.setProperty(AttributesToJSON.ATTRIBUTES_REGEX, "delimited\\.header\\.column\\.[0-9]+");
+        testRunner.setVariable("regex", "delimited\\.header\\.column\\.[0-9]+");
+        testRunner.setProperty(AttributesToJSON.ATTRIBUTES_REGEX, "${regex}");
         testRunner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, "test, test1");
 
         Map<String, String> attributes = new HashMap<String, String>();

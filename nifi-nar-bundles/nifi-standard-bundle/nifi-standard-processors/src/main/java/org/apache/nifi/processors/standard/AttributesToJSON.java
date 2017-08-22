@@ -88,7 +88,9 @@ public class AttributesToJSON extends AbstractProcessor {
                     + "the matching attributes. This property can be used in combination with the attributes "
                     + "list property.")
             .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
@@ -229,7 +231,7 @@ public class AttributesToJSON extends AbstractProcessor {
         nullValueForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
         if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
-            pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).getValue());
+            pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
         }
     }
 
