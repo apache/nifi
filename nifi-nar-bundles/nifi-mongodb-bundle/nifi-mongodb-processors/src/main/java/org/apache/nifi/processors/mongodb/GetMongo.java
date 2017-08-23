@@ -124,13 +124,13 @@ public class GetMongo extends AbstractMongoProcessor {
         .build();
 
     static final String JSON_TYPE_EXTENDED = "Extended";
-    static final String JSON_TYPE_NORMAL   = "Normal";
+    static final String JSON_TYPE_STANDARD   = "Standard";
     static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
             "Use MongoDB's \"extended JSON\". This is the JSON generated with toJson() on a MongoDB Document from the Java driver");
-    static final AllowableValue JSON_NORMAL = new AllowableValue(JSON_TYPE_NORMAL, "Normal JSON",
-            "Use Jackson to convert the MongoDB Document into a representation that uses only standard JSON");
+    static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
+            "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
     static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
-            .allowableValues(JSON_EXTENDED, JSON_NORMAL)
+            .allowableValues(JSON_EXTENDED, JSON_STANDARD)
             .defaultValue(JSON_TYPE_EXTENDED)
             .displayName("JSON Type")
             .name("json-type")
@@ -138,6 +138,7 @@ public class GetMongo extends AbstractMongoProcessor {
             " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
             " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
             .expressionLanguageSupported(false)
+            .required(true)
             .build();
 
     private final static Set<Relationship> relationships;
@@ -180,7 +181,7 @@ public class GetMongo extends AbstractMongoProcessor {
         for (int index = 0; index < documents.size(); index++) {
             Document document = documents.get(index);
             String asJson;
-            if (jsonTypeSetting.equals(JSON_TYPE_NORMAL)) {
+            if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
                 asJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(document);
             } else {
                 asJson = document.toJson(new JsonWriterSettings(true));
@@ -190,12 +191,12 @@ public class GetMongo extends AbstractMongoProcessor {
                 .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
         }
 
-        return "[" + builder.toString() + "]"; //mapper.writerWithDefaultPrettyPrinter().writeValueAsString(docs);
+        return "[" + builder.toString() + "]";
     }
 
     private void configureMapper(String setting) {
         mapper = new ObjectMapper();
-        if (setting.equals(JSON_TYPE_NORMAL)) {
+        if (setting.equals(JSON_TYPE_STANDARD)) {
             mapper.registerModule(ObjectIdSerializer.getModule());
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
             mapper.setDateFormat(df);
@@ -283,7 +284,7 @@ public class GetMongo extends AbstractMongoProcessor {
                             @Override
                             public void process(OutputStream out) throws IOException {
                                 String json;
-                                if (jsonTypeSetting.equals(JSON_TYPE_NORMAL)) {
+                                if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
                                     json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cursor.next());
                                 } else {
                                     json = cursor.next().toJson();

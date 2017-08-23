@@ -18,10 +18,13 @@
  */
 package org.apache.nifi.processors.mongodb;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -31,6 +34,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,11 +52,17 @@ public class GetMongoTest {
     private static final String DB_NAME = GetMongoTest.class.getSimpleName().toLowerCase();
     private static final String COLLECTION_NAME = "test";
 
-    private static final List<Document> DOCUMENTS = Lists.newArrayList(
-        new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
-        new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4),
-        new Document("_id", "doc_3").append("a", 1).append("b", 3)
+    private static final List<Document> DOCUMENTS;
+    private static final Calendar CAL;
+
+    static {
+        CAL = Calendar.getInstance();
+        DOCUMENTS = Lists.newArrayList(
+            new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
+            new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
+            new Document("_id", "doc_3").append("a", 1).append("b", 3)
         );
+    }
 
     private TestRunner runner;
     private MongoClient mongoClient;
@@ -82,6 +92,7 @@ public class GetMongoTest {
 
     @Test
     public void testValidators() {
+
         TestRunner runner = TestRunners.newTestRunner(GetMongo.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
@@ -120,7 +131,7 @@ public class GetMongoTest {
             results = ((MockProcessContext) pc).validate();
         }
         Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().matches("'Query' .* is invalid because org.bson.json.JsonParseException"));
+        Assert.assertTrue(results.iterator().next().toString().contains("is invalid because"));
 
         // invalid projection
         runner.setVariable("projection", "{a: x,y,z}");
@@ -146,6 +157,24 @@ public class GetMongoTest {
         }
         Assert.assertEquals(1, results.size());
         Assert.assertTrue(results.iterator().next().toString().matches("'Sort' .* is invalid because org.bson.json.JsonParseException"));
+    }
+
+    @Test
+    public void testCleanJson() throws Exception {
+        runner.setVariable("query", "{\"_id\": \"doc_2\"}");
+        runner.setProperty(GetMongo.QUERY, "${query}");
+        runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> parsed = mapper.readValue(raw, Map.class);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+
+        Assert.assertTrue(parsed.get("date_field").getClass() == String.class);
+        Assert.assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
     }
 
     @Test
