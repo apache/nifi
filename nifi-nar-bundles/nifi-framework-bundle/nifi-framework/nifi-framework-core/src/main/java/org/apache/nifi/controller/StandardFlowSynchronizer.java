@@ -101,6 +101,7 @@ import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -146,9 +147,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
         final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement);
-
         final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, null, encodingVersion);
-        return isEmpty(rootGroupDto);
+
+        final NodeList reportingTasks = rootElement.getElementsByTagName("reportingTask");
+        final ReportingTaskDTO reportingTaskDTO = reportingTasks.getLength() == 0 ? null : FlowFromDOMFactory.getReportingTask((Element)reportingTasks.item(0),null);
+
+        final NodeList controllerServices = rootElement.getElementsByTagName("controllerService");
+        final ControllerServiceDTO controllerServiceDTO = controllerServices.getLength() == 0 ? null : FlowFromDOMFactory.getControllerService((Element)controllerServices.item(0),null);
+
+        return isEmpty(rootGroupDto) && isEmpty(reportingTaskDTO) && isEmpty(controllerServiceDTO);
     }
 
     @Override
@@ -535,6 +542,18 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 && CollectionUtils.isEmpty(contents.getProcessGroups())
                 && CollectionUtils.isEmpty(contents.getProcessors())
                 && CollectionUtils.isEmpty(contents.getRemoteProcessGroups());
+    }
+
+    private static boolean isEmpty(final ReportingTaskDTO reportingTaskDTO){
+
+       return reportingTaskDTO == null || StringUtils.isEmpty(reportingTaskDTO.getName()) ;
+
+    }
+
+    private static boolean isEmpty(final ControllerServiceDTO controllerServiceDTO){
+
+        return controllerServiceDTO == null || StringUtils.isEmpty(controllerServiceDTO.getName());
+
     }
 
     private static Document parseFlowBytes(final byte[] flow) throws FlowSerializationException {
