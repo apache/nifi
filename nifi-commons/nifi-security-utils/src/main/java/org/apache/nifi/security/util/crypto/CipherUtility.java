@@ -331,13 +331,23 @@ public class CipherUtility {
         }
     }
 
+    public static boolean isPBECipher(String algorithm) {
+        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
+        return em != null && em.isPBECipher();
+    }
+
+    public static boolean isKeyedCipher(String algorithm) {
+        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
+        return em != null && em.isKeyedCipher();
+    }
+
     /**
      * Initializes a {@link Cipher} object with the given PBE parameters.
      *
      * @param algorithm      the algorithm
      * @param provider       the JCA provider
      * @param password       the password
-     * @param salt           the salte
+     * @param salt           the salt
      * @param iterationCount the KDF iteration count
      * @param encryptMode    true to encrypt; false to decrypt
      * @return the initialized Cipher
@@ -372,5 +382,20 @@ public class CipherUtility {
             iterationCount = 1000;
         }
         return iterationCount;
+    }
+
+    /**
+     * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project. Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
+     *
+     * @param algorithm the {@link EncryptionMethod#algorithm}
+     * @return the salt length in bytes. Default is 16.
+     */
+    public static int getSaltLengthForAlgorithm(String algorithm) {
+        int saltLength = 16;
+        // DES/RC* algorithms use custom iteration counts
+        if (algorithm.contains("DES") || algorithm.contains("RC")) {
+            saltLength = 8;
+        }
+        return saltLength;
     }
 }

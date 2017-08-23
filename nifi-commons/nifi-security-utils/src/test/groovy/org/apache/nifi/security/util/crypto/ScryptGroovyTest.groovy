@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util.crypto.scrypt
+package org.apache.nifi.security.util.crypto
 
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assume

@@ -16,16 +16,31 @@
  */
 package org.apache.nifi.encrypt;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.crypto.Cipher;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.security.util.crypto.CipherProvider;
+import org.apache.nifi.security.util.crypto.CipherProviderFactory;
 import org.apache.nifi.security.util.crypto.CipherUtility;
+import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
+import org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider;
+import org.apache.nifi.security.util.crypto.PBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.Base64;
 import org.jasypt.exceptions.EncryptionInitializationException;
 import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.slf4j.Logger;
@@ -64,20 +79,15 @@ public class StringEncryptor {
 
     private final String algorithm;
     private final String provider;
-    private Cipher encryptCipher;
-    private Cipher decryptCipher;
+    private final PBEKeySpec password;
+    private final SecretKeySpec key;
+
+    private String encoding = "HEX";
+
+    private CipherProvider cipherProvider;
 
     static {
         Security.addProvider(new BouncyCastleProvider());
-        // Set<String> unsortedAlgorithmsSet = new HashSet<>();
-        //
-        // for (Provider provider : Security.getProviders()) {
-        //     for (Provider.Service service : provider.getServices()) {
-        //         unsortedAlgorithmsSet.add(service.getAlgorithm());
-        //     }
-        // }
-        // SUPPORTED_ALGORITHMS = new ArrayList<>(unsortedAlgorithmsSet);
-        // Collections.sort(SUPPORTED_ALGORITHMS);
 
         for (EncryptionMethod em : EncryptionMethod.values()) {
             SUPPORTED_ALGORITHMS.add(em.getAlgorithm());
@@ -94,8 +104,6 @@ public class StringEncryptor {
     public static final String NF_SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
     public static final String NF_SENSITIVE_PROPS_PROVIDER = "nifi.sensitive.props.provider";
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
-    private static final String TEST_PLAINTEXT = "this is a test";
-
 
     /**
      * This constructor creates an encryptor using <em>Password-Based Encryption</em> (PBE). The <em>key</em> value is the direct value provided in <code>nifi.sensitive.props.key</code> in
@@ -110,20 +118,45 @@ public class StringEncryptor {
     protected StringEncryptor(final String algorithm, final String provider, final String key) {
         this.algorithm = algorithm;
         this.provider = provider;
-        initialize(key);
+        this.key = null;
+        this.password = new PBEKeySpec(key == null
+                ? DEFAULT_SENSITIVE_PROPS_KEY.toCharArray()
+                : key.toCharArray());
+        initialize();
     }
 
+    /**
+     * This constructor creates an encryptor using <em>Keyed Encryption</em>. The <em>key</em> value is the raw byte value of a symmetric encryption key (usually expressed for human-readability/transmission in hexadecimal or Base64 encoded format).
+     *
+     * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#algorithm})
+     * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
+     * @param key       a raw encryption key in bytes
+     */
     public StringEncryptor(final String algorithm, final String provider, final byte[] key) {
         this.algorithm = algorithm;
         this.provider = provider;
-        initialize(key);
+        this.key = new SecretKeySpec(key, extractKeyTypeFromAlgorithm(algorithm));
+        this.password = null;
+        initialize();
     }
 
+    /**
+     * A default constructor for mocking during testing.
+     */
     protected StringEncryptor() {
         this.algorithm = null;
         this.provider = null;
+        this.key = null;
+        this.password = null;
     }
 
+    /**
+     * Extracts the cipher "family" (i.e. "AES", "DES", "RC4") from the full algorithm name.
+     *
+     * @param algorithm the algorithm ({@link EncryptionMethod#algorithm})
+     * @return the cipher family
+     * @throws EncryptionException if the algorithm is null/empty or not supported
+     */
     private String extractKeyTypeFromAlgorithm(String algorithm) throws EncryptionException {
         if (StringUtils.isBlank(algorithm)) {
             throw new EncryptionException("The algorithm cannot be null or empty");
@@ -182,32 +215,53 @@ public class StringEncryptor {
         return new StringEncryptor(algorithm, provider, password);
     }
 
-    protected void initialize(String password) {
+    protected void initialize() {
         if (isInitialized()) {
+            logger.debug("Attempted to initialize an already-initialized StringEncryptor");
             return;
         }
 
         if (paramsAreValid()) {
-            // try {
-            //     int iterationCount = CipherUtility.getIterationCountForAlgorithm(algorithm);
-            //
-            //     this.encryptCipher = CipherUtility.initPBECipher(algorithm, provider, password, )
-            //
-            // } catch (NoSuchPaddingException | NoSuchAlgorithmException | NoSuchProviderException e) {
-            //     logger.error("Encountered an error: ", e);
-            //     throw new EncryptionException("There was an error initializing the StringEncryptor", e);
-            // }
-        }
-    }
-
-    protected void initialize(byte[] key) {
-        if (isInitialized()) {
-            return;
+            if (CipherUtility.isPBECipher(algorithm)) {
+                cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NIFI_LEGACY);
+            }
+        } else {
+            throw new EncryptionException("Cannot initialize the StringEncryptor because some configuration values are invalid");
         }
     }
 
     private boolean paramsAreValid() {
-        return algorithmIsValid(algorithm) && providerIsValid(provider);
+        boolean algorithmAndProviderValid = algorithmIsValid(algorithm) && providerIsValid(provider);
+        boolean secretIsValid = false;
+        if (CipherUtility.isPBECipher(algorithm)) {
+            secretIsValid = passwordIsValid(password);
+        } else if (CipherUtility.isKeyedCipher(algorithm)) {
+            secretIsValid = keyIsValid(key, algorithm);
+        }
+
+        return algorithmAndProviderValid && secretIsValid;
+    }
+
+    private boolean keyIsValid(SecretKeySpec key, String algorithm) {
+        return key != null && CipherUtility.getValidKeyLengthsForAlgorithm(algorithm).contains(key.getEncoded().length);
+    }
+
+    private boolean passwordIsValid(PBEKeySpec password) {
+        try {
+            return password.getPassword() != null;
+        } catch (IllegalStateException e) {
+            return false;
+        }
+    }
+
+    public void setEncoding(String base) {
+        if ("HEX".equalsIgnoreCase(base)) {
+            this.encoding = "HEX";
+        } else if ("BASE64".equalsIgnoreCase(base)) {
+            this.encoding = "BASE64";
+        } else {
+            throw new IllegalArgumentException("The encoding base must be 'HEX' or 'BASE64'");
+        }
     }
 
     /**
@@ -220,14 +274,84 @@ public class StringEncryptor {
     public String encrypt(String clearText) throws EncryptionException {
         try {
             if (isInitialized()) {
-                // return encryptor.encrypt(clearText);
-                // TODO: Replace encryptor
-                return clearText;
+                byte[] rawBytes;
+                if (CipherUtility.isPBECipher(algorithm)) {
+                    rawBytes = encryptPBE(clearText);
+                } else {
+                    rawBytes = encryptKeyed(clearText);
+                }
+                return encode(rawBytes);
             } else {
                 throw new EncryptionException("The encryptor is not initialized");
             }
-        } catch (final EncryptionOperationNotPossibleException | EncryptionInitializationException eonpe) {
-            throw new EncryptionException(eonpe);
+        } catch (final EncryptionOperationNotPossibleException | EncryptionInitializationException e) {
+            throw new EncryptionException(e);
+        }
+    }
+
+    private byte[] encryptPBE(String plaintext) {
+        PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
+        final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
+
+        // Generate salt
+        byte[] salt;
+        // NiFi legacy code determined the salt length based on the cipher block size
+        if (pbecp instanceof NiFiLegacyCipherProvider) {
+            salt = ((NiFiLegacyCipherProvider) pbecp).generateSalt(encryptionMethod);
+        } else {
+            salt = pbecp.generateSalt();
+        }
+
+        // Determine necessary key length
+        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(algorithm);
+
+        // Generate cipher
+        try {
+            Cipher cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, true);
+
+            // Write IV if necessary (allows for future use of PBKDF2, Bcrypt, or Scrypt)
+            // byte[] iv = new byte[0];
+            // if (cipherProvider instanceof RandomIVPBECipherProvider) {
+            //     iv = cipher.getIV();
+            // }
+
+            // Encrypt the plaintext
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+
+            // Combine the output
+            // byte[] rawBytes = CryptoUtils.concatByteArrays(salt, iv, cipherBytes);
+            return CryptoUtils.concatByteArrays(salt, cipherBytes);
+        } catch (Exception e) {
+            throw new EncryptionException("Could not encrypt sensitive value", e);
+        }
+    }
+
+    private byte[] encryptKeyed(String plaintext) {
+        KeyedCipherProvider keyedcp = (KeyedCipherProvider) cipherProvider;
+
+        // Generate cipher
+        try {
+            SecureRandom sr = new SecureRandom();
+            byte[] iv = new byte[16];
+            sr.nextBytes(iv);
+
+            Cipher cipher = keyedcp.getCipher(EncryptionMethod.forAlgorithm(algorithm), key, iv, true);
+
+            // Encrypt the plaintext
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+
+            // Combine the output
+            return CryptoUtils.concatByteArrays(iv, cipherBytes);
+        } catch (Exception e) {
+            throw new EncryptionException("Could not encrypt sensitive value", e);
+        }
+    }
+
+    private String encode(byte[] rawBytes) {
+        if (this.encoding.equalsIgnoreCase("HEX")) {
+            return Hex.encodeHexString(rawBytes);
+        } else {
+            return Base64.toBase64String(rawBytes);
         }
     }
 
@@ -241,19 +365,83 @@ public class StringEncryptor {
     public String decrypt(String cipherText) throws EncryptionException {
         try {
             if (isInitialized()) {
-                // return encryptor.decrypt(cipherText);
-                // TODO: Replace encryptor
-                return cipherText;
+                byte[] plainBytes;
+                byte[] cipherBytes = decode(cipherText);
+                if (CipherUtility.isPBECipher(algorithm)) {
+                    plainBytes = decryptPBE(cipherBytes);
+                } else {
+                    plainBytes = decryptKeyed(cipherBytes);
+                }
+                return new String(plainBytes, StandardCharsets.UTF_8);
             } else {
                 throw new EncryptionException("The encryptor is not initialized");
             }
-        } catch (final EncryptionOperationNotPossibleException | EncryptionInitializationException eonpe) {
-            throw new EncryptionException(eonpe);
+        } catch (final DecoderException | EncryptionOperationNotPossibleException | EncryptionInitializationException e) {
+            throw new EncryptionException(e);
+        }
+    }
+
+    private byte[] decryptPBE(byte[] cipherBytes) throws DecoderException {
+        PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
+        final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
+
+        // Extract salt
+        int saltLength = CipherUtility.getSaltLengthForAlgorithm(algorithm);
+        byte[] salt = new byte[saltLength];
+        System.arraycopy(cipherBytes, 0, salt, 0, saltLength);
+
+        byte[] actualCipherBytes = Arrays.copyOfRange(cipherBytes, saltLength, cipherBytes.length);
+
+        // Determine necessary key length
+        int keyLength = CipherUtility.parseKeyLengthFromAlgorithm(algorithm);
+
+        // Generate cipher
+        try {
+            Cipher cipher = pbecp.getCipher(encryptionMethod, new String(password.getPassword()), salt, keyLength, false);
+
+            // Write IV if necessary (allows for future use of PBKDF2, Bcrypt, or Scrypt)
+            // byte[] iv = new byte[0];
+            // if (cipherProvider instanceof RandomIVPBECipherProvider) {
+            //     iv = cipher.getIV();
+            // }
+
+            // Decrypt the plaintext
+            return cipher.doFinal(actualCipherBytes);
+        } catch (Exception e) {
+            throw new EncryptionException("Could not decrypt sensitive value", e);
+        }
+    }
+
+    private byte[] decryptKeyed(byte[] cipherBytes) {
+        KeyedCipherProvider keyedcp = (KeyedCipherProvider) cipherProvider;
+
+        // Generate cipher
+        try {
+            int ivLength = 16;
+            byte[] iv = new byte[ivLength];
+            System.arraycopy(cipherBytes, 0, iv, 0, ivLength);
+
+            byte[] actualCipherBytes = Arrays.copyOfRange(cipherBytes, ivLength, cipherBytes.length);
+
+            Cipher cipher = keyedcp.getCipher(EncryptionMethod.forAlgorithm(algorithm), key, iv, false);
+
+            // Encrypt the plaintext
+            return cipher.doFinal(actualCipherBytes);
+        } catch (Exception e) {
+            throw new EncryptionException("Could not decrypt sensitive value", e);
+        }
+    }
+
+    private byte[] decode(String encoded) throws DecoderException {
+        if (this.encoding.equalsIgnoreCase("HEX")) {
+            return Hex.decodeHex(encoded.toCharArray());
+        } else {
+            return Base64.decode(encoded);
         }
     }
 
     public boolean isInitialized() {
-        return this.encryptCipher != null && this.decryptCipher != null;
+        return this.cipherProvider != null;
     }
 
     protected static boolean algorithmIsValid(String algorithm) {

@@ -21,9 +21,13 @@ import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider
+import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor
+import org.jasypt.encryption.pbe.config.PBEConfig
+import org.jasypt.salt.SaltGenerator
 import org.junit.After
 import org.junit.Assume
 import org.junit.Before
@@ -100,7 +104,7 @@ class StringEncryptorTest {
     }
 
     private
-    static Cipher generateCipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String password = DEFAULT_PASSWORD, byte[] salt = DEFAULT_SALT, int iterationCount = DEFAULT_ITERATION_COUNT) {
+    static Cipher generatePBECipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String password = DEFAULT_PASSWORD, byte[] salt = DEFAULT_SALT, int iterationCount = DEFAULT_ITERATION_COUNT) {
         // Initialize secret key from password
         final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray())
         final SecretKeyFactory factory = SecretKeyFactory.getInstance(em.algorithm, em.provider)
@@ -114,8 +118,7 @@ class StringEncryptorTest {
 
     private
     static Cipher generateKeyedCipher(boolean encryptMode, EncryptionMethod em = EncryptionMethod.MD5_128AES, String keyHex = KEY_HEX, byte[] iv = DEFAULT_IV) {
-        // TODO: Extract cipher family from EncryptionMethod, but currently only AES ciphers are supported
-        SecretKey tempKey = new SecretKeySpec(Hex.decodeHex(keyHex as char[]), "AES")
+        SecretKey tempKey = new SecretKeySpec(Hex.decodeHex(keyHex as char[]), CipherUtility.parseCipherFromAlgorithm(em.algorithm))
 
         IvParameterSpec ivSpec = new IvParameterSpec(iv)
         Cipher cipher = Cipher.getInstance(em.algorithm, em.provider)
@@ -166,7 +169,7 @@ class StringEncryptorTest {
             logger.info("Using algorithm: ${em.getAlgorithm()} with ${salt.length} byte salt and ${iterationCount} iterations")
 
             // Encrypt the value manually
-            Cipher cipher = generateCipher(true, em, DEFAULT_PASSWORD, salt, iterationCount)
+            Cipher cipher = generatePBECipher(true, em, DEFAULT_PASSWORD, salt, iterationCount)
 
             byte[] cipherBytes = cipher.doFinal(plaintext.bytes)
             byte[] saltAndCipherBytes = CryptoUtils.concatByteArrays(salt, cipherBytes)
@@ -178,6 +181,58 @@ class StringEncryptorTest {
 
             // Act
             String recovered = encryptor.decrypt(cipherTextHex)
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert plaintext == recovered
+        }
+    }
+
+    /**
+     * This test uses the Jasypt library {@see StandardPBEStringEncryptor} to encrypt raw messages as the legacy (pre-1.4.0) NiFi application did. Then the messages are decrypted with the "new"/current primitive implementation to ensure backward compatibility.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testPBEncryptionShouldBeConsistentWithLegacyEncryption() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        for (EncryptionMethod em : pbeEncryptionMethods) {
+
+            // Hard-coded 0x00 * 16
+            byte[] salt = new byte[16]
+            // DES/RC* algorithms use 8 byte salts
+            if (em.algorithm =~ "DES|RC") {
+                salt = new byte[8]
+            }
+            logger.info("Using algorithm: ${em.getAlgorithm()} with ${salt.length} byte salt")
+
+            StandardPBEStringEncryptor legacyEncryptor = new StandardPBEStringEncryptor()
+            SaltGenerator mockSaltGenerator = [generateSalt: { int l ->
+                logger.mock("Generating ${l} byte salt")
+                new byte[l]
+            }, includePlainSaltInEncryptionResults         : {
+                -> true
+            }] as SaltGenerator
+            PBEConfig mockConfig = [getAlgorithm             : { -> em.algorithm },
+                                    getPassword              : { -> DEFAULT_PASSWORD },
+                                    getKeyObtentionIterations: { -> 1000 },
+                                    getProviderName          : { -> em.provider },
+                                    getProvider              : { -> new BouncyCastleProvider() },
+                                    getSaltGenerator         : { -> mockSaltGenerator }
+            ] as PBEConfig
+            legacyEncryptor.setConfig(mockConfig)
+            legacyEncryptor.setStringOutputType("hexadecimal")
+
+            String cipherText = legacyEncryptor.encrypt(plaintext)
+            logger.info("Cipher text: ${cipherText}")
+
+            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+
+            // Act
+            String recovered = encryptor.decrypt(cipherText)
             logger.info("Recovered: ${recovered}")
 
             // Assert
@@ -360,7 +415,8 @@ class StringEncryptorTest {
     void testStringEncryptorShouldDetermineIfInitialized() throws Exception {
         // Arrange
         StringEncryptor uninitializedEncryptor = new StringEncryptor()
-        StringEncryptor initializedEncryptor = new StringEncryptor()
+        EncryptionMethod em = EncryptionMethod.MD5_128AES
+        StringEncryptor initializedEncryptor = new StringEncryptor(em.algorithm, em.provider, DEFAULT_PASSWORD)
 
         // Act
         boolean uninitializedIsInitialized = uninitializedEncryptor.isInitialized()
