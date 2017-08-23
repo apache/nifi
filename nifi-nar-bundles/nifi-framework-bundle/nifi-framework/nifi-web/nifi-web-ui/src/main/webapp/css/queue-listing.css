@@ -108,7 +108,7 @@ div.flowfile-header {
     padding: 5px;
 }
 
-div.detail-name, div.flowfile-info {
+div.detail-name {
     width: 100%;
     font-size: 12px;
     font-weight: 500;
@@ -117,7 +117,7 @@ div.detail-name, div.flowfile-info {
     color: #262626;
 }
 
-div.detail-value {
+div.detail-value, div.flowfile-info {
     line-height: normal;
     width: 100%;
     color: #775351;
