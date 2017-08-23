@@ -90,6 +90,10 @@ public class ZooKeeperMigratorMain {
             .longOpt("ignore-source")
             .desc("ignores the source ZooKeeper endpoint specified in the exported data")
             .build();
+    private static final Option OPTION_USE_EXISTING_ACL = Option.builder()
+            .longOpt("use-existing-acl")
+            .desc("allow write of existing acl data to destination")
+            .build();
 
     private static Options createOptions() {
         final Options options = new Options();
@@ -98,6 +102,7 @@ public class ZooKeeperMigratorMain {
         options.addOption(OPTION_ZK_AUTH_INFO);
         options.addOption(OPTION_FILE);
         options.addOption(OPTION_IGNORE_SOURCE);
+        options.addOption(OPTION_USE_EXISTING_ACL);
         final OptionGroup optionGroupAuth = new OptionGroup().addOption(OPTION_ZK_AUTH_INFO).addOption(OPTION_ZK_KRB_CONF_FILE);
         optionGroupAuth.setRequired(false);
         options.addOptionGroup(optionGroupAuth);
@@ -136,6 +141,7 @@ public class ZooKeeperMigratorMain {
                 final String auth = commandLine.getOptionValue(OPTION_ZK_AUTH_INFO.getOpt());
                 final String jaasFilename = commandLine.getOptionValue(OPTION_ZK_KRB_CONF_FILE.getOpt());
                 final boolean ignoreSource = commandLine.hasOption(OPTION_IGNORE_SOURCE.getLongOpt());
+                final boolean useExistingACL = commandLine.hasOption(OPTION_USE_EXISTING_ACL.getLongOpt());
                 final AuthMode authMode;
                 final byte[] authData;
                 if (auth != null) {
@@ -157,7 +163,7 @@ public class ZooKeeperMigratorMain {
                     }
                 } else {
                     try (InputStream zkData = filename != null ? new FileInputStream(Paths.get(filename).toFile()) : System.in) {
-                        zookeeperMigrator.writeZooKeeper(zkData, authMode, authData, ignoreSource);
+                        zookeeperMigrator.writeZooKeeper(zkData, authMode, authData, ignoreSource, useExistingACL);
                     }
                 }
             }

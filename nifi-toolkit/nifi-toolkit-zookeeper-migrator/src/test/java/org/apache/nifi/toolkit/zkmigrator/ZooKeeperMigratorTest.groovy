@@ -25,6 +25,8 @@ import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.ZKUtil
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.ZooKeeper
+import org.apache.zookeeper.data.Stat
+import org.apache.zookeeper.server.auth.DigestAuthenticationProvider
 import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -184,6 +186,29 @@ class ZooKeeperMigratorTest extends Specification {
         def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
         nodes.size() == 3
     }
+
+    def "Send to open Zookeeper using existing ACL"() {
+        given:
+        def server = new TestingServer()
+        def securedClient = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent -> })
+        def userPass = "nifi:nifi"
+        securedClient.addAuthInfo("digest",userPass.getBytes(StandardCharsets.UTF_8))
+        def digest = DigestAuthenticationProvider.generateDigest(userPass)
+        def migrationPathRoot = '/nifi'
+        def stat = new Stat()
+
+        when:
+        ZooKeeperMigratorMain.main(['-s', '-z', "$server.connectString$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json','--use-existing-acl'] as String[])
+
+        then:
+        noExceptionThrown()
+        def acl = securedClient.getACL("/nifi",stat)
+        acl.get(0).id.scheme == "digest"
+        acl.get(0).id.id == digest
+        def nodes = ZKPaths.getSortedChildren(securedClient, '/nifi').collect { ZKUtil.listSubTreeBFS(securedClient, "/$it") }.flatten()
+        nodes.size() == 0
+    }
+
 
     def "Parse Zookeeper connect string and path"() {
         when:
