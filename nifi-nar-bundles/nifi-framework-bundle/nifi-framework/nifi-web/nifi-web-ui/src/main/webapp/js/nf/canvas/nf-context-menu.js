@@ -778,7 +778,8 @@
          * Hides the context menu.
          */
         hide: function () {
-            $('.context-menu').hide();
+            $('#context-menu').hide();
+            $('div.context-menu.sub-menu').remove();
         },
 
         /**
