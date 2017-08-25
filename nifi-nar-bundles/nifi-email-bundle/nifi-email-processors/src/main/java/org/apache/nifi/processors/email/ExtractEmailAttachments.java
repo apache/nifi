@@ -121,21 +121,27 @@ public class ExtractEmailAttachments extends AbstractProcessor {
         final List<FlowFile> invalidFlowFilesList = new ArrayList<>();
         final List<FlowFile> originalFlowFilesList = new ArrayList<>();
 
+        final String requireStrictAddresses = "false";
+
         session.read(originalFlowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         Properties props = new Properties();
-                        Session mailSession = Session.getDefaultInstance(props, null);
+                        props.put("mail.mime.address.strict", requireStrictAddresses);
+                        Session mailSession = Session.getInstance(props);
                         MimeMessage originalMessage = new MimeMessage(mailSession, in);
                         MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                         // RFC-2822 determines that a message must have a "From:" header
                         // if a message lacks the field, it is flagged as invalid
                         Address[] from = originalMessage.getFrom();
+                        if (from == null) {
+                            throw new MessagingException("Message failed RFC-2822 validation: No Sender");
+                        }
                         Date sentDate = originalMessage.getSentDate();
-                        if (from == null || sentDate == null) {
+                        if (sentDate == null) {
                             // Throws MessageException due to lack of minimum required headers
-                            throw new MessagingException("Message failed RFC2822 validation");
+                            throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
                         }
                         originalFlowFilesList.add(originalFlowFile);
                         if (parser.hasAttachments()) {
@@ -209,4 +215,3 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
 
 }
-
