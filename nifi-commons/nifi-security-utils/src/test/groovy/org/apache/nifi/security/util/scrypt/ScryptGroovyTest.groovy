@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util.crypto
+package org.apache.nifi.security.util.scrypt
 
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
