@@ -41,8 +41,6 @@ import org.apache.nifi.security.util.crypto.PBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Base64;
-import org.jasypt.exceptions.EncryptionInitializationException;
-import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,7 +124,8 @@ public class StringEncryptor {
     }
 
     /**
-     * This constructor creates an encryptor using <em>Keyed Encryption</em>. The <em>key</em> value is the raw byte value of a symmetric encryption key (usually expressed for human-readability/transmission in hexadecimal or Base64 encoded format).
+     * This constructor creates an encryptor using <em>Keyed Encryption</em>. The <em>key</em> value is the raw byte value of a symmetric encryption key
+     * (usually expressed for human-readability/transmission in hexadecimal or Base64 encoded format).
      *
      * @param algorithm the PBE cipher algorithm ({@link EncryptionMethod#algorithm})
      * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
@@ -284,7 +283,7 @@ public class StringEncryptor {
             } else {
                 throw new EncryptionException("The encryptor is not initialized");
             }
-        } catch (final EncryptionOperationNotPossibleException | EncryptionInitializationException e) {
+        } catch (final Exception e) {
             throw new EncryptionException(e);
         }
     }
@@ -376,7 +375,7 @@ public class StringEncryptor {
             } else {
                 throw new EncryptionException("The encryptor is not initialized");
             }
-        } catch (final DecoderException | EncryptionOperationNotPossibleException | EncryptionInitializationException e) {
+        } catch (final Exception e) {
             throw new EncryptionException(e);
         }
     }

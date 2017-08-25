@@ -370,7 +370,8 @@ public class CipherUtility {
     }
 
     /**
-     * Returns the KDF iteration count for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project. Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
+     * Returns the KDF iteration count for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
+     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
      *
      * @param algorithm the {@link EncryptionMethod#algorithm}
      * @return the iteration count. Default is 0.
@@ -385,7 +386,8 @@ public class CipherUtility {
     }
 
     /**
-     * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project. Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
+     * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
+     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
      *
      * @param algorithm the {@link EncryptionMethod#algorithm}
      * @return the salt length in bytes. Default is 16.
