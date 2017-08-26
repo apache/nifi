@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -262,6 +263,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             // set attribute how many rows were selected
             fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+            // set mime.type based on output format
+            fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
+                    JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
 
             logger.info("{} contains {} Avro records; transferring to 'success'",
                     new Object[]{fileToProcess, nrOfRows.get()});
@@ -510,7 +515,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final int nrOfColumns = (columnDefinitions == null ? 0 : columnDefinitions.size());
         String tableName = "NiFi_Cassandra_Query_Record";
         if (nrOfColumns > 0) {
-            String tableNameFromMeta = columnDefinitions.getTable(1);
+            String tableNameFromMeta = columnDefinitions.getTable(0);
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }

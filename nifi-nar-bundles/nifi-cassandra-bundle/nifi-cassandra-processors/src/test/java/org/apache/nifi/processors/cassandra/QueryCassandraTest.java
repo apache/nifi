@@ -241,6 +241,14 @@ public class QueryCassandraTest {
     }
 
     @Test
+    public void testCreateSchemaOneColumn() throws Exception {
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSetOneColumn();
+        Schema schema = QueryCassandra.createSchema(rs);
+        assertNotNull(schema);
+        assertEquals(schema.getName(), "users");
+    }
+
+    @Test
     public void testCreateSchema() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         Schema schema = QueryCassandra.createSchema(rs);
