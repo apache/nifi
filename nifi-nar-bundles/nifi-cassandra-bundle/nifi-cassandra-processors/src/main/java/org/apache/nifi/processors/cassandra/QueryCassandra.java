@@ -33,6 +33,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -497,6 +498,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             return "\"" + dateFormat.format((Date) value) + "\"";
+        } else if (value instanceof String) {
+            return "\"" + StringEscapeUtils.escapeJson((String) value) + "\"";
         } else {
             return "\"" + value.toString() + "\"";
         }
