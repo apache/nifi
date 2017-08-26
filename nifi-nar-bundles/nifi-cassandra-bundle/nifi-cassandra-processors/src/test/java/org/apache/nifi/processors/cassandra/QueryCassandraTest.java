@@ -140,7 +140,7 @@ public class QueryCassandraTest {
         assertEquals("One file should be transferred to success", 1, files.size());
         assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
-                        + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm for a month from now\"},"
+                        + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
                         + "\"registered\":\"false\",\"scale\":1.0,\"metric\":2.0},"
                         + "{\"user_id\":\"user2\",\"first_name\":\"Mary\",\"last_name\":\"Jones\","
                         + "\"emails\":[\"mjones@notareal.com\"],\"top_places\":[\"Orlando, FL\"],"
@@ -177,7 +177,7 @@ public class QueryCassandraTest {
         assertEquals("One file should be transferred to success", 1, files.size());
         assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
-                        + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm for a month from now\"},"
+                        + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
                         + "\"registered\":\"false\",\"scale\":1.0,\"metric\":2.0},"
                         + "{\"user_id\":\"user2\",\"first_name\":\"Mary\",\"last_name\":\"Jones\","
                         + "\"emails\":[\"mjones@notareal.com\"],\"top_places\":[\"Orlando, FL\"],"

@@ -86,7 +86,7 @@ public class CassandraQueryTestUtil {
                 createRow("user1", "Joe", "Smith", Sets.newHashSet("jsmith@notareal.com"),
                         Arrays.asList("New York, NY", "Santa Clara, CA"),
                         new HashMap<Date, String>() {{
-                            put(aMonthPrior, "Set my alarm for a month from now");
+                            put(aMonthPrior, "Set my alarm \"for\" a month from now");
                         }}, false, 1.0f, 2.0),
                 createRow("user2", "Mary", "Jones", Sets.newHashSet("mjones@notareal.com"),
                         Collections.singletonList("Orlando, FL"),
