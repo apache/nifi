@@ -46,6 +46,7 @@ import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.ChannelSftp.LsEntrySelector;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.ProxyHTTP;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
@@ -94,6 +95,39 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("true")
         .required(true)
         .build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("PROXY_HOST")
+            .displayName("Proxy Host")
+            .description("The fully qualified hostname or IP address of the proxy server")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("PROXY_PORT")
+            .displayName("Proxy Port")
+            .description("The port of the proxy server")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("PROXY_USERNAME")
+            .displayName("Proxy Username")
+            .description("Proxy Username")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("PROXY_PASSWORD")
+            .displayName("Proxy Password")
+            .description("Proxy Password")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
+            .build();
+
+
 
     /**
      * Dynamic property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
@@ -407,6 +441,18 @@ public class SFTPTransfer implements FileTransfer {
             final Session session = jsch.getSession(username,
                 ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                 ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
+
+            if (ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions(flowFile).isSet()) {
+                final ProxyHTTP proxy = new ProxyHTTP(
+                        ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions(flowFile).getValue(),
+                        ctx.getProperty(PROXY_PORT).evaluateAttributeExpressions(flowFile).asInteger()
+                );
+                // Check if Username is set and populate the proxy accordingly
+                if (ctx.getProperty(PROXY_USERNAME).evaluateAttributeExpressions(flowFile).isSet()) {
+                    proxy.setUserPasswd(ctx.getProperty(PROXY_USERNAME).evaluateAttributeExpressions(flowFile).getValue(), ctx.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions(flowFile).getValue());
+                }
+                session.setProxy(proxy);
+            }
 
             final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
             if (hostKeyVal != null) {
