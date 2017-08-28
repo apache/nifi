@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processor.util.list;
 
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MILLIS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MINUTES;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_SECONDS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -130,6 +134,8 @@ public class TestAbstractListProcessor {
 
         final long initialTimestamp = getCurrentTimestampMillis(targetPrecision);
 
+        setTargetSystemTimestampPrecision(targetPrecision);
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
         proc.addEntity("name", "id2", initialTimestamp);
@@ -182,6 +188,8 @@ public class TestAbstractListProcessor {
 
         final long initialTimestamp = getCurrentTimestampMillis(targetPrecision);
 
+        setTargetSystemTimestampPrecision(targetPrecision);
+
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
         proc.addEntity("name", "id", initialTimestamp);
         proc.addEntity("name", "id2", initialTimestamp);
@@ -224,6 +232,20 @@ public class TestAbstractListProcessor {
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
         runner.clearTransferState();
+    }
+
+    private void setTargetSystemTimestampPrecision(TimeUnit targetPrecision) {
+        switch (targetPrecision) {
+            case MINUTES:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_MINUTES);
+                break;
+            case SECONDS:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_SECONDS);
+                break;
+            case MILLISECONDS:
+                runner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, PRECISION_MILLIS);
+                break;
+        }
     }
 
     @Test

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
@@ -201,7 +203,7 @@ public class TestFTP {
     }
 
     @Test
-    public void basicFileList() throws IOException {
+    public void basicFileList() throws IOException, InterruptedException {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
@@ -217,10 +219,16 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
         runner.setProperty(ListFTP.REMOTE_PATH, "/");
+        // FakeFTPServer has timestamp precision in minutes.
+        // Specify milliseconds precision so that test does not need to wait for minutes.
+        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
         runner.assertValid();
 
+        // Ensure wait for enough lag time.
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
         runner.run();
 
+        runner.assertTransferCount(FetchFTP.REL_SUCCESS, 1);
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
         runner.assertAllFlowFilesContainAttribute("ftp.remote.host");
         runner.assertAllFlowFilesContainAttribute("ftp.remote.port");
