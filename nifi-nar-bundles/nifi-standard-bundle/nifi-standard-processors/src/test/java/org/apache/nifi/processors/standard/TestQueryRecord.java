@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -261,7 +260,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
             final List<RecordField> recordFields = columnNames.stream()
                 .map(name -> new RecordField(name, RecordFieldType.STRING.getDataType()))
                 .collect(Collectors.toList());

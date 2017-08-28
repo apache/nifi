@@ -255,7 +255,7 @@ public class QueryRecord extends AbstractProcessor {
             final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
             final RecordSchema inputSchema = reader.getSchema();
 
-            recordSchema = recordSetWriterFactory.getSchema(originalAttributes, rawIn, inputSchema);
+            recordSchema = recordSetWriterFactory.getSchema(originalAttributes, inputSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);

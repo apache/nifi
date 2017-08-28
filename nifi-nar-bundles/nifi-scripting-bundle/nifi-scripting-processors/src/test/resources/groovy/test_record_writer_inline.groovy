@@ -99,7 +99,7 @@ class GroovyRecordSetWriter implements RecordSetWriter {
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
 
     @Override
-    RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return null
     }
 

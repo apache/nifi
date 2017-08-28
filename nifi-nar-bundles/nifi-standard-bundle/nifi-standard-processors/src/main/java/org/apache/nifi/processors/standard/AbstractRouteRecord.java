@@ -123,7 +123,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
                 public void process(final InputStream in) throws IOException {
                     try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, in, reader.getSchema());
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {

@@ -335,7 +335,7 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                                 final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
                                 final RecordSet recordSet = reader.createRecordSet();
 
-                                final RecordSchema schema = writerFactory.getSchema(attributes, in, recordSet.getSchema());
+                                final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
                                 lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic);
                             } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                 throw new ProcessException(e);

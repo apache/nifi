@@ -18,7 +18,6 @@
 package org.apache.nifi.serialization.record;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return new SimpleRecordSchema(Collections.emptyList());
     }
 

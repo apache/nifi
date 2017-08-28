@@ -31,6 +31,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
     private volatile ConfigurationContext configurationContext;
     private volatile SchemaAccessStrategy schemaAccessStrategy;
+    private static InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
     private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
         SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA));
@@ -113,6 +115,10 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         }
 
         return getSchemaAccessStrategy().getSchema(variables, contentStream, readSchema);
+    }
+
+    public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        return getSchema(variables, EMPTY_INPUT_STREAM, readSchema);
     }
 
     @Override

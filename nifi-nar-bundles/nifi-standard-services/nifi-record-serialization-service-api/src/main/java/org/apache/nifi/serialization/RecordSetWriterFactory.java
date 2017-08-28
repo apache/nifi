@@ -17,9 +17,7 @@
 
 package org.apache.nifi.serialization;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
@@ -34,13 +32,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
  * </p>
  * <p>A writer is created with a RecordSchema and an OutputStream that the writer will write to.</p>
  * <p>
- * The schema can be retrieved by {@link #getSchema(Map, InputStream, RecordSchema)} method, based on a Map containing variables,
- * an InputStream for the relevant input data.
+ * The schema can be retrieved by {@link #getSchema(Map, RecordSchema)} method, based on a Map containing variables,
+ * and a RecordSchema which is read from the incoming FlowFile.
  * </p>
  * <p>
  * For most processors those make use of Record Writers also make use of Record Readers, and the schema for the output is often determined
  * by either reading the schema from referencing attributes or the content of the input FlowFile.
- * In this case, if a RecordSchema is known and already available when calling {@link #getSchema(Map, InputStream, RecordSchema)} method,
+ * In this case, if a RecordSchema is known and already available when calling {@link #getSchema(Map, RecordSchema)} method,
  * the schema should be specified so that it can be reused.
  * </p>
  *
@@ -51,23 +49,19 @@ import org.apache.nifi.serialization.record.RecordSchema;
  */
 public interface RecordSetWriterFactory extends ControllerService {
 
-    InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
-
     /**
      * <p>
-     * Returns the Schema that will be used for writing Records. Note that the InputStream that are given
-     * may well be different than the content that the writer will write. The given variables and InputStream are
+     * Returns the Schema that will be used for writing Records. The given variables are
      * intended to be used for determining the schema that should be used when writing records.
      * </p>
      *
      * @param variables the variables which is used to resolve Record Schema via Expression Language, can be null or empty
-     * @param content the contents of the input data from which to determine the schema
      * @param readSchema the schema that was read from the incoming FlowFile, or <code>null</code> if there is no input schema
      *
      * @return the Schema that should be used for writing Records
      * @throws SchemaNotFoundException if unable to find the schema
      */
-    RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
+    RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
 
     /**
      * <p>

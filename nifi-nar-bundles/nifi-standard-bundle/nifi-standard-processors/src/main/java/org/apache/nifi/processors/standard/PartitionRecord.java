@@ -194,7 +194,7 @@ public class PartitionRecord extends AbstractProcessor {
             final Map<String, String> originalAttributes = flowFile.getAttributes();
             final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger());
 
-            final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, in, reader.getSchema());
+            final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {

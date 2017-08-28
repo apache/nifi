@@ -25,7 +25,6 @@ import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordSetWriter
-import org.apache.nifi.serialization.RecordSetWriterFactory
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.RecordField
@@ -100,7 +99,7 @@ class ScriptedRecordSetWriterTest {
         recordSetWriterFactory.initialize initContext
         recordSetWriterFactory.onEnabled configurationContext
 
-		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), RecordSetWriterFactory.EMPTY_INPUT_STREAM, null)
+		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null)
         
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream)

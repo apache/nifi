@@ -142,7 +142,7 @@ public class SplitRecord extends AbstractProcessor {
                 public void process(final InputStream in) throws IOException {
                     try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema schema = writerFactory.getSchema(originalAttributes, in, reader.getSchema());
+                        final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushbackSet = new PushBackRecordSet(recordSet);

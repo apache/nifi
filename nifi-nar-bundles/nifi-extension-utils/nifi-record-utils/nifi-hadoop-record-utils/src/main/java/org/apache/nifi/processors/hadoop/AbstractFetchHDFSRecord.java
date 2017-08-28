@@ -57,8 +57,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
 
-import static org.apache.nifi.serialization.RecordSetWriterFactory.EMPTY_INPUT_STREAM;
-
 /**
  * Base processor for reading a data from HDFS that can be fetched into records.
  */
@@ -199,7 +197,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
                         Record record = recordReader.nextRecord();
                         final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile.getAttributes(),
-                                EMPTY_INPUT_STREAM, record == null ? null : record.getSchema());
+                                record == null ? null : record.getSchema());
 
                         try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out)) {
                             recordSetWriter.beginRecordSet();

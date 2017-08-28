@@ -17,7 +17,6 @@
 package org.apache.nifi.record.script;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Collection;
@@ -150,14 +149,14 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final RecordSetWriterFactory writerFactory = recordFactory.get();
         if (writerFactory == null) {
             return null;
         }
 
         try {
-            return writerFactory.getSchema(variables, content, readSchema);
+            return writerFactory.getSchema(variables, readSchema);
         } catch (UndeclaredThrowableException ute) {
             throw new IOException(ute.getCause());
         }

@@ -112,7 +112,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
                     try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, in, reader.getSchema());
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
                         try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
                             writer.beginRecordSet();
 
