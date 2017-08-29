@@ -21,39 +21,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertTrue;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.components.AllowableValue;
 import org.junit.Test;
 
-public class SSLContextServiceUtilsTest {
+public class RestrictedSSLContextServiceTest {
 
     @Test
-    public void testBuildRestrictedSSLProtocolAllowableValues() {
-        final AllowableValue[] allowableValues = SSLContextServiceUtils.buildSSLAlgorithmAllowableValues(true);
-        assertThat(allowableValues, notNullValue());
-        assertThat(allowableValues.length, equalTo(1));
-        assertThat(allowableValues[0].getValue(), equalTo("TLSv1.2"));
-    }
-
-    @Test
-    public void testBuildUnrestrictedSSLProtocolAllowableValues() throws NoSuchAlgorithmException {
-        final AllowableValue[] allowableValues = SSLContextServiceUtils.buildSSLAlgorithmAllowableValues(false);
-
-        // we expect TLS, SSL, and all available configured JVM protocols
+    public void testTLSAlgorithms() {
         final Set<String> expected = new HashSet<>();
-        expected.add("SSL");
         expected.add("TLS");
-        final String[] supportedProtocols = SSLContext.getDefault().createSSLEngine().getSupportedProtocols();
-        expected.addAll(Arrays.asList(supportedProtocols));
+        expected.add("TLSv1.2");
 
+        final AllowableValue[] allowableValues = RestrictedSSLContextService.buildAlgorithmAllowableValues();
         assertThat(allowableValues, notNullValue());
-        assertThat(allowableValues.length, equalTo(expected.size()));
+        assertThat(allowableValues.length, equalTo(2));
         for(final AllowableValue value : allowableValues) {
             assertTrue(expected.contains(value.getValue()));
         }

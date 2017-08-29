@@ -18,20 +18,15 @@ package org.apache.nifi.ssl;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -113,7 +108,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
-            .allowableValues(SSLContextServiceUtils.buildSSLAlgorithmAllowableValues(false))
+            .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
             .description("The algorithm to use for this TLS/SSL context")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
@@ -463,36 +458,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public enum KeystoreValidationGroup {
 
         KEYSTORE, TRUSTSTORE
-    }
-
-    private static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
-
-        /*
-         * Prepopulate protocols with generic instance types commonly used
-         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
-         */
-        supportedProtocols.add("SSL");
-        supportedProtocols.add("TLS");
-
-        // Determine those provided by the JVM on the system
-        try {
-            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
-        } catch (NoSuchAlgorithmException e) {
-            // ignored as default is used
-        }
-
-        final int numProtocols = supportedProtocols.size();
-
-        // Sort for consistent presentation in configuration views
-        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
-        Collections.sort(supportedProtocolList);
-
-        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
-        for (final String protocol : supportedProtocolList) {
-            protocolAllowableValues.add(new AllowableValue(protocol));
-        }
-        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
     }
 
     @Override

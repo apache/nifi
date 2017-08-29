@@ -28,23 +28,24 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable
- * values that can be selected for SSL protocols.
+ * values that can be selected for TLS protocols.
  */
-@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
+@Tags({"tls", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
 @CapabilityDescription("Restricted implementation of the SSLContextService. Provides the ability to configure "
         + "keystore and/or truststore properties once and reuse that configuration throughout the application, "
-        + "but only allows a restricted set of SSL protocols to be chosen. The set of protocols selectable will "
+        + "but only allows a restricted set of TLS protocols to be chosen. The set of protocols selectable will "
         + "evolve over time as new protocols emerge and older protocols are deprecated. This service is recommended "
-        + "over StandardSSLContextService if a component doesn't expect to communicate with legacy systems since it's "
+        + "over StandardSSLContextService if a component doesn't expect to communicate with legacy systems since it is "
         + "unlikely that legacy systems will support these protocols.")
 public class StandardRestrictedSSLContextService extends StandardSSLContextService implements RestrictedSSLContextService {
 
     public static final PropertyDescriptor RESTRICTED_SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
-            .defaultValue("TLSv1.2")
+            .displayName("TLS Protocol")
+            .defaultValue("TLS")
             .required(false)
-            .allowableValues(SSLContextServiceUtils.buildSSLAlgorithmAllowableValues(true))
-            .description("The algorithm to use for this SSL context")
+            .allowableValues(RestrictedSSLContextService.buildAlgorithmAllowableValues())
+            .description("The algorithm to use for this SSL context. By default, this will choose the highest supported TLS protocol version.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
