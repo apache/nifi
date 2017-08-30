@@ -41,5 +41,7 @@
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
         <module>nifi-hwx-schema-registry-bundle</module>
+        <module>nifi-mongodb-client-service-api</module>
+        <module>nifi-mongodb-services-bundle</module>
     </modules>
 </project>
