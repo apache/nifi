@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.ssl;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -23,9 +26,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import javax.net.ssl.SSLContext;
+
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
@@ -309,6 +320,24 @@ public class SSLContextServiceTest {
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSSLAlgorithms() throws NoSuchAlgorithmException {
+        final AllowableValue[] allowableValues = SSLContextService.buildAlgorithmAllowableValues();
+
+        // we expect TLS, SSL, and all available configured JVM protocols
+        final Set<String> expected = new HashSet<>();
+        expected.add("SSL");
+        expected.add("TLS");
+        final String[] supportedProtocols = SSLContext.getDefault().createSSLEngine().getSupportedProtocols();
+        expected.addAll(Arrays.asList(supportedProtocols));
+
+        assertThat(allowableValues, notNullValue());
+        assertThat(allowableValues.length, equalTo(expected.size()));
+        for(final AllowableValue value : allowableValues) {
+            assertTrue(expected.contains(value.getValue()));
         }
     }
 }
