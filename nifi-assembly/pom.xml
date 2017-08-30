@@ -245,7 +245,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-nar</artifactId>
             <type>nar</type>
-        </dependency>
+    </dependency>
+    <dependency>
+	    <groupId>org.apache.nifi</groupId>
+	<artifactId>nifi-mongodb-services-nar</artifactId>
+	    <type>nar</type>
+    </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-solr-nar</artifactId>

@@ -1109,7 +1109,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-kudu-nar</artifactId>
+                <artifactId>nifi-mongodb-services-nar</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1595,6 +1595,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase-client-service-api</artifactId>
+                <version>1.4.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-mongodb-client-service-api</artifactId>
                 <version>1.4.0-SNAPSHOT</version>
             </dependency>
             <dependency>
