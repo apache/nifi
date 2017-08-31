@@ -42,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 
 import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
 import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -153,11 +154,15 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                     MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                     // RFC-2822 determines that a message must have a "From:" header
                     // if a message lacks the field, it is flagged as invalid
-                    Address[] from = originalMessage.getFrom();
+                    if (InternetAddress.parseHeader(originalMessage.getHeader("From", ","), false) == null) {
+                        if (InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), false) == null) {
+                            throw new MessagingException("Message failed RFC2822 validation: No Sender");
+                        }
+                    }
                     Date sentDate = originalMessage.getSentDate();
-                    if (from == null || sentDate == null ) {
+                    if (sentDate == null ) {
                         // Throws MessageException due to lack of minimum required headers
-                        throw new MessagingException("Message failed RFC2822 validation");
+                        throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
                     } else if (capturedHeadersList.size() > 0){
                         Enumeration headers = originalMessage.getAllHeaders();
                         while (headers.hasMoreElements()) {
@@ -168,23 +173,40 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                             }
                         }
                     }
-                    if (originalMessage.getAllRecipients() != null) {
-                        if (Array.getLength(originalMessage.getAllRecipients()) > 0) {
-                            for (int toCount = 0; toCount < ArrayUtils.getLength(originalMessage.getRecipients(Message.RecipientType.TO)); toCount++) {
-                                attributes.put(EMAIL_HEADER_TO + "." + toCount, originalMessage.getRecipients(Message.RecipientType.TO)[toCount].toString());
-                            }
-                            for (int toCount = 0; toCount < ArrayUtils.getLength(originalMessage.getRecipients(Message.RecipientType.BCC)); toCount++) {
-                                attributes.put(EMAIL_HEADER_BCC + "." + toCount, originalMessage.getRecipients(Message.RecipientType.BCC)[toCount].toString());
-                            }
-                            for (int toCount = 0; toCount < ArrayUtils.getLength(originalMessage.getRecipients(Message.RecipientType.CC)); toCount++) {
-                                attributes.put(EMAIL_HEADER_CC + "." + toCount, originalMessage.getRecipients(Message.RecipientType.CC)[toCount].toString());
-                            }
+
+                    // Get Non-Strict Recipient Addresses
+                    InternetAddress[] recipients;
+                    if (originalMessage.getHeader(Message.RecipientType.TO.toString(), ",") != null) {
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.TO.toString(), ","), false);
+                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
+                            attributes.put(EMAIL_HEADER_TO + "." + toCount, recipients[toCount].toString());
                         }
                     }
-                    // Incredibly enough RFC-2822 specified From as a "mailbox-list" so an array I returned by getFrom
-                    for (int toCount = 0; toCount < ArrayUtils.getLength(originalMessage.getFrom()); toCount++) {
-                        attributes.put(EMAIL_HEADER_FROM + "." + toCount, originalMessage.getFrom()[toCount].toString());
+                    if (originalMessage.getHeader(Message.RecipientType.BCC.toString(), ",") != null) {
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.BCC.toString(), ","), false);
+                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
+                            attributes.put(EMAIL_HEADER_BCC + "." + toCount, recipients[toCount].toString());
+                        }
                     }
+                    if (originalMessage.getHeader(Message.RecipientType.CC.toString(), ",") != null) {
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.CC.toString(), ","), false);
+                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
+                            attributes.put(EMAIL_HEADER_CC + "." + toCount, recipients[toCount].toString());
+                        }
+                    }
+
+                    // Get Non-Strict Sender Addresses
+                    InternetAddress[] sender = null;
+                    if (originalMessage.getHeader("From",",") != null) {
+                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("From", ","), false));
+                    }
+                    if (originalMessage.getHeader("Sender",",") != null) {
+                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), false));
+                    }
+                    for (int toCount = 0; toCount < ArrayUtils.getLength(sender); toCount++) {
+                        attributes.put(EMAIL_HEADER_FROM + "." + toCount, sender[toCount].toString());
+                    }
+
                     if (StringUtils.isNotEmpty(originalMessage.getMessageID())) {
                         attributes.put(EMAIL_HEADER_MESSAGE_ID, originalMessage.getMessageID());
                     }
@@ -234,4 +256,3 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         return descriptors;
     }
 }
-
