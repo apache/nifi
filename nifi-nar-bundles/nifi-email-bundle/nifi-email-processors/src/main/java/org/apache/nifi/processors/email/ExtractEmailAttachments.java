@@ -31,6 +31,7 @@ import java.util.Date;
 
 import javax.activation.DataSource;
 import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -131,11 +132,15 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                         // RFC-2822 determines that a message must have a "From:" header
                         // if a message lacks the field, it is flagged as invalid
-                        Address[] from = originalMessage.getFrom();
+                        if (InternetAddress.parseHeader(originalMessage.getHeader("From", ","), false) == null) {
+                            if (InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), false) == null) {
+                                throw new MessagingException("Message failed RFC2822 validation: No Sender");
+                            }
+                        }
                         Date sentDate = originalMessage.getSentDate();
-                        if (from == null || sentDate == null) {
+                        if (sentDate == null) {
                             // Throws MessageException due to lack of minimum required headers
-                            throw new MessagingException("Message failed RFC2822 validation");
+                            throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
                         }
                         originalFlowFilesList.add(originalFlowFile);
                         if (parser.hasAttachments()) {
@@ -209,4 +214,3 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
 
 }
-
