@@ -17,11 +17,16 @@
 
 package org.apache.nifi.processors.email;
 
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.io.IOException;
 import java.util.List;
 
 public class TestExtractEmailHeaders {
@@ -62,7 +67,7 @@ public class TestExtractEmailHeaders {
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
         // Create the message dynamically
-        byte [] simpleEmail = attachmentGenerator.SimpleEmail();
+        byte [] simpleEmail = attachmentGenerator.SimpleEmailBytes();
 
         runner.enqueue(simpleEmail);
         runner.run();
@@ -79,6 +84,46 @@ public class TestExtractEmailHeaders {
         splits.get(0).assertAttributeExists("email.headers.mime-version");
     }
 
+    /**
+     * Test case added for NIFI-4339, which is a potential NPE bug
+     * if the email message contains no recipient header fields, ie,
+     * TO, CC, BCC.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testValidEmailWithNoRecipients() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
+        runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
+
+        // Create the message dynamically
+        MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
+
+        simpleEmailMimeMessage.removeHeader("To");
+        simpleEmailMimeMessage.removeHeader("Cc");
+        simpleEmailMimeMessage.removeHeader("Bcc");
+
+        ByteArrayOutputStream messageBytes = new ByteArrayOutputStream();
+        try {
+            simpleEmailMimeMessage.writeTo(messageBytes);
+        } catch (IOException | MessagingException e) {
+            e.printStackTrace();
+        }
+
+        runner.enqueue(messageBytes.toByteArray());
+        runner.run();
+
+        runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 1);
+        runner.assertTransferCount(ExtractEmailHeaders.REL_FAILURE, 0);
+
+        runner.assertQueueEmpty();
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
+        splits.get(0).assertAttributeEquals("email.headers.from.0", from);
+        splits.get(0).assertAttributeExists("email.headers.mime-version");
+        splits.get(0).assertAttributeNotExists("email.headers.to");
+        splits.get(0).assertAttributeNotExists("email.headers.cc");
+        splits.get(0).assertAttributeNotExists("email.headers.bcc");
+    }
 
     @Test
     public void testInvalidEmail() throws Exception {

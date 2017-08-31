@@ -168,7 +168,8 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                             }
                         }
                     }
-                    if (Array.getLength(originalMessage.getAllRecipients()) > 0) {
+                    Address[] allRecipients = originalMessage.getAllRecipients();
+                    if (allRecipients != null && Array.getLength(allRecipients) > 0) {
                         for (int toCount = 0; toCount < ArrayUtils.getLength(originalMessage.getRecipients(Message.RecipientType.TO)); toCount++) {
                             attributes.put(EMAIL_HEADER_TO + "." + toCount, originalMessage.getRecipients(Message.RecipientType.TO)[toCount].toString());
                         }

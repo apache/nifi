@@ -43,7 +43,21 @@ public class GenerateAttachment {
         this.hostName = hostName;
     }
 
-    public byte[] SimpleEmail() {
+    public byte[] SimpleEmailBytes() {
+        MimeMessage mimeMessage = SimpleEmailMimeMessage();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            mimeMessage.writeTo(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+
+        return output.toByteArray();
+    }
+
+    public MimeMessage SimpleEmailMimeMessage() {
         Email email = new SimpleEmail();
         try {
             email.setFrom(from);
@@ -56,17 +70,7 @@ public class GenerateAttachment {
             e.printStackTrace();
         }
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        MimeMessage mimeMessage = email.getMimeMessage();
-        try {
-            mimeMessage.writeTo(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
-
-        return output.toByteArray();
+        return email.getMimeMessage();
     }
 
     public byte[] WithAttachments(int amount) {
