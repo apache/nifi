@@ -37,6 +37,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -65,7 +66,7 @@ public class TestHandleHttpRequest {
     }
 
     private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
-        final SSLContextService service = new StandardSSLContextService();
+        final SSLContextService service = new StandardRestrictedSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, sslProperties);
             controller.enableControllerService(service);

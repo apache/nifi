@@ -64,6 +64,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -106,7 +107,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\"")})
 @SeeAlso(value = {HandleHttpResponse.class},
-        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.RestrictedStandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
@@ -146,7 +147,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; "
                     + "otherwise, the server will accept only HTTP requests")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Default URL Character Set")
@@ -448,18 +449,6 @@ public class HandleHttpRequest extends AbstractProcessor {
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
-        // if the configured protocol isn't supported by Jetty, throw an exception
-        final String[] excludeProtocols = sslFactory.getExcludeProtocols();
-        if (excludeProtocols != null) {
-            for (final String protocol : excludeProtocols) {
-                if (protocol.equals(sslService.getSslAlgorithm())) {
-                    final IllegalArgumentException e = new IllegalArgumentException("The configured SSL Protocol '" + sslService.getSslAlgorithm()
-                            + "' is not supported by this processor. Please choose another.");
-                    getLogger().error("Failed to start HandleHttpRequest.", e);
-                    throw e;
-                }
-            }
-        }
         sslFactory.setProtocol(sslService.getSslAlgorithm());
 
         if (sslService.isKeyStoreConfigured()) {
