@@ -152,15 +152,15 @@ input.search-nodes {
     margin-top: 8px;
 }
 
-#heap-table {
+#heap-table, #non-heap-table {
     border-collapse: collapse;
 }
 
-#heap-table tr{
+#heap-table tr, #non-heap-table tr {
     height: 20px;
 }
 
-#heap-table span {
+#heap-table span, #non-heap-table span {
     font-weight: bold;
 }
 
@@ -188,6 +188,17 @@ input.search-nodes {
 }
 
 #content-repository-storage-usage-container div.storage-usage {
+    margin-bottom: 10px;
+}
+
+#provenance-repository-storage-usage-container {
+    height: 179px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 4px;
+}
+
+#provenance-repository-storage-usage-container div.storage-usage {
     margin-bottom: 10px;
 }
 

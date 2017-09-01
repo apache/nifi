@@ -1684,7 +1684,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public SystemDiagnostics getSystemDiagnostics() {
         final SystemDiagnosticsFactory factory = new SystemDiagnosticsFactory();
-        return factory.create(flowFileRepository, contentRepository);
+        return factory.create(flowFileRepository, contentRepository, provenanceRepository);
     }
 
     //

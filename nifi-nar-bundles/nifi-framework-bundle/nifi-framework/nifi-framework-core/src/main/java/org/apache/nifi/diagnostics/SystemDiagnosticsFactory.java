@@ -32,7 +32,7 @@ import java.util.Set;
 
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
-
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,7 @@ public class SystemDiagnosticsFactory {
 
     private final Logger logger = LoggerFactory.getLogger(SystemDiagnosticsFactory.class);
 
-    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo) {
+    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo, ProvenanceRepository provenanceRepository) {
         final SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
 
         final MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
@@ -118,6 +118,31 @@ public class SystemDiagnosticsFactory {
             fileRepositoryUsage.put(containerName, storageUsage);
         }
         systemDiagnostics.setContentRepositoryStorageUsage(fileRepositoryUsage);
+
+        // get provenance repository disk usage
+        final Set<String> provContainerNames = provenanceRepository.getContainerNames();
+        final Map<String, StorageUsage> provRepositoryUsage = new LinkedHashMap<>(provContainerNames.size());
+        for (final String containerName : provContainerNames) {
+            long containerCapacity = -1L;
+            long containerFree = 0L;
+
+            try {
+                containerFree = provenanceRepository.getContainerUsableSpace(containerName);
+                containerCapacity = provenanceRepository.getContainerCapacity(containerName);
+            } catch (final IOException ioe) {
+                logger.warn("Unable to determine Provenance Repository usage for container {} due to {}", containerName, ioe.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.warn("", ioe);
+                }
+            }
+
+            final StorageUsage storageUsage = new StorageUsage();
+            storageUsage.setIdentifier(containerName);
+            storageUsage.setFreeSpace(containerFree);
+            storageUsage.setTotalSpace(containerCapacity);
+            provRepositoryUsage.put(containerName, storageUsage);
+        }
+        systemDiagnostics.setProvenanceRepositoryStorageUsage(provRepositoryUsage);
 
         // get the garbage collection statistics
         final Map<String, GarbageCollection> garbageCollection = new LinkedHashMap<>(garbageCollectors.size());

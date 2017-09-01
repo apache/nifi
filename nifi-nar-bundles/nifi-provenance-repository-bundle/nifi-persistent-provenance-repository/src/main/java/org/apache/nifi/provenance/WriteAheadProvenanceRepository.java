@@ -17,10 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -50,8 +46,17 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.CloseableUtil;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -292,5 +297,39 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     RepositoryConfiguration getConfig() {
         return this.config;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(config.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 }
