@@ -50,7 +50,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .name("Destination URL")
             .displayName("Destination URL")
             .description("The URL of the destination NiFi instance to send data to, " +
-                    "should be in the format http(s)://host:port/nifi.")
+                    "should be a comma-separated list of address in the format of http(s)://host:port/nifi.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(new NiFiUrlValidator())
@@ -218,11 +218,9 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final String value = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+            String[] urls = value.split(",");
 
-            URL url;
-            try {
-                url = new URL(value);
-            } catch (final Exception e) {
+            if(urls.length == 0) {
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
@@ -231,13 +229,28 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                         .build();
             }
 
-            if (url != null && !url.getPath().equals(DESTINATION_URL_PATH)) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation("URL path must be " + DESTINATION_URL_PATH)
-                        .build();
+            for (String string : urls) {
+                URL url;
+
+                try {
+                    url = new URL(string);
+                } catch (final Exception e) {
+                    return new ValidationResult.Builder()
+                            .input(input)
+                            .subject(subject)
+                            .valid(false)
+                            .explanation("Not a valid URL")
+                            .build();
+                }
+
+                if (url != null && !url.getPath().equals(DESTINATION_URL_PATH)) {
+                    return new ValidationResult.Builder()
+                            .input(input)
+                            .subject(subject)
+                            .valid(false)
+                            .explanation("URL path must be " + DESTINATION_URL_PATH)
+                            .build();
+                }
             }
 
             return new ValidationResult.Builder()
