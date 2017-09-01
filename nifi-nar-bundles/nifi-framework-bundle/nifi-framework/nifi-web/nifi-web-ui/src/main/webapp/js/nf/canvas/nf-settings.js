@@ -1224,7 +1224,7 @@
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'
                 }, {
-                    name: 'Controller Services',
+                    name: 'Reporting Task Controller Services',
                     tabContentId: 'controller-services-tab-content'
                 }, {
                     name: 'Reporting Tasks',
@@ -1249,9 +1249,9 @@
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
-                                if (tab === 'Controller Services') {
+                                if (tab === 'Reporting Task Controller Services') {
                                     $('#settings-save').hide();
-                                    return 'Create a new controller service';
+                                    return 'Create a new reporting task controller service';
                                 } else if (tab === 'Reporting Tasks') {
                                     $('#settings-save').hide();
                                     return 'Create a new reporting task';
@@ -1262,7 +1262,7 @@
                             $('div.controller-settings-table').css('top', '0');
                         }
 
-                        if (tab === 'Controller Services') {
+                        if (tab === 'Reporting Task Controller Services') {
                             $('#controller-cs-availability').show();
                         } else if (tab === 'Reporting Tasks') {
                             $('#controller-cs-availability').hide();
@@ -1282,7 +1282,7 @@
             // create a new controller service or reporting task
             $('#new-service-or-task').on('click', function () {
                 var selectedTab = $('#settings-tabs li.selected-tab').text();
-                if (selectedTab === 'Controller Services') {
+                if (selectedTab === 'Reporting Task Controller Services') {
                     var controllerServicesUri = config.urls.api + '/controller/controller-services';
                     nfControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 } else if (selectedTab === 'Reporting Tasks') {
