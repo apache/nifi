@@ -143,6 +143,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
                     + "Hive metastore is 9043.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
             .build();
@@ -162,6 +163,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Database Name")
             .description("The name of the database in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -170,6 +172,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Table Name")
             .description("The name of the database table in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -179,6 +182,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("A comma-delimited list of column names on which the table has been partitioned. The order of values in this list must "
                     + "correspond exactly to the order of partition columns specified during the table creation.")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("[^,]+(,[^,]+)*"))) // comma-separated list with non-empty entries
             .build();
 
@@ -322,9 +326,9 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     public void setup(final ProcessContext context) {
         ComponentLog log = getLogger();
 
-        final String metastoreUri = context.getProperty(METASTORE_URI).getValue();
-        final String dbName = context.getProperty(DB_NAME).getValue();
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
+        final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
+        final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions().getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
         final Integer maxConnections = context.getProperty(MAX_OPEN_CONNECTIONS).asInteger();
         final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).asInteger();
@@ -565,7 +569,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
         final List<String> partitionColumnList;
-        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
+        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).evaluateAttributeExpressions().getValue();
         if (partitionColumns == null || partitionColumns.isEmpty()) {
             partitionColumnList = Collections.emptyList();
         } else {
