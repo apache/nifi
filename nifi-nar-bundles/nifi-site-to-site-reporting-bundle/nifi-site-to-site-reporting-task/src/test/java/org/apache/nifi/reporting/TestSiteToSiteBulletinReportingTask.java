@@ -18,6 +18,8 @@
 package org.apache.nifi.reporting;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,14 +34,17 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.reporting.AbstractSiteToSiteReportingTask.NiFiUrlValidator;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
@@ -49,6 +54,28 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestSiteToSiteBulletinReportingTask {
+
+    @Test
+    public void testUrls() throws IOException {
+        final ValidationContext context = Mockito.mock(ValidationContext.class);
+        Mockito.when(context.newPropertyValue(Mockito.anyString())).then(new Answer<PropertyValue>() {
+            @Override
+            public PropertyValue answer(InvocationOnMock invocation) throws Throwable {
+                String value = (String) invocation.getArguments()[0];
+                return new StandardPropertyValue(value, null);
+            }
+        });
+
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi,https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080/nifi", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
+    }
 
     @Test
     public void testSerializedForm() throws IOException, InitializationException {
