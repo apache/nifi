@@ -180,6 +180,12 @@
                     <div id="content-repository-storage-usage-container"></div>
                 </div>
             </div>
+            <div class="setting">
+                <div class="setting-header">Provenance Repository Storage</div>
+                <div class="setting-field">
+                    <div id="provenance-repository-storage-usage-container"></div>
+                </div>
+            </div>
         </div>
 
         <div id="version-tab-content" class="configuration-tab">

@@ -191,6 +191,17 @@ input.search-nodes {
     margin-bottom: 10px;
 }
 
+#provenance-repository-storage-usage-container {
+    height: 179px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 4px;
+}
+
+#provenance-repository-storage-usage-container div.storage-usage {
+    margin-bottom: 10px;
+}
+
 .storage-usage-details {
     padding-top: 4px;
 }

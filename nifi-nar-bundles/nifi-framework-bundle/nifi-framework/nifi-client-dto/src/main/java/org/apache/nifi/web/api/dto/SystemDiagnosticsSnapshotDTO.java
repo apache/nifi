@@ -62,6 +62,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
     private StorageUsageDTO flowFileRepositoryStorageUsage;
     private Set<StorageUsageDTO> contentRepositoryStorageUsage;
+    private Set<StorageUsageDTO> provenanceRepositoryStorageUsage;
     private Set<GarbageCollectionDTO> garbageCollection;
 
     private Date statsLastRefreshed;
@@ -202,6 +203,15 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
     public void setContentRepositoryStorageUsage(Set<StorageUsageDTO> contentRepositoryStorageUsage) {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
+    }
+
+    @ApiModelProperty("The provenance repository storage usage.")
+    public Set<StorageUsageDTO> getProvenanceRepositoryStorageUsage() {
+        return provenanceRepositoryStorageUsage;
+    }
+
+    public void setProvenanceRepositoryStorageUsage(Set<StorageUsageDTO> provenanceRepositoryStorageUsage) {
+        this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
     }
 
     @ApiModelProperty("The flowfile repository storage usage.")
@@ -359,6 +369,12 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         other.setContentRepositoryStorageUsage(contentRepoStorageUsage);
         for (final StorageUsageDTO usage : getContentRepositoryStorageUsage()) {
             contentRepoStorageUsage.add(usage.clone());
+        }
+
+        final Set<StorageUsageDTO> provenanceRepoStorageUsage = new LinkedHashSet<>();
+        other.setProvenanceRepositoryStorageUsage(provenanceRepoStorageUsage);
+        for (final StorageUsageDTO usage : getProvenanceRepositoryStorageUsage()) {
+            provenanceRepoStorageUsage.add(usage.clone());
         }
 
         final Set<GarbageCollectionDTO> gcUsage = new LinkedHashSet<>();

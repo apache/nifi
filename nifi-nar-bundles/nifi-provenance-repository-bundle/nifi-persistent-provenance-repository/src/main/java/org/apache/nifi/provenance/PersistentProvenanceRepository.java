@@ -68,6 +68,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
@@ -519,6 +520,23 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public RepositoryConfiguration getConfiguration() {
         return configuration;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(configuration.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        final Path path = configuration.getStorageDirectories().get(containerName).toPath();
+        return FileUtils.getContainerCapacity(containerName, path);
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        final Path path = configuration.getStorageDirectories().get(containerName).toPath();
+        return FileUtils.getContainerUsableSpace(containerName, path);
     }
 
     private void recover() throws IOException {

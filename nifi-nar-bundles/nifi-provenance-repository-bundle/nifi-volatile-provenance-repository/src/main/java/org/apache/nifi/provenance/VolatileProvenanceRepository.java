@@ -50,6 +50,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -70,7 +71,10 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     // default property values
     public static final int DEFAULT_BUFFER_SIZE = 10000;
 
+    public static String CONTAINER_NAME = "in-memory";
+
     private final RingBuffer<ProvenanceEventRecord> ringBuffer;
+    private final int maxSize;
     private final List<SearchableField> searchableFields;
     private final List<SearchableField> searchableAttributes;
     private final ExecutorService queryExecService;
@@ -95,12 +99,13 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         scheduledExecService = null;
         authorizer = null;
         resourceFactory = null;
+        maxSize = DEFAULT_BUFFER_SIZE;
     }
 
     public VolatileProvenanceRepository(final NiFiProperties nifiProperties) {
 
-        final int bufferSize = nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE);
-        ringBuffer = new RingBuffer<>(bufferSize);
+        maxSize = nifiProperties.getIntegerProperty(BUFFER_SIZE, DEFAULT_BUFFER_SIZE);
+        ringBuffer = new RingBuffer<>(maxSize);
 
         final String indexedFieldString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
         final String indexedAttrString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
@@ -591,6 +596,21 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
                 return submission;
             }
         }
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        return maxSize;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return Collections.singleton(CONTAINER_NAME);
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        return maxSize - ringBuffer.getSize();
     }
 
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId) {

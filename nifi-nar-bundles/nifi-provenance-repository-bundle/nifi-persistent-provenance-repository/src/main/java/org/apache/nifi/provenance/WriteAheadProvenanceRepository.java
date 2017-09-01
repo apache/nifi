@@ -18,9 +18,13 @@
 package org.apache.nifi.provenance;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -50,6 +54,7 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.CloseableUtil;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -292,5 +297,22 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     RepositoryConfiguration getConfig() {
         return this.config;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(config.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        final Path path = config.getStorageDirectories().get(containerName).toPath();
+        return FileUtils.getContainerCapacity(containerName, path);
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        final Path path = config.getStorageDirectories().get(containerName).toPath();
+        return FileUtils.getContainerUsableSpace(containerName, path);
     }
 }

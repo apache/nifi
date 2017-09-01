@@ -608,6 +608,7 @@ public class StatusMerger {
         target.setUsedNonHeapBytes(target.getUsedNonHeapBytes() + toMerge.getUsedNonHeapBytes());
 
         merge(target.getContentRepositoryStorageUsage(), toMerge.getContentRepositoryStorageUsage());
+        merge(target.getProvenanceRepositoryStorageUsage(), toMerge.getProvenanceRepositoryStorageUsage());
         merge(target.getFlowFileRepositoryStorageUsage(), toMerge.getFlowFileRepositoryStorageUsage());
         mergeGarbageCollection(target.getGarbageCollection(), toMerge.getGarbageCollection());
 
