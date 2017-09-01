@@ -462,12 +462,20 @@ public class TestPutHiveStreaming {
 
     @Test
     public void onTriggerWithPartitionColumns() throws Exception {
-        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
-        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
-        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setVariable("metastore", "thrift://localhost:9083");
+        runner.setVariable("database", "default");
+        runner.setVariable("table", "users");
+        runner.setVariable("partitions", "favorite_number, favorite_color");
+
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "${metastore}");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "${database}");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "${table}");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_number, favorite_color");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "${partitions}");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "true");
+
+        runner.assertValid();
+
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
