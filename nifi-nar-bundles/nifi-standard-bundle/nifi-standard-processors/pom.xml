@@ -498,11 +498,16 @@
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
