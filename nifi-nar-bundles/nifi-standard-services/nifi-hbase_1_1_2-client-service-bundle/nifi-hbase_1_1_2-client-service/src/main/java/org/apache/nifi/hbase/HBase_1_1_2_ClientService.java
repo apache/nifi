@@ -88,16 +88,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     static final long TICKET_RENEWAL_PERIOD = 60000;
 
-    private volatile Connection connection;
+    protected volatile Connection connection;
     private volatile UserGroupInformation ugi;
     private volatile KerberosTicketRenewer renewer;
 
-    private List<PropertyDescriptor> properties;
-    private KerberosProperties kerberosProperties;
+    protected List<PropertyDescriptor> properties;
+    protected KerberosProperties kerberosProperties;
     private volatile File kerberosConfigFile = null;
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
-    private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
+    protected final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
