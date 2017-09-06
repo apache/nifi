@@ -104,6 +104,18 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             .defaultValue("x-mailer")
             .build();
 
+    public static final PropertyDescriptor STRICT_ADDRESSING = new PropertyDescriptor.Builder()
+            .name("STRICT_ADDRESSING")
+            .displayName("Use Strict Email Addresses")
+            .description("If true, strict adderss rules will be applied. Some mail messages may fail if they have" +
+                    " poorly constructed emails. Setting this to false will allow more mail messages through the " +
+                    "processor, and behave more like sendmail. Try setting this to false if you want poorly constructed" +
+                    " addresses to be accepted.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Extraction was successful")
@@ -126,6 +138,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
 
         descriptors.add(CAPTURED_HEADERS);
+        descriptors.add(STRICT_ADDRESSING);
         this.descriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -141,6 +154,8 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             return;
         }
 
+        final boolean strict = context.getProperty(STRICT_ADDRESSING).asBoolean();
+
         final List<String> capturedHeadersList = Arrays.asList(context.getProperty(CAPTURED_HEADERS).getValue().toLowerCase().split(":"));
 
         final Map<String, String> attributes = new HashMap<>();
@@ -154,8 +169,8 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                     MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                     // RFC-2822 determines that a message must have a "From:" header
                     // if a message lacks the field, it is flagged as invalid
-                    if (InternetAddress.parseHeader(originalMessage.getHeader("From", ","), false) == null) {
-                        if (InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), false) == null) {
+                    if (InternetAddress.parseHeader(originalMessage.getHeader("From", ","), strict) == null) {
+                        if (InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), strict) == null) {
                             throw new MessagingException("Message failed RFC2822 validation: No Sender");
                         }
                     }
@@ -177,19 +192,19 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                     // Get Non-Strict Recipient Addresses
                     InternetAddress[] recipients;
                     if (originalMessage.getHeader(Message.RecipientType.TO.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.TO.toString(), ","), false);
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.TO.toString(), ","), strict);
                         for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
                             attributes.put(EMAIL_HEADER_TO + "." + toCount, recipients[toCount].toString());
                         }
                     }
                     if (originalMessage.getHeader(Message.RecipientType.BCC.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.BCC.toString(), ","), false);
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.BCC.toString(), ","), strict);
                         for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
                             attributes.put(EMAIL_HEADER_BCC + "." + toCount, recipients[toCount].toString());
                         }
                     }
                     if (originalMessage.getHeader(Message.RecipientType.CC.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.CC.toString(), ","), false);
+                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.CC.toString(), ","), strict);
                         for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
                             attributes.put(EMAIL_HEADER_CC + "." + toCount, recipients[toCount].toString());
                         }
@@ -198,10 +213,10 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                     // Get Non-Strict Sender Addresses
                     InternetAddress[] sender = null;
                     if (originalMessage.getHeader("From",",") != null) {
-                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("From", ","), false));
+                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("From", ","), strict));
                     }
                     if (originalMessage.getHeader("Sender",",") != null) {
-                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), false));
+                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), strict));
                     }
                     for (int toCount = 0; toCount < ArrayUtils.getLength(sender); toCount++) {
                         attributes.put(EMAIL_HEADER_FROM + "." + toCount, sender[toCount].toString());
