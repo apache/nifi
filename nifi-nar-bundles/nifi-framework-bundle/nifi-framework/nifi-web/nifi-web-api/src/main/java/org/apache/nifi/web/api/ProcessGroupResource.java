@@ -48,6 +48,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -127,7 +128,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
+import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -3238,7 +3239,8 @@ public class ProcessGroupResource extends ApplicationResource {
         try {
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(in), TemplateDTO.class);
+            XMLStreamReader xsr = XmlUtils.createSafeReader(in);
+            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
             template = templateElement.getValue();
         } catch (JAXBException jaxbe) {
             logger.warn("An error occurred while parsing a template.", jaxbe);

@@ -16,47 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.annotation.AuthorizerContext;
-import org.apache.nifi.authorization.exception.AuthorizationAccessException;
-import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
-import org.apache.nifi.authorization.file.generated.Authorizations;
-import org.apache.nifi.authorization.file.generated.Policies;
-import org.apache.nifi.authorization.file.generated.Policy;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.user.generated.Users;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -74,6 +33,48 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.annotation.AuthorizerContext;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.authorization.file.generated.Authorizations;
+import org.apache.nifi.authorization.file.generated.Policies;
+import org.apache.nifi.authorization.file.generated.Policy;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.user.generated.Users;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvider {
 
@@ -528,11 +529,17 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     private Authorizations unmarshallAuthorizations() throws JAXBException {
-        final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
-        unmarshaller.setSchema(authorizationsSchema);
+        try {
+            final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(authorizationsFile));
+            final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
+            unmarshaller.setSchema(authorizationsSchema);
 
-        final JAXBElement<Authorizations> element = unmarshaller.unmarshal(new StreamSource(authorizationsFile), Authorizations.class);
-        return element.getValue();
+            final JAXBElement<Authorizations> element = unmarshaller.unmarshal(xsr, Authorizations.class);
+            return element.getValue();
+        } catch (XMLStreamException e) {
+            logger.error("Encountered an error reading authorizations file: ", e);
+            throw new JAXBException("Error reading authorizations file", e);
+        }
     }
 
     /**
@@ -626,8 +633,15 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         final Unmarshaller unmarshaller = JAXB_USERS_CONTEXT.createUnmarshaller();
         unmarshaller.setSchema(usersSchema);
 
+        final XMLStreamReader xsr;
+        try {
+            xsr = XmlUtils.createSafeReader(new StreamSource(authorizedUsersFile));
+        } catch (XMLStreamException e) {
+            logger.error("Encountered an error reading authorized users file: ", e);
+            throw new JAXBException("Error reading authorized users file", e);
+        }
         final JAXBElement<Users> element = unmarshaller.unmarshal(
-                new StreamSource(authorizedUsersFile), org.apache.nifi.user.generated.Users.class);
+                xsr, org.apache.nifi.user.generated.Users.class);
 
         final org.apache.nifi.user.generated.Users users = element.getValue();
         if (users.getUser().isEmpty()) {
