@@ -28,6 +28,7 @@ import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -100,7 +101,7 @@ public class TestListenSMTP {
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
 
         // Setup the SSL Context
-        SSLContextService sslContextService = new StandardSSLContextService();
+        SSLContextService sslContextService = new StandardRestrictedSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");

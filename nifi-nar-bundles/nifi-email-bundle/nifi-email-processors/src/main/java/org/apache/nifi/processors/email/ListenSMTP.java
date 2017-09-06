@@ -50,6 +50,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.email.smtp.SmtpConsumer;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.springframework.util.StringUtils;
 import org.subethamail.smtp.MessageContext;
@@ -124,7 +125,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, "
                     + "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
 
     static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()

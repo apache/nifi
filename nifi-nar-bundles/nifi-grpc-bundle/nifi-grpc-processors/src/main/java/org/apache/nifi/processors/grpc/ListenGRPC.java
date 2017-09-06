@@ -35,6 +35,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.FileInputStream;
@@ -82,25 +83,29 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
     // properties
     public static final PropertyDescriptor PROP_SERVICE_PORT = new PropertyDescriptor.Builder()
             .name("Local gRPC service port")
+            .displayName("Local gRPC Service Port")
             .description("The local port that the gRPC service will listen on.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor PROP_USE_SECURE = new PropertyDescriptor.Builder()
-            .name("Use SSL/TLS")
-            .description("Whether or not to use SSL/TLS to send the contents of the gRPC messages.")
+            .name("Use TLS")
+            .displayName("Use TLS")
+            .description("Whether or not to use TLS to send the contents of the gRPC messages.")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")
             .build();
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS (https) connections.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     public static final PropertyDescriptor PROP_FLOW_CONTROL_WINDOW = new PropertyDescriptor.Builder()
             .name("Flow Control Window")
+            .displayName("Flow Control Window")
             .description("The initial HTTP/2 flow control window for both new streams and overall connection." +
                     " Flow-control schemes ensure that streams on the same connection do not destructively interfere with each other." +
                     " The default is 1MB.")
@@ -110,6 +115,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor PROP_MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
             .name("Max Message Size")
+            .displayName("Maximum Message Size")
             .description("The maximum size of FlowFiles that this processor will allow to be received." +
                     " The default is 4MB. If FlowFiles exceed this size, you should consider using another transport mechanism" +
                     " as gRPC isn't designed for heavy payloads.")
@@ -119,6 +125,7 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor PROP_AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
             .name("Authorized DN Pattern")
+            .displayName("Authorized DN Pattern")
             .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused.")
             .required(true)
             .defaultValue(".*")

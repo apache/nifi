@@ -74,6 +74,7 @@ import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.processors.standard.syslog.SyslogEvent;
 import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 @SupportsBatching
@@ -175,7 +176,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
                     "messages will be received over a secure connection.")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("Client Auth")

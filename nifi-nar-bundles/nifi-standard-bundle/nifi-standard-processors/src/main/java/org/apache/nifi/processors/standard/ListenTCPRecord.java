@@ -50,6 +50,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
@@ -181,7 +182,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
                     "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
 
     static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
