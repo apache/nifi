@@ -205,6 +205,7 @@
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/bye.txt</exclude>
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
+                        <exclude>src/test/resources/xxe_template.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

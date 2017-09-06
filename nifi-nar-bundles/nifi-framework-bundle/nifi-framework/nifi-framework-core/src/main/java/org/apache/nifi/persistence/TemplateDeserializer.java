@@ -17,13 +17,14 @@
 package org.apache.nifi.persistence;
 
 import java.io.InputStream;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
-
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
@@ -32,10 +33,17 @@ public class TemplateDeserializer {
     public static TemplateDTO deserialize(final InputStream inStream) {
         try {
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
+
+            // Manually constructing the XIF is necessary to prevent XXE attacks
+            XMLInputFactory xif = XMLInputFactory.newFactory();
+            xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+            xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            XMLStreamReader xsr = xif.createXMLStreamReader(new StreamSource(inStream));
+
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(inStream), TemplateDTO.class);
+            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
             return templateElement.getValue();
-        } catch (final JAXBException e) {
+        } catch (final JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         }
     }
