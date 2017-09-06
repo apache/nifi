@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang.StringEscapeUtils;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -508,7 +509,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
      *
      */
     protected static String createSqlStringValue(final JsonNode fieldNode, final Integer colSize, final int sqlType) {
-        String fieldValue = fieldNode.asText();
+        String fieldValue;
+        if (fieldNode.isValueNode()) {
+            fieldValue = fieldNode.asText();
+        } else {
+            fieldValue = StringEscapeUtils.escapeSql(fieldNode.toString());
+        }
 
         switch (sqlType) {
 
