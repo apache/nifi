@@ -58,6 +58,7 @@ import org.apache.nifi.processors.lumberjack.frame.LumberjackEncoder;
 import org.apache.nifi.processors.lumberjack.handler.LumberjackSocketChannelHandlerFactory;
 import org.apache.nifi.processors.lumberjack.response.LumberjackChannelResponse;
 import org.apache.nifi.processors.lumberjack.response.LumberjackResponse;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import com.google.gson.Gson;
@@ -89,7 +90,7 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
             "two-way SSL authentication, the controller MUST have a truststore and a keystore to work" +
             "properly.")
         .required(true)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
 
     @Override

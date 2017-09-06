@@ -17,7 +17,8 @@
 package org.apache.nifi.processors.slack;
 
 import java.util.Map;
-import org.apache.nifi.ssl.StandardSSLContextService;
+
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -78,16 +79,16 @@ public class TestServer {
     private void createSecureConnector(final Map<String, String> sslProperties) {
         SslContextFactory ssl = new SslContextFactory();
 
-        if (sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
-            ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));
-            ssl.setKeyStorePassword(sslProperties.get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
-            ssl.setKeyStoreType(sslProperties.get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
+        if (sslProperties.get(StandardRestrictedSSLContextService.KEYSTORE.getName()) != null) {
+            ssl.setKeyStorePath(sslProperties.get(StandardRestrictedSSLContextService.KEYSTORE.getName()));
+            ssl.setKeyStorePassword(sslProperties.get(StandardRestrictedSSLContextService.KEYSTORE_PASSWORD.getName()));
+            ssl.setKeyStoreType(sslProperties.get(StandardRestrictedSSLContextService.KEYSTORE_TYPE.getName()));
         }
 
-        if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
-            ssl.setTrustStorePath(sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()));
-            ssl.setTrustStorePassword(sslProperties.get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
-            ssl.setTrustStoreType(sslProperties.get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
+        if (sslProperties.get(StandardRestrictedSSLContextService.TRUSTSTORE.getName()) != null) {
+            ssl.setTrustStorePath(sslProperties.get(StandardRestrictedSSLContextService.TRUSTSTORE.getName()));
+            ssl.setTrustStorePassword(sslProperties.get(StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD.getName()));
+            ssl.setTrustStoreType(sslProperties.get(StandardRestrictedSSLContextService.TRUSTSTORE_TYPE.getName()));
         }
 
         final String clientAuth = sslProperties.get(NEED_CLIENT_AUTH);
