@@ -474,8 +474,15 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 subsequentTransactionId = nextPartition.getNextRecoverableTransactionId();
             } catch (final IOException e) {
                 logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; "
-                        + "assuming crash and ignoring this transaction",
+                        + "attempting to get the next recoverable transaction ID",
                         new Object[]{this, nextPartition, firstTransactionId});
+                try {
+                    subsequentTransactionId = nextPartition.getNextRecoverableTransactionId();
+                } catch (final IOException e2) {
+                    logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; "
+                            + "assuming crash and ignoring this transaction",
+                            new Object[]{this, nextPartition, firstTransactionId});
+                }
             }
 
             if (subsequentTransactionId != null) {
