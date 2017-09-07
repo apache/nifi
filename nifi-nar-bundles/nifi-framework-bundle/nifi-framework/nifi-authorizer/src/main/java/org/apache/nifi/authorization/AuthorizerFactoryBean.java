@@ -17,7 +17,6 @@
 package org.apache.nifi.authorization;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -33,6 +32,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -169,7 +169,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                 final Schema schema = schemaFactory.newSchema(Authorizers.class.getResource(AUTHORIZERS_XSD));
 
                 // attempt to unmarshal
-                final XMLStreamReader xsr = XmlUtils.createSafeReader(new FileInputStream(authorizersConfigurationFile));
+                final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(authorizersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
                 final JAXBElement<Authorizers> element = unmarshaller.unmarshal(xsr, Authorizers.class);

@@ -46,10 +46,6 @@ public class TemplateUtils {
 
     public static TemplateDTO parseDto(final Element templateElement) {
         try {
-            // JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            // Unmarshaller unmarshaller = context.createUnmarshaller();
-            // XMLStreamReader xsr = XmlUtils.createSafeReader(new DOMSource(templateElement));
-            // return unmarshaller.unmarshal(xsr, TemplateDTO.class).getValue();
             return TemplateDeserializer.deserialize(new DOMSource(templateElement));
         } catch (final Exception e) {
             throw new RuntimeException("Could not parse XML as a valid template", e);
