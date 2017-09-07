@@ -27,9 +27,12 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.jaxb.BulletinAdapter;
 import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.security.xml.XmlUtils;
 
 /**
  * The payload of the bulletins.
@@ -77,18 +80,14 @@ public class BulletinsPayload {
     public static BulletinsPayload unmarshal(final InputStream is) throws ProtocolException {
         try {
             final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            return (BulletinsPayload) unmarshaller.unmarshal(is);
-        } catch (final JAXBException je) {
-            throw new ProtocolException(je);
+            final XMLStreamReader xsr = XmlUtils.createSafeReader(is);
+            return (BulletinsPayload) unmarshaller.unmarshal(xsr);
+        } catch (final JAXBException | XMLStreamException e) {
+            throw new ProtocolException(e);
         }
     }
 
     public static BulletinsPayload unmarshal(final byte[] bytes) throws ProtocolException {
-        try {
-            final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            return (BulletinsPayload) unmarshaller.unmarshal(new ByteArrayInputStream(bytes));
-        } catch (final JAXBException je) {
-            throw new ProtocolException(je);
-        }
+        return unmarshal(new ByteArrayInputStream(bytes));
     }
 }

@@ -67,9 +67,8 @@ class XmlUtilsTest {
 
         // Act
         def msg = shouldFail(UnmarshalException) {
-            XMLStreamReader xsr = XmlUtils.createSafeReader(templateStream)
-
             Unmarshaller unmarshaller = context.createUnmarshaller()
+            XMLStreamReader xsr = XmlUtils.createSafeReader(templateStream)
             def parsed = unmarshaller.unmarshal(xsr, XmlObject.class)
             logger.info("Unmarshalled ${parsed.toString()}")
         }

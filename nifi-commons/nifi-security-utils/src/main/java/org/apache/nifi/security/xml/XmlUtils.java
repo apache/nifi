@@ -20,6 +20,7 @@ import java.io.InputStream;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 public class XmlUtils {
@@ -28,10 +29,17 @@ public class XmlUtils {
         if (inputStream == null) {
             throw new IllegalArgumentException("The provided input stream cannot be null");
         }
+        return createSafeReader(new StreamSource(inputStream));
+    }
+
+    public static XMLStreamReader createSafeReader(Source source) throws XMLStreamException {
+        if (source == null) {
+            throw new IllegalArgumentException("The provided source cannot be null");
+        }
 
         XMLInputFactory xif = XMLInputFactory.newFactory();
         xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        return xif.createXMLStreamReader(new StreamSource(inputStream));
+        return xif.createXMLStreamReader(source);
     }
 }
