@@ -39,6 +39,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.SocketFactory;
 import java.io.File;
@@ -106,6 +107,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .dynamicallyModifiesClasspath(true)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+        .name("SSL Context Service")
+        .description("The Controller Service to obtain an SSL Context for SSL-secured file system like SWebHdfs.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
+
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
     private static final Object RESOURCES_LOCK = new Object();
@@ -136,6 +144,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(KERBEROS_RELOGIN_PERIOD);
         props.add(ADDITIONAL_CLASSPATH_RESOURCES);
+        props.add(SSL_CONTEXT_SERVICE);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -203,6 +212,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
                 resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
+            }
+            SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService != null && sslContextService.isTrustStoreConfigured()) {
+                System.setProperty("javax.net.ssl.trustStore", sslContextService.getTrustStoreFile());
+                System.setProperty("javax.net.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
+                System.setProperty("javax.net.ssl.trustStoreType", sslContextService.getTrustStoreType());
             }
         } catch (IOException ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });

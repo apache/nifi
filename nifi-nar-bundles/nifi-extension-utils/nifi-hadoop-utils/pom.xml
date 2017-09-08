@@ -43,6 +43,11 @@
             <artifactId>hadoop-common</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
