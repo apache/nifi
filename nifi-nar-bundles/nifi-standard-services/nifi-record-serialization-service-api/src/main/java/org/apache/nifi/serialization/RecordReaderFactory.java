@@ -17,13 +17,15 @@
 
 package org.apache.nifi.serialization;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * <p>
@@ -32,6 +34,26 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
  */
 public interface RecordReaderFactory extends ControllerService {
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException;
+    /**
+     * Create a RecordReader instance to read records from specified InputStream.
+     * This method calls {@link #createRecordReader(Map, InputStream, ComponentLog)} with Attributes of the specified FlowFile.
+     * @param flowFile Attributes of this FlowFile are used to resolve Record Schema via Expression Language dynamically. This can be null.
+     * @param in InputStream containing Records. This can be null or empty stream.
+     * @param logger A logger bind to a component
+     * @return Created RecordReader instance
+     */
+    default RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+        return createRecordReader(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes(), in, logger);
+    }
+
+    /**
+     * Create a RecordReader instance to read records from specified InputStream.
+     * @param variables A map contains variables which is used to resolve Record Schema via Expression Language dynamically.
+     *                 This can be null or empty.
+     * @param in InputStream containing Records. This can be null or empty stream.
+     * @param logger A logger bind to a component
+     * @return Created RecordReader instance
+     */
+    RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException;
 
 }

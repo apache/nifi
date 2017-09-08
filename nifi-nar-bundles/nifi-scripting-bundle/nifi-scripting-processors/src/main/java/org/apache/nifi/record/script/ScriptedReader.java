@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -37,6 +36,7 @@ import java.io.InputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * A RecordReader implementation that allows the user to script the RecordReader instance
@@ -52,10 +52,10 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
     }
 
     @Override
-    public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         if (recordFactory.get() != null) {
             try {
-                return recordFactory.get().createRecordReader(flowFile, in, logger);
+                return recordFactory.get().createRecordReader(variables, in, logger);
             } catch (UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }

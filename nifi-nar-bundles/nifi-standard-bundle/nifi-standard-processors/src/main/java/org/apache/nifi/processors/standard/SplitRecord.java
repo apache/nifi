@@ -135,13 +135,14 @@ public class SplitRecord extends AbstractProcessor {
         final int maxRecords = context.getProperty(RECORDS_PER_SPLIT).evaluateAttributeExpressions(original).asInteger();
 
         final List<FlowFile> splits = new ArrayList<>();
+        final Map<String, String> originalAttributes = original.getAttributes();
         try {
             session.read(original, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema schema = writerFactory.getSchema(original, reader.getSchema());
+                        final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushbackSet = new PushBackRecordSet(recordSet);
@@ -154,7 +155,7 @@ public class SplitRecord extends AbstractProcessor {
                                 final WriteResult writeResult;
 
                                 try (final OutputStream out = session.write(split);
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, split, out)) {
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
                                         if (maxRecords == 1) {
                                             final Record record = pushbackSet.next();
                                             writeResult = writer.write(record);
