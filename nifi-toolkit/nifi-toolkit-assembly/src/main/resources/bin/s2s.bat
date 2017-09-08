@@ -33,7 +33,9 @@ goto startConfig
 :startConfig
 set LIB_DIR=%~dp0..\classpath;%~dp0..\lib
 
-SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms128m -Xmx256m %JAVA_ARGS% org.apache.nifi.toolkit.s2s.SiteToSiteCliMain
+if "%JAVA_ARGS%" == "" set JAVA_ARGS=-Xms128m -Xmx256m
+
+SET JAVA_PARAMS=-cp %LIB_DIR%\* %JAVA_ARGS% org.apache.nifi.toolkit.s2s.SiteToSiteCliMain
 
 cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* ""
 
