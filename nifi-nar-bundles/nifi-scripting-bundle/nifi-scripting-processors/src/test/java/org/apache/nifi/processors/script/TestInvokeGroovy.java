@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.commons.codec.binary.Hex;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.script.ScriptingComponentUtils;
@@ -29,12 +31,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 
 public class TestInvokeGroovy extends BaseScriptTest {
 
@@ -178,5 +182,31 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.assertValid();
         runner.setProperty("test-attribute", "test");
         runner.assertValid();
+    }
+
+    /**
+     * Tests a script that derive from AbstractProcessor as base class
+     *
+     * @throws Exception Any error encountered while testing
+     */
+    @Test
+    public void testAbstractProcessorImplementationWithBodyScriptFile() throws Exception {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/test_implementingabstractProcessor.groovy"));
+        runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
+        runner.setProperty("custom_prop", "bla bla");
+
+        runner.assertValid();
+        runner.enqueue("test".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("success", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
+        assertTrue(result.size() == 1);
+        final String expectedOutput = new String(Hex.encodeHex(MessageDigest.getInstance("MD5").digest("testbla bla".getBytes())));
+        final MockFlowFile outputFlowFile = result.get(0);
+        outputFlowFile.assertContentEquals(expectedOutput);
+        outputFlowFile.assertAttributeEquals("outAttr", expectedOutput);
     }
 }
