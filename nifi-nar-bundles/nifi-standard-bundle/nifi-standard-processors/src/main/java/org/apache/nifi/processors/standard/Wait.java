@@ -78,6 +78,8 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
         + "In order to wait for all fragments to be processed, connect the 'original' relationship to a Wait processor, and the 'splits' relationship to "
         + "a corresponding Notify processor. Configure the Notify and Wait processors to use the '${fragment.identifier}' as the value "
         + "of 'Release Signal Identifier', and specify '${fragment.count}' as the value of 'Target Signal Count' in the Wait processor."
+
+        + "It is recommended to use a prioritizer (for instance First In First Out) when using the 'wait' relationship as a loop."
 )
 @WritesAttributes({
         @WritesAttribute(attribute = "wait.start.timestamp", description = "All FlowFiles will have an attribute 'wait.start.timestamp', which sets the "
@@ -190,7 +192,8 @@ public class Wait extends AbstractProcessor {
 
     public static final AllowableValue WAIT_MODE_TRANSFER_TO_WAIT = new AllowableValue("wait", "Transfer to wait relationship",
             "Transfer a FlowFile to the 'wait' relationship when whose release signal has not been notified yet." +
-                    " This mode allows other incoming FlowFiles to be enqueued by moving FlowFiles into the wait relationship.");
+                    " This mode allows other incoming FlowFiles to be enqueued by moving FlowFiles into the wait relationship." +
+                    " It is recommended to set a prioritizer (for instance First In First Out) on the 'wait' relationship.");
 
     public static final AllowableValue WAIT_MODE_KEEP_IN_UPSTREAM = new AllowableValue("keep", "Keep in the upstream connection",
             "Transfer a FlowFile to the upstream connection where it comes from when whose release signal has not been notified yet." +
