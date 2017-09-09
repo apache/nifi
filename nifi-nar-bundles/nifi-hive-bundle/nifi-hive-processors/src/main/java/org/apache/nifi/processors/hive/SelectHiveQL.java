@@ -20,8 +20,8 @@ import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -251,6 +251,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         _propertyDescriptors.add(HIVEQL_CSV_QUOTE);
         _propertyDescriptors.add(HIVEQL_CSV_ESCAPE);
         _propertyDescriptors.add(CHARSET);
+        _propertyDescriptors.add(QUERY_TIMEOUT);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -339,6 +340,10 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
              final Statement st = (flowbased ? con.prepareStatement(hqlStatement) : con.createStatement())
         ) {
+
+            // set query timeout
+            setTimeout(st, context, flowfile);
+
             Pair<String,SQLException> failure = executeConfigStatements(con, preQueries);
             if (failure != null) {
                 // In case of failure, assigning config query to "hqlStatement"  to follow current error handling
@@ -347,6 +352,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 fileToProcess = null;
                 throw failure.getRight();
             }
+
             if (fetchSize != null && fetchSize > 0) {
                 try {
                     st.setFetchSize(fetchSize);

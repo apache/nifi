@@ -20,11 +20,16 @@ import org.antlr.runtime.tree.CommonTree;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.ParseDriver;
 import org.apache.hadoop.hive.ql.parse.ParseException;
+import org.apache.hive.jdbc.HiveStatement;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -37,12 +42,16 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -75,6 +84,38 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("hive-query-timeout")
+            .displayName("Query timeout")
+            .description("Sets the number of seconds the driver will wait for a query to execute. "
+                    + "A value of 0 means no timeout. NOTE: Non-zero values may not be supported by the driver.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>(1);
+
+        if(validationContext.getProperty(QUERY_TIMEOUT).isSet()
+                && !validationContext.getProperty(QUERY_TIMEOUT).isExpressionLanguagePresent()
+                && validationContext.getProperty(QUERY_TIMEOUT).asInteger() != 0) {
+            try(HiveStatement stmt = new HiveStatement(null, null, null)) {
+                stmt.setQueryTimeout(0);
+            } catch (SQLException e) {
+                problems.add(new ValidationResult.Builder()
+                        .subject("Query Timeout")
+                        .valid(false)
+                        .explanation("setQueryTimeout caused the driver to report: " + e.getLocalizedMessage())
+                        .build());
+            }
+        }
+
+        return problems;
+    }
 
     /**
      * Determines the HiveQL statement that should be executed for the given FlowFile
@@ -223,6 +264,24 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
                 getLogger().error("Error setting parameter {} to value from {} ({})", new Object[]{parameterIndex, attrName, parameterValue}, e);
                 throw e;
             }
+        }
+    }
+
+    /**
+     * Method to set the configured timeout on the statement to be executed
+     * @param stmt statement to be executed
+     * @param context process context to retrieve the configured value
+     * @param flowFile flow file to evaluate expression language
+     * @throws ProcessException exception in case configured value cannot be converted to an integer
+     */
+    protected void setTimeout(Statement stmt, ProcessContext context, FlowFile flowFile) throws ProcessException {
+        try {
+            // set query timeout
+            stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
+        } catch (SQLException e) {
+            // just ignoring it, no timeout.
+        } catch (NumberFormatException e) {
+            throw new ProcessException("Query timeout value cannot be converted to an integer.", e);
         }
     }
 

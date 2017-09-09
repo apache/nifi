@@ -128,6 +128,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(STATEMENT_DELIMITER);
         _propertyDescriptors.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
+        _propertyDescriptors.add(QUERY_TIMEOUT);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -246,6 +247,9 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
                         // If failed to parse the query, just log a warning message, but continue.
                         getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
                     }
+
+                    // set query timeout
+                    setTimeout(stmt, context, flowFile);
 
                     // Execute the statement
                     stmt.execute();
