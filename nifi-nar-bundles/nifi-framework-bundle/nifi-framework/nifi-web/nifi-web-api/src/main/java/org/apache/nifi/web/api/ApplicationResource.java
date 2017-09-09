@@ -830,6 +830,17 @@ public abstract class ApplicationResource {
         }
     }
 
+    /**
+     * Replicates the request to the given node
+     *
+     * @param method   the HTTP method
+     * @param nodeUuid the UUID of the node to replicate the request to
+     * @return the response from the node
+     * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
+     */
+    protected Response replicate(final String method, final String nodeUuid) {
+        return replicate(method, getRequestParameters(), nodeUuid);
+    }
 
     private void ensureFlowInitialized() {
         if (!flowController.isInitialized()) {
