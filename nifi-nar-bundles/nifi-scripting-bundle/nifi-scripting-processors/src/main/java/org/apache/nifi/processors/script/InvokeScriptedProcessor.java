@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.processors.script;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -46,21 +62,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
 
 @Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Experimental - Invokes a script engine for a Processor defined in the given script. The script must define "
@@ -477,8 +479,13 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // if there was existing validation errors and the processor loaded successfully
         if (currentValidationResults.isEmpty() && instance != null) {
             try {
-                // defer to the underlying processor for validation
-                final Collection<ValidationResult> instanceResults = instance.validate(context);
+                // defer to the underlying processor for validation, without the
+                // invokescriptedprocessor properties
+                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<PropertyDescriptor>(scriptingComponentHelper.getDescriptors());
+
+                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
+
                 if (instanceResults != null && instanceResults.size() > 0) {
                     // return the validation results from the underlying instance
                     return instanceResults;
