@@ -553,6 +553,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
     }
 
+    /*
+        Overall, this method is based off of examples from OkHttp3 documentation:
+            https://square.github.io/okhttp/3.x/okhttp/okhttp3/OkHttpClient.Builder.html#sslSocketFactory-javax.net.ssl.SSLSocketFactory-javax.net.ssl.X509TrustManager-
+            https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/CustomTrust.java#L156
+
+        In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
+            https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
+     */
     private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
         final String keystoreLocation = sslService.getKeyStoreFile();
@@ -579,6 +587,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
         trustManagerFactory.init(truststore);
 
+        /*
+            TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
+            as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
+
+            https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
+         */
         final X509TrustManager x509TrustManager;
         TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
         if (trustManagers[0] != null) {
