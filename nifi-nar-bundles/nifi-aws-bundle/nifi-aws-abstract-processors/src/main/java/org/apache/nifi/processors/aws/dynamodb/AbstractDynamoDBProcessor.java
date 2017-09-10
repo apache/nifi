@@ -49,10 +49,6 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 /**
  * Base class for NiFi dynamo db related processors
- *
- * @see DeleteDynamoDB
- * @see PutDynamoDB
- * @see GetDynamoDB
  */
 public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonDynamoDBClient> {
 

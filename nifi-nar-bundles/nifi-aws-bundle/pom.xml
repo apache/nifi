@@ -25,9 +25,28 @@
     <artifactId>nifi-aws-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <aws-java-sdk-version>1.11.68</aws-java-sdk-version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bom</artifactId>
+                <version>${aws-java-sdk-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>nifi-aws-processors</module>
         <module>nifi-aws-nar</module>
+        <module>nifi-aws-service-api</module>
+        <module>nifi-aws-service-api-nar</module>
+        <module>nifi-aws-abstract-processors</module>
     </modules>
 
 </project>
