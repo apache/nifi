@@ -593,39 +593,20 @@ public class FileUtils {
     }
 
     /**
-     * Returns the capacity for a given path associated to a container name
-     * @param containerName container name
+     * Returns the capacity for a given path
      * @param path path
      * @return total space
-     * @throws IOException in case there is no space
      */
-    public static long getContainerCapacity(final String containerName, final Path path) throws IOException {
-        if (path == null) {
-            throw new IllegalArgumentException("No container exists with name " + containerName);
-        }
-
-        long capacity = path.toFile().getTotalSpace();
-
-        if(capacity==0) {
-            throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
-                    + "Nifi can not create a zero sized repository.");
-        }
-
-        return capacity;
+    public static long getContainerCapacity(final Path path) {
+        return path.toFile().getTotalSpace();
     }
 
     /**
-     * Returns the free capacity for a given path associated to a container name
-     * @param containerName container name
+     * Returns the free capacity for a given path
      * @param path path
      * @return usable space
-     * @throws IOException IO Exception
      */
-    public static long getContainerUsableSpace(String containerName, final Path path) throws IOException {
-        if (path == null) {
-            throw new IllegalArgumentException("No container exists with name " + containerName);
-        }
-
+    public static long getContainerUsableSpace(final Path path) {
         return path.toFile().getUsableSpace();
     }
 

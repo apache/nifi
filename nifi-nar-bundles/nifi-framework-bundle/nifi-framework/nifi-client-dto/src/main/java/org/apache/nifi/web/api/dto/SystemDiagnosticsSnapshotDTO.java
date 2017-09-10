@@ -367,20 +367,26 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
         final Set<StorageUsageDTO> contentRepoStorageUsage = new LinkedHashSet<>();
         other.setContentRepositoryStorageUsage(contentRepoStorageUsage);
-        for (final StorageUsageDTO usage : getContentRepositoryStorageUsage()) {
-            contentRepoStorageUsage.add(usage.clone());
+        if (getContentRepositoryStorageUsage() != null) {
+            for (final StorageUsageDTO usage : getContentRepositoryStorageUsage()) {
+                contentRepoStorageUsage.add(usage.clone());
+            }
         }
 
         final Set<StorageUsageDTO> provenanceRepoStorageUsage = new LinkedHashSet<>();
         other.setProvenanceRepositoryStorageUsage(provenanceRepoStorageUsage);
-        for (final StorageUsageDTO usage : getProvenanceRepositoryStorageUsage()) {
-            provenanceRepoStorageUsage.add(usage.clone());
+        if (getProvenanceRepositoryStorageUsage() != null) {
+            for (final StorageUsageDTO usage : getProvenanceRepositoryStorageUsage()) {
+                provenanceRepoStorageUsage.add(usage.clone());
+            }
         }
 
         final Set<GarbageCollectionDTO> gcUsage = new LinkedHashSet<>();
         other.setGarbageCollection(gcUsage);
-        for (final GarbageCollectionDTO gcDto : getGarbageCollection()) {
-            gcUsage.add(gcDto.clone());
+        if (getGarbageCollection() != null) {
+            for (final GarbageCollectionDTO gcDto : getGarbageCollection()) {
+                gcUsage.add(gcDto.clone());
+            }
         }
 
         other.setVersionInfo(getVersionInfo().clone());

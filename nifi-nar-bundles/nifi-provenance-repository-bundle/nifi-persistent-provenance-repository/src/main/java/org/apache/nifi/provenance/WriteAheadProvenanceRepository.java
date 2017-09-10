@@ -17,8 +17,8 @@
 
 package org.apache.nifi.provenance;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -306,13 +306,36 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public long getContainerCapacity(final String containerName) throws IOException {
-        final Path path = config.getStorageDirectories().get(containerName).toPath();
-        return FileUtils.getContainerCapacity(containerName, path);
+        Map<String, File> map = config.getStorageDirectories();
+        if(map != null) {
+            File container = map.get(containerName);
+            if(container != null) {
+                long capacity = FileUtils.getContainerCapacity(container.toPath());
+                if(capacity==0) {
+                    throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                            + "Nifi can not create a zero sized provenance repository.");
+                }
+                return capacity;
+            } else {
+                throw new IOException("There is no defined container with name " + containerName);
+            }
+        } else {
+            throw new IOException("There is no configured provenance repository storage");
+        }
     }
 
     @Override
     public long getContainerUsableSpace(String containerName) throws IOException {
-        final Path path = config.getStorageDirectories().get(containerName).toPath();
-        return FileUtils.getContainerUsableSpace(containerName, path);
+        Map<String, File> map = config.getStorageDirectories();
+        if(map != null) {
+            File container = map.get(containerName);
+            if(container != null) {
+                return FileUtils.getContainerUsableSpace(container.toPath());
+            } else {
+                throw new IOException("There is no defined container with name " + containerName);
+            }
+        } else {
+            throw new IOException("There is no configured provenance repository storage");
+        }
     }
 }

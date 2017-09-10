@@ -404,13 +404,30 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long getContainerCapacity(final String containerName) throws IOException {
         final Path path = containers.get(containerName);
-        return FileUtils.getContainerCapacity(containerName, path);
+
+        if (path == null) {
+            throw new IllegalArgumentException("No container exists with name " + containerName);
+        }
+
+        long capacity = FileUtils.getContainerCapacity(path);
+
+        if(capacity==0) {
+            throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                    + "Nifi can not create a zero sized FileSystemRepository.");
+        }
+
+        return capacity;
     }
 
     @Override
     public long getContainerUsableSpace(String containerName) throws IOException {
         final Path path = containers.get(containerName);
-        return FileUtils.getContainerUsableSpace(containerName, path);
+
+        if (path == null) {
+            throw new IllegalArgumentException("No container exists with name " + containerName);
+        }
+
+        return FileUtils.getContainerUsableSpace(path);
     }
 
     @Override
