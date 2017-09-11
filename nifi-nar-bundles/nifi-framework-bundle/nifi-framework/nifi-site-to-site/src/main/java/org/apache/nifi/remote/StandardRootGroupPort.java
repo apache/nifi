@@ -518,6 +518,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             // before the request expires
             while (!request.isBeingServiced()) {
                 if (request.isExpired()) {
+                    // Remove expired request, so that it won't block new request to be offered.
+                    this.requestQueue.remove(request);
                     throw new SocketTimeoutException("Read timed out");
                 } else {
                     try {
@@ -572,6 +574,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             // before the request expires
             while (!request.isBeingServiced()) {
                 if (request.isExpired()) {
+                    // Remove expired request, so that it won't block new request to be offered.
+                    this.requestQueue.remove(request);
                     throw new SocketTimeoutException("Read timed out");
                 } else {
                     try {
