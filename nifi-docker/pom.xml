@@ -24,51 +24,35 @@ language governing permissions and limitations under the License. -->
     <packaging>pom</packaging>
 
     <properties>
-        <nifi.version>1.4.0-SNAPSHOT</nifi.version>
+        <nifi.version>${project.version}</nifi.version>
     </properties>
 
-    <profiles>
-        <!-- Profile for building official Docker images. Not bound to build phases since that would require anyone build to have the Docker engine installed on their machine -->       
-        <profile>                                   
-            <id>docker</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.4.13</version>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <imageName>apachenifi</imageName>
-                            <dockerDirectory>${project.basedir}/dockermaven</dockerDirectory>
-                            <imageTags>
-                               <imageTag>${nifi.version}</imageTag>
-                            </imageTags>
-                            <buildArgs>
-                                <UID>1000</UID>
-                                <GID>1000</GID>
-                                <NIFI_VERSION>${nifi.version}</NIFI_VERSION>
-                                <NIFI_BINARY>nifi-${nifi.version}-bin.tar.gz</NIFI_BINARY>
-                            </buildArgs>
-                            <resources>
-                               <resource>
-                                 <targetPath>/</targetPath>
-                                 <directory>${project.basedir}/../nifi-assembly/target</directory>
-                                 <include>nifi-${nifi.version}-bin.tar.gz</include>
-                               </resource>
-                            </resources>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>      
+    <modules>
+        <module>dockermaven</module>
+    </modules>
+    
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.spotify</groupId>
+                    <artifactId>dockerfile-maven-plugin</artifactId>
+                    <version>1.3.5</version>
+                    <executions>
+                        <execution>
+                            <id>default</id>
+                            <goals>
+                                <goal>build</goal>
+                                <goal>push</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <tag>${nifi.version}</tag>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
 </project>
