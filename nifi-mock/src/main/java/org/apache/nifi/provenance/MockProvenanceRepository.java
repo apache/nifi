@@ -19,7 +19,9 @@ package org.apache.nifi.provenance;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.authorization.Authorizer;
@@ -150,5 +152,20 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     @Override
     public ProvenanceEventRepository getProvenanceEventRepository() {
         return this;
+    }
+
+    @Override
+    public long getContainerCapacity(String containerName) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<String>();
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        return 0;
     }
 }
