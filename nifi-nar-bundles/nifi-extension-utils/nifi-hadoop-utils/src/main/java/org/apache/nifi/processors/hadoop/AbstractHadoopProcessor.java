@@ -109,6 +109,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("SSL Context Service")
+        .displayName("SSL Context Service")
         .description("The Controller Service to obtain an SSL Context for SSL-secured file system like SWebHdfs.")
         .required(false)
         .identifiesControllerService(SSLContextService.class)
