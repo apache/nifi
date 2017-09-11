@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,7 +32,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -99,23 +99,23 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
         final BufferedInputStream bufferedIn = new BufferedInputStream(in);
         bufferedIn.mark(1024 * 1024);
-        final RecordSchema schema = getSchema(flowFile, new NonCloseableInputStream(bufferedIn), null);
+        final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(bufferedIn), null);
         bufferedIn.reset();
 
         return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
-        if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
+        if (strategy.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
         }
 
-        return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
+        return super.getSchemaAccessStrategy(strategy, schemaRegistry, context);
     }
 
     @Override

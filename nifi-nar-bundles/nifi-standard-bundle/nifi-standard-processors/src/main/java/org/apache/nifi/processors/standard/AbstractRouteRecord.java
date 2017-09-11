@@ -116,13 +116,14 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
         final AtomicInteger numRecords = new AtomicInteger(0);
         final Map<Relationship, Tuple<FlowFile, RecordSetWriter>> writers = new HashMap<>();
         final FlowFile original = flowFile;
+        final Map<String, String> originalAttributes = original.getAttributes();
         try {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(original, reader.getSchema());
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
@@ -135,7 +136,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
                                 if (tuple == null) {
                                     FlowFile outFlowFile = session.create(original);
                                     final OutputStream out = session.write(outFlowFile);
-                                    recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, original, out);
+                                    recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, out);
                                     recordSetWriter.beginRecordSet();
 
                                     tuple = new Tuple<>(outFlowFile, recordSetWriter);

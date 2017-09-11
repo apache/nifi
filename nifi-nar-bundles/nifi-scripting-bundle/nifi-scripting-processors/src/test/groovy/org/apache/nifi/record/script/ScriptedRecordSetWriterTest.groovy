@@ -30,7 +30,6 @@ import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSet
-import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
@@ -100,11 +99,10 @@ class ScriptedRecordSetWriterTest {
         recordSetWriterFactory.initialize initContext
         recordSetWriterFactory.onEnabled configurationContext
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
-		def schema = recordSetWriterFactory.getSchema(mockFlowFile, null)
+		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null)
         
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, mockFlowFile, outputStream)
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream)
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(

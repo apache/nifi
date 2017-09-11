@@ -146,12 +146,16 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     getLogger().warn(type + " is not a correct event type, removed from the filtering.");
                 }
             }
+        } else {
+            eventTypes.clear();
         }
 
         // initialize component ID filtering
         final String[] componentIdList = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).getValue(), ','));
         if(componentIdList != null) {
             componentIds.addAll(Arrays.asList(componentIdList));
+        } else {
+            componentIds.clear();
         }
 
         // set a boolean whether filtering will be applied or not

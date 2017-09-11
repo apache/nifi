@@ -17,26 +17,28 @@
 
 package org.apache.nifi.schema.access;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Set;
 
 public interface SchemaAccessStrategy {
-    /**
-     * Returns the schema for the given FlowFile using the supplied stream of content and configuration
-     *
-     * @param flowFile flowfile
-     * @param contentStream content of flowfile
-     * @param readSchema the schema that was read from the input FlowFile, or <code>null</code> if there was none
-     * @return the RecordSchema for the FlowFile
-     */
-    RecordSchema getSchema(FlowFile flowFile, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
 
     /**
-     * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #getSchema(FlowFile, InputStream)}.
+     * Returns the schema for the given FlowFile using the supplied stream of content and configuration.
+     *
+     * @param variables Variables which is used to resolve Record Schema via Expression Language.
+     *                 This can be null or empty.
+     * @param contentStream The stream which is used to read the serialized content.
+     * @param readSchema The schema that was read from the input content, or <code>null</code> if there was none.
+     * @return The RecordSchema for the content.
+     */
+    RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
+
+    /**
+     * @return the set of all Schema Fields that are supplied by the RecordSchema that is returned from {@link #getSchema(Map, InputStream, RecordSchema)}.
      */
     Set<SchemaField> getSuppliedSchemaFields();
 }

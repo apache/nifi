@@ -251,10 +251,11 @@ public class QueryRecord extends AbstractProcessor {
         // Determine the schema for writing the data
         final RecordSchema recordSchema;
         try (final InputStream rawIn = session.read(original)) {
-            final RecordReader reader = recordReaderFactory.createRecordReader(original, rawIn, getLogger());
+            final Map<String, String> originalAttributes = original.getAttributes();
+            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
             final RecordSchema inputSchema = reader.getSchema();
 
-            recordSchema = recordSetWriterFactory.getSchema(original, inputSchema);
+            recordSchema = recordSetWriterFactory.getSchema(originalAttributes, inputSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -294,7 +295,7 @@ public class QueryRecord extends AbstractProcessor {
                         transformed = session.write(transformed, new OutputStreamCallback() {
                             @Override
                             public void process(final OutputStream out) throws IOException {
-                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, outFlowFile, out)) {
+                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, out)) {
                                     final ResultSetRecordSet resultSet = new ResultSetRecordSet(rs);
                                     writeResultRef.set(resultSetWriter.write(resultSet));
                                     mimeTypeRef.set(resultSetWriter.getMimeType());

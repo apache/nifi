@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -456,18 +457,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     }
 
     private void writeRecordData(final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final TopicPartition topicPartition) {
-        // In order to obtain a RecordReader from the RecordReaderFactory, we need to give it a FlowFile.
-        // We don't want to create a new FlowFile for each record that we receive, so we will just create
-        // a "temporary flowfile" that will be removed in the finally block below and use that to pass to
-        // the createRecordReader method.
-        final FlowFile tempFlowFile = session.create();
         RecordSetWriter writer = null;
 
         try {
             for (final ConsumerRecord<byte[], byte[]> consumerRecord : records) {
                 final Record record;
                 try (final InputStream in = new ByteArrayInputStream(consumerRecord.value())) {
-                    final RecordReader reader = readerFactory.createRecordReader(tempFlowFile, in, logger);
+                    final RecordReader reader = readerFactory.createRecordReader(Collections.EMPTY_MAP, in, logger);
                     record = reader.nextRecord();
                 } catch (final Exception e) {
                     handleParseFailure(consumerRecord, session, e);
@@ -490,7 +486,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
                     final RecordSchema writeSchema;
                     try {
-                        writeSchema = writerFactory.getSchema(flowFile, recordSchema);
+                        writeSchema = writerFactory.getSchema(Collections.emptyMap(), recordSchema);
                     } catch (final Exception e) {
                         logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
 
@@ -504,7 +500,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         throw new ProcessException(e);
                     }
 
-                    writer = writerFactory.createWriter(logger, writeSchema, flowFile, rawOut);
+                    writer = writerFactory.createWriter(logger, writeSchema, rawOut);
                     writer.beginRecordSet();
 
                     tracker = new BundleTracker(consumerRecord, topicPartition, keyEncoding, writer);
@@ -544,8 +540,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
 
             throw new ProcessException(e);
-        } finally {
-            session.remove(tempFlowFile);
         }
     }
 

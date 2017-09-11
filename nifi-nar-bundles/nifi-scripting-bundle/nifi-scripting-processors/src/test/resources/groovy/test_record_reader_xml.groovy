@@ -18,7 +18,6 @@
 import groovy.json.JsonSlurper
 import org.apache.nifi.controller.AbstractControllerService
 import org.apache.nifi.controller.ConfigurationContext
-import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.schema.access.SchemaNotFoundException
 import org.apache.nifi.serialization.MalformedRecordException
@@ -68,7 +67,7 @@ class GroovyXmlRecordReaderFactory extends AbstractControllerService implements 
     // Will be set by the ScriptedRecordReaderFactory
     ConfigurationContext configurationContext
 
-    RecordReader createRecordReader(FlowFile flowFile, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         // Expecting 'schema.text' to have be an JSON array full of objects whose keys are the field name and the value maps to a RecordFieldType
         def schemaText = configurationContext.properties.find {p -> p.key.dynamic && p.key.name == 'schema.text'}?.getValue()
         if (!schemaText) return null
@@ -77,7 +76,7 @@ class GroovyXmlRecordReaderFactory extends AbstractControllerService implements 
             def entry = field.entrySet()[0]
             new RecordField(entry.key, RecordFieldType.of(entry.value).dataType)
         } as List<RecordField>)
-        return new GroovyXmlRecordReader(flowFile.getAttribute('record.tag'), recordSchema, inputStream)
+        return new GroovyXmlRecordReader(variables.get('record.tag'), recordSchema, inputStream)
     }
 
 }

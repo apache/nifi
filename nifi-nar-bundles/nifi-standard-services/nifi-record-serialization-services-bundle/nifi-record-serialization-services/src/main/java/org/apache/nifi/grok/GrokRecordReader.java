@@ -50,6 +50,8 @@ public class GrokRecordReader implements RecordReader {
     private String nextLine;
 
     static final String STACK_TRACE_COLUMN_NAME = "stackTrace";
+    static final String RAW_MESSAGE_NAME = "_raw";
+
     private static final Pattern STACK_TRACE_PATTERN = Pattern.compile(
         "^\\s*(?:(?:    |\\t)+at )|"
             + "(?:(?:    |\\t)+\\[CIRCULAR REFERENCE\\:)|"
@@ -73,8 +75,11 @@ public class GrokRecordReader implements RecordReader {
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         Map<String, Object> valueMap = null;
+        StringBuilder raw = new StringBuilder();
+
         while (valueMap == null || valueMap.isEmpty()) {
             final String line = nextLine == null ? reader.readLine() : nextLine;
+            raw.append(line);
             nextLine = null; // ensure that we don't process nextLine again
             if (line == null) {
                 return null;
@@ -98,9 +103,11 @@ public class GrokRecordReader implements RecordReader {
                 // the stack trace ends. Otherwise, append the next line to the last field in the record.
                 if (isStartOfStackTrace(nextLine)) {
                     stackTrace = readStackTrace(nextLine);
+                    raw.append("\n").append(stackTrace);
                     break;
                 } else if (append) {
                     trailingText.append("\n").append(nextLine);
+                    raw.append("\n").append(nextLine);
                 }
             } else {
                 // The next line matched our pattern.
@@ -108,11 +115,11 @@ public class GrokRecordReader implements RecordReader {
             }
         }
 
-        final Record record = createRecord(valueMap, trailingText, stackTrace, coerceTypes, dropUnknownFields);
+        final Record record = createRecord(valueMap, trailingText, stackTrace, raw.toString(), coerceTypes, dropUnknownFields);
         return record;
     }
 
-    private Record createRecord(final Map<String, Object> valueMap, final StringBuilder trailingText, final String stackTrace, final boolean coerceTypes, final boolean dropUnknown) {
+    private Record createRecord(final Map<String, Object> valueMap, final StringBuilder trailingText, final String stackTrace, final String raw, final boolean coerceTypes, final boolean dropUnknown) {
         final Map<String, Object> converted = new HashMap<>();
         for (final Map.Entry<String, Object> entry : valueMap.entrySet()) {
             final String fieldName = entry.getKey();
@@ -179,6 +186,8 @@ public class GrokRecordReader implements RecordReader {
         }
 
         converted.put(STACK_TRACE_COLUMN_NAME, stackTrace);
+        converted.put(RAW_MESSAGE_NAME, raw);
+
         return new MapRecord(schema, converted);
     }
 
