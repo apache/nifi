@@ -41,6 +41,7 @@ import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -106,14 +107,22 @@ public class FTPTransfer implements FileTransfer {
         .sensitive(true)
         .build();
     public static final PropertyDescriptor UTF8_ENCODING = new PropertyDescriptor.Builder()
-            .name("ftp-use-utf8")
-            .displayName("Use UTF-8 Encoding")
-            .description("Tells the client to use UTF-8 encoding when processing files and filenames. If set to true, the server must also support UTF-8 encoding.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
+        .name("ftp-use-utf8")
+        .displayName("Use UTF-8 Encoding")
+        .description("Tells the client to use UTF-8 encoding when processing files and filenames. If set to true, the server must also support UTF-8 encoding.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .build();
+    public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
+        .name("ftp-buffer-size")
+        .displayName("Buffer Size")
+        .description("Internal buffer size for the underlying FTP client library to transfer data.")
+        .required(true)
+        .defaultValue("16 kb")
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .build();
 
     private final ComponentLog logger;
 
@@ -552,6 +561,9 @@ public class FTPTransfer implements FileTransfer {
         this.closed = false;
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        if (ctx.getProperty(BUFFER_SIZE).isSet()) {
+            client.setBufferSize(ctx.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
+        }
 
         final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String password = ctx.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
