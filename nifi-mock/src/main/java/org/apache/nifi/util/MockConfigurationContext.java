@@ -58,12 +58,8 @@ public class MockConfigurationContext implements ConfigurationContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        String value;
-        // If 'properties' contains the 'property', use what ever value is under that key, 'null' or otherwise.
-        if (properties.keySet().contains(property)) {
-            value = properties.get(property);
-        // If 'properties' doesn't contain the 'property', use the default.
-        } else {
+        String value = properties.get(property);
+        if (value == null) {
             value = getActualDescriptor(property).getDefaultValue();
         }
         return new MockPropertyValue(value, serviceLookup, variableRegistry);

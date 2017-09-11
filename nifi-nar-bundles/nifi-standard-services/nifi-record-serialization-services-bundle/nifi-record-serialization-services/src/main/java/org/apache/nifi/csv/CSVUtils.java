@@ -199,17 +199,17 @@ public class CSVUtils {
             format = format.withFirstRecordAsHeader();
         }
 
-        if (context.getProperty(QUOTE_CHAR).isSet()) {
+        if (context.getProperty(QUOTE_CHAR).isSet() && !context.getProperty(QUOTE_CHAR).toString().isEmpty()) {
             format = format.withQuote(getChar(context, QUOTE_CHAR));
         }
 
-        if (context.getProperty(ESCAPE_CHAR).isSet()) {
+        if (context.getProperty(ESCAPE_CHAR).isSet() && !context.getProperty(ESCAPE_CHAR).toString().isEmpty()) {
             format = format.withEscape(getChar(context, ESCAPE_CHAR));
         }
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
-        if (context.getProperty(COMMENT_MARKER).isSet()) {
+        if (context.getProperty(COMMENT_MARKER).isSet() && !context.getProperty(COMMENT_MARKER).toString().isEmpty()) {
             format = format.withCommentMarker(getChar(context, COMMENT_MARKER));
         }
         if (context.getProperty(NULL_STRING).isSet()) {

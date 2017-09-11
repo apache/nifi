@@ -367,7 +367,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = inputRecord.getBytes();
 
         Map<PropertyDescriptor, String> configMap = new HashMap<>();
-        configMap.put(CSVUtils.ESCAPE_CHAR, null);
+        configMap.put(CSVUtils.ESCAPE_CHAR, "");
 
         MockConfigurationContext mcc = new MockConfigurationContext(configMap, null);
 
@@ -399,7 +399,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = inputRecord.getBytes();
 
         Map<PropertyDescriptor, String> configMap = new HashMap<>();
-        configMap.put(CSVUtils.QUOTE_CHAR, null);
+        configMap.put(CSVUtils.QUOTE_CHAR, "");
 
         MockConfigurationContext mcc = new MockConfigurationContext(configMap, null);
 
