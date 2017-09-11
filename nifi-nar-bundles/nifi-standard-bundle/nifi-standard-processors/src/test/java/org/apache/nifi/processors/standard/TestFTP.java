@@ -146,6 +146,30 @@ public class TestFTP {
     }
 
     @Test
+    public void putFTPBufferSizeValidation() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+        runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FTPTransfer.USERNAME, username);
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
+
+        // Default settings.
+        runner.assertValid();
+
+        // Illegal data size.
+        runner.setProperty(FTPTransfer.BUFFER_SIZE, "one MB");
+        runner.assertNotValid();
+
+        // Negative size is not allowed.
+        runner.setProperty(FTPTransfer.BUFFER_SIZE, "-1 MB");
+        runner.assertNotValid();
+
+        // Valid data size.
+        runner.setProperty(FTPTransfer.BUFFER_SIZE, "32 KB");
+        runner.assertValid();
+    }
+
+    @Test
     public void basicFileGet() throws IOException {
         FileSystem results = fakeFtpServer.getFileSystem();
 
