@@ -2651,7 +2651,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Set<ConfiguredComponent> affected = new HashSet<>();
 
         // Determine any Processors that references the variable
-        for (final ProcessorNode processor : findAllProcessors()) {
+        for (final ProcessorNode processor : getProcessors()) {
             for (final VariableImpact impact : getVariableImpact(processor)) {
                 if (impact.isImpacted(variableName)) {
                     affected.add(processor);
@@ -2662,7 +2662,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         // Determine any Controller Service that references the variable. If Service A references a variable,
         // then that means that any other component that references that service is also affected, so recursively
         // find any references to that service and add it.
-        for (final ControllerServiceNode service : findAllControllerServices()) {
+        for (final ControllerServiceNode service : getControllerServices(false)) {
             for (final VariableImpact impact : getVariableImpact(service)) {
                 if (impact.isImpacted(variableName)) {
                     affected.add(service);
@@ -2670,6 +2670,16 @@ public final class StandardProcessGroup implements ProcessGroup {
                     final ControllerServiceReference reference = service.getReferences();
                     affected.addAll(reference.findRecursiveReferences(ConfiguredComponent.class));
                 }
+            }
+        }
+
+        // For any child Process Group that does not override the variable, also include its references.
+        // If a child group has a value for the same variable, though, then that means that the child group
+        // is overriding the variable and its components are actually referencing a different variable.
+        for (final ProcessGroup childGroup : getProcessGroups()) {
+            final String childValue = childGroup.getVariableRegistry().getVariableValue(variableName);
+            if (childValue == null) {
+                affected.addAll(childGroup.getComponentsAffectedByVariable(variableName));
             }
         }
 
