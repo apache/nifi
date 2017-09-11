@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.Date;
 
 import javax.activation.DataSource;
-import javax.mail.Address;
 import javax.mail.internet.InternetAddress;
 import javax.mail.MessagingException;
 import javax.mail.Session;
