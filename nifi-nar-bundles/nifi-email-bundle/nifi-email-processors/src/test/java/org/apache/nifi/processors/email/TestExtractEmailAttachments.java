@@ -89,7 +89,7 @@ public class TestExtractEmailAttachments {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailAttachments());
 
         // Create the message dynamically
-        byte [] simpleEmail = attachmentGenerator.SimpleEmail();
+        byte [] simpleEmail = attachmentGenerator.SimpleEmailBytes();
 
         runner.enqueue(simpleEmail);
         runner.run();
