@@ -459,6 +459,23 @@ Concatenates all the arguments together.
 |==========================================================
 
 
+=== fieldName
+
+Normally, when a path is given to a particular field in a Record, what is returned is the value of that field. It
+can sometimes be useful, however, to obtain the name of the field instead of the value. To do this, we can use the
+`fieldName` function.
+
+|=====================================================================
+| RecordPath | Return value
+| `fieldName(//city/..)` | `workAddress` and `homeAddress`
+| `//city[not(startsWith(fieldName(..), 'work'))]` | Jersey City
+|=====================================================================
+
+In the above example, the first RecordPath returns two separate field names: "workAddress" and "homeAddress". The second
+RecordPath, in contrast, returns the value of a "city" field and uses the `fieldName` function as a predicate. The second
+RecordPath finds a "city" field whose parent does not have a name that begins with "work". This means that it will return
+the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".  
+
 
 [[filter_functions]]
 == Filter Functions
