@@ -20,6 +20,8 @@ import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import com.google.common.io.Files;
+import okhttp3.Cache;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -69,6 +71,8 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -370,6 +374,14 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_USE_ETAG = new PropertyDescriptor.Builder()
+            .name("use-etag")
+            .displayName("Use HTTP ETag")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -394,7 +406,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
-            PROP_PENALIZE_NO_RETRY));
+            PROP_PENALIZE_NO_RETRY,
+            PROP_USE_ETAG));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -438,6 +451,12 @@ public final class InvokeHTTP extends AbstractProcessor {
      */
     private static final String RFC_1123 = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(RFC_1123).withLocale(Locale.US).withZoneUTC();
+
+    /**
+     * The maximum size, in bytes, that the ETag cache should grow if it is enabled.
+     * The size here is chosen arbitrarily, as the documentation doesn't suggest a recommended value.
+     */
+    private static final int MAX_ETAG_CACHE_SIZE_BYTES = 1024 * 1024 * 10; // 10MiB
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
@@ -523,6 +542,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
             okHttpClientBuilder.proxy(proxy);
+        }
+
+        // configure ETag cache if enabled
+        final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
+        if(etagEnabled) {
+            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), MAX_ETAG_CACHE_SIZE_BYTES));
         }
 
         // Set timeouts
@@ -668,6 +693,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Setting some initial variables
         final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final ComponentLog logger = getLogger();
+
+        // log ETag cache metrics
+        final boolean eTagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
+        if(eTagEnabled) {
+            final Cache cache = okHttpClient.cache();
+            logger.debug("OkHttp ETag cache metrics :: Request Count: {} | Network Count: {} | Hit Count: {}",
+                    new Object[] {cache.requestCount(), cache.networkCount(), cache.hitCount()});
+        }
 
         // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
         final UUID txId = UUID.randomUUID();
@@ -1091,6 +1124,19 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private Charset getCharsetFromMediaType(MediaType contentType) {
         return contentType != null ? contentType.charset(StandardCharsets.UTF_8) : StandardCharsets.UTF_8;
+    }
+
+    /**
+     * Retrieve the directory in which OkHttp should cache responses. This method opts
+     * to use a temp directory to write the cache, which means that the cache will be written
+     * to a new location each time this processor is scheduled.
+     *
+     * Ref: https://github.com/square/okhttp/wiki/Recipes#response-caching
+     *
+     * @return the directory in which the ETag cache should be written
+     */
+    private static File getETagCacheDir() {
+        return Files.createTempDir();
     }
 
     private static class OverrideHostnameVerifier implements HostnameVerifier {
