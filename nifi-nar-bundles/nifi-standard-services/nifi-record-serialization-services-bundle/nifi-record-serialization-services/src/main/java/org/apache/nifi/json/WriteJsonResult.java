@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.nifi.logging.ComponentLog;
@@ -52,17 +53,19 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
     private final JsonGenerator generator;
+    private final NullSuppression nullSuppression;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+        final NullSuppression nullSuppression, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         super(out);
         this.logger = logger;
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
+        this.nullSuppression = nullSuppression;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
@@ -159,7 +162,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                     final String fieldName = field.getFieldName();
                     final Object value = record.getValue(field);
                     if (value == null) {
-                        generator.writeNullField(fieldName);
+                        if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && isFieldPresent(field, record)) {
+                            generator.writeNullField(fieldName);
+                        }
+
                         continue;
                     }
 
@@ -172,7 +178,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 for (final String fieldName : record.getRawFieldNames()) {
                     final Object value = record.getValue(fieldName);
                     if (value == null) {
-                        generator.writeNullField(fieldName);
+                        if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && record.getRawFieldNames().contains(fieldName)) {
+                            generator.writeNullField(fieldName);
+                        }
+
                         continue;
                     }
 
@@ -188,6 +197,21 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             logger.error("Failed to write {} with schema {} as a JSON Object due to {}", new Object[] {record, record.getSchema(), e.toString(), e});
             throw e;
         }
+    }
+
+    private boolean isFieldPresent(final RecordField field, final Record record) {
+        final Set<String> rawFieldNames = record.getRawFieldNames();
+        if (rawFieldNames.contains(field.getFieldName())) {
+            return true;
+        }
+
+        for (final String alias : field.getAliases()) {
+            if (rawFieldNames.contains(alias)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @SuppressWarnings("unchecked")
