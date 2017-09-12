@@ -399,6 +399,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 this.active.set(true);
             }
 
+            final StandardControllerServiceNode service = this;
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
                 @Override
@@ -408,17 +409,19 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
-                        boolean shouldEnable = false;
+                        boolean shouldEnable;
                         synchronized (active) {
                             shouldEnable = active.get() && stateTransition.enable();
                         }
 
                         if (!shouldEnable) {
-                            LOG.debug("Disabling service " + this + " after it has been enabled due to disable action being initiated.");
+                            LOG.debug("Disabling service {} after it has been enabled due to disable action being initiated.", service);
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
                             invokeDisable(configContext);
                             stateTransition.disable();
+                        } else {
+                            LOG.debug("Successfully enabled {}", service);
                         }
                     } catch (Exception e) {
                         future.completeExceptionally(e);
@@ -499,6 +502,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     private void invokeDisable(ConfigurationContext configContext) {
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
+            LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
             final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
