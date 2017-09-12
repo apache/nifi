@@ -492,6 +492,10 @@
                 if (variable.isEditable === true) {
                     variablesGrid.gotoCell(args.row, args.cell, true);
                 } else {
+                    // ensure the row is selected
+                    variablesGrid.setSelectedRows([args.row]);
+
+                    // show the variable
                     showVariableValue(variable, variablesGrid, args.row, args.cell);
                 }
 
@@ -656,6 +660,115 @@
     };
 
     /**
+     * Renders the specified affected component.
+     *
+     * @param {object} affectedProcessorEntity
+     * @param {jQuery} container
+     */
+    var renderAffectedProcessor = function (affectedProcessorEntity, container) {
+        var affectedProcessorContainer = $('<li class="affected-component-container"></li>').appendTo(container);
+        var affectedProcessor = affectedProcessorEntity.component;
+
+        // processor state
+        $('<div class="referencing-component-state"></div>').addClass(function () {
+            if (nfCommon.isDefinedAndNotNull(affectedProcessor.state)) {
+                var icon = $(this);
+
+                var state = affectedProcessor.state.toLowerCase();
+                if (state === 'stopped' && !nfCommon.isEmpty(affectedProcessor.validationErrors)) {
+                    state = 'invalid';
+
+                    // build the validation error listing
+                    var list = nfCommon.formatUnorderedList(affectedProcessor.validationErrors);
+
+                    // add tooltip for the warnings
+                    icon.qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+
+                return state;
+            } else {
+                return '';
+            }
+        }).appendTo(affectedProcessorContainer);
+
+
+        // processor name
+        $('<span class="referencing-component-name link"></span>').text(affectedProcessor.name).on('click', function () {
+            // check if there are outstanding changes
+            handleOutstandingChanges().done(function () {
+                // show the component in question
+                nfCanvasUtils.showComponent(affectedProcessor.processGroupId, affectedProcessor.id);
+            });
+        }).appendTo(affectedProcessorContainer);
+
+        // bulletin
+        $('<div class="referencing-component-bulletins"></div>').addClass(affectedProcessor.id + '-affected-bulletins').appendTo(affectedProcessorContainer);
+
+        // processor active threads
+        $('<span class="referencing-component-active-thread-count"></span>').text(function () {
+            if (nfCommon.isDefinedAndNotNull(affectedProcessor.activeThreadCount) && affectedProcessor.activeThreadCount > 0) {
+                return '(' + affectedProcessor.activeThreadCount + ')';
+            } else {
+                return '';
+            }
+        }).appendTo(affectedProcessorContainer);
+    };
+
+    /**
+     * Renders the specified affect controller service.
+     *
+     * @param {object} affectedControllerServiceEntity
+     * @param {jQuery} container
+     */
+    var renderAffectedControllerService = function (affectedControllerServiceEntity, container) {
+        var affectedControllerServiceContainer = $('<li class="affected-component-container"></li>').appendTo(container);
+        var affectedControllerService = affectedControllerServiceEntity.component;
+
+        // controller service state
+        $('<div class="referencing-component-state"></div>').addClass(function () {
+            if (nfCommon.isDefinedAndNotNull(affectedControllerService.state)) {
+                var icon = $(this);
+
+                var state = affectedControllerService.state === 'ENABLED' ? 'enabled' : 'disabled';
+                if (state === 'disabled' && !nfCommon.isEmpty(affectedControllerService.validationErrors)) {
+                    state = 'invalid';
+
+                    // build the error listing
+                    var list = nfCommon.formatUnorderedList(affectedControllerService.validationErrors);
+
+                    // add tooltip for the warnings
+                    icon.qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+                return state;
+            } else {
+                return '';
+            }
+        }).appendTo(affectedControllerServiceContainer);
+
+        // bulletin
+        $('<div class="referencing-component-bulletins"></div>').addClass(affectedControllerService.id + '-affected-bulletins').appendTo(affectedControllerServiceContainer);
+
+        // controller service name
+        $('<span class="link"></span>').text(affectedControllerService.name).on('click', function () {
+            // check if there are outstanding changes
+            handleOutstandingChanges().done(function () {
+                // show the component in question
+                nfProcessGroupConfiguration.showConfiguration(affectedControllerService.processGroupId).done(function () {
+                    nfProcessGroupConfiguration.selectControllerService(affectedControllerService.id);
+                });
+            });
+        }).appendTo(affectedControllerServiceContainer);
+    };
+
+    /**
      * Populates the affected components for the specified variable.
      *
      * @param {object} affectedComponents
@@ -684,12 +797,12 @@
             $('<li class="affected-component-container"><span class="unset">Pending Apply</span></li>').appendTo(controllerServiceContainer);
             $('<li class="affected-component-container"><span class="unset">Pending Apply</span></li>').appendTo(unauthorizedComponentsContainer);
         } else {
-            var referencingComponentIds = [];
+            var referencingComponentsForBulletinRetrieval = [];
 
             // bin the affected components according to their type
             $.each(affectedComponents, function (_, affectedComponentEntity) {
-                if (affectedComponentEntity.permissions.canRead === true) {
-                    referencingComponentIds.push(affectedComponentEntity.id);
+                if (affectedComponentEntity.permissions.canRead === true && affectedComponentEntity.permissions.canWrite === true) {
+                    referencingComponentsForBulletinRetrieval.push(affectedComponentEntity.id);
 
                     if (affectedComponentEntity.component.referenceType === 'PROCESSOR') {
                         affectedProcessors.push(affectedComponentEntity);
@@ -697,6 +810,11 @@
                         affectedControllerServices.push(affectedComponentEntity);
                     }
                 } else {
+                    // if we're unauthorized only because the user is lacking write permissions, we can still query for bulletins
+                    if (affectedComponentEntity.permissions.canRead === true) {
+                        referencingComponentsForBulletinRetrieval.push(affectedComponentEntity.id);
+                    }
+
                     unauthorizedAffectedComponents.push(affectedComponentEntity);
                 }
             });
@@ -709,56 +827,7 @@
 
                 // render each and register a click handler
                 $.each(affectedProcessors, function (_, affectedProcessorEntity) {
-                    var affectedProcessorContainer = $('<li class="affected-component-container"></li>').appendTo(processorContainer);
-                    var affectedProcessor = affectedProcessorEntity.component;
-
-                    // processor state
-                    $('<div class="referencing-component-state"></div>').addClass(function () {
-                        if (nfCommon.isDefinedAndNotNull(affectedProcessor.state)) {
-                            var icon = $(this);
-
-                            var state = affectedProcessor.state.toLowerCase();
-                            if (state === 'stopped' && !nfCommon.isEmpty(affectedProcessor.validationErrors)) {
-                                state = 'invalid';
-
-                                // build the validation error listing
-                                var list = nfCommon.formatUnorderedList(affectedProcessor.validationErrors);
-
-                                // add tooltip for the warnings
-                                icon.qtip($.extend({},
-                                    nfCanvasUtils.config.systemTooltipConfig,
-                                    {
-                                        content: list
-                                    }));
-                            }
-
-                            return state;
-                        } else {
-                            return '';
-                        }
-                    }).appendTo(affectedProcessorContainer);
-
-
-                    // processor name
-                    $('<span class="referencing-component-name link"></span>').text(affectedProcessor.name).on('click', function () {
-                        // check if there are outstanding changes
-                        handleOutstandingChanges().done(function () {
-                            // show the component in question
-                            nfCanvasUtils.showComponent(affectedProcessor.processGroupId, affectedProcessor.id);
-                        });
-                    }).appendTo(affectedProcessorContainer);
-
-                    // bulletin
-                    $('<div class="referencing-component-bulletins"></div>').addClass(affectedProcessor.id + '-affected-bulletins').appendTo(affectedProcessorContainer);
-
-                    // processor active threads
-                    $('<span class="referencing-component-active-thread-count"></span>').text(function () {
-                        if (nfCommon.isDefinedAndNotNull(affectedProcessor.activeThreadCount) && affectedProcessor.activeThreadCount > 0) {
-                            return '(' + affectedProcessor.activeThreadCount + ')';
-                        } else {
-                            return '';
-                        }
-                    }).appendTo(affectedProcessorContainer);
+                    renderAffectedProcessor(affectedProcessorEntity, processorContainer);
                 });
             }
 
@@ -770,47 +839,7 @@
 
                 // render each and register a click handler
                 $.each(affectedControllerServices, function (_, affectedControllerServiceEntity) {
-                    var affectedControllerServiceContainer = $('<li class="affected-component-container"></li>').appendTo(controllerServiceContainer);
-                    var affectedControllerService = affectedControllerServiceEntity.component;
-
-                    // controller service state
-                    $('<div class="referencing-component-state"></div>').addClass(function () {
-                        if (nfCommon.isDefinedAndNotNull(affectedControllerService.state)) {
-                            var icon = $(this);
-
-                            var state = affectedControllerService.state === 'ENABLED' ? 'enabled' : 'disabled';
-                            if (state === 'disabled' && !nfCommon.isEmpty(affectedControllerService.validationErrors)) {
-                                state = 'invalid';
-
-                                // build the error listing
-                                var list = nfCommon.formatUnorderedList(affectedControllerService.validationErrors);
-
-                                // add tooltip for the warnings
-                                icon.qtip($.extend({},
-                                    nfCanvasUtils.config.systemTooltipConfig,
-                                    {
-                                        content: list
-                                    }));
-                            }
-                            return state;
-                        } else {
-                            return '';
-                        }
-                    }).appendTo(affectedControllerServiceContainer);
-
-                    // bulletin
-                    $('<div class="referencing-component-bulletins"></div>').addClass(affectedControllerService.id + '-affected-bulletins').appendTo(controllerServiceContainer);
-
-                    // controller service name
-                    $('<span class="link"></span>').text(affectedControllerService.name).on('click', function () {
-                        // check if there are outstanding changes
-                        handleOutstandingChanges().done(function () {
-                            // show the component in question
-                            nfProcessGroupConfiguration.showConfiguration(affectedControllerService.processGroupId).done(function () {
-                                nfProcessGroupConfiguration.selectControllerService(affectedControllerService.id);
-                            });
-                        });
-                    }).appendTo(affectedControllerServiceContainer);
+                    renderAffectedControllerService(affectedControllerServiceEntity, controllerServiceContainer);
                 });
             }
 
@@ -819,18 +848,48 @@
             } else {
                 // sort the unauthorized affected components
                 unauthorizedAffectedComponents.sort(function (a, b) {
-                    return a.id.localeCompare(b.id);
+                    if (a.permissions.canRead === true && b.permissions.canRead === true) {
+                        // processors before controller services
+                        var sortVal = a.component.referenceType === b.component.referenceType ? 0 : a.component.referenceType > b.component.referenceType ? -1 : 1;
+
+                        // if a and b are the same type, then sort by name
+                        if (sortVal === 0) {
+                            sortVal = a.component.name === b.component.name ? 0 : a.component.name > b.component.name ? 1 : -1;
+                        }
+
+                        return sortVal;
+                    } else {
+                        // if lacking read perms on both, sort by id
+                        if (a.permissions.canRead === false && b.permissions.canRead === false) {
+                            return a.id > b.id ? 1 : -1;
+                        } else {
+                            // if only one has read perms, then let it come first
+                            if (a.permissions.canRead === true) {
+                                return -1;
+                            } else {
+                                return 1;
+                            }
+                        }
+                    }
                 });
 
-                $.each(unauthorizedAffectedComponents, function (_, unauthorizedAffectedComponent) {
-                    var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                    $('<span class="unset"></span>').text(unauthorizedAffectedComponent.id).appendTo(affectedUnauthorizedComponentContainer);
+                $.each(unauthorizedAffectedComponents, function (_, unauthorizedAffectedComponentEntity) {
+                    if (unauthorizedAffectedComponentEntity.permissions.canRead === true) {
+                        if (unauthorizedAffectedComponentEntity.component.referenceType === 'PROCESSOR') {
+                            renderAffectedProcessor(unauthorizedAffectedComponentEntity, unauthorizedComponentsContainer);
+                        } else {
+                            renderAffectedControllerService(unauthorizedAffectedComponentEntity, unauthorizedComponentsContainer);
+                        }
+                    } else {
+                        var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
+                        $('<span class="unset"></span>').text(unauthorizedAffectedComponentEntity.id).appendTo(affectedUnauthorizedComponentContainer);
+                    }
                 });
             }
 
             // query for the bulletins
-            if (referencingComponentIds.length > 0) {
-                nfCanvasUtils.queryBulletins(referencingComponentIds).done(function (response) {
+            if (referencingComponentsForBulletinRetrieval.length > 0) {
+                nfCanvasUtils.queryBulletins(referencingComponentsForBulletinRetrieval).done(function (response) {
                     var bulletins = response.bulletinBoard.bulletins;
 
                     var bulletinsBySource = d3.nest()

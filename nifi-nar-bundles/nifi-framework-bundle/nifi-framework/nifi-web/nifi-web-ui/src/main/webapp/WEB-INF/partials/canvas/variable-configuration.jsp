@@ -72,7 +72,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Unauthorized referencing components
-                    <div class="fa fa-question-circle" alt="Info" title="Referencing components without adequate permissions."></div>
+                    <div class="fa fa-question-circle" alt="Info" title="Referencing components for which READ or WRITE permissions are not granted."></div>
                 </div>
                 <div class="setting-field">
                     <ul id="variable-registry-affected-unauthorized-components"></ul>
