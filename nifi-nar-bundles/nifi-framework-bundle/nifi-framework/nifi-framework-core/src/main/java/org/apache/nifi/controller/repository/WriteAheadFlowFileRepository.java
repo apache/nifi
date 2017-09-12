@@ -425,8 +425,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     final long millis = TimeUnit.MILLISECONDS.convert(end - start, TimeUnit.NANOSECONDS);
                     logger.info("Successfully checkpointed FlowFile Repository with {} records in {} milliseconds",
                             new Object[]{numRecordsCheckpointed, millis});
-                } catch (final IOException e) {
-                    logger.error("Unable to checkpoint FlowFile Repository due to " + e.toString(), e);
+                } catch (final Throwable t) {
+                    logger.error("Unable to checkpoint FlowFile Repository due to " + t.toString(), t);
                 }
             }
         };
