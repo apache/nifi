@@ -42,7 +42,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 
 import javax.mail.Address;
-import javax.mail.internet.InternetAddress;
 import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -50,7 +49,6 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,7 +66,7 @@ import java.util.Set;
 @SideEffectFree
 @Tags({"split", "email"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Using the flowfile content as source of data, extract header from an RFC  compliant  email file adding the relevant attributes to the flowfile. " +
+@CapabilityDescription("Using the flowfile content as source of data, extract header from an RFC compliant  email file adding the relevant attributes to the flowfile. " +
         "This processor does not perform extensive RFC validation but still requires a bare minimum compliance with RFC 2822")
 @WritesAttributes({
         @WritesAttribute(attribute = "email.headers.bcc.*", description = "Each individual BCC recipient (if available)"),
@@ -104,15 +102,18 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             .defaultValue("x-mailer")
             .build();
 
+    private static final String STRICT_ADDRESSING_DEFAULT_VALUE = "true";
     public static final PropertyDescriptor STRICT_ADDRESSING = new PropertyDescriptor.Builder()
-            .name("STRICT_ADDRESSING")
-            .displayName("Use Strict Email Addresses")
-            .description("If true, strict adderss rules will be applied. Some mail messages may fail if they have" +
-                    " poorly constructed emails. Setting this to false will allow more mail messages through the " +
-                    "processor, and behave more like sendmail. Try setting this to false if you want poorly constructed" +
-                    " addresses to be accepted.")
-            .required(true)
-            .defaultValue("true")
+            .name("STRICT_ADDRESS_PARSING")
+            .displayName("Use Strict Address Parsing")
+            .description("If true, strict address format parsing rules are applied to mailbox and mailbox list fields, " +
+                    "such as \"to\" and \"from\" headers, and FlowFiles with poorly formed addresses will be routed " +
+                    "to the failure relationship, similar to messages that fail RFC compliant format validation. " +
+                    "If false, the processor will extract the contents of mailbox list headers as comma-separated " +
+                    "values without attempting to parse each value as well-formed Internet mailbox addresses. " +
+                    "This is optional and defaults to " + STRICT_ADDRESSING_DEFAULT_VALUE)
+            .required(false)
+            .defaultValue(STRICT_ADDRESSING_DEFAULT_VALUE)
             .allowableValues("true", "false")
             .build();
 
@@ -154,8 +155,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             return;
         }
 
-        final boolean strict = context.getProperty(STRICT_ADDRESSING).asBoolean();
-
+        final String requireStrictAddresses = context.getProperty(STRICT_ADDRESSING).getValue();
         final List<String> capturedHeadersList = Arrays.asList(context.getProperty(CAPTURED_HEADERS).getValue().toLowerCase().split(":"));
 
         final Map<String, String> attributes = new HashMap<>();
@@ -164,20 +164,20 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             public void process(final InputStream rawIn) throws IOException {
                 try (final InputStream in = new BufferedInputStream(rawIn)) {
                     Properties props = new Properties();
-                    Session mailSession = Session.getDefaultInstance(props, null);
+                    props.put("mail.mime.address.strict", requireStrictAddresses);
+                    Session mailSession = Session.getInstance(props);
                     MimeMessage originalMessage = new MimeMessage(mailSession, in);
                     MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                     // RFC-2822 determines that a message must have a "From:" header
                     // if a message lacks the field, it is flagged as invalid
-                    if (InternetAddress.parseHeader(originalMessage.getHeader("From", ","), strict) == null) {
-                        if (InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), strict) == null) {
-                            throw new MessagingException("Message failed RFC2822 validation: No Sender");
-                        }
+                    Address[] from = originalMessage.getFrom();
+                    if (from == null) {
+                        throw new MessagingException("Message failed RFC-2822 validation: No Sender");
                     }
                     Date sentDate = originalMessage.getSentDate();
                     if (sentDate == null ) {
                         // Throws MessageException due to lack of minimum required headers
-                        throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
+                        throw new MessagingException("Message failed RFC-2822 validation: No Sent Date");
                     } else if (capturedHeadersList.size() > 0){
                         Enumeration headers = originalMessage.getAllHeaders();
                         while (headers.hasMoreElements()) {
@@ -189,38 +189,10 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                         }
                     }
 
-                    // Get Non-Strict Recipient Addresses
-                    InternetAddress[] recipients;
-                    if (originalMessage.getHeader(Message.RecipientType.TO.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.TO.toString(), ","), strict);
-                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
-                            attributes.put(EMAIL_HEADER_TO + "." + toCount, recipients[toCount].toString());
-                        }
-                    }
-                    if (originalMessage.getHeader(Message.RecipientType.BCC.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.BCC.toString(), ","), strict);
-                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
-                            attributes.put(EMAIL_HEADER_BCC + "." + toCount, recipients[toCount].toString());
-                        }
-                    }
-                    if (originalMessage.getHeader(Message.RecipientType.CC.toString(), ",") != null) {
-                        recipients = InternetAddress.parseHeader(originalMessage.getHeader(Message.RecipientType.CC.toString(), ","), strict);
-                        for (int toCount = 0; toCount < ArrayUtils.getLength(recipients); toCount++) {
-                            attributes.put(EMAIL_HEADER_CC + "." + toCount, recipients[toCount].toString());
-                        }
-                    }
-
-                    // Get Non-Strict Sender Addresses
-                    InternetAddress[] sender = null;
-                    if (originalMessage.getHeader("From",",") != null) {
-                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("From", ","), strict));
-                    }
-                    if (originalMessage.getHeader("Sender",",") != null) {
-                        sender = (InternetAddress[])ArrayUtils.addAll(sender, InternetAddress.parseHeader(originalMessage.getHeader("Sender", ","), strict));
-                    }
-                    for (int toCount = 0; toCount < ArrayUtils.getLength(sender); toCount++) {
-                        attributes.put(EMAIL_HEADER_FROM + "." + toCount, sender[toCount].toString());
-                    }
+                    putAddressListInAttributes(attributes, EMAIL_HEADER_TO, originalMessage.getRecipients(Message.RecipientType.TO));
+                    putAddressListInAttributes(attributes, EMAIL_HEADER_CC, originalMessage.getRecipients(Message.RecipientType.CC));
+                    putAddressListInAttributes(attributes, EMAIL_HEADER_BCC, originalMessage.getRecipients(Message.RecipientType.BCC));
+                    putAddressListInAttributes(attributes, EMAIL_HEADER_FROM, originalMessage.getFrom()); // RFC-2822 specifies "From" as mailbox-list
 
                     if (StringUtils.isNotEmpty(originalMessage.getMessageID())) {
                         attributes.put(EMAIL_HEADER_MESSAGE_ID, originalMessage.getMessageID());
@@ -269,5 +241,16 @@ public class ExtractEmailHeaders extends AbstractProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
+    }
+
+    private static void putAddressListInAttributes(
+            Map<String, String> attributes,
+            final String attributePrefix,
+            Address[] addresses) {
+        if (addresses != null) {
+            for (int count = 0; count < ArrayUtils.getLength(addresses); count++) {
+                attributes.put(attributePrefix + "." + count, addresses[count].toString());
+            }
+        }
     }
 }
