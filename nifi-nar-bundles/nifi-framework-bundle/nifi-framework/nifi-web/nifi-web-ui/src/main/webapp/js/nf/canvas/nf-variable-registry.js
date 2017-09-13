@@ -415,7 +415,7 @@
                 name: 'Scope',
                 field: 'processGroupId',
                 formatter: scopeFormatter,
-                sortable: false,
+                sortable: true,
                 resizable: true
             },
             {
@@ -539,17 +539,24 @@
                             if (breadcrumbEntity.id === variable.processGroupId) {
                                 // if that breadcrumb has a parent breadcrumb, navigate to the parent group and select the PG
                                 if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.parentBreadcrumb)) {
-                                    nfCanvasUtils.showComponent(breadcrumbEntity.parentBreadcrumb.id, breadcrumbEntity.id);
+                                    nfCanvasUtils.showComponent(breadcrumbEntity.parentBreadcrumb.id, breadcrumbEntity.id).done(function () {
+                                        setTimeout(function () {
+                                            // open the variable dialog for the process group of this variable
+                                            showVariables(variable.processGroupId, variable.name);
+                                        }, 500);
+                                    });
                                 } else {
-                                    nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(breadcrumbEntity.id);
+                                    nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(breadcrumbEntity.id).done(function () {
+                                        setTimeout(function () {
+                                            // open the variable dialog for the process group of this variable
+                                            showVariables(variable.processGroupId, variable.name);
+                                        }, 500);
+                                    });
                                 }
 
                                 return false;
                             }
                         });
-
-                        // open the variable dialog for the process group of this variable
-                        showVariables(variable.processGroupId, variable.name);
                     });
                 }
             }
@@ -639,9 +646,15 @@
     var sortVariables = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-            return aString === bString ? 0 : aString > bString ? 1 : -1;
+            if (sortDetails.columnId === 'scope') {
+                var aScope = nfCommon.isDefinedAndNotNull(a.processGroupId) ? getScopeLabel(a.processGroupId) : '';
+                var bScope = nfCommon.isDefinedAndNotNull(b.processGroupId) ? getScopeLabel(b.processGroupId) : '';
+                return aScope === bScope ? 0 : aScope > bScope ? 1 : -1;
+            } else {
+                var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                return aString === bString ? 0 : aString > bString ? 1 : -1;
+            }
         };
 
         // perform the sort
@@ -859,7 +872,8 @@
 
                         return sortVal;
                     } else {
-                        // if lacking read perms on both, sort by id
+
+                        // if lacking read and write perms on both, sort by id
                         if (a.permissions.canRead === false && b.permissions.canRead === false) {
                             return a.id > b.id ? 1 : -1;
                         } else {
