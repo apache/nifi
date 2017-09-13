@@ -81,23 +81,31 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     };
 
     public static final Validator BROKER_VALIDATOR = new Validator() {
-
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
+
             try{
                 URI brokerURI = new URI(input);
                 if (!"".equals(brokerURI.getPath())) {
                     return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is:" + brokerURI.getPath()).build();
                 }
-                if (!("tcp".equals(brokerURI.getScheme()) || "ssl".equals(brokerURI.getScheme()))) {
-                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("only the 'tcp' and 'ssl' schemes are supported.").build();
+                if (!brokerSchemeSupported(brokerURI)) {
+                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("only the 'tcp', 'ssl', 'ws' and 'wss' schemes are supported.").build();
                 }
             } catch (URISyntaxException e) {
                 return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
             }
             return new ValidationResult.Builder().subject(subject).valid(true).build();
+
         }
     };
+
+    private static boolean brokerSchemeSupported(URI brokerURI) {
+        return "tcp".equals(brokerURI.getScheme()) ||
+                "ssl".equals(brokerURI.getScheme()) ||
+                "ws".equals(brokerURI.getScheme()) ||
+                "wss".equals(brokerURI.getScheme());
+    }
 
     public static final Validator RETAIN_VALIDATOR = new Validator() {
 
@@ -273,15 +281,20 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         try {
             URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).getValue());
-            if (brokerURI.getScheme().equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
-                results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false).explanation("if the 'ssl' scheme is used in " +
-                        "the broker URI, the SSL Context Service must be set.").build());
+            if (isSSL(brokerURI) && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
+                results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false)
+                        .explanation("if the 'ssl' or 'wss' schemes are used in the broker URI, the SSL Context Service must be set.").build());
             }
         } catch (URISyntaxException e) {
             results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false).explanation("it is not valid URI syntax.").build());
         }
 
         return results;
+    }
+
+    private boolean isSSL(URI brokerURI) {
+        return brokerURI.getScheme().equalsIgnoreCase("ssl") ||
+                brokerURI.getScheme().equalsIgnoreCase("wss");
     }
 
     public static Properties transformSSLContextService(SSLContextService sslContextService){
