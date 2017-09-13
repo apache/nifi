@@ -971,7 +971,7 @@
         // identify any variables conflicting with the current variable
         var conflictingVariables = [];
         $.each(variables, function (_, variable) {
-            if (currentVariable.name === variable.name) {
+            if (currentVariable.name === variable.name && variable.hidden === false) {
                 conflictingVariables.push(variable);
             }
         });
@@ -1190,120 +1190,123 @@
         // get the current group id
         var processGroupId = $('#variable-registry-process-group-id').text();
 
-        // updates the button model to show the close button
-        var updateToCloseButtonModel = function () {
+        return $.Deferred(function (deferred) {
+            // updates the button model to show the close button
+            var updateToCloseButtonModel = function () {
+                $('#variable-registry-dialog').modal('setButtonModel', [{
+                    buttonText: 'Close',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            deferred.resolve();
+                            close();
+                        }
+                    }
+                }]);
+            };
+
+            var cancelled = false;
+
+            // update the button model to show the cancel button
             $('#variable-registry-dialog').modal('setButtonModel', [{
-                buttonText: 'Close',
+                buttonText: 'Cancel',
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
                 },
                 handler: {
                     click: function () {
-                        close();
+                        cancelled = true;
+                        updateToCloseButtonModel()
                     }
                 }
             }]);
-        };
 
-        var cancelled = false;
-
-        // update the button model to show the cancel button
-        $('#variable-registry-dialog').modal('setButtonModel', [{
-            buttonText: 'Cancel',
-            color: {
-                base: '#E3E8EB',
-                hover: '#C7D2D7',
-                text: '#004849'
-            },
-            handler: {
-                click: function () {
-                    cancelled = true;
-                    updateToCloseButtonModel()
+            var requestId;
+            var handleAjaxFailure = function (xhr, status, error) {
+                // delete the request if possible
+                if (nfCommon.isDefinedAndNotNull(requestId)) {
+                    deleteUpdateRequest(processGroupId, requestId);
                 }
-            }
-        }]);
 
-        var requestId;
-        var handleAjaxFailure = function (xhr, status, error) {
-            // delete the request if possible
-            if (nfCommon.isDefinedAndNotNull(requestId)) {
-                deleteUpdateRequest(processGroupId, requestId);
-            }
+                // update the step status
+                $('#variable-update-steps').find('div.variable-step.ajax-loading').removeClass('ajax-loading').addClass('ajax-error');
 
-            // update the step status
-            $('#variable-update-steps').find('div.variable-step.ajax-loading').removeClass('ajax-loading').addClass('ajax-error');
-
-            // update the button model
-            updateToCloseButtonModel();
-        };
-
-        return submitUpdateRequest(processGroupId, variables).done(function (response) {
-            var pollUpdateRequest = function (updateRequestEntity) {
-                var updateRequest = updateRequestEntity.request;
-                var errored = nfCommon.isDefinedAndNotNull(updateRequest.failureReason);
-
-                // get the request id
-                requestId = updateRequest.requestId;
-
-                // update the affected components
-                populateAffectedComponents(updateRequest.affectedComponents);
-
-                // update the progress/steps
-                populateVariableUpdateStep(updateRequest.updateSteps, cancelled, errored);
-
-                // if this request was cancelled, remove the update request
-                if (cancelled) {
-                    deleteUpdateRequest(updateRequest.processGroupId, requestId);
-                } else {
-                    if (updateRequest.complete === true) {
-                        if (errored) {
-                            nfDialog.showOkDialog({
-                                headerText: 'Variable Update Error',
-                                dialogContent: 'Unable to complete variable update request: ' + nfCommon.escapeHtml(updateRequest.failureReason)
-                            });
-                        }
-
-                        // reload affected processors
-                        $.each(updateRequest.affectedComponents, function (_, affectedComponentEntity) {
-                            if (affectedComponentEntity.permissions.canRead === true) {
-                                var affectedComponent = affectedComponentEntity.component;
-
-                                // reload the process if it's in the current group
-                                if (affectedComponent.referenceType === 'PROCESSOR' && nfCanvasUtils.getGroupId() === affectedComponent.processGroupId) {
-                                    nfProcessor.reload(affectedComponent.id);
-                                }
-                            }
-                        });
-
-                        // reload the process group if the context of the update is not the current group (meaning its a child of the current group)
-                        if (nfCanvasUtils.getGroupId() !== updateRequest.processGroupId) {
-                            nfProcessGroup.reload(updateRequest.processGroupId);
-                        }
-
-                        // delete the update request
-                        deleteUpdateRequest(updateRequest.processGroupId, requestId);
-
-                        // update the button model
-                        updateToCloseButtonModel();
-                    } else {
-                        // wait to get an updated status
-                        setTimeout(function () {
-                            getUpdateRequest(updateRequest.processGroupId, requestId).done(function (getResponse) {
-                                pollUpdateRequest(getResponse);
-                            }).fail(handleAjaxFailure);
-                        }, 2000);
-                    }
-                }
+                // update the button model
+                updateToCloseButtonModel();
             };
 
-            // update the visibility
-            $('#variable-registry-table, #add-variable').hide();
-            $('#variable-update-status').show();
+            submitUpdateRequest(processGroupId, variables).done(function (response) {
+                var pollUpdateRequest = function (updateRequestEntity) {
+                    var updateRequest = updateRequestEntity.request;
+                    var errored = nfCommon.isDefinedAndNotNull(updateRequest.failureReason);
 
-            pollUpdateRequest(response);
-        }).fail(handleAjaxFailure);
+                    // get the request id
+                    requestId = updateRequest.requestId;
+
+                    // update the affected components
+                    populateAffectedComponents(updateRequest.affectedComponents);
+
+                    // update the progress/steps
+                    populateVariableUpdateStep(updateRequest.updateSteps, cancelled, errored);
+
+                    // if this request was cancelled, remove the update request
+                    if (cancelled) {
+                        deleteUpdateRequest(updateRequest.processGroupId, requestId);
+                    } else {
+                        if (updateRequest.complete === true) {
+                            if (errored) {
+                                nfDialog.showOkDialog({
+                                    headerText: 'Variable Update Error',
+                                    dialogContent: 'Unable to complete variable update request: ' + nfCommon.escapeHtml(updateRequest.failureReason)
+                                });
+                            }
+
+                            // reload affected processors
+                            $.each(updateRequest.affectedComponents, function (_, affectedComponentEntity) {
+                                if (affectedComponentEntity.permissions.canRead === true) {
+                                    var affectedComponent = affectedComponentEntity.component;
+
+                                    // reload the process if it's in the current group
+                                    if (affectedComponent.referenceType === 'PROCESSOR' && nfCanvasUtils.getGroupId() === affectedComponent.processGroupId) {
+                                        nfProcessor.reload(affectedComponent.id);
+                                    }
+                                }
+                            });
+
+                            // reload the process group if the context of the update is not the current group (meaning its a child of the current group)
+                            if (nfCanvasUtils.getGroupId() !== updateRequest.processGroupId) {
+                                nfProcessGroup.reload(updateRequest.processGroupId);
+                            }
+
+                            // delete the update request
+                            deleteUpdateRequest(updateRequest.processGroupId, requestId);
+
+                            // update the button model
+                            updateToCloseButtonModel();
+                        } else {
+                            // wait to get an updated status
+                            setTimeout(function () {
+                                getUpdateRequest(updateRequest.processGroupId, requestId).done(function (getResponse) {
+                                    pollUpdateRequest(getResponse);
+                                }).fail(handleAjaxFailure);
+                            }, 2000);
+                        }
+                    }
+                };
+
+                // update the visibility
+                $('#variable-registry-table, #add-variable').hide();
+                $('#variable-update-status').show();
+
+                pollUpdateRequest(response);
+            }).fail(handleAjaxFailure);
+        }).promise();
     };
 
     /**

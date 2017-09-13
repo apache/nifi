@@ -16,23 +16,7 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -76,6 +60,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -87,7 +72,22 @@ import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -2677,8 +2677,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         // If a child group has a value for the same variable, though, then that means that the child group
         // is overriding the variable and its components are actually referencing a different variable.
         for (final ProcessGroup childGroup : getProcessGroups()) {
-            final String childValue = childGroup.getVariableRegistry().getVariableValue(variableName);
-            if (childValue == null) {
+            final ComponentVariableRegistry childRegistry = childGroup.getVariableRegistry();
+            final VariableDescriptor descriptor = childRegistry.getVariableKey(variableName);
+            final boolean overridden = childRegistry.getVariableMap().containsKey(descriptor);
+            if (!overridden) {
                 affected.addAll(childGroup.getComponentsAffectedByVariable(variableName));
             }
         }
@@ -2705,7 +2707,11 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private List<VariableImpact> getVariableImpact(final ConfiguredComponent component) {
-        return component.getProperties().values().stream()
+        return component.getProperties().keySet().stream()
+            .map(descriptor -> {
+                final String configuredVal = component.getProperty(descriptor);
+                return configuredVal == null ? descriptor.getDefaultValue() : configuredVal;
+            })
             .map(propVal -> Query.prepare(propVal).getVariableImpact())
             .collect(Collectors.toList());
     }
