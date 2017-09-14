@@ -96,8 +96,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
         // attempt to process the oidc configuration if configured
         if (properties.isOidcEnabled()) {
-            if (properties.isLoginIdentityProviderEnabled()) {
-                throw new RuntimeException("OpenId Connect support cannot be enabled if the Login Identity Provider is configured.");
+            if (properties.isLoginIdentityProviderEnabled() || properties.isKnoxSsoEnabled()) {
+                throw new RuntimeException("OpenId Connect support cannot be enabled if the Login Identity Provider or Apache Knox SSO is configured.");
             }
 
             // oidc connect timeout
