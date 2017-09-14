@@ -60,7 +60,8 @@ import java.util.List;
         "dot file to it's final name. If the dot file cannot be renamed, the rename operation will be attempted up to 10 times, and " +
         "if still not successful, the dot file will be deleted and the flow file will be routed to failure. " +
         " If any error occurs while reading records from the input, or writing records to the output, " +
-        "the entire dot file will be removed and the flow file will be routed to failure or retry, depending on the error.")
+        "the entire dot file will be removed and the flow file will be routed to failure or retry, depending on the error. " +
+        "If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details'.")
 @ReadsAttribute(attribute = "filename", description = "The name of the file to write comes from the value of this attribute.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file is stored in this attribute."),

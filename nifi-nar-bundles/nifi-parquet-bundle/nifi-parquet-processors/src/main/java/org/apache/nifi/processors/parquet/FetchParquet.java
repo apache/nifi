@@ -43,7 +43,8 @@ import java.io.IOException;
 @CapabilityDescription("Reads from a given Parquet file and writes records to the content of the flow file using " +
         "the selected record writer. The original Parquet file will remain unchanged, and the content of the flow file " +
         "will be replaced with records of the selected type. This processor can be used with ListHDFS or ListFile to obtain " +
-        "a listing of files to fetch.")
+        "a listing of files to fetch. If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic " +
+        "of the 'Additional Details' of PutParquet.")
 @WritesAttributes({
         @WritesAttribute(attribute="fetch.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added " +
                 "indicating why the file could not be fetched from the given filesystem."),

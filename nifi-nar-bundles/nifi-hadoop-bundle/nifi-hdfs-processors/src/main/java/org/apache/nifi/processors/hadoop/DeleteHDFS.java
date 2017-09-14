@@ -57,14 +57,15 @@ import com.google.common.collect.Maps;
         + "Note that you may use a wildcard character to match multiple files or directories. If there are"
         + " no incoming connections no flowfiles will be transfered to any output relationships.  If there is an incoming"
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
-        + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
+        + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete."
+        + " If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
 @Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 @WritesAttributes({
         @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted"),
         @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request"),
         @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
 })
-@SeeAlso({ListHDFS.class})
+@SeeAlso({ListHDFS.class, PutHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
