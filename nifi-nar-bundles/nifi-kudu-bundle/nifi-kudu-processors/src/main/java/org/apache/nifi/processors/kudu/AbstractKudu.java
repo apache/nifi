@@ -28,6 +28,7 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
+import org.apache.kudu.client.SessionConfiguration;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -94,6 +95,27 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    protected static final PropertyDescriptor FLUSH_MODE = new PropertyDescriptor.Builder()
+            .name("Flush Mode")
+            .description("Set the new flush mode for a kudu session\n" +
+                    "AUTO_FLUSH_SYNC: the call returns when the operation is persisted, else it throws an exception.\n" +
+                    "AUTO_FLUSH_BACKGROUND: the call returns when the operation has been added to the buffer. This call should normally perform only fast in-memory" +
+                    " operations but it may have to wait when the buffer is full and there's another buffer being flushed.\n" +
+                    "MANUAL_FLUSH: the call returns when the operation has been added to the buffer, else it throws a KuduException if the buffer is full.")
+            .allowableValues(SessionConfiguration.FlushMode.values())
+            .defaultValue(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND.toString())
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("Set the number of operations that can be buffered")
+            .defaultValue("100")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after it has been successfully stored in Kudu")
@@ -109,6 +131,8 @@ public abstract class AbstractKudu extends AbstractProcessor {
     protected String tableName;
     protected boolean skipHeadLine;
     protected OperationType operationType;
+    protected SessionConfiguration.FlushMode flushMode;
+    protected int batchSize = 100;
 
     protected KuduClient kuduClient;
     protected KuduTable kuduTable;
@@ -124,11 +148,14 @@ public abstract class AbstractKudu extends AbstractProcessor {
                 kuduTable = this.getKuduTable(kuduClient, tableName);
                 getLogger().debug("Kudu connection successfully initialized");
             }
+
+            operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
+            batchSize = context.getProperty(TABLE_NAME).asInteger();
+            flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
+            skipHeadLine = context.getProperty(SKIP_HEAD_LINE).asBoolean();
         } catch(KuduException ex){
             getLogger().error("Exception occurred while interacting with Kudu due to " + ex.getMessage(), ex);
         }
-        operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
-        skipHeadLine = context.getProperty(SKIP_HEAD_LINE).asBoolean();
     }
 
     @OnStopped
@@ -223,6 +250,10 @@ public abstract class AbstractKudu extends AbstractProcessor {
     protected KuduSession getKuduSession(KuduClient client){
 
         KuduSession kuduSession = client.newSession();
+
+        kuduSession.setMutationBufferSpace(batchSize);
+        kuduSession.setFlushMode(flushMode);
+
         if(operationType == OperationType.INSERT_IGNORE){
             kuduSession.setIgnoreAllDuplicateRows(true);
         }

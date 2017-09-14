@@ -58,6 +58,8 @@ public class PutKudu extends AbstractKudu {
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
+        properties.add(FLUSH_MODE);
+        properties.add(BATCH_SIZE);
 
         return properties;
     }
