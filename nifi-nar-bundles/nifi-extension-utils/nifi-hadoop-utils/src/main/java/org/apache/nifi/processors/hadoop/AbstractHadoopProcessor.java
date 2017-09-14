@@ -67,7 +67,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
-                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration."
+                    + " If you want to use SSL-secured file system, please see the 'SSL Configuration' topic of the 'Additional Details'.")
             .required(false)
             .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(true)
