@@ -280,6 +280,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicInteger maxEventDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
     private final AtomicReference<FlowEngine> eventDrivenEngineRef;
+    private final EventDrivenSchedulingAgent eventDrivenSchedulingAgent;
 
     private final ContentRepository contentRepository;
     private final FlowFileRepository flowFileRepository;
@@ -502,8 +503,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
         final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, new EventDrivenSchedulingAgent(
-            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor));
+
+        eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
+            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor);
+        processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.nifiProperties);
@@ -3582,7 +3585,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public int getActiveThreadCount() {
         final int timerDrivenCount = timerDrivenEngineRef.get().getActiveCount();
-        final int eventDrivenCount = eventDrivenEngineRef.get().getActiveCount();
+        final int eventDrivenCount = eventDrivenSchedulingAgent.getActiveThreadCount();
         return timerDrivenCount + eventDrivenCount;
     }
 
