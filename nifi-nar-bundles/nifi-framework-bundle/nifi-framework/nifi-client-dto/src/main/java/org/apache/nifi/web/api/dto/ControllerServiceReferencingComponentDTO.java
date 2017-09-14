@@ -19,10 +19,10 @@ package org.apache.nifi.web.api.dto;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
+import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.bind.annotation.XmlType;
 
 /**
  * A component referencing a controller service. This can either be another controller service or a processor. Depending on the type of component different properties may be set.
@@ -105,11 +105,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return state of the processor referencing a controller service. If this component is another service, this field is blank
+     * @return scheduled state of the processor referencing a controller service. If this component is another service, this field represents the controller service state
      */
     @ApiModelProperty(
-            value = "The state of a processor or reporting task referencing a controller service. If this component is another controller "
-                    + "service, this field is blank."
+            value = "The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
+                    + "service, this field represents the controller service state."
     )
     public String getState() {
         return state;

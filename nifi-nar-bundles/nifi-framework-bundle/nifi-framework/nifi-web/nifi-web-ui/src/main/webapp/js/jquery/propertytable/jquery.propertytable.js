@@ -1682,14 +1682,14 @@
                         // build the new property dialog
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
-                            '<div class="dialog-content">' +
-                            '<div>' +
-                            '<div class="setting-name">Property name</div>' +
-                            '<div class="setting-field new-property-name-container">' +
-                            '<input class="new-property-name" type="text"/>' +
-                            '</div>' +
-                            '</div>' +
-                            '</div>' +
+                                '<div class="dialog-content">' +
+                                    '<div>' +
+                                    '<div class="setting-name">Property name</div>' +
+                                        '<div class="setting-field new-property-name-container">' +
+                                            '<input class="new-property-name" type="text"/>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
                             '</div>';
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);

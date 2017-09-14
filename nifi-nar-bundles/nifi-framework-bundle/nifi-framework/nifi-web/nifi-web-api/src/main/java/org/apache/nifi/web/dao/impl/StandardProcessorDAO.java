@@ -58,6 +58,7 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
@@ -307,9 +308,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public Set<ProcessorNode> getProcessors(String groupId) {
+    public Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
-        return group.getProcessors();
+        if (includeDescendants) {
+            return group.findAllProcessors().stream().collect(Collectors.toSet());
+        } else {
+            return group.getProcessors();
+        }
     }
 
     @Override

@@ -17,17 +17,28 @@
 
 package org.apache.nifi.registry.variable;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class VariableRegistryUpdateRequest {
     private final String requestId;
     private final String processGroupId;
+    private final NiFiUser user;
     private volatile Date submissionTime = new Date();
     private volatile Date lastUpdated = new Date();
     private volatile boolean complete = false;
 
     private final AtomicReference<String> failureReason = new AtomicReference<>();
+    private RevisionDTO processGroupRevision;
+    private Map<String, AffectedComponentEntity> affectedComponents;
 
     private final VariableRegistryUpdateStep identifyComponentsStep = new VariableRegistryUpdateStep("Identifying components affected");
     private final VariableRegistryUpdateStep stopProcessors = new VariableRegistryUpdateStep("Stopping affected Processors");
@@ -36,15 +47,16 @@ public class VariableRegistryUpdateRequest {
     private final VariableRegistryUpdateStep enableServices = new VariableRegistryUpdateStep("Re-Enabling affected Controller Services");
     private final VariableRegistryUpdateStep startProcessors = new VariableRegistryUpdateStep("Restarting affected Processors");
 
-    public VariableRegistryUpdateRequest(final String requestId, final String processGroupId) {
+    public VariableRegistryUpdateRequest(final String requestId, final String processGroupId, final Set<AffectedComponentEntity> affectedComponents, final NiFiUser user) {
         this.requestId = requestId;
         this.processGroupId = processGroupId;
+        this.affectedComponents = affectedComponents.stream().collect(Collectors.toMap(AffectedComponentEntity::getId, Function.identity()));
+        this.user = user;
     }
 
     public String getProcessGroupId() {
         return processGroupId;
     }
-
 
     public String getRequestId() {
         return requestId;
@@ -52,6 +64,10 @@ public class VariableRegistryUpdateRequest {
 
     public Date getSubmissionTime() {
         return submissionTime;
+    }
+
+    public NiFiUser getUser() {
+        return user;
     }
 
     public Date getLastUpdated() {
@@ -100,6 +116,18 @@ public class VariableRegistryUpdateRequest {
 
     public void setFailureReason(String reason) {
         this.failureReason.set(reason);
+    }
+
+    public RevisionDTO getProcessGroupRevision() {
+        return processGroupRevision;
+    }
+
+    public void setProcessGroupRevision(RevisionDTO processGroupRevision) {
+        this.processGroupRevision = processGroupRevision;
+    }
+
+    public Map<String, AffectedComponentEntity> getAffectedComponents() {
+        return affectedComponents;
     }
 
     public void cancel() {

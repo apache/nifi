@@ -79,6 +79,10 @@ ul.referencing-component-listing li {
     white-space: nowrap;
 }
 
+div.referencing-component-state {
+    width: 13px;
+}
+
 div.referencing-component-state.disabled:before {
     content: '\e802';
     font-family: flowfont;

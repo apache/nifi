@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.http;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.nifi.cluster.coordination.http.endpoints.AccessPolicyEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
@@ -79,6 +69,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.UserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UsersEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.VariableRegistryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
@@ -86,6 +77,15 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.StreamingOutput;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class StandardHttpResponseMapper implements HttpResponseMapper {
 
@@ -154,6 +154,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new UserGroupEndpointMerger());
         endpointMergers.add(new AccessPolicyEndpointMerger());
         endpointMergers.add(new SearchUsersEndpointMerger());
+        endpointMergers.add(new VariableRegistryEndpointMerger());
     }
 
     @Override
