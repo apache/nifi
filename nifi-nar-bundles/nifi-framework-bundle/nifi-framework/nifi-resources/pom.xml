@@ -155,6 +155,12 @@
         <nifi.security.user.oidc.client.secret />
         <nifi.security.user.oidc.preferred.jwsalgorithm />
 
+        <!-- nifi.properties: apache knox -->
+        <nifi.security.user.knox.url />
+        <nifi.security.user.knox.publicKey />
+        <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
+        <nifi.security.user.knox.audiences />
+
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>

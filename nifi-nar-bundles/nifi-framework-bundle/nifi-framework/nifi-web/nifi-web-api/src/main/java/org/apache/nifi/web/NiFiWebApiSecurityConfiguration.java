@@ -20,6 +20,8 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
+import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
+import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
@@ -65,6 +67,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private OtpAuthenticationFilter otpAuthenticationFilter;
     private OtpAuthenticationProvider otpAuthenticationProvider;
 
+    private KnoxAuthenticationFilter knoxAuthenticationFilter;
+    private KnoxAuthenticationProvider knoxAuthenticationProvider;
+
     private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
 
     public NiFiWebApiSecurityConfiguration() {
@@ -78,7 +83,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos", "/access/oidc/**");
+                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos", "/access/oidc/**", "/access/knox/**");
     }
 
     @Override
@@ -100,6 +105,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // otp
         http.addFilterBefore(otpFilterBean(), AnonymousAuthenticationFilter.class);
 
+        // knox
+        http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
+
         // anonymous
         http.anonymous().authenticationFilter(anonymousFilterBean());
     }
@@ -116,7 +124,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         auth
                 .authenticationProvider(x509AuthenticationProvider)
                 .authenticationProvider(jwtAuthenticationProvider)
-                .authenticationProvider(otpAuthenticationProvider);
+                .authenticationProvider(otpAuthenticationProvider)
+                .authenticationProvider(knoxAuthenticationProvider);
     }
 
     @Bean
@@ -137,6 +146,16 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
             otpAuthenticationFilter.setAuthenticationManager(authenticationManager());
         }
         return otpAuthenticationFilter;
+    }
+
+    @Bean
+    public KnoxAuthenticationFilter knoxFilterBean() throws Exception {
+        if (knoxAuthenticationFilter == null) {
+            knoxAuthenticationFilter = new KnoxAuthenticationFilter();
+            knoxAuthenticationFilter.setProperties(properties);
+            knoxAuthenticationFilter.setAuthenticationManager(authenticationManager());
+        }
+        return knoxAuthenticationFilter;
     }
 
     @Bean
@@ -172,6 +191,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setOtpAuthenticationProvider(OtpAuthenticationProvider otpAuthenticationProvider) {
         this.otpAuthenticationProvider = otpAuthenticationProvider;
+    }
+
+    @Autowired
+    public void setKnoxAuthenticationProvider(KnoxAuthenticationProvider knoxAuthenticationProvider) {
+        this.knoxAuthenticationProvider = knoxAuthenticationProvider;
     }
 
     @Autowired

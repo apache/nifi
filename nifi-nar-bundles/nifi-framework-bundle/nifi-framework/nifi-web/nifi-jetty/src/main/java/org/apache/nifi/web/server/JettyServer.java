@@ -291,6 +291,7 @@ public class JettyServer implements NiFiServer {
         // load the web ui app
         final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
+        webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
         handlers.addHandler(webUiContext);
 
         // load the web api app

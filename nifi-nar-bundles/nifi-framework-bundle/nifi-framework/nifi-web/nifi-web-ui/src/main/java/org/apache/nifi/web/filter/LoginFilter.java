@@ -40,10 +40,14 @@ public class LoginFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
+        final boolean supportsKnoxSso = Boolean.parseBoolean(servletContext.getInitParameter("knox-supported"));
 
         if (supportsOidc) {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/oidc/request").forward(request, response);
+        } else if (supportsKnoxSso) {
+            final ServletContext apiContext = servletContext.getContext("/nifi-api");
+            apiContext.getRequestDispatcher("/access/knox/request").forward(request, response);
         } else {
             filterChain.doFilter(request, response);
         }
