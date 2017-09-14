@@ -61,6 +61,8 @@
             } else {
                 checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked');
             }
+            // emit a state change event
+            checkbox.trigger('change');
         });
 
         // setup click areas for custom checkboxes

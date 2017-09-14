@@ -2706,6 +2706,13 @@ public final class DtoFactory {
             contentRepositoryStorageUsageDtos.add(createStorageUsageDTO(entry.getKey(), entry.getValue()));
         }
 
+        // provenance disk usage
+        final Set<SystemDiagnosticsSnapshotDTO.StorageUsageDTO> provenanceRepositoryStorageUsageDtos = new LinkedHashSet<>();
+        snapshot.setProvenanceRepositoryStorageUsage(provenanceRepositoryStorageUsageDtos);
+        for (final Map.Entry<String, StorageUsage> entry : sysDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            provenanceRepositoryStorageUsageDtos.add(createStorageUsageDTO(entry.getKey(), entry.getValue()));
+        }
+
         // garbage collection
         final Set<SystemDiagnosticsSnapshotDTO.GarbageCollectionDTO> garbageCollectionDtos = new LinkedHashSet<>();
         snapshot.setGarbageCollection(garbageCollectionDtos);
