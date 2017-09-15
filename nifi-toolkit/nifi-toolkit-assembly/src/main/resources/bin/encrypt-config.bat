@@ -33,9 +33,9 @@ goto startConfig
 :startConfig
 set LIB_DIR=%~dp0..\classpath;%~dp0..\lib
 
-if "%JAVA_ARGS%" == "" set JAVA_ARGS=-Xms128m -Xmx256m
+if "%JAVA_OPTS%" == "" set JAVA_OPTS=-Xms128m -Xmx256m
 
-SET JAVA_PARAMS=-cp %LIB_DIR%\* %JAVA_ARGS% org.apache.nifi.properties.ConfigEncryptionTool
+SET JAVA_PARAMS=-cp %LIB_DIR%\* %JAVA_OPTS% org.apache.nifi.properties.ConfigEncryptionTool
 
 cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* ""
 
