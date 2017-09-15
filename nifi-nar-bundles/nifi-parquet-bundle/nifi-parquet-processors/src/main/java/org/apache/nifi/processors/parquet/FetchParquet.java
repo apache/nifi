@@ -39,7 +39,7 @@ import java.io.IOException;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "restricted"})
+@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "restricted", "record"})
 @CapabilityDescription("Reads from a given Parquet file and writes records to the content of the flow file using " +
         "the selected record writer. The original Parquet file will remain unchanged, and the content of the flow file " +
         "will be replaced with records of the selected type. This processor can be used with ListHDFS or ListFile to obtain " +
