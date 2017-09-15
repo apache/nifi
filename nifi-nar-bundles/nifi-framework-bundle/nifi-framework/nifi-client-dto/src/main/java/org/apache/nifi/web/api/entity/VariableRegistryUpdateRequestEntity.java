@@ -17,16 +17,15 @@
 
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryUpdateRequestDTO;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "variableRegistryUpdateRequestEntity")
 public class VariableRegistryUpdateRequestEntity extends Entity {
-    private VariableRegistryUpdateRequestDTO requestDto;
+    private VariableRegistryUpdateRequestDTO request;
     private RevisionDTO processGroupRevision;
 
     @ApiModelProperty("The revision for the Process Group that owns this variable registry.")
@@ -39,11 +38,11 @@ public class VariableRegistryUpdateRequestEntity extends Entity {
     }
 
     @ApiModelProperty("The Variable Registry Update Request")
-    public VariableRegistryUpdateRequestDTO getRequestDto() {
-        return requestDto;
+    public VariableRegistryUpdateRequestDTO getRequest() {
+        return request;
     }
 
-    public void setRequestDto(VariableRegistryUpdateRequestDTO requestDto) {
-        this.requestDto = requestDto;
+    public void setRequest(VariableRegistryUpdateRequestDTO request) {
+        this.request = request;
     }
 }

@@ -59,9 +59,10 @@ public interface ProcessorDAO {
      * Gets all the Processor transfer objects for this controller.
      *
      * @param groupId group id
+     * @param includeDescendants if processors from descendant groups should be included
      * @return List of all the Processors
      */
-    Set<ProcessorNode> getProcessors(String groupId);
+    Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants);
 
     /**
      * Verifies the specified processor can be updated.

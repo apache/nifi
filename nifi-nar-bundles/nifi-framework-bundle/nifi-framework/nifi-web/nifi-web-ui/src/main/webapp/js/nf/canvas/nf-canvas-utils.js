@@ -239,6 +239,25 @@
         },
 
         /**
+         * Queries for bulletins for the specified components.
+         *
+         * @param {array} componentIds
+         * @returns {deferred}
+         */
+        queryBulletins: function (componentIds) {
+            var ids = componentIds.join('|');
+
+            return $.ajax({
+                type: 'GET',
+                url: '../nifi-api/flow/bulletin-board',
+                data: {
+                    sourceId: ids
+                },
+                dataType: 'json'
+            }).fail(nfErrorHandler.handleAjaxError);
+        },
+
+        /**
          * Shows the specified component in the specified group.
          *
          * @param {string} groupId       The id of the group
@@ -282,6 +301,8 @@
                         });
                     }
                 });
+
+                return refreshGraph;
             }
         },
 

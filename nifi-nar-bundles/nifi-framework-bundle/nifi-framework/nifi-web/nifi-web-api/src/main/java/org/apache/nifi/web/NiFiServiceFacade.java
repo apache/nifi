@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -77,6 +70,7 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -107,6 +101,13 @@ import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -518,9 +519,10 @@ public interface NiFiServiceFacade {
      * Gets all the Processor transfer objects for this controller.
      *
      * @param groupId group
+     * @param includeDescendants if processors from descendent groups should be included
      * @return List of all the Processor transfer object
      */
-    Set<ProcessorEntity> getProcessors(String groupId);
+    Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
 
     /**
      * Verifies the specified processor can be updated.
@@ -925,12 +927,21 @@ public interface NiFiServiceFacade {
     VariableRegistryEntity updateVariableRegistry(NiFiUser user, Revision revision, VariableRegistryDTO variableRegistryDto);
 
     /**
-     * Determines which components will be affected by updating the given Variable Registry
+     * Determines which components will be affected by updating the given Variable Registry.
      *
      * @param variableRegistryDto the variable registry
      * @return the components that will be affected
      */
-    Set<AffectedComponentDTO> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+    Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Determines which components are active and will be affected by updating the given Variable Registry. These active components
+     * are needed to authorize the request and deactivate prior to changing the variables.
+     *
+     * @param variableRegistryDto the variable registry
+     * @return the components that will be affected
+     */
+    Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
 
     /**
      * Gets all process groups in the specified parent group.

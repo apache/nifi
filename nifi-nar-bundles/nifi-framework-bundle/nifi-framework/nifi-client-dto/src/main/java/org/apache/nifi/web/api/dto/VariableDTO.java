@@ -17,19 +17,18 @@
 
 package org.apache.nifi.web.api.dto;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.Set;
 
 @XmlType(name = "variable")
 public class VariableDTO {
     private String name;
     private String value;
     private String processGroupId;
-    private Set<AffectedComponentDTO> affectedComponents = new HashSet<>();
+    private Set<AffectedComponentEntity> affectedComponents;
 
     @ApiModelProperty("The name of the variable")
     public String getName() {
@@ -59,11 +58,11 @@ public class VariableDTO {
     }
 
     @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", readOnly = true)
-    public Set<AffectedComponentDTO> getAffectedComponents() {
+    public Set<AffectedComponentEntity> getAffectedComponents() {
         return affectedComponents;
     }
 
-    public void setAffectedComponents(Set<AffectedComponentDTO> affectedComponents) {
+    public void setAffectedComponents(Set<AffectedComponentEntity> affectedComponents) {
         this.affectedComponents = affectedComponents;
     }
 }

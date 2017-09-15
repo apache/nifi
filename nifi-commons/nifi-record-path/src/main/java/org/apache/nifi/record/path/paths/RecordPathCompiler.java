@@ -65,6 +65,7 @@ import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
 import org.apache.nifi.record.path.functions.Concat;
+import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.Replace;
 import org.apache.nifi.record.path.functions.ReplaceNull;
 import org.apache.nifi.record.path.functions.ReplaceRegex;
@@ -163,6 +164,8 @@ public class RecordPathCompiler {
                 if (childTreeType == FIELD_NAME) {
                     final String descendantName = childTree.getChild(0).getText();
                     return new DescendantFieldPath(descendantName, parent, absolute);
+                } else if (childTreeType == WILDCARD) {
+                    return new WildcardDescendantPath(parent, absolute);
                 } else {
                     throw new RecordPathException("Expected field name following '//' Token but found " + childTree);
                 }
@@ -236,6 +239,10 @@ public class RecordPathCompiler {
                         }
 
                         return new Concat(argPaths, absolute);
+                    }
+                    case "fieldName": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new FieldName(args[0], absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "

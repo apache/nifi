@@ -65,6 +65,15 @@
     };
 
     /**
+     * Determines whether the component in the specified selection has variables.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var hasVariables = function (selection) {
+        return selection.empty() || nfCanvasUtils.isProcessGroup(selection);
+    };
+
+    /**
      * Determines whether the component in the specified selection has configuration details.
      *
      * @param {selection} selection         The selection of currently selected components
@@ -537,6 +546,7 @@
         {separator: true},
         {id: 'show-configuration-menu-item', condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
         {id: 'show-details-menu-item', condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
+        {id: 'variable-registry-menu-item', condition: hasVariables, menuItem: {clazz: 'fa', text: 'Variables', action: 'openVariableRegistry'}},
         {separator: true},
         {id: 'enter-group-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
         {separator: true},

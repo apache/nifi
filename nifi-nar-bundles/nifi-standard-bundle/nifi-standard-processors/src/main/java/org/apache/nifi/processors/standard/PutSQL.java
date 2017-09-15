@@ -54,6 +54,7 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -928,6 +929,16 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 case Types.LONGNVARCHAR:
                 case Types.LONGVARCHAR:
                     stmt.setString(parameterIndex, parameterValue);
+                    break;
+                case Types.CLOB:
+                    try (final StringReader reader = new StringReader(parameterValue)) {
+                        stmt.setCharacterStream(parameterIndex, reader);
+                    }
+                    break;
+                case Types.NCLOB:
+                    try (final StringReader reader = new StringReader(parameterValue)) {
+                        stmt.setNCharacterStream(parameterIndex, reader);
+                    }
                     break;
                 default:
                     stmt.setObject(parameterIndex, parameterValue, jdbcType);
