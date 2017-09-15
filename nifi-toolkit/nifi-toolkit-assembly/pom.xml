@@ -100,4 +100,87 @@ language governing permissions and limitations under the License. -->
             <scope>compile</scope>
         </dependency>
     </dependencies>
+
+
+    <profiles>
+        <profile>
+            <id>docker</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy-resources</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.basedir}/target/docker-build</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>docker</directory>
+                                            <filtering>true</filtering>
+                                            <includes>
+                                                <include>Dockerfile</include>
+                                                <include>**/sh/*.sh</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Copy generated artifact to nifi-docker -->
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>copy-for-docker</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <target name="copy assembly to docker for image build">
+                                        <copy todir="${project.basedir}/target/docker-build" overwrite="true"
+                                              flatten="true">
+                                            <fileset dir="${project.basedir}/target" includes="*.tar.gz">
+                                                <include name="*.tar.gz"/>
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.spotify</groupId>
+                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <version>1.3.5</version>
+                        <executions>
+                            <execution>
+                                <id>default</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <contextDirectory>./target/docker-build</contextDirectory>
+                                    <buildArgs>
+                                        <UID>1000</UID>
+                                        <GID>1000</GID>
+                                    </buildArgs>
+                                    <repository>apache/nifi-toolkit</repository>
+                                    <tag>${project.version}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
