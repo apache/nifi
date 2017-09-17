@@ -50,6 +50,7 @@
  *          disabled: isDisabledFunction,
  *      handler: {
  *          click: applyHandler
+ *          keyup: keyupHandler
  *      }
  *   }],
  *   handler: {
@@ -127,6 +128,10 @@
                 // check if the button should be disabled
                 if (isDisabled()) {
                     button.addClass('disabled-button');
+                    // remove keyup listener
+                    if (isDefinedAndNotNull(buttonConfig.handler) && isDefinedAndNotNull(buttonConfig.handler.keyup) && typeof buttonConfig.handler.keyup === 'function') {
+                        document.removeEventListener('keyup', buttonConfig.handler.keyup, true);
+                    }
                 } else {
                     // enable custom hover if specified
                     if (isDefinedAndNotNull(buttonConfig.color)) {
@@ -135,6 +140,11 @@
                         }, function () {
                             $(this).css("background-color", buttonConfig.color.base);
                         });
+                    }
+
+                    // register keyup listener
+                    if (isDefinedAndNotNull(buttonConfig.handler) && isDefinedAndNotNull(buttonConfig.handler.keyup) && typeof buttonConfig.handler.keyup === 'function') {
+                        document.addEventListener('keyup', buttonConfig.handler.keyup, true);
                     }
 
                     button.click(function () {
@@ -547,6 +557,17 @@
                 var nfDialogData = {};
                 if (isDefinedAndNotNull(dialog.data('nf-dialog'))) {
                     nfDialogData = dialog.data('nf-dialog');
+                }
+
+                var buttonModel = dialog.data('buttonModel');
+                if (isDefinedAndNotNull(buttonModel)) {
+                    // only for buttons with a keyup handler defined
+                    buttonModel.filter(function(button){
+                        return isDefinedAndNotNull(button.handler) && isDefinedAndNotNull(button.handler.keyup);
+                    }).forEach(function(buttonWithHandler) {
+                        // remove keyup listener
+                        document.removeEventListener('keyup', buttonWithHandler.handler.keyup, true);
+                    });
                 }
 
                 if (isDefinedAndNotNull(nfDialogData.handler)) {

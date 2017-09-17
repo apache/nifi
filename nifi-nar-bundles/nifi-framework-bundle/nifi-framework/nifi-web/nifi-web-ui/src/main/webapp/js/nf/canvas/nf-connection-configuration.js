@@ -108,6 +108,13 @@
                             relationships.children('div.available-relationship').removeClass('checkbox-unchecked').addClass('checkbox-checked');
                         }
 
+                        var confirmDialog = function() {
+                            addConnection(getSelectedRelationships());
+                            
+                            // close the dialog
+                            $('#connection-configuration').modal('hide');
+                        }
+
                         // configure the button model
                         $('#connection-configuration').modal('setButtonModel', [{
                             buttonText: 'Add',
@@ -121,11 +128,12 @@
                                 return getSelectedRelationships().length === 0;
                             },
                             handler: {
-                                click: function () {
-                                    addConnection(getSelectedRelationships());
-
-                                    // close the dialog
-                                    $('#connection-configuration').modal('hide');
+                                click: confirmDialog,
+                                keyup: function (event) {
+                                    // register nonmodified Enter key
+                                    if (event.key == 'Enter' && !event.ctrlKey && !event.altKey) {
+                                        confirmDialog();
+                                    }
                                 }
                             }
                         },
@@ -175,6 +183,14 @@
                     connectionSourceDeferred = initializeSourceFunnel(source);
                 }
 
+                var confirmDialog = function () {
+                    // add the connection
+                    addConnection();
+
+                    // close the dialog
+                    $('#connection-configuration').modal('hide');
+                }
+
                 // finish initialization when appropriate
                 connectionSourceDeferred.done(function () {
                     // configure the button model
@@ -186,12 +202,12 @@
                             text: '#ffffff'
                         },
                         handler: {
-                            click: function () {
-                                // add the connection
-                                addConnection();
-
-                                // close the dialog
-                                $('#connection-configuration').modal('hide');
+                            click: confirmDialog,
+                            keyup: function (event) {
+                                // register nonmodified Enter key
+                                if (event.key == 'Enter' && !event.ctrlKey && !event.altKey) {
+                                    confirmDialog();
+                                }
                             }
                         }
                     },
@@ -1393,6 +1409,28 @@
                     // store the connection details
                     $('#connection-uri').val(connectionEntry.uri);
 
+                    var confirmDialog = function () {
+                        // see if we're working with a processor as the source
+                        if (nfCanvasUtils.isProcessor(source)) {
+                            // update the selected relationships
+                            updateConnection(getSelectedRelationships()).done(function () {
+                                deferred.resolve();
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        } else {
+                            // there are no relationships, but the source wasn't a processor, so update anyway
+                            updateConnection(undefined).done(function () {
+                                deferred.resolve();
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        }
+
+                        // close the dialog
+                        $('#connection-configuration').modal('hide');
+                    }
+
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
                         buttonText: 'Apply',
@@ -1409,26 +1447,12 @@
                             return false;
                         },
                         handler: {
-                            click: function () {
-                                // see if we're working with a processor as the source
-                                if (nfCanvasUtils.isProcessor(source)) {
-                                    // update the selected relationships
-                                    updateConnection(getSelectedRelationships()).done(function () {
-                                        deferred.resolve();
-                                    }).fail(function () {
-                                        deferred.reject();
-                                    });
-                                } else {
-                                    // there are no relationships, but the source wasn't a processor, so update anyway
-                                    updateConnection(undefined).done(function () {
-                                        deferred.resolve();
-                                    }).fail(function () {
-                                        deferred.reject();
-                                    });
+                            click: confirmDialog,
+                            keyup: function (event) {
+                                // register nonmodified Enter key
+                                if (event.key == 'Enter' && !event.ctrlKey && !event.altKey) {
+                                    confirmDialog();
                                 }
-
-                                // close the dialog
-                                $('#connection-configuration').modal('hide');
                             }
                         }
                     },
