@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
@@ -42,40 +43,53 @@ public class SocketChannelSender extends ChannelSender {
 
     @Override
     public void open() throws IOException {
-        if (channel == null) {
-            channel = SocketChannel.open();
-            channel.configureBlocking(false);
+        try {
+            if (channel == null) {
+                channel = SocketChannel.open();
+                channel.configureBlocking(false);
 
-            if (maxSendBufferSize > 0) {
-                channel.setOption(StandardSocketOptions.SO_SNDBUF, maxSendBufferSize);
-                final int actualSendBufSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-                if (actualSendBufSize < maxSendBufferSize) {
-                    logger.warn("Attempted to set Socket Send Buffer Size to " + maxSendBufferSize
-                            + " bytes but could only set to " + actualSendBufSize + "bytes. You may want to "
-                            + "consider changing the Operating System's maximum send buffer");
-                }
-            }
-        }
-
-        if (!channel.isConnected()) {
-            final long startTime = System.currentTimeMillis();
-            final InetSocketAddress socketAddress = new InetSocketAddress(InetAddress.getByName(host), port);
-
-            if (!channel.connect(socketAddress)) {
-                while (!channel.finishConnect()) {
-                    if (System.currentTimeMillis() > startTime + timeout) {
-                        throw new SocketTimeoutException("Timed out connecting to " + host + ":" + port);
-                    }
-
-                    try {
-                        Thread.sleep(50L);
-                    } catch (final InterruptedException e) {
+                if (maxSendBufferSize > 0) {
+                    channel.setOption(StandardSocketOptions.SO_SNDBUF, maxSendBufferSize);
+                    final int actualSendBufSize = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+                    if (actualSendBufSize < maxSendBufferSize) {
+                        logger.warn("Attempted to set Socket Send Buffer Size to " + maxSendBufferSize
+                                + " bytes but could only set to " + actualSendBufSize + "bytes. You may want to "
+                                + "consider changing the Operating System's maximum send buffer");
                     }
                 }
             }
 
-            socketChannelOutput = new SocketChannelOutputStream(channel);
-            socketChannelOutput.setTimeout(timeout);
+            if (!channel.isConnected()) {
+                final long startTime = System.currentTimeMillis();
+                final InetSocketAddress socketAddress = new InetSocketAddress(InetAddress.getByName(host), port);
+
+                if (!channel.connect(socketAddress)) {
+                    while (!channel.finishConnect()) {
+                        if (System.currentTimeMillis() > startTime + timeout) {
+                            throw new SocketTimeoutException("Timed out connecting to " + host + ":" + port);
+                        }
+
+                        try {
+                            Thread.sleep(50L);
+                        } catch (final InterruptedException e) {
+                        }
+                    }
+                }
+
+                if (logger.isDebugEnabled()) {
+                    final SocketAddress localAddress = channel.getLocalAddress();
+                    if (localAddress != null && localAddress instanceof InetSocketAddress) {
+                        final InetSocketAddress inetSocketAddress = (InetSocketAddress) localAddress;
+                        logger.debug("Connected to local port {}", new Object[] {inetSocketAddress.getPort()});
+                    }
+                }
+
+                socketChannelOutput = new SocketChannelOutputStream(channel);
+                socketChannelOutput.setTimeout(timeout);
+            }
+        } catch (final IOException e) {
+            IOUtils.closeQuietly(channel);
+            throw e;
         }
     }
 
