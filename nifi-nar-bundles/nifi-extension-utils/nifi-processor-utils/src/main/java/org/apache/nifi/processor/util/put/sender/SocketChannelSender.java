@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
@@ -72,6 +73,14 @@ public class SocketChannelSender extends ChannelSender {
                             Thread.sleep(50L);
                         } catch (final InterruptedException e) {
                         }
+                    }
+                }
+
+                if (logger.isDebugEnabled()) {
+                    final SocketAddress localAddress = channel.getLocalAddress();
+                    if (localAddress != null && localAddress instanceof InetSocketAddress) {
+                        final InetSocketAddress inetSocketAddress = (InetSocketAddress) localAddress;
+                        logger.debug("Connected to local port {}", new Object[] {inetSocketAddress.getPort()});
                     }
                 }
 
