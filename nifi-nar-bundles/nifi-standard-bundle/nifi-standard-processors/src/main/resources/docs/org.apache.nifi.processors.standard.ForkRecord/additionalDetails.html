@@ -24,14 +24,25 @@
     <body>
     	<p>
     		ForkRecord allows the user to fork a record into multiple records. To do that, the user must specify
-    		a <a href="../../../../../html/record-path-guide.html">RecordPath</a> pointing to a field of type 
-    		ARRAY containing RECORD elements. The generated flow file will contain the records from the specified 
-    		array. It is also possible to add in each record all the fields of the parent records from the root 
-    		level to the record element being forked. However it supposes the fields to add are defined in the 
-    		schema of the Record Writer controller service.
+    		one or multiple <a href="../../../../../html/record-path-guide.html">RecordPath</a> (as dynamic 
+    		properties of the processor) pointing to a field of type ARRAY containing RECORD elements.
+    	</p>
+    	<p>
+    		The processor accepts two modes:
+    		<ul>
+	    		<li>Split mode - in this mode, the generated records will have the same schema as the input. For 
+	    		every element in the array, one record will be generated and the array will only contain this 
+	    		element.</li>
+	    		<li>Extract mode - in this mode, the generated records will be the elements contained in the array. 
+	    		Besides, it is also possible to add in each record all the fields of the parent records from the root 
+	    		level to the record element being forked. However it supposes the fields to add are defined in the 
+	    		schema of the Record Writer controller service. </li>
+    		</ul>
     	</p>
     	
     	<h2>Examples</h2>
+    	
+    	<h3>EXTRACT mode</h3>
     	
     	<p>
     		To better understand how this Processor works, we will lay out a few examples. For the sake of these examples, let's assume that our input
@@ -76,13 +87,12 @@
 </code>
 
 
-    	<h3>Example 1 - Fork without parent fields</h3>
+    	<h4>Example 1 - Extracting without parent fields</h4>
     	
     	<p>
     		For this case, we want to create one record per <code>account</code> and we don't care about 
-    		the other fields. We'll set the Record path property to <code>/accounts</code>. The resulting 
-    		flow file will contain 4 records and will look like (assuming the Record Writer schema is 
-    		correctly set):
+    		the other fields. We'll add a dynamic property "path" set to <code>/accounts</code>. The resulting 
+    		flow file will contain 4 records and will look like (assuming the Record Writer schema is correctly set):
     	</p>
 
 <code>
@@ -104,7 +114,7 @@
 </code>
 
     	
-    	<h3>Example 2 - Fork with parent fields</h3>
+    	<h4>Example 2 - Extracting with parent fields</h4>
     	
     	<p>
     		Now, if we set the property "Include parent fields" to true, this will recursively include 
@@ -158,7 +168,7 @@
 </code>
     	
     	
-    	<h3>Example 3 - Multi-nested arrays</h3>
+    	<h4>Example 3 - Multi-nested arrays</h4>
     	
     	<p>
     		Now let's say that the input record contains multi-nested arrays like the below example:
@@ -361,5 +371,111 @@
 </pre>
 </code>
     	
+    	<h3>SPLIT mode</h3>
+    	
+	   	<h4>Example</h4>
+    	
+    	<p>
+    		Assuming we have the below data and we added a property "path" set to <code>/accounts</code>:
+    	</p>
+
+<code>
+<pre>
+[{
+	"id": 1,
+	"name": "John Doe",
+	"address": "123 My Street",
+	"city": "My City", 
+	"state": "MS",
+	"zipCode": "11111",
+	"country": "USA",
+	"accounts": [{
+		"id": 42,
+		"balance": 4750.89
+	}, {
+		"id": 43,
+		"balance": 48212.38
+	}]
+}, 
+{
+	"id": 2,
+	"name": "Jane Doe",
+	"address": "345 My Street",
+	"city": "Her City", 
+	"state": "NY",
+	"zipCode": "22222",
+	"country": "USA",
+	"accounts": [{
+		"id": 45,
+		"balance": 6578.45
+	}, {
+		"id": 46,
+		"balance": 34567.21
+	}]
+}]
+</pre>
+</code>
+
+    	<p>
+    		Then we'll get 4 records as below:
+    	</p>
+
+<code>
+<pre>
+[{
+	"id": 1,
+	"name": "John Doe",
+	"address": "123 My Street",
+	"city": "My City", 
+	"state": "MS",
+	"zipCode": "11111",
+	"country": "USA",
+	"accounts": [{
+		"id": 42,
+		"balance": 4750.89
+	}]
+},
+{
+	"id": 1,
+	"name": "John Doe",
+	"address": "123 My Street",
+	"city": "My City", 
+	"state": "MS",
+	"zipCode": "11111",
+	"country": "USA",
+	"accounts": [{
+		"id": 43,
+		"balance": 48212.38
+	}]
+},
+{
+	"id": 2,
+	"name": "Jane Doe",
+	"address": "345 My Street",
+	"city": "Her City", 
+	"state": "NY",
+	"zipCode": "22222",
+	"country": "USA",
+	"accounts": [{
+		"id": 45,
+		"balance": 6578.45
+	}]
+}, 
+{
+	"id": 2,
+	"name": "Jane Doe",
+	"address": "345 My Street",
+	"city": "Her City", 
+	"state": "NY",
+	"zipCode": "22222",
+	"country": "USA",
+	"accounts": [{
+		"id": 46,
+		"balance": 34567.21
+	}]
+}]
+</pre>
+</code>
+
 	</body>
 </html>
