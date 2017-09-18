@@ -26,10 +26,11 @@
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
+                'nf.FilteredDialogCommon',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
-                return (nf.ng.ProcessorComponent = factory($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon));
+            function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
+                return (nf.ng.ProcessorComponent = factory($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProcessorComponent =
@@ -40,6 +41,7 @@
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
+                require('nf.FilteredDialogCommon'),
                 require('nf.Dialog'),
                 require('nf.Common')));
     } else {
@@ -50,10 +52,11 @@
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
+            root.nf.FilteredDialogCommon,
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
+}(this, function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -81,7 +84,9 @@
 
                 // update the selection if possible
                 if (processorTypesData.getLength() > 0) {
-                    processorTypesGrid.setSelectedRows([0]);
+                    nfFilteredDialogCommon.choseFirstRow(processorTypesGrid);
+                    // make the first row visible
+                    processorTypesGrid.scrollRowToTop(0);
                 }
             }
         };
@@ -722,9 +727,17 @@
                 // show the dialog
                 this.modal.show();
 
+                var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
                 // setup the filter
-                $('#processor-type-filter').focus().off('keyup').on('keyup', function (e) {
+                $('#processor-type-filter').off('keyup').on('keyup', function (e) {
                     var code = e.keyCode ? e.keyCode : e.which;
+
+                    // ignore navigation keys
+                    if ($.inArray(code, navigationKeys) !== -1) {
+                        return;
+                    }
+
                     if (code === $.ui.keyCode.ENTER) {
                         var selected = grid.getSelectedRows();
 
@@ -740,13 +753,19 @@
                     }
                 });
 
+                // setup row navigation
+                nfFilteredDialogCommon.addKeydownListener('#processor-type-filter', grid, dataview);
+
                 // adjust the grid canvas now that its been rendered
                 grid.resizeCanvas();
 
                 // auto select the first row if possible
                 if (dataview.getLength() > 0) {
-                    grid.setSelectedRows([0]);
+                    nfFilteredDialogCommon.choseFirstRow(grid);
                 }
+
+                // set the initial focus
+                $('#processor-type-filter').focus()
             }
         };
 
