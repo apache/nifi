@@ -22,6 +22,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 /**
  * Control an embedded WebSocket service instance.
@@ -45,4 +46,5 @@ public interface WebSocketService extends ControllerService {
 
     void sendMessage(final String endpointId, final String sessionId, final SendMessage sendMessage) throws IOException, WebSocketConfigurationException;
 
+    HashSet<String> getSessionIds(final String endpointId) throws WebSocketConfigurationException;
 }

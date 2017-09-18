@@ -19,6 +19,7 @@ package org.apache.nifi.websocket;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashSet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
@@ -94,6 +95,9 @@ public class WebSocketMessageRouter {
     }
 
     private WebSocketSession getSessionOrFail(final String sessionId) {
+        if (StringUtils.isEmpty(sessionId)) {
+            throw new IllegalStateException("SessionId is not set");
+        }
         final WebSocketSession session = sessions.get(sessionId);
         if (session == null) {
             throw new IllegalStateException("Session was not found for the sessionId: " + sessionId);
@@ -102,20 +106,12 @@ public class WebSocketMessageRouter {
     }
 
     public void sendMessage(final String sessionId, final SendMessage sendMessage) throws IOException {
-        if (!StringUtils.isEmpty(sessionId)) {
-            final WebSocketSession session = getSessionOrFail(sessionId);
-            sendMessage.send(session);
-        } else {
-            //The sessionID is not specified so broadcast the message to all connected client sessions.
-            sessions.keySet().forEach(itrSessionId -> {
-                try {
-                    final WebSocketSession session = getSessionOrFail(itrSessionId);
-                    sendMessage.send(session);
-                } catch (IOException e) {
-                    logger.warn("Failed to send message to session {} due to {}", itrSessionId, e, e);
-                }
-            });
-        }
+        final WebSocketSession session = getSessionOrFail(sessionId);
+        sendMessage.send(session);
+    }
+
+    public HashSet<String> getSessionIds() {
+        return new HashSet<String>(sessions.keySet());
     }
 
     public void disconnect(final String sessionId, final String reason) throws IOException {

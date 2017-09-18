@@ -19,6 +19,7 @@ package org.apache.nifi.websocket;
 import org.apache.nifi.processor.Processor;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -68,4 +69,8 @@ public class WebSocketMessageRouters {
         router.sendMessage(sessionId, sendMessage);
     }
 
+    public HashSet<String> getSessionIds(final String endpointId) throws WebSocketConfigurationException {
+        final WebSocketMessageRouter router = getRouterOrFail(endpointId);
+        return router.getSessionIds();
+    }
 }

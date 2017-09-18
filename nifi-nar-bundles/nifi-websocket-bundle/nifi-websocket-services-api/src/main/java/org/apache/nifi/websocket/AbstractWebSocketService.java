@@ -20,6 +20,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.Processor;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 public abstract class AbstractWebSocketService extends AbstractControllerService implements WebSocketService {
 
@@ -45,4 +46,8 @@ public abstract class AbstractWebSocketService extends AbstractControllerService
         routers.sendMessage(endpointId, sessionId, sendMessage);
     }
 
+    @Override
+    public HashSet<String> getSessionIds(final String endpointId) throws WebSocketConfigurationException {
+        return routers.getSessionIds(endpointId);
+    }
 }
