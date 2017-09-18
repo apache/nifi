@@ -27,6 +27,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
+                'nf.FilteredDialogCommon',
                 'nf.Dialog',
                 'nf.Common',
                 'nf.ControllerService',
@@ -35,8 +36,8 @@
                 'nf.ComponentState',
                 'nf.ComponentVersion',
                 'nf.ng.Bridge'],
-            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
-                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
+            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerServices =
@@ -48,6 +49,7 @@
                 require('nf.ProcessGroupConfiguration'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
+                require('nf.FilteredDialogCommon'),
                 require('nf.Dialog'),
                 require('nf.Common'),
                 require('nf.ControllerService'),
@@ -65,6 +67,7 @@
             root.nf.ProcessGroupConfiguration,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
+            root.nf.FilteredDialogCommon,
             root.nf.Dialog,
             root.nf.Common,
             root.nf.ControllerService,
@@ -74,7 +77,7 @@
             root.nf.ComponentVersion,
             root.nf.ng.Bridge);
     }
-}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
     'use strict';
 
     var dblClick = null;
@@ -138,6 +141,8 @@
             // update the selection if possible
             if (controllerServiceTypesData.getLength() > 0) {
                 controllerServiceTypesGrid.setSelectedRows([0]);
+                // make the first row visible
+                controllerServiceTypesGrid.scrollRowToTop(0);
             }
         }
     };
@@ -1191,9 +1196,17 @@
             var grid = $('#controller-service-types-table').data('gridInstance');
             var dataview = grid.getData();
 
+            var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
             // update the keyhandler
             $('#controller-service-type-filter').off('keyup').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
+
+                // ignore navigation keys
+                if ($.inArray(code, navigationKeys) !== -1) {
+                    return;
+                }
+
                 if (code === $.ui.keyCode.ENTER) {
                     var selected = grid.getSelectedRows();
 
@@ -1208,6 +1221,9 @@
                     applyControllerServiceTypeFilter();
                 }
             });
+
+            // setup row navigation
+            nfFilteredDialogCommon.addKeydownListener('#controller-service-type-filter', grid, dataview);
 
             // update the button model and show the dialog
             $('#new-controller-service-dialog').modal('setButtonModel', [{
