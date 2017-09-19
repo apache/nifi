@@ -130,7 +130,7 @@ public class TestExtractEmailHeaders {
     @Test
     public void testNonStrictParsingPassesForInvalidAddresses() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
-        runner.setProperty(ExtractEmailHeaders.STRICT_ADDRESSING, "false");
+        runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "false");
 
         MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
 
@@ -168,7 +168,7 @@ public class TestExtractEmailHeaders {
     @Test
     public void testStrictParsingFailsForInvalidAddresses() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
-        runner.setProperty(ExtractEmailHeaders.STRICT_ADDRESSING, "true");
+        runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "true");
 
         MimeMessage simpleEmailMimeMessage = attachmentGenerator.SimpleEmailMimeMessage();
 
