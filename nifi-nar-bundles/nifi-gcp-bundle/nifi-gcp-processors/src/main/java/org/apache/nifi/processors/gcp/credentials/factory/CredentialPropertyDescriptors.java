@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.gcp.credentials.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -36,7 +37,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor USE_APPLICATION_DEFAULT_CREDENTIALS = new PropertyDescriptor.Builder()
             .name("application-default-credentials")
             .displayName("Use Application Default Credentials")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .sensitive(false)
@@ -51,7 +52,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor USE_COMPUTE_ENGINE_CREDENTIALS = new PropertyDescriptor.Builder()
             .name("compute-engine-credentials")
             .displayName("Use Compute Engine Credentials")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .sensitive(false)
@@ -71,7 +72,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON_FILE = new PropertyDescriptor.Builder()
             .name("service-account-json-file")
             .displayName("Service Account JSON File")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .description("Path to a file containing a Service Account key file in JSON format.")
@@ -80,7 +81,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON = new PropertyDescriptor.Builder()
             .name("service-account-json")
             .displayName("Service Account JSON")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The raw JSON containing a Service Account keyfile.")

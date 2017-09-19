@@ -32,6 +32,7 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
@@ -71,7 +72,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .displayName("Schema Registry URL")
         .description("URL of the schema registry that this Controller Service should connect to, including version. For example, http://localhost:9090/api/v1")
         .addValidator(StandardValidators.URL_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)
         .build();
 

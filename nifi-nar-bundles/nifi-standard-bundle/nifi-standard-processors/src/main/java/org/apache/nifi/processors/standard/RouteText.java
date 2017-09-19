@@ -59,6 +59,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -81,7 +82,7 @@ import org.apache.nifi.processors.standard.util.NLKBufferedReader;
     + "The mechanism by which the text is compared to these user-defined properties is defined by the 'Matching Strategy'. The data is then routed according to these rules, routing "
     + "each line of the text individually.")
 @DynamicProperty(name = "Relationship Name", value = "value to match against", description = "Routes data that matches the value specified in the Dynamic Property Value to the "
-    + "Relationship specified in the Dynamic Property Key.")
+    + "Relationship specified in the Dynamic Property Key.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's value")
 @WritesAttributes({
     @WritesAttribute(attribute = "RouteText.Route", description = "The name of the relationship to which the FlowFile was routed."),
@@ -160,7 +161,7 @@ public class RouteText extends AbstractProcessor {
         .name("Ignore Case")
         .description("If true, capitalization will not be taken into account when comparing values. E.g., matching against 'HELLO' or 'hello' will have the same result. "
             + "This property is ignored if the 'Matching Strategy' is set to 'Satisfies Expression'.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -174,7 +175,7 @@ public class RouteText extends AbstractProcessor {
             + "(or neither line matches the Regular Expression). For example, to group together all lines in a CSV File by the first column, we can set this value to \"(.*?),.*\". "
             + "Two lines that have the same Group but different Relationships will never be placed into the same FlowFile.")
         .addValidator(StandardValidators.createRegexValidator(1, Integer.MAX_VALUE, false))
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .build();
 
@@ -263,7 +264,7 @@ public class RouteText extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
             .required(false)
             .name(propertyDescriptorName)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
             .build();

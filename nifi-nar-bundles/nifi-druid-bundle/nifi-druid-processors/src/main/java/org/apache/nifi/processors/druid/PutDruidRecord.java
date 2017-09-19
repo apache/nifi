@@ -51,6 +51,8 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
 import org.apache.nifi.controller.api.druid.DruidTranquilityService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+
 import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -86,7 +88,7 @@ public class PutDruidRecord extends AbstractSessionFactoryProcessor {
             .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data to outgoing relationships.")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
 

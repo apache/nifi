@@ -41,6 +41,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hl7.hapi.HapiMessage;
 import org.apache.nifi.hl7.model.HL7Message;
@@ -81,7 +82,7 @@ public class RouteHL7 extends AbstractProcessor {
             .name("Character Encoding")
             .description("The Character Encoding that is used to encode the HL7 data")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue("UTF-8")
             .build();

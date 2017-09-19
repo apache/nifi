@@ -147,8 +147,18 @@ icon (
 image:iconInfo.png["Info"]
 ) next to the name of the Property. Hovering over this icon with the mouse will provide a tooltip that
 provides helpful information about the Property. This information includes a description of the Property,
-the default value (if any), historically configured values (if any), and whether or not this Property
-supports the expression language.
+the default value (if any), historically configured values (if any), and the evaluation scope of this
+property for expression language. There are three values and the evaluation scope of the expression 
+language is hierarchical: NONE -> VARIABLE_REGISTRY -> FLOWFILE_ATTRIBUTES.
+
+* NONE - expression language is not supported for this property
+* VARIABLE_REGISTRY is hierarchically constructed as below:
+** Variables defined at process group level and then, recursively, up to the higher process group until 
+the root process group.
+** Variables defined in custom properties files through the nifi.variable.registry.properties property 
+in nifi.properties file.
+** Environment variables defined at JVM level and system properties.
+* FLOWFILE_ATTRIBUTES - will use attributes of each individual flow file.
 
 
 [[editor]]

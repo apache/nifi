@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
@@ -106,7 +107,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("If destination is Topic if present then make it the consumer durable. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createDurableConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("false")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -116,7 +117,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("If destination is Topic if present then make it the consumer shared. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createSharedConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("false")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -126,7 +127,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("The name of the subscription to use if destination is Topic and is shared or durable.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 
@@ -73,7 +74,7 @@ public class SchemaAccessUtils {
             .displayName("Schema Name")
             .description("Specifies the name of the schema to lookup in the Schema Registry property")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${schema.name}")
             .required(false)
             .build();
@@ -103,7 +104,7 @@ public class SchemaAccessUtils {
             .displayName("Schema Text")
             .description("The text of an Avro-formatted Schema")
             .addValidator(new AvroSchemaValidator())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${avro.schema}")
             .required(false)
             .build();

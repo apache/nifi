@@ -30,6 +30,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -88,14 +89,14 @@ public class ConvertCharacterSet extends AbstractProcessor {
     public static final PropertyDescriptor INPUT_CHARSET = new PropertyDescriptor.Builder()
             .name("Input Character Set")
             .description("The name of the CharacterSet to expect for Input")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
             .build();
     public static final PropertyDescriptor OUTPUT_CHARSET = new PropertyDescriptor.Builder()
             .name("Output Character Set")
             .description("The name of the CharacterSet to convert to")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
             .build();

@@ -28,6 +28,7 @@ import javax.jms.ConnectionFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -73,7 +74,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .description("The name of the JMS Destination. Usually provided by the administrator (e.g., 'topic://myTopic' or 'myTopic').")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     static final PropertyDescriptor DESTINATION_TYPE = new PropertyDescriptor.Builder()
             .name("Destination Type")
@@ -90,7 +91,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
                          "Please see JMS spec for further details")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Session Cache size")
@@ -114,7 +115,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(Charset.defaultCharset().name())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
 

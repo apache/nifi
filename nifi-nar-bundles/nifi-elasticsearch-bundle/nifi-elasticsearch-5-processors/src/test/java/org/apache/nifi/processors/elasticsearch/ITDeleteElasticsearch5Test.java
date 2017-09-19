@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -25,10 +29,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
 
 /**
  * Integration test for delete processor. Please set the hosts, cluster name, index and type etc before running the integrations.
@@ -59,7 +59,6 @@ public class ITDeleteElasticsearch5Test {
     @Test
     public void testPutAndDeleteIntegrationTestSuccess() {
         final TestRunner runnerPut = TestRunners.newTestRunner(new PutElasticsearch5());
-        runnerPut.setValidateExpressionUsage(false);
         runnerPut.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, clusterName);
         runnerPut.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runnerPut.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -82,7 +81,6 @@ public class ITDeleteElasticsearch5Test {
         runnerPut.assertAllFlowFilesTransferred(PutElasticsearch5.REL_SUCCESS, 1);
 
         final TestRunner runnerDelete = TestRunners.newTestRunner(new DeleteElasticsearch5());
-        runnerDelete.setValidateExpressionUsage(false);
 
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, clusterName);
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
@@ -108,7 +106,6 @@ public class ITDeleteElasticsearch5Test {
     @Test
     public void testDeleteIntegrationTestDocumentNotFound() {
         final TestRunner runnerDelete = TestRunners.newTestRunner(new DeleteElasticsearch5());
-        runnerDelete.setValidateExpressionUsage(false);
 
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, clusterName);
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
@@ -138,7 +135,6 @@ public class ITDeleteElasticsearch5Test {
     @Test
     public void testDeleteIntegrationTestBadIndex() {
         final TestRunner runnerDelete = TestRunners.newTestRunner(new DeleteElasticsearch5());
-        runnerDelete.setValidateExpressionUsage(false);
 
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, clusterName);
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
@@ -168,7 +164,6 @@ public class ITDeleteElasticsearch5Test {
     @Test
     public void testDeleteIntegrationTestBadType() {
         final TestRunner runnerDelete = TestRunners.newTestRunner(new DeleteElasticsearch5());
-        runnerDelete.setValidateExpressionUsage(false);
 
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, clusterName);
         runnerDelete.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");

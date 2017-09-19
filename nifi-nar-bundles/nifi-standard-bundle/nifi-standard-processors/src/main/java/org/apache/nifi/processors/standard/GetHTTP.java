@@ -82,6 +82,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -107,8 +108,9 @@ import org.apache.nifi.util.Tuple;
     + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
     + "is the potential for Out of Memory Errors to occur.")
 @DynamicProperties({
-    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value", description = "The additional headers to be sent by the processor " +
-            "whenever making a new HTTP request. \n " +
+    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value",
+            expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+            description = "The additional headers to be sent by the processor whenever making a new HTTP request. \n " +
             "Setting a dynamic property name to XYZ and value to ${attribute} will result in the header 'XYZ: attribute_value' being sent to the HTTP endpoint"),
 })
 @WritesAttributes({
@@ -131,7 +133,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("URL")
             .description("The URL to pull from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .build();
@@ -164,7 +166,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The filename to assign to the file when pulled")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .required(true)
             .build();
@@ -328,7 +330,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .addValidator(Validator.VALID)
                 .required(false)
                 .dynamic(true)

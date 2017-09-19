@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -112,14 +113,14 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("Topic Name")
             .description("The Kafka Topic of interest")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     /**
      * @deprecated Kafka 0.8.x producer doesn't use 'partitioner.class' property.
@@ -137,7 +138,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
                             + "in the same FlowFile will be sent to the same partition. If a partition is specified but is not valid, "
                             + "then the FlowFile will be routed to failure relationship.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
@@ -145,12 +146,12 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .description("The Key to use for the Message")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
             .name("Delivery Guarantee")
             .description("Specifies the requirement for guaranteeing that a message is sent to Kafka").required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
             .defaultValue(DELIVERY_BEST_EFFORT.getValue())
             .build();
@@ -165,14 +166,14 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
                             + "sent to the 'failure' relationship.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Buffer Size")
             .description("The maximum amount of data to buffer in memory before sending to Kafka")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("5 MB")
             .build();
     static final PropertyDescriptor MAX_RECORD_SIZE = new PropertyDescriptor.Builder()
@@ -187,14 +188,14 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("30 secs").build();
     public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
             .name("Client Name")
             .description("Client Name to use when communicating with Kafka")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor BATCH_NUM_MESSAGES = new PropertyDescriptor.Builder()
             .name("Async Batch Size")

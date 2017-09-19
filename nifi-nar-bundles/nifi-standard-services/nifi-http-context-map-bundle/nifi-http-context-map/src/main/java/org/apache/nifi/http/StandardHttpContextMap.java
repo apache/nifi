@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"http", "request", "response"})
@@ -61,7 +62,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
             .name("Request Expiration")
             .description("Specifies how long an HTTP Request should be left unanswered before being evicted from the cache and being responded to with a Service Unavailable status code")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();

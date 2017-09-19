@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -75,7 +76,7 @@ import java.util.Set;
 })
 @DynamicProperty(name = "The name of an attribute to set that will contain the translated text of the value",
         value = "The value to translate",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "User-defined properties are used to translate arbitrary text based on attributes.")
 public class YandexTranslate extends AbstractProcessor {
 
@@ -90,7 +91,7 @@ public class YandexTranslate extends AbstractProcessor {
             .description("The language of incoming data")
             .required(true)
             .defaultValue("es")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
     public static final PropertyDescriptor TARGET_LANGUAGE = new PropertyDescriptor.Builder()
@@ -98,7 +99,7 @@ public class YandexTranslate extends AbstractProcessor {
             .description("The language to translate the text into")
             .required(true)
             .defaultValue("en")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
     public static final PropertyDescriptor TRANSLATE_CONTENT = new PropertyDescriptor.Builder()
@@ -113,7 +114,7 @@ public class YandexTranslate extends AbstractProcessor {
             .description("Specifies the character set of the data to be translated")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -169,7 +170,7 @@ public class YandexTranslate extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

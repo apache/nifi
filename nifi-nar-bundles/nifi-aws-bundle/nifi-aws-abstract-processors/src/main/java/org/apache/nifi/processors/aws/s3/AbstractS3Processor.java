@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -47,7 +48,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Full Control for an object")
             .defaultValue("${s3.permissions.full.users}")
@@ -55,7 +56,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor READ_USER_LIST = new PropertyDescriptor.Builder()
             .name("Read Permission User List")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Read Access for an object")
             .defaultValue("${s3.permissions.read.users}")
@@ -63,7 +64,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor WRITE_USER_LIST = new PropertyDescriptor.Builder()
             .name("Write Permission User List")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
             .defaultValue("${s3.permissions.write.users}")
@@ -71,7 +72,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor READ_ACL_LIST = new PropertyDescriptor.Builder()
             .name("Read ACL User List")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to read the Access Control List for an object")
             .defaultValue("${s3.permissions.readacl.users}")
@@ -79,7 +80,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor WRITE_ACL_LIST = new PropertyDescriptor.Builder()
             .name("Write ACL User List")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
             .defaultValue("${s3.permissions.writeacl.users}")
@@ -88,7 +89,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .name("canned-acl")
             .displayName("Canned ACL")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
                     "will be ignored if any other ACL/permission/owner property is specified")
@@ -97,14 +98,14 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The Amazon ID to use for the object's owner")
             .defaultValue("${s3.owner}")
             .build();
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
             .name("Bucket")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -112,7 +113,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .name("Object Key")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${filename}")
             .build();
     public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()

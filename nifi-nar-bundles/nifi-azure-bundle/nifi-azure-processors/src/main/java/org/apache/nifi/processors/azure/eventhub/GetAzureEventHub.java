@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -80,14 +81,14 @@ public class GetAzureEventHub extends AbstractProcessor {
             .name("Event Hub Namespace")
             .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
             .name("Service Bus Endpoint")
             .description("To support Namespaces in non-standard Host URIs ( not .servicebus.windows.net,  ie .servicebus.chinacloudapi.cn) select from the drop down acceptable options ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(".servicebus.windows.net",".servicebus.chinacloudapi.cn")
             .defaultValue(".servicebus.windows.net")
             .required(true)
@@ -96,14 +97,14 @@ public class GetAzureEventHub extends AbstractProcessor {
             .name("Shared Access Policy Name")
             .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Primary Key")
             .description("The primary key of the Event Hub Shared Access Policy")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .sensitive(true)
             .required(true)
             .build();
@@ -113,14 +114,14 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("The number of partitions that the Event Hub has. Only this number of partitions will be used, "
                     + "so it is important to ensure that if the number of partitions changes that this value be updated. Otherwise, some messages may not be consumed.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("Event Hub Consumer Group")
             .description("The name of the Event Hub Consumer Group to use when pulling events")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("$Default")
             .required(true)
             .build();
@@ -130,21 +131,21 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("A timestamp (ISO-8061 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
                     + "should have been enqueued in the EventHub to start reading from")
             .addValidator(StandardValidators.ISO8061_INSTANT_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
     static final PropertyDescriptor RECEIVER_FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Partition Recivier Fetch Size")
             .description("The number of events that a receiver should fetch from an EventHubs partition before returning. Default(100)")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
     static final PropertyDescriptor RECEIVER_FETCH_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Partiton Receiver Timeout (millseconds)")
             .description("The amount of time a Partition Receiver should wait to receive the Fetch Size before returning. Default(60000)")
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
 

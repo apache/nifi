@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -72,7 +73,7 @@ public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
             .required(true)
             .defaultValue(RETURN_CHANGES_TRUE.getValue())
             .allowableValues(RETURN_CHANGES_TRUE, RETURN_CHANGES_FALSE)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     private static final Set<Relationship> relationships;

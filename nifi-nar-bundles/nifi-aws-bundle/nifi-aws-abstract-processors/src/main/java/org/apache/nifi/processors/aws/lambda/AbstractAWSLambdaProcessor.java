@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.lambda;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
@@ -34,7 +35,7 @@ public abstract class AbstractAWSLambdaProcessor extends AbstractAWSCredentialsP
     public static final PropertyDescriptor AWS_LAMBDA_FUNCTION_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Lambda Name")
             .description("The Lambda Function Name")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -43,7 +44,7 @@ public abstract class AbstractAWSLambdaProcessor extends AbstractAWSCredentialsP
             .name("Amazon Lambda Qualifier (version)")
             .description("The Lambda Function Version")
             .defaultValue("$LATEST")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

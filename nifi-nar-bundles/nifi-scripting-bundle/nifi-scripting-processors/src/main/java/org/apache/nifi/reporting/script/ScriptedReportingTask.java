@@ -29,6 +29,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -60,7 +61,7 @@ import java.util.Map;
 @DynamicProperty(
         name = "A script engine property to update",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
 @Restricted(
@@ -107,7 +108,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
     }

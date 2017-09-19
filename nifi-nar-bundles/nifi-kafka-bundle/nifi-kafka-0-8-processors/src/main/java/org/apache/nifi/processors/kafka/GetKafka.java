@@ -50,6 +50,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -93,14 +94,14 @@ public class GetKafka extends AbstractProcessor {
                     + " combinations. For example, host1:2181,host2:2181,host3:2188")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("Topic Name")
             .description("The Kafka Topic to pull messages from")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor ZOOKEEPER_COMMIT_DELAY = new PropertyDescriptor.Builder()
             .name("Zookeeper Commit Frequency")
@@ -108,7 +109,7 @@ public class GetKafka extends AbstractProcessor {
                     + " result in better overall performance but can result in more data duplication if a NiFi node is lost")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("60 secs")
             .build();
     public static final PropertyDescriptor ZOOKEEPER_TIMEOUT = new PropertyDescriptor.Builder()
@@ -116,7 +117,7 @@ public class GetKafka extends AbstractProcessor {
             .description("The amount of time to wait for a response from ZooKeeper before determining that there is a communications error")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("30 secs")
             .build();
     public static final PropertyDescriptor KAFKA_TIMEOUT = new PropertyDescriptor.Builder()
@@ -124,7 +125,7 @@ public class GetKafka extends AbstractProcessor {
             .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("30 secs")
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -134,7 +135,7 @@ public class GetKafka extends AbstractProcessor {
                     + "If the messages from Kafka should not be concatenated together, leave this value at 1.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1")
             .build();
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -144,7 +145,7 @@ public class GetKafka extends AbstractProcessor {
                     + "this value will be placed in between them.")
             .required(true)
             .addValidator(Validator.VALID) // accept anything as a demarcator, including empty string
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("\\n")
             .build();
 
@@ -153,14 +154,14 @@ public class GetKafka extends AbstractProcessor {
             .description("Client Name to use when communicating with Kafka")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name("Group ID")
             .description("A Group ID is used to identify consumers that are within the same consumer group")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()

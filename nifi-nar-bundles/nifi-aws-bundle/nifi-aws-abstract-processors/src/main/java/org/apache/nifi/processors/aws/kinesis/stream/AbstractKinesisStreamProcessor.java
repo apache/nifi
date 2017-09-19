@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.kinesis.stream;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
@@ -35,7 +36,7 @@ public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesis
             .name("kinesis-stream-name")
             .displayName("Amazon Kinesis Stream Name")
             .description("The name of Kinesis Stream")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

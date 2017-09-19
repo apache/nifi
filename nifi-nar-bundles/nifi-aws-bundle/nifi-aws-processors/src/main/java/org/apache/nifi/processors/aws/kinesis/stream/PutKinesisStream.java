@@ -35,6 +35,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,7 +73,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
         .displayName("Amazon Kinesis Stream Partition Key")
         .name("amazon-kinesis-stream-partition-key")
         .description("The partition key attribute.  If it is not set, a random value is used")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${kinesis.partition.key}")
         .required(false)
         .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR).build();
