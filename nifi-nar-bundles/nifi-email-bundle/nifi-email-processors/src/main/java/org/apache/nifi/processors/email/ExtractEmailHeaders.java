@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -102,19 +103,20 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             .defaultValue("x-mailer")
             .build();
 
-    private static final String STRICT_ADDRESSING_DEFAULT_VALUE = "true";
-    public static final PropertyDescriptor STRICT_ADDRESSING = new PropertyDescriptor.Builder()
+    private static final AllowableValue STRICT_ADDRESSING = new AllowableValue("true", "Strict Address Parsing", "Strict email address format will be enforced. FlowFiles will be transfered to the failure relationship if the email address is invalid.");
+    private static final AllowableValue NONSTRICT_ADDRESSING = new AllowableValue("false", "Non-Strict Address Parsing", "Accept emails, even if the address is poorly formed and doesn't strictly comply with RFC Validation.");
+    public static final PropertyDescriptor STRICT_PARSING = new PropertyDescriptor.Builder()
             .name("STRICT_ADDRESS_PARSING")
-            .displayName("Use Strict Address Parsing")
-            .description("If true, strict address format parsing rules are applied to mailbox and mailbox list fields, " +
+            .displayName("Email Address Parsing")
+            .description("If \"strict\", strict address format parsing rules are applied to mailbox and mailbox list fields, " +
                     "such as \"to\" and \"from\" headers, and FlowFiles with poorly formed addresses will be routed " +
                     "to the failure relationship, similar to messages that fail RFC compliant format validation. " +
-                    "If false, the processor will extract the contents of mailbox list headers as comma-separated " +
+                    "If \"non-strict\", the processor will extract the contents of mailbox list headers as comma-separated " +
                     "values without attempting to parse each value as well-formed Internet mailbox addresses. " +
-                    "This is optional and defaults to " + STRICT_ADDRESSING_DEFAULT_VALUE)
+                    "This is optional and defaults to " + STRICT_ADDRESSING.getDisplayName())
             .required(false)
-            .defaultValue(STRICT_ADDRESSING_DEFAULT_VALUE)
-            .allowableValues("true", "false")
+            .defaultValue(STRICT_ADDRESSING.getValue())
+            .allowableValues(STRICT_ADDRESSING, NONSTRICT_ADDRESSING)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -139,7 +141,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
 
         descriptors.add(CAPTURED_HEADERS);
-        descriptors.add(STRICT_ADDRESSING);
+        descriptors.add(STRICT_PARSING);
         this.descriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -155,7 +157,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             return;
         }
 
-        final String requireStrictAddresses = context.getProperty(STRICT_ADDRESSING).getValue();
+        final String requireStrictAddresses = context.getProperty(STRICT_PARSING).getValue();
         final List<String> capturedHeadersList = Arrays.asList(context.getProperty(CAPTURED_HEADERS).getValue().toLowerCase().split(":"));
 
         final Map<String, String> attributes = new HashMap<>();
