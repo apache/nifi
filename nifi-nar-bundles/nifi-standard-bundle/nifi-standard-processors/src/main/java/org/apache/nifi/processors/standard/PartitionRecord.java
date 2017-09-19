@@ -45,6 +45,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -79,7 +80,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
         + "for a Record, an attribute is added to the outgoing FlowFile. The name of the attribute is the same as the name of this property. The value of the attribute is the same as "
         + "the value of the field in the Record that the RecordPath points to. Note that no attribute will be added if the value returned for the RecordPath is null or is not a scalar "
         + "value (i.e., the value is an Array, Map, or Record).",
-    supportsExpressionLanguage=true)
+    expressionLanguageScope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
     @WritesAttribute(attribute="record.count", description="The number of records in an outgoing FlowFile"),
     @WritesAttribute(attribute="mime.type", description="The MIME Type that the configured Record Writer indicates is appropriate"),
@@ -160,7 +161,7 @@ public class PartitionRecord extends AbstractProcessor {
             .name(propertyDescriptorName)
             .dynamic(true)
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new RecordPathValidator())
             .build();
     }

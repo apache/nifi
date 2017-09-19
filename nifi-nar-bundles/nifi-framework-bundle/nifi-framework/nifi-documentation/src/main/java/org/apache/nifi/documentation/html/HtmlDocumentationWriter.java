@@ -18,11 +18,12 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.Restriction;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -34,6 +35,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -522,14 +524,36 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
-                    writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+                    String text = "Supports Expression Language: true";
+                    final String perFF = " (will be evaluated using flow file attributes and registry)";
+                    final String registry = " (will be evaluated using registry only)";
+                    final InputRequirement inputRequirement = configurableComponent.getClass().getAnnotation(InputRequirement.class);
+
+                    switch(property.getExpressionLanguageScope()) {
+                        case FLOWFILE_ATTRIBUTES:
+                            if(inputRequirement != null && inputRequirement.value().equals(Requirement.INPUT_FORBIDDEN)) {
+                                text += registry;
+                            } else {
+                                text += perFF;
+                            }
+                            break;
+                        case VARIABLE_REGISTRY:
+                            text += registry;
+                            break;
+                        case NONE:
+                        default:
+                            // in case legacy/deprecated method has been used to specify EL support
+                            text += " (undefined scope)";
+                            break;
+                    }
+
+                    writeSimpleElement(xmlStreamWriter, "strong", text);
                 }
                 xmlStreamWriter.writeEndElement();
 
                 xmlStreamWriter.writeEndElement();
             }
 
-            // TODO support dynamic properties...
             xmlStreamWriter.writeEndElement();
 
         } else {
@@ -555,7 +579,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Indicates whether or not the component contains at least one property that supports Expression Language.
      *
-     * @param component the component to interogate
+     * @param component the component to interrogate
      * @return whether or not the component contains at least one sensitive property.
      */
     private boolean containsExpressionLanguage(final ConfigurableComponent component) {
@@ -590,10 +614,32 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
-                if (dynamicProperty.supportsExpressionLanguage()) {
-                    xmlStreamWriter.writeEmptyElement("br");
-                    writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+
+                xmlStreamWriter.writeEmptyElement("br");
+                String text;
+
+                if(dynamicProperty.expressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
+                    if(dynamicProperty.supportsExpressionLanguage()) {
+                        text = "Supports Expression Language: true (undefined scope)";
+                    } else {
+                        text = "Supports Expression Language: false";
+                    }
+                } else {
+                    switch(dynamicProperty.expressionLanguageScope()) {
+                        case FLOWFILE_ATTRIBUTES:
+                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and registry)";
+                            break;
+                        case VARIABLE_REGISTRY:
+                            text = "Supports Expression Language: true (will be evaluated using registry only)";
+                            break;
+                        case NONE:
+                        default:
+                            text = "Supports Expression Language: false";
+                            break;
+                    }
                 }
+
+                writeSimpleElement(xmlStreamWriter, "strong", text);
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeEndElement();
             }

@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
@@ -65,7 +66,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             .description("A configuration file")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private final Class<T> resultClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
@@ -99,7 +100,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        final String config = context.getProperty(CONFIGURATION_FILE).getValue();
+        final String config = context.getProperty(CONFIGURATION_FILE).evaluateAttributeExpressions().getValue();
         final FileBasedBuilderParameters params = new Parameters().fileBased().setFile(new File(config));
         this.builder = new ReloadingFileBasedConfigurationBuilder<>(resultClass).configure(params);
         builder.addEventListener(ConfigurationBuilderEvent.CONFIGURATION_REQUEST,

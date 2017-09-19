@@ -21,6 +21,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -81,7 +82,7 @@ public class ListenerProperties {
                     return result;
                 }
             })
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
 }

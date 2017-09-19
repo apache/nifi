@@ -22,6 +22,7 @@ import com.google.cloud.Service;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -60,7 +61,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Proxy host")
             .description("IP or hostname of the proxy to be used")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -69,7 +70,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Proxy port")
             .description("Proxy port number")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 

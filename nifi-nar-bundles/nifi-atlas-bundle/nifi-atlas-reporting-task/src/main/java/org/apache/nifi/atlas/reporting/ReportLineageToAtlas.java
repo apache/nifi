@@ -16,54 +16,9 @@
  */
 package org.apache.nifi.atlas.reporting;
 
-import com.sun.jersey.api.client.ClientResponse;
-import org.apache.atlas.ApplicationProperties;
-import org.apache.atlas.AtlasServiceException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.atlas.NiFiAtlasHook;
-import org.apache.nifi.atlas.NiFiAtlasClient;
-import org.apache.nifi.atlas.NiFiFlow;
-import org.apache.nifi.atlas.NiFiFlowAnalyzer;
-import org.apache.nifi.atlas.provenance.AnalysisContext;
-import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
-import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
-import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
-import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
-import org.apache.nifi.atlas.resolver.RegexClusterResolver;
-import org.apache.nifi.atlas.security.AtlasAuthN;
-import org.apache.nifi.atlas.security.Basic;
-import org.apache.nifi.atlas.security.Kerberos;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.EventAccess;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
-import org.apache.nifi.ssl.SSLContextService;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
+import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -88,11 +43,56 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
-import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
-import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
+import org.apache.atlas.ApplicationProperties;
+import org.apache.atlas.AtlasServiceException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.atlas.NiFiAtlasClient;
+import org.apache.nifi.atlas.NiFiAtlasHook;
+import org.apache.nifi.atlas.NiFiFlow;
+import org.apache.nifi.atlas.NiFiFlowAnalyzer;
+import org.apache.nifi.atlas.provenance.AnalysisContext;
+import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
+import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
+import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
+import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
+import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.RegexClusterResolver;
+import org.apache.nifi.atlas.security.AtlasAuthN;
+import org.apache.nifi.atlas.security.Basic;
+import org.apache.nifi.atlas.security.Kerberos;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.reporting.AbstractReportingTask;
+import org.apache.nifi.reporting.EventAccess;
+import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
+import org.apache.nifi.ssl.SSLContextService;
+
+import com.sun.jersey.api.client.ClientResponse;
 
 @Tags({"atlas", "lineage"})
 @CapabilityDescription("Report NiFi flow data set level lineage to Apache Atlas." +
@@ -102,7 +102,8 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
         " in addition to NiFi provenance events providing detailed event level lineage." +
         " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
-@DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns", description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC)
+@DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns",
+                 description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
 @RequiresInstanceClassLoading
 public class ReportLineageToAtlas extends AbstractReportingTask {
@@ -115,7 +116,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " For accessing Atlas behind Knox gateway, specify Knox gateway URL" +
                     " (e.g. https://knox-hostname:8443/gateway/{topology-name}/atlas).")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -135,7 +136,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .displayName("Atlas Username")
             .description("User name to communicate with Atlas.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -145,7 +146,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("Password to communicate with Atlas.")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -156,7 +157,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " If not specified and 'Create Atlas Configuration File' is disabled," +
                     " then, 'atlas-application.properties' file under root classpath is used.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -166,7 +167,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("NiFi URL is used in Atlas to represent this NiFi cluster (or standalone instance)." +
                     " It is recommended to use one that can be accessible remotely instead of using 'localhost'.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -178,7 +179,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " Cluster name mappings can be configured by user defined properties." +
                     " See additional detail for detail.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -189,7 +190,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " automatically when this Reporting Task starts." +
                     " Note that the existing configuration file will be overwritten.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
@@ -210,7 +211,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " NOTE: Once this reporting task has started, restarting NiFi is required to changed this property" +
                     " as Atlas library holds a unmodifiable static reference to Kafka client.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -224,7 +225,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("Protocol used to communicate with Kafka brokers to send Atlas hook notification messages." +
                     " Corresponds to Kafka's 'security.protocol' property.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SEC_PLAINTEXT, SEC_SSL, SEC_SASL_PLAINTEXT, SEC_SASL_SSL)
             .defaultValue(SEC_PLAINTEXT.getValue())
             .build();
@@ -237,7 +238,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor NIFI_KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
             .name("nifi-kerberos-keytab")
@@ -247,7 +248,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("kerberos-credentials-service")
@@ -267,7 +268,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " It is ignored unless one of the SASL options of the <Security Protocol> are selected.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("kafka")
             .build();
 

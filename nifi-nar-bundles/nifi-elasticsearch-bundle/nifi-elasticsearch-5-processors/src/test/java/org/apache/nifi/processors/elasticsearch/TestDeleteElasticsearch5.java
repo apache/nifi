@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -27,13 +34,6 @@ import org.elasticsearch.rest.RestStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class TestDeleteElasticsearch5 {
 
@@ -71,7 +71,6 @@ public class TestDeleteElasticsearch5 {
 
         runner = TestRunners.newTestRunner(mockDeleteProcessor);
 
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -227,7 +226,6 @@ public class TestDeleteElasticsearch5 {
         };
         runner = TestRunners.newTestRunner(mockDeleteProcessor);
 
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -275,7 +273,6 @@ public class TestDeleteElasticsearch5 {
         };
         runner = TestRunners.newTestRunner(mockDeleteProcessor);
 
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");

@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -78,7 +79,7 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
                     "encoded in the resulting output.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     private List<PropertyDescriptor> descriptors;
@@ -133,7 +134,7 @@ public class PutHTMLElement extends AbstractHTMLProcessor {
         final Elements eles;
         try {
             doc = parseHTMLDocumentFromFlowfile(flowFile, context, session);
-            eles = doc.select(context.getProperty(CSS_SELECTOR).evaluateAttributeExpressions().getValue());
+            eles = doc.select(context.getProperty(CSS_SELECTOR).evaluateAttributeExpressions(flowFile).getValue());
         } catch (Exception ex) {
             getLogger().error("Failed to extract HTML from {} due to {}; routing to {}", new Object[] {flowFile, ex.toString(), REL_INVALID_HTML.getName()}, ex);
             session.transfer(flowFile, REL_INVALID_HTML);

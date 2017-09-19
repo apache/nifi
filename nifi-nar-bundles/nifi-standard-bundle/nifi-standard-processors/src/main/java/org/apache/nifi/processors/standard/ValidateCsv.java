@@ -44,6 +44,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -120,7 +121,7 @@ public class ValidateCsv extends AbstractProcessor {
                     + "processors to apply. The following cell processors are allowed in the schema definition: "
                     + allowedOperators.toString() + ". Note: cell processors cannot be nested except with Optional.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -140,7 +141,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'quote' in the incoming data. Example: \"")
             .required(true)
             .defaultValue("\"")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -150,7 +151,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'delimiter' in the incoming data. Example: ,")
             .required(true)
             .defaultValue(",")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -160,7 +161,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Symbols used as 'end of line' in the incoming data. Example: \\n")
             .required(true)
             .defaultValue("\\n")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

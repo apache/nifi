@@ -74,7 +74,6 @@ public class TestGetCouchbaseKey {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.couchbase.TestGetCouchbaseKey", "debug");
 
         testRunner = TestRunners.newTestRunner(GetCouchbaseKey.class);
-        testRunner.setValidateExpressionUsage(false);
     }
 
     private void setupMockBucket(Bucket bucket) throws InitializationException {

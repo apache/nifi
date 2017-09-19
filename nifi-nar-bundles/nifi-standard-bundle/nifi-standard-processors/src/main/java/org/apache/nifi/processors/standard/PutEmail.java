@@ -58,6 +58,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -83,7 +84,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP Hostname")
             .description("The hostname of the SMTP host")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
@@ -91,20 +92,20 @@ public class PutEmail extends AbstractProcessor {
             .description("The Port used for SMTP communications")
             .required(true)
             .defaultValue("25")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
             .name("SMTP Username")
             .description("Username for the SMTP account")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
     public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
             .name("SMTP Password")
             .description("Password for the SMTP account")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .sensitive(true)
@@ -113,7 +114,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP Auth")
             .description("Flag indicating whether authentication should be used")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("true")
             .build();
@@ -121,7 +122,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP TLS")
             .description("Flag indicating whether TLS should be enabled")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
@@ -129,7 +130,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP Socket Factory")
             .description("Socket Factory to use for SMTP Connection")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("javax.net.ssl.SSLSocketFactory")
             .build();
@@ -137,7 +138,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP X-Mailer Header")
             .description("X-Mailer used in the header of the outgoing email")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("NiFi")
             .build();
@@ -145,7 +146,7 @@ public class PutEmail extends AbstractProcessor {
             .name("Content Type")
             .description("Mime Type used to interpret the contents of the email, such as text/plain or text/html")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("text/plain")
             .build();
@@ -153,35 +154,35 @@ public class PutEmail extends AbstractProcessor {
             .name("From")
             .description("Specifies the Email address to use as the sender")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
             .name("To")
             .description("The recipients to include in the To-Line of the email")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
             .name("CC")
             .description("The recipients to include in the CC-Line of the email")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
             .name("BCC")
             .description("The recipients to include in the BCC-Line of the email")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
             .name("Subject")
             .description("The email subject")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("Message from NiFi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -189,7 +190,7 @@ public class PutEmail extends AbstractProcessor {
             .name("Message")
             .description("The body of the email message")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor ATTACH_FILE = new PropertyDescriptor.Builder()
@@ -204,7 +205,7 @@ public class PutEmail extends AbstractProcessor {
             .displayName("Flow file content as message")
             .description("Specifies whether or not the FlowFile content should be the message of the email. If true, the 'Message' property is ignored.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();

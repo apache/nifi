@@ -29,6 +29,7 @@ import org.apache.nifi.confluent.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -68,7 +69,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .name("url")
         .displayName("Schema Registry URLs")
         .description("A comma-separated list of URLs of the Schema Registry to interact with")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("http://localhost:8081")
         .required(true)
         .addValidator(new MultipleURLValidator())
@@ -107,7 +108,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .displayName("Communications Timeout")
         .description("Specifies how long to wait to receive data from the Schema Registry before considering the communications a failure")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("30 secs")
         .required(true)
         .build();

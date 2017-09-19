@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
@@ -52,7 +53,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .description("The URL of the destination NiFi instance to send data to, " +
                     "should be a comma-separated list of address in the format of http(s)://host:port/nifi.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new NiFiUrlValidator())
             .build();
     static final PropertyDescriptor PORT_NAME = new PropertyDescriptor.Builder()
@@ -60,7 +61,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .displayName("Input Port Name")
             .description("The name of the Input Port to deliver data to.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
@@ -75,7 +76,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .displayName("Instance URL")
             .description("The URL of this instance to use in the Content URI of each event.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("http://${hostname(true)}:8080/nifi")
             .addValidator(new NiFiUrlValidator())
             .build();

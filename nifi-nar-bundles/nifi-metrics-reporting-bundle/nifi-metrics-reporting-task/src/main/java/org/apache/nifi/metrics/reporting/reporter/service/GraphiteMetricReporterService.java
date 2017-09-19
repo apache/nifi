@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.reporting.task.MetricsReportingTask;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -57,7 +58,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The hostname of the carbon listener")
             .required(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     /**
@@ -69,7 +70,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The port on which carbon listens")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     /**
@@ -94,7 +95,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .required(true)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     /**
