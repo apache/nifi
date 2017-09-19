@@ -522,14 +522,28 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
-                    writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+                    String text = "Supports Expression Language: true";
+
+                    switch(property.getExpressionLanguageScope()) {
+                        case FLOWFILE_ATTRIBUTES:
+                            text += " (will be evaluated per flow file)";
+                            break;
+                        case VARIABLE_REGISTRY_ONLY:
+                            text += " (will only be evaluated using registry)";
+                            break;
+                        case NONE:
+                        default:
+                            // scope is not defined in this case
+                            break;
+                    }
+
+                    writeSimpleElement(xmlStreamWriter, "strong", text);
                 }
                 xmlStreamWriter.writeEndElement();
 
                 xmlStreamWriter.writeEndElement();
             }
 
-            // TODO support dynamic properties...
             xmlStreamWriter.writeEndElement();
 
         } else {
@@ -555,7 +569,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Indicates whether or not the component contains at least one property that supports Expression Language.
      *
-     * @param component the component to interogate
+     * @param component the component to interrogate
      * @return whether or not the component contains at least one sensitive property.
      */
     private boolean containsExpressionLanguage(final ConfigurableComponent component) {

@@ -21,13 +21,14 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.attribute.expression.language.Query;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -36,10 +37,12 @@ import org.apache.nifi.registry.VariableRegistry;
 public class MockPropertyValue implements PropertyValue {
     private final String rawValue;
     private final Boolean expectExpressions;
+    private final ExpressionLanguageScope expressionLanguageScope;
     private final ControllerServiceLookup serviceLookup;
     private final PropertyDescriptor propertyDescriptor;
     private final PropertyValue stdPropValue;
     private final VariableRegistry variableRegistry;
+
     private boolean expressionsEvaluated = false;
 
     public MockPropertyValue(final String rawValue) {
@@ -59,12 +62,13 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     private MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor, final boolean alreadyEvaluated,
-                              final VariableRegistry variableRegistry) {
+            final VariableRegistry variableRegistry) {
         this.stdPropValue = new StandardPropertyValue(rawValue, serviceLookup, variableRegistry);
 
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();
+        this.expressionLanguageScope = propertyDescriptor == null ? null : propertyDescriptor.getExpressionLanguageScope();
         this.propertyDescriptor = propertyDescriptor;
         this.expressionsEvaluated = alreadyEvaluated;
         this.variableRegistry = variableRegistry;
@@ -183,6 +187,22 @@ public class MockPropertyValue implements PropertyValue {
         markEvaluated();
         if (rawValue == null) {
             return this;
+        }
+
+        if(expressionLanguageScope != null
+                && (flowFile != null && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+        }
+
+        if(expressionLanguageScope != null
+                && (flowFile == null && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
 
         final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator, stateValues);

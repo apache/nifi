@@ -39,6 +39,7 @@ import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
@@ -75,7 +76,7 @@ public class FTPTransfer implements FileTransfer {
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .required(true)
         .defaultValue("21")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
         .name("Proxy Type")

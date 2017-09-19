@@ -163,6 +163,7 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
         runner.setProperty(FTPTransfer.REMOTE_PATH, "/");
 
+        runner.setValidateExpressionUsage(false);
         runner.run();
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(GetFTP.REL_SUCCESS).get(0);
@@ -226,6 +227,8 @@ public class TestFTP {
 
         // Ensure wait for enough lag time.
         Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
+
+        runner.setValidateExpressionUsage(false);
         runner.run();
 
         runner.assertTransferCount(FetchFTP.REL_SUCCESS, 1);
