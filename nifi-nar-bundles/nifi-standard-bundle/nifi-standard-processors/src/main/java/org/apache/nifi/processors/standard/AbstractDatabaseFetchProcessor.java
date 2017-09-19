@@ -44,6 +44,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -152,9 +153,19 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     public static final PropertyDescriptor WHERE_CLAUSE = new PropertyDescriptor.Builder()
             .name("db-fetch-where-clause")
             .displayName("Additional WHERE clause")
-            .description("A custom clause to be added in the WHERE condition when generating SQL requests.")
+            .description("A custom clause to be added in the WHERE condition when building SQL queries.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
+            .name("db-fetch-sql-query")
+            .displayName("Custom Query")
+            .description("A custom SQL query used to retrieve data. Instead of building a SQL query from "
+                    + "other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -246,6 +257,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             // Try to fill the columnTypeMap with the types of the desired max-value columns
             final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
             final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
 
             final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
             try (final Connection con = dbcpService.getConnection();
@@ -254,7 +266,17 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
                 // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
                 // approach as in Apache Drill
-                String query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
+                String query;
+
+                if (StringUtils.isEmpty(sqlQuery)) {
+                    query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
+                } else {
+                    StringBuilder sbQuery = getWrappedQuery(sqlQuery, tableName);
+                    sbQuery.append(" WHERE 1=0");
+
+                    query = sbQuery.toString();
+                }
+
                 ResultSet resultSet = st.executeQuery(query);
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 int numCols = resultSetMetaData.getColumnCount();
@@ -262,11 +284,33 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     if (shouldCleanCache) {
                         columnTypeMap.clear();
                     }
+
+                    final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
+                    final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
+
+                    for (String maxValueColumn:maxValueColumnNameList) {
+                        String colKey = getStateKey(tableName, maxValueColumn.trim());
+                        maxValueQualifiedColumnNameList.add(colKey);
+                    }
+
                     for (int i = 1; i <= numCols; i++) {
                         String colName = resultSetMetaData.getColumnName(i).toLowerCase();
                         String colKey = getStateKey(tableName, colName);
+
+                        //only include columns that are part of the maximum value tracking column list
+                        if (!maxValueQualifiedColumnNameList.contains(colKey)) {
+                            continue;
+                        }
+
                         int colType = resultSetMetaData.getColumnType(i);
                         columnTypeMap.putIfAbsent(colKey, colType);
+                    }
+
+                    for (String maxValueColumn:maxValueColumnNameList) {
+                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
+                        if (!columnTypeMap.containsKey(colKey)) {
+                            throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
+                        }
                     }
                 } else {
                     throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
@@ -277,6 +321,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             }
             setupComplete.set(true);
         }
+    }
+
+    protected static StringBuilder getWrappedQuery(String sqlQuery, String tableName){
+       return new StringBuilder("SELECT * FROM (" + sqlQuery + ") AS " + tableName);
     }
 
     protected static String getMaxValueFromRow(ResultSet resultSet,

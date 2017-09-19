@@ -79,7 +79,8 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "select", "jdbc", "query", "database"})
 @SeeAlso({GenerateTableFetch.class, ExecuteSQL.class})
-@CapabilityDescription("Generates and executes a SQL select query to fetch all rows whose values in the specified Maximum Value column(s) are larger than the "
+@CapabilityDescription("Generates a SQL select query, or uses a provided statement, and executes it to fetch all rows whose values in the specified "
+        + "Maximum Value column(s) are larger than the "
         + "previously-seen maxima. Query result will be converted to Avro format. Expression Language is supported for several properties, but no incoming "
         + "connections are permitted. The Variable Registry may be used to provide values for any property containing Expression Language. If it is desired to "
         + "leverage flow file attributes to perform these queries, the GenerateTableFetch and/or ExecuteSQL processors can be used for this purpose. "
@@ -168,8 +169,13 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
         pds.add(DB_TYPE);
-        pds.add(TABLE_NAME);
+        pds.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(TABLE_NAME)
+                .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
+                .build());
         pds.add(COLUMN_NAMES);
+        pds.add(WHERE_CLAUSE);
+        pds.add(SQL_QUERY);
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
@@ -180,7 +186,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(USE_AVRO_LOGICAL_TYPES);
         pds.add(DEFAULT_PRECISION);
         pds.add(DEFAULT_SCALE);
-        pds.add(WHERE_CLAUSE);
+
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -220,6 +226,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
         final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions().getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -275,7 +282,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, customWhereClause, statePropertyMap);
+        final String selectQuery = getQuery(dbAdapter, tableName, sqlQuery, columnNames, maxValueColumnNameList, customWhereClause, statePropertyMap);
         final StopWatch stopWatch = new StopWatch(true);
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
@@ -404,10 +411,22 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     protected String getQuery(DatabaseAdapter dbAdapter, String tableName, String columnNames, List<String> maxValColumnNames,
                               String customWhereClause, Map<String, String> stateMap) {
+
+        return getQuery(dbAdapter, tableName, null, columnNames, maxValColumnNames, customWhereClause, stateMap);
+    }
+
+    protected String getQuery(DatabaseAdapter dbAdapter, String tableName, String sqlQuery, String columnNames, List<String> maxValColumnNames,
+                              String customWhereClause, Map<String, String> stateMap) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name must be specified");
         }
-        final StringBuilder query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
+        final StringBuilder query;
+
+        if (StringUtils.isEmpty(sqlQuery)) {
+            query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
+        } else {
+            query = getWrappedQuery(sqlQuery, tableName);
+        }
 
         List<String> whereClauses = new ArrayList<>();
         // Check state map for last max values
