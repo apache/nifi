@@ -103,8 +103,10 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             .defaultValue("x-mailer")
             .build();
 
-    private static final AllowableValue STRICT_ADDRESSING = new AllowableValue("true", "Strict Address Parsing", "Strict email address format will be enforced. FlowFiles will be transfered to the failure relationship if the email address is invalid.");
-    private static final AllowableValue NONSTRICT_ADDRESSING = new AllowableValue("false", "Non-Strict Address Parsing", "Accept emails, even if the address is poorly formed and doesn't strictly comply with RFC Validation.");
+    private static final AllowableValue STRICT_ADDRESSING = new AllowableValue("true", "Strict Address Parsing",
+        "Strict email address format will be enforced. FlowFiles will be transfered to the failure relationship if the email address is invalid.");
+    private static final AllowableValue NONSTRICT_ADDRESSING = new AllowableValue("false", "Non-Strict Address Parsing",
+        "Accept emails, even if the address is poorly formed and doesn't strictly comply with RFC Validation.");
     public static final PropertyDescriptor STRICT_PARSING = new PropertyDescriptor.Builder()
             .name("STRICT_ADDRESS_PARSING")
             .displayName("Email Address Parsing")
