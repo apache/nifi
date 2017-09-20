@@ -492,23 +492,15 @@ public class JettyServer implements NiFiServer {
             final ResourceHandler resourceHandler = new ResourceHandler();
             resourceHandler.setDirectoriesListed(false);
 
-            // load the docs directory
-            final File docsDir = Paths.get("docs").toRealPath().toFile();
+            final File docsDir = getDocsDir("docs");
             final Resource docsResource = Resource.newResource(docsDir);
 
             // load the component documentation working directory
             final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
-            final File workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
+            final File workingDocsDirectory = getWorkingDocsDirectory(componentDocsDirPath);
             final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
 
-            // load the rest documentation
-            final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
-            if (!webApiDocsDir.exists()) {
-                final boolean made = webApiDocsDir.mkdirs();
-                if (!made) {
-                    throw new RuntimeException(webApiDocsDir.getAbsolutePath() + " could not be created");
-                }
-            }
+            final File webApiDocsDir = getWebApiDocsDir();
             final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
 
             // create resources for both docs locations
@@ -522,8 +514,65 @@ public class JettyServer implements NiFiServer {
             logger.info("Loading documents web app with context path set to " + contextPath);
             return handler;
         } catch (Exception ex) {
-            throw new IllegalStateException("Resource directory paths are malformed: " + ex.getMessage());
+            logger.error("Unhandled Exception in createDocsWebApp: " + ex.getMessage());
+            startUpFailure(ex);
+            return null;    // required by compiler, though never be executed.
         }
+    }
+
+    /**
+     * Returns a File object for the directory containing NIFI documentation.
+     *
+     * Formerly, if the docsDirectory did not exist NIFI would fail to start
+     * with an IllegalStateException and a rather unhelpful log message.
+     * NIFI-2184 updates the process such that if the docsDirectory does not
+     * exist an attempt will be made to create the directory. If that is
+     * successful NIFI will no longer fail and will start successfully barring
+     * any other errors. The side effect of the docsDirectory not being present
+     * is that the documentation links under the 'General' portion of the help
+     * page will not be accessible, but at least the process will be running.
+     *
+     * @param docsDirectory Name of documentation directory in installation directory.
+     * @return A File object to the documentation directory; else startUpFailure called.
+     */
+    private File getDocsDir(final String docsDirectory) {
+        File docsDir;
+        try {
+            docsDir = Paths.get(docsDirectory).toRealPath().toFile();
+        } catch (IOException ex) {
+            logger.info("Directory '" + docsDirectory + "' is missing. Some documentation will be unavailable.");
+            docsDir = new File(docsDirectory).getAbsoluteFile();
+            final boolean made = docsDir.mkdirs();
+            if (!made) {
+                logger.error("Failed to create 'docs' directory!");
+                startUpFailure(new IOException(docsDir.getAbsolutePath() + " could not be created"));
+            }
+        }
+        return docsDir;
+    }
+
+    private File getWorkingDocsDirectory(final File componentDocsDirPath) {
+        File workingDocsDirectory = null;
+        try {
+            workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
+        } catch (IOException ex) {
+            logger.error("Failed to load :" + componentDocsDirPath.getAbsolutePath());
+            startUpFailure(ex);
+        }
+        return workingDocsDirectory;
+    }
+
+    private File getWebApiDocsDir() {
+        // load the rest documentation
+        final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
+        if (!webApiDocsDir.exists()) {
+            final boolean made = webApiDocsDir.mkdirs();
+            if (!made) {
+                logger.error("Failed to create " + webApiDocsDir.getAbsolutePath());
+                startUpFailure(new IOException(webApiDocsDir.getAbsolutePath() + " could not be created"));
+            }
+        }
+        return webApiDocsDir;
     }
 
     private void configureConnectors(final Server server) throws ServerConfigurationException {
