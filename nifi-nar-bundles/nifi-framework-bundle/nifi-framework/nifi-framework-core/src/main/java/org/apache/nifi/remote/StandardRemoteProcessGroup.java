@@ -164,9 +164,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final String groupId = StandardRemoteProcessGroup.this.getProcessGroup().getIdentifier();
+                final String groupName = StandardRemoteProcessGroup.this.getProcessGroup().getName();
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
                         sourceName, category, severity.name(), message));
             }
         };
