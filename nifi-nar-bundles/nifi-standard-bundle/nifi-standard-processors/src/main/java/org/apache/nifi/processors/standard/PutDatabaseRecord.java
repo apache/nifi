@@ -761,7 +761,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             // complete the SQL statements by adding ?'s for all of the values to be escaped.
             sqlBuilder.append(") VALUES (");
-            sqlBuilder.append(StringUtils.repeat("?", ",", fieldCount));
+            sqlBuilder.append(StringUtils.repeat("?", ",", includedColumns.size()));
             sqlBuilder.append(")");
 
             if (fieldsFound.get() == 0) {
