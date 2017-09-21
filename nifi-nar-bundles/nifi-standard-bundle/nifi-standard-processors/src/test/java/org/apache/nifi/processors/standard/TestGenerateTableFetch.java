@@ -1040,6 +1040,61 @@ public class TestGenerateTableFetch {
         runner.clearTransferState();
     }
 
+    @Test
+    public void testColumnTypeMissing() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        // Load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(true);
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+            put("maxValueCol", "id");
+        }});
+        runner.run();
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        String query = new String(flowFile.toByteArray());
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
+        runner.clearTransferState();
+
+
+        // Clear columnTypeMap to simulate it's clean after instance reboot
+        processor.columnTypeMap.clear();
+
+        // Insert new records
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
+
+        // Re-launch FlowFile to se if re-cache column type works
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+            put("maxValueCol", "id");
+        }});
+
+        // It should re-cache column type
+        runner.run();
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        query = new String(flowFile.toByteArray());
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
+        runner.clearTransferState();
+    }
+
     /**
      * Simple implementation only for GenerateTableFetch processor testing.
      */
