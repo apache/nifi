@@ -61,6 +61,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .description("List all kudu masters's ip with port (e.g. 7051), comma separated")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
@@ -68,6 +69,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .description("The name of the Kudu Table to put data into")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -105,15 +107,17 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .allowableValues(SessionConfiguration.FlushMode.values())
             .defaultValue(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND.toString())
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("Set the number of operations that can be buffered")
+            .description("Set the number of operations that can be buffered, between 2 - 100000. " +
+                    "Depend on your memory size, and data size per row set an appropriate batch size. " +
+                    "Gradually increase this number to find out your best one for best performance")
             .defaultValue("100")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createLongValidator(2, 100000, true))
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -140,8 +144,8 @@ public abstract class AbstractKudu extends AbstractProcessor {
     @OnScheduled
     public void OnScheduled(final ProcessContext context) {
         try {
-            tableName = context.getProperty(TABLE_NAME).getValue();
-            kuduMasters = context.getProperty(KUDU_MASTERS).getValue();
+            tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+            kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
             if(kuduClient == null) {
                 getLogger().debug("Setting up Kudu connection...");
                 kuduClient = getKuduConnection(kuduMasters);
@@ -150,7 +154,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             }
 
             operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
-            batchSize = context.getProperty(TABLE_NAME).asInteger();
+            batchSize = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().asInteger();
             flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
             skipHeadLine = context.getProperty(SKIP_HEAD_LINE).asBoolean();
         } catch(KuduException ex){
