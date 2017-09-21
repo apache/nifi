@@ -43,7 +43,7 @@ import java.util.Set;
 @EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"put", "database", "NoSQL", "kudu", "HDFS"})
+@Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
         "to the specified Kudu's table. The schema for the table must be provided in the processor properties or from your source." +
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
@@ -58,6 +58,8 @@ public class PutKudu extends AbstractKudu {
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
+        properties.add(FLUSH_MODE);
+        properties.add(BATCH_SIZE);
 
         return properties;
     }
