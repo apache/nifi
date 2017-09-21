@@ -1305,7 +1305,8 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void activateControllerServices(final String groupId, final URI originalUri, final VariableRegistryUpdateRequest updateRequest,
-        final Pause pause, final Collection<AffectedComponentDTO> affectedServices, final ControllerServiceState desiredState, final VariableRegistryUpdateStep updateStep) throws InterruptedException {
+        final Pause pause, final Collection<AffectedComponentDTO> affectedServices, final ControllerServiceState desiredState, final VariableRegistryUpdateStep updateStep)
+            throws InterruptedException {
 
         final Set<String> affectedServiceIds = affectedServices.stream()
             .map(component -> component.getId())
