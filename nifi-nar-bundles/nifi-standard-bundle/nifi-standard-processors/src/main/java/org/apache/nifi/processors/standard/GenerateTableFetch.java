@@ -86,12 +86,12 @@ import java.util.stream.IntStream;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
+                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
         @WritesAttribute(attribute = "generatetablefetch.tableName", description = "The name of the database table to be queried."),
         @WritesAttribute(attribute = "generatetablefetch.columnNames", description = "The comma-separated list of column names used in the query."),
         @WritesAttribute(attribute = "generatetablefetch.whereClause", description = "Where clause used in the query to get the expected rows."),
         @WritesAttribute(attribute = "generatetablefetch.maxColumnNames", description = "The comma-separated list of column names used to keep track of data "
-                    + "that has been returned since the processor started running."),
+                + "that has been returned since the processor started running."),
         @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
         @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
@@ -155,11 +155,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
-        // Pre-fetch the column types if using a static table name and max-value columns
         if (!isDynamicTableName && !isDynamicMaxValues) {
             super.setup(context);
         }
-        if(context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
+        if (context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
             getLogger().error("The failure relationship can be used only if there is another incoming connection to this processor.");
         }
     }
@@ -190,6 +189,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
+        FlowFile finalFileToProcess = fileToProcess;
+
 
         try {
             stateMap = stateManager.getState(Scope.CLUSTER);
@@ -243,6 +244,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                 String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                 if (!StringUtils.isEmpty(maxValue)) {
+                    if(columnTypeMap.isEmpty()){
+                        // This means column type cache is clean after instance reboot. We should re-cache column type
+                        super.setup(context, false, finalFileToProcess);
+                    }
                     Integer type = getColumnType(tableName, colName);
 
                     // Add a condition for the WHERE clause
@@ -250,7 +255,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 }
             });
 
-            if(customWhereClause != null) {
+            if (customWhereClause != null) {
                 // adding the custom WHERE clause (if defined) to the list of existing clauses.
                 maxValueClauses.add("(" + customWhereClause + ")");
             }
@@ -263,7 +268,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             long rowCount = 0;
 
             try (final Connection con = dbcpService.getConnection();
-                final Statement st = con.createStatement()) {
+                 final Statement st = con.createStatement()) {
 
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
@@ -283,7 +288,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         //Some JDBC drivers consider the columns name and label to be very different things.
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
-                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i))?rsmd.getColumnLabel(i):rsmd.getColumnName(i)).toLowerCase();
+                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
                         String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
@@ -321,6 +326,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                     String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                     if (!StringUtils.isEmpty(maxValue)) {
+                        if(columnTypeMap.isEmpty()){
+                            // This means column type cache is clean after instance reboot. We should re-cache column type
+                            super.setup(context, false, finalFileToProcess);
+                        }
                         Integer type = getColumnType(tableName, colName);
 
                         // Add a condition for the WHERE clause
@@ -411,7 +420,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         }
         if (type == null) {
             // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
-            throw new IllegalArgumentException("No column type found for: " + colName);
+            throw new ProcessException("No column type cache found for: " + colName);
         }
 
         return type;
