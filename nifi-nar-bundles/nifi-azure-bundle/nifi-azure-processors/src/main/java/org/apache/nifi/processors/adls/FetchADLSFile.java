@@ -38,16 +38,17 @@ import static org.apache.nifi.processors.adls.ADLSConstants.REL_FAILURE;
 import static org.apache.nifi.processors.adls.ADLSConstants.REL_SUCCESS;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"hadoop", "adls", "get", "ingest", "fetch", "source", "ingress", "restricted"})
+@Tags({"azure", "hadoop", "ADLS", "get", "ingest", "fetch", "source", "ingress", "restricted"})
 @CapabilityDescription("Retrieves a file from ADLS. The content of the incoming FlowFile is replaced by the content of the file in ADLS. "
         + "The file in ADLS is left intact without any changes being made to it.")
-@SeeAlso({PutADLSFile.class})
+@SeeAlso({PutADLSFile.class, ListADLSFile.class})
 @Restricted("Provides operator the ability to retrieve any file that NiFi has access to in ADLS or the local filesystem.")
 public class FetchADLSFile extends ADLSAbstractProcessor {
 
     static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
-            .name("ADLS Filename")
-            .description("The name of the ADLS file to retrieve including the path")
+            .name("adls-fetch-filename")
+            .displayName("ADLS filename")
+            .description("The name of the ADLS file to retrieve, including the path")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("${path}/${filename}")

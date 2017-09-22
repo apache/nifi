@@ -24,15 +24,12 @@ import okhttp3.mockwebserver.QueueDispatcher;
 import okio.Buffer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,12 +43,18 @@ public class TestFetchADLSFile {
     private TestRunner runner;
     Map<String, String> fileAttributes;
 
-    private static final String respSimpleBinaryFileStatus = "{\"FileStatus\":{\"length\":120,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
-    private static final String respSimpleBinaryFileContent = "SEQ\u0006\u0019org.apache.hadoop.io.Text org.apache.hadoop.io.IntWritable      ”ø\n" +
+    private static final String respSimpleBinaryFileStatus = "{\"FileStatus\":{\"length\":120,\"pathSuffix\":\"\"," +
+            "\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246," +
+            "\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0," +
+            "\"aclBit\":false}}";
+    private static final String respSimpleBinaryFileContent = "SEQ\u0006\u0019org.apache.hadoop.io.Text " +
+            "org.apache.hadoop.io.IntWritable      ”ø\n" +
             "e*æ\u000Bà#Â÷\"7m#\u0017   \n" +
             "   \u0006\u0005Ricky   \u0016   \t   \u0005\u0004Jeff   $";
-    private static final String respBigFileStatus = "{\"FileStatus\":{\"length\":1395667,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333720228,\"modificationTime\":1497333720468,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
-    private static final String respEmptyFileStatus = "{\"FileStatus\":{\"length\":0,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
+    private static final String respEmptyFileStatus = "{\"FileStatus\":{\"length\":0,\"pathSuffix\":\"\",\"type\":" +
+            "\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246," +
+            "\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0," +
+            "\"aclBit\":false}}";
 
     @Before
     public void init() throws IOException, InitializationException {

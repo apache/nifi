@@ -25,47 +25,35 @@ public class ADLSConstants {
 
     public static final int CHUNK_SIZE_IN_BYTES = 4000000;
 
-    public static final PropertyDescriptor PATH_NAME = new PropertyDescriptor.Builder()
-            .name("Path")
-            .description("Path for file in Azure Data Lake, e.g. /adlshome/")
-            .required(true)
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor RETRY_ON_FAIL = new PropertyDescriptor.Builder()
-            .name("Overwrite policy")
-            .description("How many times to retry if read fails per chunk read, defaults to 3")
-            .required(true)
-            //TODO add Integer validator
-            .defaultValue("3")
-            .build();
-
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name("Account FQDN")
-            .description("Azure account fully qualified domain name eg: accountname.azuredatalakestore.net")
+            .name("adls-account-fqdn")
+            .displayName("Account FQDN")
+            .description("Data lake store account fully qualified domain name eg: accountname.azuredatalakestore.net")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("Client ID")
-            .description("Azure client ID")
+            .name("adls-client-id")
+            .displayName("Azure AD Client id")
+            .description("Client ID of the Azure active directory application to be used to authenticate this account")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .name("Client secret")
-            .description("Azure client secret")
+            .name("adls-client-secret")
+            .displayName("Client Secret")
+            .description("Client Secret of the Azure active directory application to be used to authenticate this account")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor AUTH_TOKEN_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Auth token endpoint")
-            .description("Azure client secret")
+            .name("adls-auth-token-endpoint")
+            .displayName("Auth token endpoint")
+            .description("Token Endpoint of the Azure active directory application to be used to authenticate this account")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -73,12 +61,12 @@ public class ADLSConstants {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Successfully transferred to ADL")
+            .description("Successfully transferred to or from ADL")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Failed to transfer file to ADL")
+            .description("Failed to transfer file to or from ADL")
             .build();
 
     public static final String FILE_NAME_ATTRIBUTE = "filename";

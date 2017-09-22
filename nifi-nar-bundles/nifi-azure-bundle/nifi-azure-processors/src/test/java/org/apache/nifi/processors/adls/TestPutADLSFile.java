@@ -31,10 +31,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +88,6 @@ public class TestPutADLSFile {
         //for delete call(removing temp file)
         server.enqueue(new MockResponse().setResponseCode(200));
 
-//        String bodySimpleFileContent = new String(Files.readAllBytes(Paths.get(bodySimpleFileName)));
         String bodySimpleFileContent = "sample content to be send to external adls resource";
         runner.enqueue(bodySimpleFileContent, fileAttributes);
 
@@ -170,10 +166,10 @@ public class TestPutADLSFile {
         RecordedRequest renameRequest = server.takeRequest(1, TimeUnit.SECONDS);
         String pathRenameRequest = renameRequest.getPath();
         String queryOpRenameRequest = renameRequest.getRequestUrl().queryParameter("op");
-        String queryOverwriteRenameRequest = renameRequest.getRequestUrl().queryParameter("overwrite");
+        String queryOverwriteRenameRequest = renameRequest.getRequestUrl().queryParameter("renameoptions");
         Assert.assertThat(pathRenameRequest, CoreMatchers.containsString(expectedPath));
         Assert.assertEquals("RENAME", queryOpRenameRequest);
-        Assert.assertEquals("true", queryOverwriteRenameRequest);
+        Assert.assertEquals("OVERWRITE", queryOverwriteRenameRequest.toUpperCase());
 
         RecordedRequest deleteRequest = server.takeRequest(1, TimeUnit.SECONDS);
         String pathDeleteRequest = deleteRequest.getPath();

@@ -20,8 +20,14 @@ import com.microsoft.azure.datalake.store.ADLFileOutputStream;
 import com.microsoft.azure.datalake.store.ADLStoreClient;
 import com.microsoft.azure.datalake.store.IfExists;
 import com.microsoft.azure.datalake.store.acl.AclEntry;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -45,14 +51,20 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.adls.ADLSConstants.*;
+import static org.apache.nifi.processors.adls.ADLSConstants.ERR_ACL_ENTRY;
+import static org.apache.nifi.processors.adls.ADLSConstants.ERR_FLOWFILE_CORE_ATTR_FILENAME;
+import static org.apache.nifi.processors.adls.ADLSConstants.REL_FAILURE;
+import static org.apache.nifi.processors.adls.ADLSConstants.FILE_NAME_ATTRIBUTE;
+import static org.apache.nifi.processors.adls.ADLSConstants.CHUNK_SIZE_IN_BYTES;
+import static org.apache.nifi.processors.adls.ADLSConstants.ADLS_FILE_PATH_ATTRIBUTE;
+import static org.apache.nifi.processors.adls.ADLSConstants.REL_SUCCESS;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"hadoop", "ADLS", "put", "copy", "filesystem", "restricted"})
+@Tags({"azure", "hadoop", "ADLS", "put", "egress", "copy", "filesystem", "restricted"})
 @CapabilityDescription("Write FlowFile data to Azure Data Lake Store (ADLS)")
+@SeeAlso({ListADLSFile.class, FetchADLSFile.class})
 @ReadsAttributes({
         @ReadsAttribute(attribute = "filename", description = "The name of the file written to ADLS comes from the value of this attribute."),
-        @ReadsAttribute(attribute = "filepath", description = "The relative path to the file on ADLS comes from the value of this attribute.")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file written to ADLS is stored in this attribute."),
@@ -75,7 +87,8 @@ public class PutADLSFile extends ADLSAbstractProcessor {
 
     // properties
     protected static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("Conflict Resolution Strategy")
+            .name("adls-put-conflict-resolution-strategy")
+            .displayName("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file " +
                     "with the same name already exists in the output directory")
             .required(true)
@@ -84,7 +97,8 @@ public class PutADLSFile extends ADLSAbstractProcessor {
             .build();
 
     protected static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("Directory")
+            .name("adls-put-directory")
+            .displayName("Directory")
             .description("The directory where files will be written")
             .required(true)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
@@ -92,14 +106,16 @@ public class PutADLSFile extends ADLSAbstractProcessor {
             .build();
 
     protected static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
-            .name("Permissions umask")
+            .name("adls-put-permissions-umask")
+            .displayName("Permissions umask")
             .description(
                     "A umask represented as an octal number which determines the permissions of files written to ADLS.")
             .addValidator(ADLSValidators.UMASK_VALIDATOR)
             .build();
 
     protected static final PropertyDescriptor ACL = new PropertyDescriptor.Builder()
-            .name("Access Control List")
+            .name("adls-put-access-control-list")
+            .displayName("Access Control List")
             .description(
                     "Comma separated list of ACL entry. An ACL entry consists of a scope (access or default)" +
                             " the type of the ACL (user, group, other or mask), the name of the user or group" +
@@ -220,8 +236,7 @@ public class PutADLSFile extends ADLSAbstractProcessor {
         if (APPEND_RESOLUTION.equals(conflictResolution)) {
             return adlsClientFinal.concatenateFiles(filePath,
                     new ArrayList<>(Arrays.asList(tempFilePath)));
-        }
-        else
+        } else
             return adlsClientFinal.rename(tempFilePath, filePath,
                     REPLACE_RESOLUTION.equals(conflictResolution));
     }

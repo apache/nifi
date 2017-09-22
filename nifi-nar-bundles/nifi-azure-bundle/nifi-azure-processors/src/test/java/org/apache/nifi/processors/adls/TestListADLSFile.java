@@ -54,11 +54,72 @@ public class TestListADLSFile {
     private TestRunner runner;
     private MockCacheClient service;
 
-    private static final String resFileStatusThreeFilesABCTxt = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":377986,\"pathSuffix\":\"a.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1503562285642,\"modificationTime\":1503562287537,\"replication\":1,\"permission\":\"770\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":1854,\"pathSuffix\":\"b.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1503562288814,\"modificationTime\":1503562289144,\"replication\":1,\"permission\":\"770\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":3698,\"pathSuffix\":\"c.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1503562290371,\"modificationTime\":1503562290729,\"replication\":1,\"permission\":\"770\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
-    private static final String resFileStatusRecursiveOuterDir = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":66,\"pathSuffix\":\"fruits.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333725463,\"modificationTime\":1497333725589,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":0,\"pathSuffix\":\"gutenberg\",\"type\":\"DIRECTORY\",\"blockSize\":0,\"accessTime\":1497333719180,\"modificationTime\":1497333723572,\"replication\":0,\"permission\":\"755\",\"owner\":\"nifi\",\"group\":\"nifi\",\"aclBit\":false},{\"length\":77,\"pathSuffix\":\"people.json\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333729518,\"modificationTime\":1497333729641,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":0,\"pathSuffix\":\"people.parquet\",\"type\":\"DIRECTORY\",\"blockSize\":0,\"accessTime\":1497333735225,\"modificationTime\":1497333742323,\"replication\":0,\"permission\":\"755\",\"owner\":\"nifi\",\"group\":\"nifi\",\"aclBit\":false},{\"length\":0,\"pathSuffix\":\"people.seq\",\"type\":\"DIRECTORY\",\"blockSize\":0,\"accessTime\":1497333744289,\"modificationTime\":1497333749007,\"replication\":0,\"permission\":\"755\",\"owner\":\"nifi\",\"group\":\"nifi\",\"aclBit\":false},{\"length\":97884,\"pathSuffix\":\"sample.log\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333752253,\"modificationTime\":1497333753053,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":62,\"pathSuffix\":\"yellowthings.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333755185,\"modificationTime\":1497333755282,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
-    private static final String resFileStatusRecursiveInnerDirOne = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":1395667,\"pathSuffix\":\"fruits.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333720228,\"modificationTime\":1497333720468,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":662001,\"pathSuffix\":\"people.json\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333722332,\"modificationTime\":1497333722767,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":1539989,\"pathSuffix\":\"sample.log\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333723195,\"modificationTime\":1497333723378,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
-    private static final String resFileStatusRecursiveInnerDirTwo = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":0,\"pathSuffix\":\"_SUCCESS\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333736413,\"modificationTime\":1497333736413,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":280,\"pathSuffix\":\"_common_metadata\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333737709,\"modificationTime\":1497333737995,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":749,\"pathSuffix\":\"_metadata\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333738845,\"modificationTime\":1497333739579,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":537,\"pathSuffix\":\"part-r-00000-c42cb485-e97a-4e7f-ad7f-7592a3faba8a.gz.parquet\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333740920,\"modificationTime\":1497333741656,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":529,\"pathSuffix\":\"part-r-00001-c42cb485-e97a-4e7f-ad7f-7592a3faba8a.gz.parquet\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333741873,\"modificationTime\":1497333741957,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
-    private static final String resFileStatusRecursiveInnerDirThree = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":0,\"pathSuffix\":\"_SUCCESS\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333744384,\"modificationTime\":1497333744384,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":120,\"pathSuffix\":\"part-00000\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":103,\"pathSuffix\":\"part-00001\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747935,\"modificationTime\":1497333748552,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
+    private static final String resFileStatusThreeFilesABCTxt = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":377986," +
+            "\"pathSuffix\":\"a.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1503562285642," +
+            "\"modificationTime\":1503562287537,\"replication\":1,\"permission\":\"770\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":1854,\"pathSuffix\":\"b.txt\"," +
+            "\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1503562288814,\"modificationTime\":1503562289144," +
+            "\"replication\":1,\"permission\":\"770\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0," +
+            "\"aclBit\":false},{\"length\":3698,\"pathSuffix\":\"c.txt\",\"type\":\"FILE\",\"blockSize\":268435456," +
+            "\"accessTime\":1503562290371,\"modificationTime\":1503562290729,\"replication\":1,\"permission\":\"770\"," +
+            "\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
+    private static final String resFileStatusRecursiveOuterDir = "{\"FileStatuses\":{\"FileStatus\":[{\"length\":66," +
+            "\"pathSuffix\":\"fruits.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333725463," +
+            "\"modificationTime\":1497333725589,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":0,\"pathSuffix\":\"gutenberg\"," +
+            "\"type\":\"DIRECTORY\",\"blockSize\":0,\"accessTime\":1497333719180,\"modificationTime\":1497333723572," +
+            "\"replication\":0,\"permission\":\"755\",\"owner\":\"nifi\",\"group\":\"nifi\",\"aclBit\":false}," +
+            "{\"length\":77,\"pathSuffix\":\"people.json\",\"type\":\"FILE\",\"blockSize\":268435456," +
+            "\"accessTime\":1497333729518,\"modificationTime\":1497333729641,\"replication\":1,\"permission\":\"644\"," +
+            "\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":0," +
+            "\"pathSuffix\":\"people.parquet\",\"type\":\"DIRECTORY\",\"blockSize\":0,\"accessTime\":1497333735225," +
+            "\"modificationTime\":1497333742323,\"replication\":0,\"permission\":\"755\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"aclBit\":false},{\"length\":0,\"pathSuffix\":\"people.seq\",\"type\":\"DIRECTORY\"," +
+            "\"blockSize\":0,\"accessTime\":1497333744289,\"modificationTime\":1497333749007,\"replication\":0," +
+            "\"permission\":\"755\",\"owner\":\"nifi\",\"group\":\"nifi\",\"aclBit\":false},{\"length\":97884," +
+            "\"pathSuffix\":\"sample.log\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333752253," +
+            "\"modificationTime\":1497333753053,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":62,\"pathSuffix\":" +
+            "\"yellowthings.txt\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333755185," +
+            "\"modificationTime\":1497333755282,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
+    private static final String resFileStatusRecursiveInnerDirOne = "{\"FileStatuses\":{\"FileStatus\":" +
+            "[{\"length\":1395667,\"pathSuffix\":\"fruits.txt\",\"type\":\"FILE\",\"blockSize\":268435456," +
+            "\"accessTime\":1497333720228,\"modificationTime\":1497333720468,\"replication\":1,\"permission\":" +
+            "\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}," +
+            "{\"length\":662001,\"pathSuffix\":\"people.json\",\"type\":\"FILE\",\"blockSize\":268435456," +
+            "\"accessTime\":1497333722332,\"modificationTime\":1497333722767,\"replication\":1,\"permission\":" +
+            "\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\"" +
+            ":1539989,\"pathSuffix\":\"sample.log\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\"" +
+            ":1497333723195,\"modificationTime\":1497333723378,\"replication\":1,\"permission\":\"644\",\"owner\"" +
+            ":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}]}}";
+    private static final String resFileStatusRecursiveInnerDirTwo = "{\"FileStatuses\":{\"FileStatus\":" +
+            "[{\"length\":0,\"pathSuffix\":\"_SUCCESS\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":" +
+            "1497333736413,\"modificationTime\":1497333736413,\"replication\":1,\"permission\":\"644\",\"owner\":" +
+            "\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":280,\"pathSuffix\":" +
+            "\"_common_metadata\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333737709," +
+            "\"modificationTime\":1497333737995,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":749,\"pathSuffix\":\"_metadata\"" +
+            ",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333738845,\"modificationTime\":" +
+            "1497333739579,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\"," +
+            "\"msExpirationTime\":0,\"aclBit\":false},{\"length\":537,\"pathSuffix\":" +
+            "\"part-r-00000-c42cb485-e97a-4e7f-ad7f-7592a3faba8a.gz.parquet\",\"type\":\"FILE\",\"blockSize\":" +
+            "268435456,\"accessTime\":1497333740920,\"modificationTime\":1497333741656,\"replication\":1," +
+            "\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}," +
+            "{\"length\":529,\"pathSuffix\":\"part-r-00001-c42cb485-e97a-4e7f-ad7f-7592a3faba8a.gz.parquet\"," +
+            "\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333741873,\"modificationTime\":" +
+            "1497333741957,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\"," +
+            "\"msExpirationTime\":0,\"aclBit\":false}]}}";
+    private static final String resFileStatusRecursiveInnerDirThree = "{\"FileStatuses\":{\"FileStatus\":" +
+            "[{\"length\":0,\"pathSuffix\":\"_SUCCESS\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\"" +
+            ":1497333744384,\"modificationTime\":1497333744384,\"replication\":1,\"permission\":\"644\"," +
+            "\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":120,\"" +
+            "pathSuffix\":\"part-00000\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105," +
+            "\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\"," +
+            "\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false},{\"length\":103,\"pathSuffix\":\"part-00001\"" +
+            ",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747935,\"modificationTime\":1497333748552," +
+            "\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0," +
+            "\"aclBit\":false}]}}";
     private static final String resFileStatusEmptyDirectory = "{\"FileStatuses\":{\"FileStatus\":[]}}";
 
     @Before

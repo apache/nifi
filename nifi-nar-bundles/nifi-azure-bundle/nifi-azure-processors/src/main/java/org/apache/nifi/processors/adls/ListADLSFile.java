@@ -19,8 +19,14 @@ package org.apache.nifi.processors.adls;
 import com.microsoft.azure.datalake.store.ADLStoreClient;
 import com.microsoft.azure.datalake.store.DirectoryEntry;
 import com.microsoft.azure.datalake.store.DirectoryEntryType;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
@@ -37,7 +43,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.adls.ADLSConstants.ACCOUNT_NAME;
@@ -46,11 +59,12 @@ import static org.apache.nifi.processors.adls.ADLSConstants.REL_SUCCESS;
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Tags({"hadoop", "ADLS", "get", "list", "ingest", "ingress", "source", "filesystem"})
+@Tags({"azure", "hadoop", "ADLS", "get", "list", "ingest", "ingress", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files from ADLS. For each file that is "
         + "listed in ADLS, this processor creates a FlowFile that represents the ADLS file to be fetched in conjunction with FetchADLSFile. This Processor is "
         +  "designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left "
         +  "off without duplicating all of the data.")
+@SeeAlso({PutADLSFile.class, FetchADLSFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute="filename", description="The name of the file that was read from ADLS"),
         @WritesAttribute(attribute="path", description="The path is set to the path of the file on ADLS"),
@@ -70,7 +84,8 @@ import static org.apache.nifi.processors.adls.ADLSConstants.REL_SUCCESS;
 public class ListADLSFile extends ADLSAbstractProcessor {
 
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("Distributed Cache Service")
+            .name("adls-list-distributed-cache-service")
+            .displayName("Distributed Cache Service")
             .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from ADLS so that if a new node "
                     + "begins pulling data, it won't duplicate all of the work that has been done.")
             .required(false)
@@ -78,15 +93,17 @@ public class ListADLSFile extends ADLSAbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
-            .name("Recurse Subdirectories")
-            .description("Indicates whether to list files from subdirectories of the ADLS directory")
+            .name("adls-list-recurse-subdirectories")
+            .displayName("Scan Subdirectories")
+            .description("Indicates whether to list files from subdirectories of the ADLS directory as well")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
-            .name("File Filter")
+            .name("adls-list-file-filter")
+            .displayName("File Filter")
             .description("Only files whose names match the given regular expression will be picked up")
             .required(true)
             .defaultValue("[^\\.].*")
@@ -94,7 +111,8 @@ public class ListADLSFile extends ADLSAbstractProcessor {
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("Directory")
+            .name("adls-list-directory")
+            .displayName("Directory")
             .description("The ADLS directory from which files should be listed")
             .required(true)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)

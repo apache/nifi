@@ -32,7 +32,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.nifi.processors.adls.ADLSConstants.*;
+import static org.apache.nifi.processors.adls.ADLSConstants.ACCOUNT_NAME;
+import static org.apache.nifi.processors.adls.ADLSConstants.REL_FAILURE;
+import static org.apache.nifi.processors.adls.ADLSConstants.REL_SUCCESS;
+import static org.apache.nifi.processors.adls.ADLSConstants.CLIENT_ID;
+import static org.apache.nifi.processors.adls.ADLSConstants.CLIENT_SECRET;
+import static org.apache.nifi.processors.adls.ADLSConstants.AUTH_TOKEN_ENDPOINT;
 
 public abstract class ADLSAbstractProcessor extends AbstractProcessor {
 
@@ -105,13 +110,6 @@ public abstract class ADLSAbstractProcessor extends AbstractProcessor {
     }
 
     public ADLStoreClient getAdlStoreClient() {
-        return adlStoreClient;
-    }
-
-    protected ADLStoreClient refreshADLSClient(ProcessContext context) {
-        synchronized (this) {
-            adlStoreClient = createADLSClientUnsafe(context);
-        }
         return adlStoreClient;
     }
 
