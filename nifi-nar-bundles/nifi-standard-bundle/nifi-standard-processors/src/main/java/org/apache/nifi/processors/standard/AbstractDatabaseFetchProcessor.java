@@ -22,6 +22,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -222,7 +223,11 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     public void setup(final ProcessContext context) {
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        setup(context,true,null);
+    }
+
+    public void setup(final ProcessContext context, boolean shouldCleanCache, FlowFile flowFile) {
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(flowFile).getValue();
 
         // If there are no max-value column names specified, we don't need to perform this processing
         if (StringUtils.isEmpty(maxValueColumnNames)) {
@@ -231,7 +236,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
         // Try to fill the columnTypeMap with the types of the desired max-value columns
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
         try (final Connection con = dbcpService.getConnection();
@@ -245,7 +250,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
             int numCols = resultSetMetaData.getColumnCount();
             if (numCols > 0) {
-                columnTypeMap.clear();
+                if (shouldCleanCache){
+                    columnTypeMap.clear();
+                }
                 for (int i = 1; i <= numCols; i++) {
                     String colName = resultSetMetaData.getColumnName(i).toLowerCase();
                     String colKey = getStateKey(tableName, colName);
