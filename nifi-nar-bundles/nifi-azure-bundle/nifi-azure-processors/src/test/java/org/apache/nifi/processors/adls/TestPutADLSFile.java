@@ -31,7 +31,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,9 +47,6 @@ public class TestPutADLSFile {
     private Processor processor;
     private TestRunner runner;
     Map<String, String> fileAttributes;
-
-    private static final String respSimpleFileStatus = "{\"FileStatus\":{\"length\":120,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
-    private static final String pathOfBigFile = "src/test/resources/davinciGT4MB.txt";
 
     @Before
     public void init() throws IOException, InitializationException {
@@ -104,7 +103,7 @@ public class TestPutADLSFile {
         String queryOverwiteCreateRequest = createRequest.getRequestUrl().queryParameter("overwrite");
         Assert.assertEquals("CREATE", queryOpCreateRequest);
         Assert.assertEquals("true", queryOverwiteCreateRequest);
-        String expectedPath = "%5Csample%5Csample.txt.nifipart";
+        String expectedPath = "sample.txt.nifipart";
         Assert.assertThat(pathCreateRequest, CoreMatchers.containsString(expectedPath));
 
         RecordedRequest appendRequest = server.takeRequest(1, TimeUnit.SECONDS);
@@ -157,7 +156,7 @@ public class TestPutADLSFile {
         String queryOverwiteCreateRequest = createRequest.getRequestUrl().queryParameter("overwrite");
         Assert.assertEquals("CREATE", queryOpCreateRequest);
         Assert.assertEquals("true", queryOverwiteCreateRequest);
-        String expectedPath = "%5Csample%5Csample.txt.nifipart";
+        String expectedPath = "sample.txt.nifipart";
         Assert.assertThat(pathCreateRequest, CoreMatchers.containsString(expectedPath));
 
         RecordedRequest appendRequest = server.takeRequest(1, TimeUnit.SECONDS);
@@ -203,8 +202,8 @@ public class TestPutADLSFile {
         runner.enqueue(bodySimpleFileContent, fileAttributes);
 
         runner.run();
-        String tempFilePath = "%5Csample%5Csample.txt.nifipart";
-        String originalFilePath = "%5Csample%5Csample.txt";
+        String tempFilePath = "sample.txt.nifipart";
+        String originalFilePath = "sample.txt";
 
         RecordedRequest createRequest = server.takeRequest(1, TimeUnit.SECONDS);
         String queryOpCreateRequest = createRequest.getRequestUrl().queryParameter("op");
@@ -228,7 +227,7 @@ public class TestPutADLSFile {
         String bodyConcatRequest = concatenateRequest.getBody().toString();
         Assert.assertThat(pathConcatRequest, CoreMatchers.containsString(originalFilePath));
         Assert.assertEquals("MSCONCAT", queryOpConcatRequest);
-        Assert.assertEquals("[text=sources=\\\\sample\\\\sample.txt.nifipart]", bodyConcatRequest);
+        Assert.assertThat(bodyConcatRequest, CoreMatchers.containsString(tempFilePath));
 
         RecordedRequest deleteRequest = server.takeRequest(1, TimeUnit.SECONDS);
         String pathDeleteRequest = deleteRequest.getPath();
@@ -338,30 +337,6 @@ public class TestPutADLSFile {
         recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
         recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
         Assert.assertEquals(expectedACLEntry, recordedRequest.getRequestUrl().queryParameter("aclspec"));
-    }
-
-    @Test
-    public void testPutLargeFile() throws IOException, InterruptedException {
-
-        MockResponse mockResponse = new MockResponse().setResponseCode(200);
-        server.enqueue(mockResponse);
-        server.enqueue(mockResponse);
-        server.enqueue(mockResponse);
-        server.enqueue(mockResponse.setBody("{\"boolean\":true}"));
-        server.enqueue(mockResponse);
-        runner.enqueue(Paths.get(pathOfBigFile), fileAttributes);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ADLSConstants.REL_SUCCESS, 1);
-        RecordedRequest recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
-        Assert.assertEquals("CREATE", recordedRequest.getRequestUrl().queryParameter("op"));
-        recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
-        Assert.assertEquals("APPEND", recordedRequest.getRequestUrl().queryParameter("op"));
-        recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
-        Assert.assertEquals("APPEND", recordedRequest.getRequestUrl().queryParameter("op"));
-        recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
-        Assert.assertEquals("RENAME", recordedRequest.getRequestUrl().queryParameter("op"));
-        recordedRequest = server.takeRequest(1, TimeUnit.SECONDS);
-        Assert.assertEquals("DELETE", recordedRequest.getRequestUrl().queryParameter("op"));
     }
 
     @Test
@@ -544,5 +519,4 @@ public class TestPutADLSFile {
             this.adlStoreClient = client;
         }
     }
-
 }

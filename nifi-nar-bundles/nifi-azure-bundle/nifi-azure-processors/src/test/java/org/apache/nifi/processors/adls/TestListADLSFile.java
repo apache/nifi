@@ -230,7 +230,6 @@ public class TestListADLSFile {
         runner.run();
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(ADLSConstants.REL_SUCCESS).get(0);
         mockFlowFile.assertAttributeEquals("filename", "fruits.txt");
-        mockFlowFile.assertAttributeEquals("path", "\\test");
         mockFlowFile.assertAttributeEquals("adls.owner", "nifi");
         mockFlowFile.assertAttributeEquals("adls.group", "nifi");
         mockFlowFile.assertAttributeEquals("adls.lastModified", new Date(Long.parseLong("1497333725589")).toString());

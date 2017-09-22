@@ -51,7 +51,6 @@ public class TestFetchADLSFile {
             "e*æ\u000Bà#Â÷\"7m#\u0017   \n" +
             "   \u0006\u0005Ricky   \u0016   \t   \u0005\u0004Jeff   $";
     private static final String respBigFileStatus = "{\"FileStatus\":{\"length\":1395667,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333720228,\"modificationTime\":1497333720468,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
-    private static final String bigFileName = "src/test/resources/davinci.txt";
     private static final String respEmptyFileStatus = "{\"FileStatus\":{\"length\":0,\"pathSuffix\":\"\",\"type\":\"FILE\",\"blockSize\":268435456,\"accessTime\":1497333747105,\"modificationTime\":1497333747246,\"replication\":1,\"permission\":\"644\",\"owner\":\"nifi\",\"group\":\"nifi\",\"msExpirationTime\":0,\"aclBit\":false}}";
 
     @Before
@@ -131,37 +130,6 @@ public class TestFetchADLSFile {
         runner.assertTransferCount(ADLSConstants.REL_FAILURE, 0);
     }
 
-
-    @Test
-    public void testFetchBigFile() throws IOException {
-
-        File bigFile = new File(bigFileName);
-        if(!bigFile.exists())
-            throw new IOException("File doesn't exist");
-
-        server.enqueue(getMockResponse(respBigFileStatus.replaceFirst("1395667", String.valueOf(bigFile.length()))));
-        FileInputStream bigFileInputStream = null;
-        Buffer bigFileBuffer = null;
-        try {
-            bigFileInputStream = new FileInputStream(bigFile);
-            bigFileBuffer = new Buffer();
-            bigFileBuffer.readFrom(bigFileInputStream);
-            server.enqueue(getMockResponse(bigFileBuffer));
-        } finally {
-            if(bigFileInputStream != null)
-                bigFileInputStream.close();
-            if(bigFileBuffer != null)
-                bigFileBuffer.close();
-        }
-
-        runner.enqueue(new byte[]{}, fileAttributes);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ADLSConstants.REL_SUCCESS, 1);
-        MockFlowFile successfullFlowFile = runner.getFlowFilesForRelationship(ADLSConstants.REL_SUCCESS).get(0);
-        long fileSize = successfullFlowFile.getSize();
-        Assert.assertEquals(bigFile.length(), fileSize);
-        successfullFlowFile.assertContentEquals(bigFile);
-    }
 
     private MockResponse getMockResponse(String body) {
         return (new MockResponse())
