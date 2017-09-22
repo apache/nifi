@@ -57,6 +57,7 @@ org.apache.nifi.processors.standard.ListenSyslog
 org.apache.nifi.processors.standard.ListenTCP
 org.apache.nifi.processors.standard.ListenTCPRecord
 org.apache.nifi.processors.standard.ListenUDP
+org.apache.nifi.processors.standard.ListenUDPRecord
 org.apache.nifi.processors.standard.ListSFTP
 org.apache.nifi.processors.standard.LogAttribute
 org.apache.nifi.processors.standard.LogMessage
