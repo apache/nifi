@@ -191,7 +191,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     private static final String FRAGMENT_INDEX_ATTR = FragmentAttributes.FRAGMENT_INDEX.key();
     private static final String FRAGMENT_COUNT_ATTR = FragmentAttributes.FRAGMENT_COUNT.key();
 
-    private static final Pattern LONG_PATTERN = Pattern.compile("^\\d{1,19}$");
+    private static final Pattern LONG_PATTERN = Pattern.compile("^-?\\d{1,19}$");
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
