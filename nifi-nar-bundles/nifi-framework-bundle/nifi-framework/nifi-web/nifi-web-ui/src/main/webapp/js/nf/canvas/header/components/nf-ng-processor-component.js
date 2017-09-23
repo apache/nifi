@@ -84,7 +84,7 @@
 
                 // update the selection if possible
                 if (processorTypesData.getLength() > 0) {
-                    processorTypesGrid.setSelectedRows([0]);
+                    nfFilteredDialogCommon.choseFirstRow(processorTypesGrid);
                     // make the first row visible
                     processorTypesGrid.scrollRowToTop(0);
                 }
@@ -761,7 +761,7 @@
 
                 // auto select the first row if possible
                 if (dataview.getLength() > 0) {
-                    grid.setSelectedRows([0]);
+                    nfFilteredDialogCommon.choseFirstRow(grid);
                 }
 
                 // set the initial focus

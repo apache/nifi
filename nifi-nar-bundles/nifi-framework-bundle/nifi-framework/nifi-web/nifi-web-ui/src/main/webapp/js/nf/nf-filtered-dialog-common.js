@@ -73,11 +73,31 @@
                         nextIndex = Math.min(nextIndex + 1, dataview.getLength() - 1);
                     }
 
-                    grid.setSelectedRows([nextIndex]);
-                    // make the newly selected row visible
+                    nfFilteredDialogCommon.choseRow(grid, nextIndex);
+                    // ensure the newly selected row is visible
                     grid.scrollRowIntoView(nextIndex, false);
                 }
             });
+        },
+
+        /**
+         * Selects the first row and activates the first cell within given SlickGrid.
+         *
+         * @argument {object}   grid    SlickGrid reference
+         */
+        choseFirstRow: function (grid) {
+            nfFilteredDialogCommon.choseRow(grid, 0);
+        },
+
+        /**
+         * Selects given row and activates the first cell in the row within given SlickGrid.
+         *
+         * @argument {object}   grid    SlickGrid reference
+         * @argument {int}      index   Row index
+         */
+        choseRow: function (grid, index) {
+            grid.setSelectedRows([index]);
+            grid.setActiveCell(index, 0);
         }
     };
 

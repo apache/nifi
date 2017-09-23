@@ -140,7 +140,7 @@
 
             // update the selection if possible
             if (controllerServiceTypesData.getLength() > 0) {
-                controllerServiceTypesGrid.setSelectedRows([0]);
+                nfFilteredDialogCommon.choseFirstRow(controllerServiceTypesGrid);
                 // make the first row visible
                 controllerServiceTypesGrid.scrollRowToTop(0);
             }
@@ -329,7 +329,7 @@
 
             // select the new controller service
             var row = controllerServicesData.getRowById(controllerServiceEntity.id);
-            controllerServicesGrid.setSelectedRows([row]);
+            nfFilteredDialogCommon.choseRow(controllerServicesGrid, row);
             controllerServicesGrid.scrollRowIntoView(row);
         }).fail(nfErrorHandler.handleAjaxError);
 
@@ -1283,7 +1283,7 @@
 
             // auto select the first row if possible
             if (dataview.getLength() > 0) {
-                grid.setSelectedRows([0]);
+                nfFilteredDialogCommon.choseFirstRow(grid);
             }
 
             // set the initial focus
