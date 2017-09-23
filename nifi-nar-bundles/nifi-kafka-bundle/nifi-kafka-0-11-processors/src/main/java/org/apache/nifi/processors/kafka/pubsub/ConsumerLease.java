@@ -498,17 +498,14 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         // We don't want to create a new FlowFile for each record that we receive, so we will just create
         // a "temporary flowfile" that will be removed in the finally block below and use that to pass to
         // the createRecordReader method.
-        FlowFile tempFlowFile = session.create();
         RecordSetWriter writer = null;
-
         try {
             for (final ConsumerRecord<byte[], byte[]> consumerRecord : records) {
                 final Map<String, String> attributes = getAttributes(consumerRecord);
-                tempFlowFile = session.putAllAttributes(tempFlowFile, attributes);
 
                 final Record record;
                 try (final InputStream in = new ByteArrayInputStream(consumerRecord.value())) {
-                    final RecordReader reader = readerFactory.createRecordReader(tempFlowFile, in, logger);
+                    final RecordReader reader = readerFactory.createRecordReader(attributes, in, logger);
                     record = reader.nextRecord();
                 } catch (final Exception e) {
                     handleParseFailure(consumerRecord, session, e);
@@ -533,7 +530,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
                     final RecordSchema writeSchema;
                     try {
-                        writeSchema = writerFactory.getSchema(flowFile, recordSchema);
+                        writeSchema = writerFactory.getSchema(flowFile.getAttributes(), recordSchema);
                     } catch (final Exception e) {
                         logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
 
@@ -547,7 +544,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         throw new ProcessException(e);
                     }
 
-                    writer = writerFactory.createWriter(logger, writeSchema, flowFile, rawOut);
+                    writer = writerFactory.createWriter(logger, writeSchema, rawOut);
                     writer.beginRecordSet();
 
                     tracker = new BundleTracker(consumerRecord, topicPartition, keyEncoding, writer);
@@ -587,8 +584,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
 
             throw new ProcessException(e);
-        } finally {
-            session.remove(tempFlowFile);
         }
     }
 
