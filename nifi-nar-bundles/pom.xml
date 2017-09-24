@@ -88,6 +88,7 @@
         <module>nifi-extension-utils</module>
         <module>nifi-grpc-bundle</module>
         <module>nifi-redis-bundle</module>
+        <module>nifi-metrics-reporting-bundle</module>
   </modules>
 
     <build>
