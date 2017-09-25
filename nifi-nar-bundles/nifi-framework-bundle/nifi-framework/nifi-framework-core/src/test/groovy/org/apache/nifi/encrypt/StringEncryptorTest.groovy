@@ -64,6 +64,9 @@ class StringEncryptorTest {
         it.algorithm =~ "PBE"
     }
 
+    // Unlimited elements are removed in static initializer
+    private static final List<EncryptionMethod> limitedPbeEncryptionMethods = pbeEncryptionMethods
+
     private static final SecretKey key = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
 
     private static final String KEY = "nifi.sensitive.props.key"
@@ -85,6 +88,8 @@ class StringEncryptorTest {
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
+
+        limitedPbeEncryptionMethods.removeAll { it.algorithm =~ "SHA.*(CBC)?"}
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
@@ -132,7 +137,7 @@ class StringEncryptorTest {
         final String plaintext = "This is a plaintext message."
 
         // Act
-        for (EncryptionMethod em : pbeEncryptionMethods) {
+        for (EncryptionMethod em : limitedPbeEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
             NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
             StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
@@ -189,13 +194,67 @@ class StringEncryptorTest {
     }
 
     /**
-     * This test uses the Jasypt library {@see StandardPBEStringEncryptor} to encrypt raw messages as the legacy (pre-1.4.0) NiFi application did. Then the messages are decrypted with the "new"/current primitive implementation to ensure backward compatibility.
+     * This test uses the Jasypt library {@see StandardPBEStringEncryptor} to encrypt raw messages as the legacy (pre-1.4.0) NiFi application did. Then the messages are decrypted with the "new"/current primitive implementation to ensure backward compatibility. This test method only exercises limited strength key sizes (even this is not technically accurate as the SHA KDF is restricted even when using 128-bit AES).
+     *
+     * @throws Exception
+     */
+    @Test
+    void testLimitedPBEncryptionShouldBeConsistentWithLegacyEncryption() throws Exception {
+        // Arrange
+        final String plaintext = "This is a plaintext message."
+
+        for (EncryptionMethod em : limitedPbeEncryptionMethods) {
+
+            // Hard-coded 0x00 * 16
+            byte[] salt = new byte[16]
+            // DES/RC* algorithms use 8 byte salts
+            if (em.algorithm =~ "DES|RC") {
+                salt = new byte[8]
+            }
+            logger.info("Using algorithm: ${em.getAlgorithm()} with ${salt.length} byte salt")
+
+            StandardPBEStringEncryptor legacyEncryptor = new StandardPBEStringEncryptor()
+            SaltGenerator mockSaltGenerator = [generateSalt: { int l ->
+                logger.mock("Generating ${l} byte salt")
+                new byte[l]
+            }, includePlainSaltInEncryptionResults         : {
+                -> true
+            }] as SaltGenerator
+            PBEConfig mockConfig = [getAlgorithm             : { -> em.algorithm },
+                                    getPassword              : { -> DEFAULT_PASSWORD },
+                                    getKeyObtentionIterations: { -> 1000 },
+                                    getProviderName          : { -> em.provider },
+                                    getProvider              : { -> new BouncyCastleProvider() },
+                                    getSaltGenerator         : { -> mockSaltGenerator }
+            ] as PBEConfig
+            legacyEncryptor.setConfig(mockConfig)
+            legacyEncryptor.setStringOutputType("hexadecimal")
+
+            String cipherText = legacyEncryptor.encrypt(plaintext)
+            logger.info("Cipher text: ${cipherText}")
+
+            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+
+            // Act
+            String recovered = encryptor.decrypt(cipherText)
+            logger.info("Recovered: ${recovered}")
+
+            // Assert
+            assert plaintext == recovered
+        }
+    }
+
+    /**
+     * This test uses the Jasypt library {@see StandardPBEStringEncryptor} to encrypt raw messages as the legacy (pre-1.4.0) NiFi application did. Then the messages are decrypted with the "new"/current primitive implementation to ensure backward compatibility. This test method exercises all strength key sizes.
      *
      * @throws Exception
      */
     @Test
     void testPBEncryptionShouldBeConsistentWithLegacyEncryption() throws Exception {
         // Arrange
+        Assume.assumeTrue("This test should only run with unlimited strength cryptographic policies installed.", CipherUtility.isUnlimitedStrengthCryptoSupported())
+
         final String plaintext = "This is a plaintext message."
 
         for (EncryptionMethod em : pbeEncryptionMethods) {
