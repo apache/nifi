@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -57,7 +58,7 @@ public class TestCSVRecordReader {
         return fields;
     }
 
-    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema) throws IOException {
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
     }
@@ -93,7 +94,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/single-bank-account.csv"));
-            final CSVRecordReader reader = createReader(fis, schema)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -111,7 +112,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/multi-bank-account.csv"));
-            final CSVRecordReader reader = createReader(fis, schema)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -133,7 +134,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/extra-white-space.csv"));
-            final CSVRecordReader reader = createReader(fis, schema)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -160,7 +161,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -190,7 +191,7 @@ public class TestCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -210,7 +211,7 @@ public class TestCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -241,7 +242,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -304,7 +305,7 @@ public class TestCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -320,6 +321,32 @@ public class TestCSVRecordReader {
             assertEquals("North America", record.getValue("unknown_field_index_8"));
 
             assertNull(reader.nextRecord(false, false));
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithSpecialChar() throws IOException, MalformedRecordException {
+
+        char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(delimiter);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream(new File("src/test/resources/csv/multi-bank-account_escapedchar.csv"));
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
         }
     }
 }
