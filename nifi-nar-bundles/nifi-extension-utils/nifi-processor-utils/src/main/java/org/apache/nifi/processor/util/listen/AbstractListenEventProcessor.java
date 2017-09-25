@@ -261,17 +261,19 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             event = errorEvents.poll();
         }
 
-        if (event == null) {
-            try {
-                if (longPoll) {
-                    event = events.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                } else {
-                    event = events.poll();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
+        if (event != null) {
+            return event;
+        }
+
+        try {
+            if (longPoll) {
+                event = events.poll(getLongPollTimeout(), TimeUnit.MILLISECONDS);
+            } else {
+                event = events.poll();
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
 
         if (event != null) {
@@ -281,4 +283,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return event;
     }
 
+    protected long getLongPollTimeout() {
+        return POLL_TIMEOUT_MS;
+    }
 }
