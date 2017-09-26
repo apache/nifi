@@ -18,15 +18,6 @@ package org.apache.nifi.web;
 
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +30,17 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.UriBuilder;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 
 /**
  * Controller servlet for viewing content. This is responsible for generating
@@ -299,7 +301,12 @@ public class ContentViewerController extends HttpServlet {
         final String ref = request.getParameter("ref");
         final String clientId = request.getParameter("clientId");
 
-        final URI refUri = URI.create(ref);
+        // base the data ref on the request parameter but ensure the scheme is based off the incoming request...
+        // this is necessary for scenario's where the NiFi instance is behind a proxy running a different scheme
+        final URI refUri = UriBuilder.fromUri(ref)
+                .scheme(request.getScheme())
+                .build();
+
         final String query = refUri.getQuery();
 
         String rawClusterNodeId = null;
@@ -317,7 +324,7 @@ public class ContentViewerController extends HttpServlet {
         return new ContentRequestContext() {
             @Override
             public String getDataUri() {
-                return ref;
+                return refUri.toString();
             }
 
             @Override
