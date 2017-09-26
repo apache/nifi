@@ -32,7 +32,6 @@ import org.junit.After
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -253,7 +252,7 @@ class StringEncryptorTest {
     @Test
     void testPBEncryptionShouldBeConsistentWithLegacyEncryption() throws Exception {
         // Arrange
-        Assume.assumeTrue("This test should only run with unlimited strength cryptographic policies installed.", CipherUtility.isUnlimitedStrengthCryptoSupported())
+        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.", isUnlimitedStrengthCryptoAvailable())
 
         final String plaintext = "This is a plaintext message."
 
@@ -299,7 +298,7 @@ class StringEncryptorTest {
         }
     }
 
-    @Ignore("Jasypt does not support keyed encryption")
+//    @Ignore("Jasypt does not support keyed encryption")
     @Test
     void testKeyedEncryptionShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -308,8 +307,7 @@ class StringEncryptorTest {
         // Act
         for (EncryptionMethod em : keyedEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
-            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
-            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+            StringEncryptor encryptor = new StringEncryptor(em.algorithm, em.provider, Hex.decodeHex(KEY_HEX as char[]))
 
             String cipherText = encryptor.encrypt(plaintext)
             logger.info("Cipher text: ${cipherText}")
@@ -322,16 +320,14 @@ class StringEncryptorTest {
         }
     }
 
-    @Ignore("Jasypt does not support keyed encryption")
     @Test
     void testKeyedEncryptionShouldBeExternallyConsistent() throws Exception {
         // Arrange
         final String plaintext = "This is a plaintext message."
 
         for (EncryptionMethod em : keyedEncryptionMethods) {
-
-            // Hard-coded 0x00 * 16
-            byte[] iv = new byte[16]
+            // IV is actually used for keyed encryption
+            byte[] iv = Hex.decodeHex(("AA" * 16) as char[])
             logger.info("Using algorithm: ${em.getAlgorithm()} with ${iv.length} byte IV")
 
             // Encrypt the value manually
@@ -342,8 +338,7 @@ class StringEncryptorTest {
             String cipherTextHex = Hex.encodeHexString(ivAndCipherBytes)
             logger.info("Cipher text: ${cipherTextHex}")
 
-            NiFiProperties niFiProperties = new StandardNiFiProperties(new Properties(RAW_PROPERTIES + [(ALGORITHM): em.algorithm]))
-            StringEncryptor encryptor = StringEncryptor.createEncryptor(niFiProperties)
+            StringEncryptor encryptor = new StringEncryptor(em.algorithm, em.provider, Hex.decodeHex(KEY_HEX.chars))
 
             // Act
             String recovered = encryptor.decrypt(cipherTextHex)
@@ -354,7 +349,7 @@ class StringEncryptorTest {
         }
     }
 
-    @Ignore("Not yet implemented")
+//    @Ignore("Not yet implemented")
     @Test
     void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -384,7 +379,7 @@ class StringEncryptorTest {
         }
     }
 
-    @Ignore("Not yet implemented")
+//    @Ignore("Not yet implemented")
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange

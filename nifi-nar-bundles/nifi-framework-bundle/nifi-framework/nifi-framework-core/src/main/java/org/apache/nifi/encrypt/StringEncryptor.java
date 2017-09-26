@@ -223,8 +223,17 @@ public class StringEncryptor {
         if (paramsAreValid()) {
             if (CipherUtility.isPBECipher(algorithm)) {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NIFI_LEGACY);
+            } else {
+                cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
             }
         } else {
+            // TODO: REMOVE
+            logger.debug("Params -- algorithm: {}; password: {}; key: {}; provider: {}", algorithm, password, key, provider);
+            logger.debug("  Params are valid: {}", paramsAreValid());
+            logger.debug("Algorithm is valid: {}", algorithmIsValid(algorithm));
+            logger.debug(" Password is valid: {}", passwordIsValid(password));
+            logger.debug("      Key is valid: {}", keyIsValid(key, algorithm));
+            logger.debug(" Provider is valid: {}", providerIsValid(provider));
             throw new EncryptionException("Cannot initialize the StringEncryptor because some configuration values are invalid");
         }
     }
@@ -242,13 +251,13 @@ public class StringEncryptor {
     }
 
     private boolean keyIsValid(SecretKeySpec key, String algorithm) {
-        return key != null && CipherUtility.getValidKeyLengthsForAlgorithm(algorithm).contains(key.getEncoded().length);
+        return key != null && CipherUtility.getValidKeyLengthsForAlgorithm(algorithm).contains(key.getEncoded().length * 8);
     }
 
     private boolean passwordIsValid(PBEKeySpec password) {
         try {
             return password.getPassword() != null;
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | NullPointerException e) {
             return false;
         }
     }

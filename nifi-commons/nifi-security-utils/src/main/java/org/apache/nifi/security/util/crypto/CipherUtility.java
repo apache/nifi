@@ -198,6 +198,12 @@ public class CipherUtility {
         return getValidKeyLengthsForAlgorithm(algorithm).contains(keyLength);
     }
 
+    /**
+     * Returns a list of valid key lengths in bits for this algorithm. If the algorithm cannot be parsed, an empty list is returned.
+     *
+     * @param algorithm the name of the algorithm
+     * @return a list of valid key lengths
+     */
     public static List<Integer> getValidKeyLengthsForAlgorithm(String algorithm) {
         List<Integer> validKeyLengths = new ArrayList<>();
         if (StringUtils.isEmpty(algorithm)) {
