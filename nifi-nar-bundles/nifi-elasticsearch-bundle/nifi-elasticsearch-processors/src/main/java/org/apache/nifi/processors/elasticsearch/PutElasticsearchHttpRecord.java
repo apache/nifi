@@ -394,14 +394,24 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     ArrayNode itemNodeArray = (ArrayNode) responseJson.get("items");
                     if (itemNodeArray.size() > 0) {
                         // All items are returned whether they succeeded or failed, so iterate through the item array
-                        // at the same time as the flow file list, logging failures accordingly
+                        // at the same time as the flow file list, moving each to success or failure accordingly,
+                        // but only keep the first error for logging
+                        String errorReason = null;
                         for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
                             JsonNode itemNode = itemNodeArray.get(i);
                             int status = itemNode.findPath("status").asInt();
                             if (!isSuccess(status)) {
-                                String reason = itemNode.findPath("//error/reason").asText();
-                                logger.error("Failed to insert {} into Elasticsearch due to {}, transferring to failure",
-                                        new Object[]{flowFile, reason});
+                                if (errorReason == null) {
+                                    // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
+                                    String reason = itemNode.findPath("//result").asText();
+                                    if (StringUtils.isEmpty(reason)) {
+                                        // If there was no result, we expect an error with a string description in the "reason" field
+                                        reason = itemNode.findPath("//error/reason").asText();
+                                    }
+                                    errorReason = reason;
+                                    logger.error("Failed to process {} due to {}, transferring to failure",
+                                            new Object[]{flowFile, errorReason});
+                                }
                             }
                         }
                     }

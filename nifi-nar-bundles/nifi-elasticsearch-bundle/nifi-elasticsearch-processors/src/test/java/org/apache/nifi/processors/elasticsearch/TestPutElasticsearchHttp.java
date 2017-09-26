@@ -350,6 +350,27 @@ public class TestPutElasticsearchHttp {
         assertNotNull(out);
     }
 
+    @Test
+    public void testPutElasticSearchOnTriggerWithDocumentNotFound() throws IOException {
+        PutElasticsearchTestProcessor processor = new PutElasticsearchTestProcessor(true);
+        processor.setResultField("not_found");
+        runner = TestRunners.newTestRunner(processor); // simulate failures
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttp.INDEX_OP, "delete");
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
+        runner.clearTransferState();
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -359,6 +380,7 @@ public class TestPutElasticsearchHttp {
         int statusCode = 200;
         String statusMessage = "OK";
         String expectedUrl = null;
+        String resultField = null;
 
         PutElasticsearchTestProcessor(boolean responseHasFailures) {
             this.responseHasFailures = responseHasFailures;
@@ -371,6 +393,10 @@ public class TestPutElasticsearchHttp {
 
         void setExpectedUrl(String url) {
             expectedUrl = url;
+        }
+
+        public void setResultField(String resultField) {
+            this.resultField = resultField;
         }
 
         @Override
@@ -391,7 +417,11 @@ public class TestPutElasticsearchHttp {
                         if (responseHasFailures) {
                             // This case is for a status code of 200 for the bulk response itself, but with an error (of 400) inside
                             sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":\"400\",");
-                            sb.append("\"error\":{\"type\":\"mapper_parsing_exception\",\"reason\":\"failed to parse [gender]\",");
+                            if(resultField != null) {
+                                sb.append("\"result\":{\"not_found\",");
+                            } else {
+                                sb.append("\"error\":{\"type\":\"mapper_parsing_exception\",\"reason\":\"failed to parse [gender]\",");
+                            }
                             sb.append("\"caused_by\":{\"type\":\"json_parse_exception\",\"reason\":\"Unexpected end-of-input in VALUE_STRING\\n at ");
                             sb.append("[Source: org.elasticsearch.common.io.stream.InputStreamStreamInput@1a2e3ac4; line: 1, column: 39]\"}}}},");
                         }
