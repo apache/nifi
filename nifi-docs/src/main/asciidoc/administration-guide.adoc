@@ -439,8 +439,8 @@ To enable authentication via Apache Knox the following properties must be config
 |`nifi.security.user.knox.url` | The URL for the Apache Knox log in page.
 |`nifi.security.user.knox.publicKey` | The path to the Apache Knox public key that will be used to verify the signatures of the authentication tokens in the HTTP Cookie.
 |`nifi.security.user.knox.cookieName` | The name of the HTTP Cookie that Apache Knox will generate after successful log in.
-|`nifi.security.user.knox.audiences` | Optional. The URL of the Apache Knox that issued the HTTP Cookie. If specified, will ensure the Cookie was issued
-by the expected Apache Knox instance. If not specified, no additional check is performed. Multiple URLs are supported by comma separating the URLs.
+|`nifi.security.user.knox.audiences` | Optional. A comma separate listed of allowed audiences. If set, the audience in the token must be present in
+this listing. The audience that is populated in the token can be configured in Knox.
 |==================================================================================================================================================
 
 [[multi-tenant-authorization]]
