@@ -227,13 +227,6 @@ public class StringEncryptor {
                 cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
             }
         } else {
-            // TODO: REMOVE
-            logger.debug("Params -- algorithm: {}; password: {}; key: {}; provider: {}", algorithm, password, key, provider);
-            logger.debug("  Params are valid: {}", paramsAreValid());
-            logger.debug("Algorithm is valid: {}", algorithmIsValid(algorithm));
-            logger.debug(" Password is valid: {}", passwordIsValid(password));
-            logger.debug("      Key is valid: {}", keyIsValid(key, algorithm));
-            logger.debug(" Provider is valid: {}", providerIsValid(provider));
             throw new EncryptionException("Cannot initialize the StringEncryptor because some configuration values are invalid");
         }
     }

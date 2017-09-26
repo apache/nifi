@@ -298,7 +298,6 @@ class StringEncryptorTest {
         }
     }
 
-//    @Ignore("Jasypt does not support keyed encryption")
     @Test
     void testKeyedEncryptionShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -349,7 +348,6 @@ class StringEncryptorTest {
         }
     }
 
-//    @Ignore("Not yet implemented")
     @Test
     void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -379,7 +377,6 @@ class StringEncryptorTest {
         }
     }
 
-//    @Ignore("Not yet implemented")
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
