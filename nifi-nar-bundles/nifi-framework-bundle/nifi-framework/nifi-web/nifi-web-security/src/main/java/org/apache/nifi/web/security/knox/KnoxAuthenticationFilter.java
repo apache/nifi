@@ -41,7 +41,7 @@ public class KnoxAuthenticationFilter extends NiFiAuthenticationFilter {
         }
 
         // get the principal out of the user token
-        final String knoxJwt = getJwtFromCookie(request);
+        final String knoxJwt = getJwtFromCookie(request, properties.getKnoxCookieName());
 
         // if there is no cookie, return null to attempt another authentication
         if (knoxJwt == null) {
@@ -52,10 +52,7 @@ public class KnoxAuthenticationFilter extends NiFiAuthenticationFilter {
         }
     }
 
-    public String getJwtFromCookie(final HttpServletRequest request) {
-        final NiFiProperties properties = getProperties();
-        final String cookieName = properties.getKnoxCookieName();
-
+    public String getJwtFromCookie(final HttpServletRequest request, final String cookieName) {
         String jwt = null;
 
         final Cookie[] cookies = request.getCookies();

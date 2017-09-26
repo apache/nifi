@@ -55,7 +55,7 @@ public class StandardKnoxConfiguration implements KnoxConfiguration {
 
     public RSAPublicKey getKnoxPublicKey() {
         // get the path to the public key
-        final Path knoxPublicKeyPath = properties.getKnoxPublicKey();
+        final Path knoxPublicKeyPath = properties.getKnoxPublicKeyPath();
 
         // ensure the file exists
         if (Files.isRegularFile(knoxPublicKeyPath) && Files.exists(knoxPublicKeyPath)) {

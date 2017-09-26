@@ -930,7 +930,7 @@ public abstract class NiFiProperties {
      *
      * @return path to the Knox public key
      */
-    public Path getKnoxPublicKey() {
+    public Path getKnoxPublicKeyPath() {
         return Paths.get(getProperty(SECURITY_USER_KNOX_PUBLIC_KEY));
     }
 

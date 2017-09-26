@@ -74,9 +74,9 @@ public class KnoxService {
     }
 
     /**
-     * Returns whether OpenId Connect is enabled.
+     * Returns whether Knox support is enabled.
      *
-     * @return whether OpenId Connect is enabled
+     * @return whether Knox support is enabled
      */
     public boolean isKnoxEnabled() {
         return configuration.isKnoxEnabled();

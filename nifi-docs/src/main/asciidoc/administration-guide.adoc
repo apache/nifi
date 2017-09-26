@@ -285,7 +285,8 @@ User Authentication
 NiFi supports user authentication via client certificates, via username/password, via Apache Knox, or via OpenId Connect (http://openid.net/connect).
 
 Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
-authenticating users via their username/password. Which Login Identity Provider to use is configured in two properties in the _nifi.properties_ file.
+authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
+Currently NiFi offers username/password with Login Identity Providers options for LDAP and Kerberos.
 
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
