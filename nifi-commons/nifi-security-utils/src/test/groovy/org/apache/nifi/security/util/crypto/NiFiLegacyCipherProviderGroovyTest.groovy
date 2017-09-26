@@ -40,63 +40,63 @@ import java.security.Security
 import static org.junit.Assert.fail
 
 @RunWith(JUnit4.class)
-public class NiFiLegacyCipherProviderGroovyTest {
-    private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProviderGroovyTest.class);
+class NiFiLegacyCipherProviderGroovyTest {
+    private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProviderGroovyTest.class)
 
-    private static List<EncryptionMethod> pbeEncryptionMethods = new ArrayList<>();
-    private static List<EncryptionMethod> limitedStrengthPbeEncryptionMethods = new ArrayList<>();
+    private static List<EncryptionMethod> pbeEncryptionMethods = new ArrayList<>()
+    private static List<EncryptionMethod> limitedStrengthPbeEncryptionMethods = new ArrayList<>()
 
-    private static final String PROVIDER_NAME = "BC";
-    private static final int ITERATION_COUNT = 1000;
+    private static final String PROVIDER_NAME = "BC"
+    private static final int ITERATION_COUNT = 1000
 
-    private static final byte[] SALT_16_BYTES = Hex.decodeHex("aabbccddeeff00112233445566778899".toCharArray());
+    private static final byte[] SALT_16_BYTES = Hex.decodeHex("aabbccddeeff00112233445566778899".toCharArray())
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+    static void setUpOnce() throws Exception {
+        Security.addProvider(new BouncyCastleProvider())
 
         pbeEncryptionMethods = EncryptionMethod.values().findAll { it.algorithm.toUpperCase().startsWith("PBE") }
         limitedStrengthPbeEncryptionMethods = pbeEncryptionMethods.findAll { !it.isUnlimitedStrength() }
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
 
     }
 
     private static Cipher getLegacyCipher(String password, byte[] salt, String algorithm) {
         try {
-            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
-            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, PROVIDER_NAME);
-            SecretKey tempKey = factory.generateSecret(pbeKeySpec);
+            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray())
+            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, PROVIDER_NAME)
+            SecretKey tempKey = factory.generateSecret(pbeKeySpec)
 
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, ITERATION_COUNT);
-            Cipher cipher = Cipher.getInstance(algorithm, PROVIDER_NAME);
-            cipher.init(Cipher.ENCRYPT_MODE, tempKey, parameterSpec);
-            return cipher;
+            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, ITERATION_COUNT)
+            Cipher cipher = Cipher.getInstance(algorithm, PROVIDER_NAME)
+            cipher.init(Cipher.ENCRYPT_MODE, tempKey, parameterSpec)
+            return cipher
         } catch (Exception e) {
-            logger.error("Error generating legacy cipher", e);
-            fail(e.getMessage());
+            logger.error("Error generating legacy cipher", e)
+            fail(e.getMessage())
         }
 
-        return null;
+        return null
     }
 
     @Test
-    public void testGetCipherShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
-        final String PASSWORD = "shortPassword";
-        final String plaintext = "This is a plaintext message.";
+        final String PASSWORD = "shortPassword"
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod encryptionMethod : limitedStrengthPbeEncryptionMethods) {
-            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm());
+            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm())
 
             if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), encryptionMethod)) {
                 logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
@@ -107,64 +107,64 @@ public class NiFiLegacyCipherProviderGroovyTest {
             logger.info("Generated salt ${Hex.encodeHexString(salt)} (${salt.length})")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true)
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length);
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length)
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
         Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                PasswordBasedEncryptor.supportsUnlimitedStrength());
+                CipherUtility.isUnlimitedStrengthCryptoSupported())
 
-        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
-        final String PASSWORD = "shortPassword";
-        final String plaintext = "This is a plaintext message.";
+        final String PASSWORD = "shortPassword"
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod encryptionMethod : pbeEncryptionMethods) {
-            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm());
+            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm())
 
             byte[] salt = cipherProvider.generateSalt(encryptionMethod)
             logger.info("Generated salt ${Hex.encodeHexString(salt)} (${salt.length})")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true)
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length);
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length)
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherShouldSupportLegacyCode() throws Exception {
+    void testGetCipherShouldSupportLegacyCode() throws Exception {
         // Arrange
-        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
-        final String PASSWORD = "short";
-        final String plaintext = "This is a plaintext message.";
+        final String PASSWORD = "short"
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod encryptionMethod : limitedStrengthPbeEncryptionMethods) {
-            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm());
+            logger.info("Using algorithm: {}", encryptionMethod.getAlgorithm())
 
             if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), encryptionMethod)) {
                 logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
@@ -175,33 +175,33 @@ public class NiFiLegacyCipherProviderGroovyTest {
             logger.info("Generated salt ${Hex.encodeHexString(salt)} (${salt.length})")
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, salt, encryptionMethod.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(PASSWORD, salt, encryptionMethod.getAlgorithm())
 
-            byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length);
+            byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length)
 
-            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
-            byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false)
+            byte[] recoveredBytes = providedCipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherWithoutSaltShouldSupportLegacyCode() throws Exception {
+    void testGetCipherWithoutSaltShouldSupportLegacyCode() throws Exception {
         // Arrange
-        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
-        final String PASSWORD = "short";
-        final byte[] SALT = new byte[0];
+        final String PASSWORD = "short"
+        final byte[] SALT = new byte[0]
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            logger.info("Using algorithm: {}", em.getAlgorithm());
+            logger.info("Using algorithm: {}", em.getAlgorithm())
 
             if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
                 logger.warn("This test is skipped because the password length exceeds the undocumented limit BouncyCastle imposes on a JVM with limited strength crypto policies")
@@ -209,48 +209,48 @@ public class NiFiLegacyCipherProviderGroovyTest {
             }
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm())
 
-            byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length);
+            byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length)
 
-            Cipher providedCipher = cipherProvider.getCipher(em, PASSWORD, false);
-            byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            Cipher providedCipher = cipherProvider.getCipher(em, PASSWORD, false)
+            byte[] recoveredBytes = providedCipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherShouldIgnoreKeyLength() throws Exception {
+    void testGetCipherShouldIgnoreKeyLength() throws Exception {
         // Arrange
-        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+        NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
 
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = SALT_16_BYTES
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         final def KEY_LENGTHS = [-1, 40, 64, 128, 192, 256]
 
         // Initialize a cipher for encryption
         EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES
-        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, true);
-        byte[] cipherBytes = cipher128.doFinal(plaintext.getBytes("UTF-8"));
-        logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length);
+        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, true)
+        byte[] cipherBytes = cipher128.doFinal(plaintext.getBytes("UTF-8"))
+        logger.info("Cipher text: {} {}", Hex.encodeHexString(cipherBytes), cipherBytes.length)
 
         // Act
         KEY_LENGTHS.each { int keyLength ->
             logger.info("Decrypting with 'requested' key length: ${keyLength}")
 
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, keyLength, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, keyLength, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -262,7 +262,7 @@ public class NiFiLegacyCipherProviderGroovyTest {
      */
     @Ignore("Only needed once to determine max supported password lengths")
     @Test
-    public void testShouldDetermineDependenceOnUnlimitedStrengthCrypto() throws IOException {
+    void testShouldDetermineDependenceOnUnlimitedStrengthCrypto() throws IOException {
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
         boolean unlimitedCryptoSupported = PasswordBasedEncryptor.supportsUnlimitedStrength()
@@ -277,7 +277,7 @@ public class NiFiLegacyCipherProviderGroovyTest {
                 String password = "x" * length
 
                 try {
-                    NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
+                    NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider()
                     Cipher cipher = cipherProvider.getCipher(encryptionMethod, password, true)
                     return false
                 } catch (Exception e) {

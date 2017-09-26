@@ -508,7 +508,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
-                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt 
+                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt
                             because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>

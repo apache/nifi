@@ -43,20 +43,20 @@ import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
-public class ScryptCipherProviderGroovyTest {
-    private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProviderGroovyTest.class);
+class ScryptCipherProviderGroovyTest {
+    private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProviderGroovyTest.class)
 
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
-    private static final int DEFAULT_KEY_LENGTH = 128;
+    private static final int DEFAULT_KEY_LENGTH = 128
     public static final String MICROBENCHMARK = "microbenchmark"
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
     RandomIVPBECipherProvider cipherProvider
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+    static void setUpOnce() throws Exception {
+        Security.addProvider(new BouncyCastleProvider())
 
         strongKDFEncryptionMethods = EncryptionMethod.values().findAll { it.isCompatibleWithStrongKDFs() }
 
@@ -64,7 +64,7 @@ public class ScryptCipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
             AES_KEY_LENGTHS = [128, 192, 256]
         } else {
             AES_KEY_LENGTHS = [128]
@@ -72,119 +72,119 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         // Very fast parameters to test for correctness rather than production values
         cipherProvider = new ScryptCipherProvider(4, 1, 1)
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
 
     }
 
     @Test
-    public void testGetCipherShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
-            logger.info("Using algorithm: ${em.getAlgorithm()}");
+            logger.info("Using algorithm: ${em.getAlgorithm()}")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true);
-            byte[] iv = cipher.getIV();
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true)
+            byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("01" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("01" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
-            logger.info("Using algorithm: ${em.getAlgorithm()}");
+            logger.info("Using algorithm: ${em.getAlgorithm()}")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
+    void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
         Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                PasswordBasedEncryptor.supportsUnlimitedStrength());
+                CipherUtility.isUnlimitedStrengthCryptoSupported())
 
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
         final int LONG_KEY_LENGTH = 256
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
-            logger.info("Using algorithm: ${em.getAlgorithm()}");
+            logger.info("Using algorithm: ${em.getAlgorithm()}")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, LONG_KEY_LENGTH, true);
-            byte[] iv = cipher.getIV();
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, LONG_KEY_LENGTH, true)
+            byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered);
+            assert plaintext.equals(recovered)
         }
     }
 
     @Test
-    public void testScryptShouldSupportExternalCompatibility() throws Exception {
+    void testScryptShouldSupportExternalCompatibility() throws Exception {
         // Arrange
 
         // Default values are N=2^14, r=8, p=1, but the provided salt will contain the parameters used
         cipherProvider = new ScryptCipherProvider()
 
-        final String PLAINTEXT = "This is a plaintext message.";
+        final String PLAINTEXT = "This is a plaintext message."
         final String PASSWORD = "thisIsABadPassword"
         final int DK_LEN = 128
 
@@ -237,46 +237,46 @@ public class ScryptCipherProviderGroovyTest {
         logger.info("Converted hash from hex ${hashHex} to Base64 ${base64Hash}")
         assert Hex.encodeHexString(Base64.decodeBase64(base64Hash)) == hashHex
 
-        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
-        logger.info("External cipher text: ${CIPHER_TEXT} ${cipherBytes.length}");
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
+        logger.info("External cipher text: ${CIPHER_TEXT} ${cipherBytes.length}")
 
         // Act
-        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, javaSalt.bytes, IV, DK_LEN, false);
-        byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-        String recovered = new String(recoveredBytes, "UTF-8");
+        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, javaSalt.bytes, IV, DK_LEN, false)
+        byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+        String recovered = new String(recoveredBytes, "UTF-8")
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert PLAINTEXT.equals(recovered);
+        assert PLAINTEXT.equals(recovered)
     }
 
     @Test
-    public void testGetCipherShouldHandleSaltWithoutParameters() throws Exception {
+    void testGetCipherShouldHandleSaltWithoutParameters() throws Exception {
         // Arrange
 
         // To help Groovy resolve implementation private methods not known at interface level
         cipherProvider = cipherProvider as ScryptCipherProvider
 
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = new byte[cipherProvider.defaultSaltLength]
         new SecureRandom().nextBytes(SALT)
 
         final String EXPECTED_FORMATTED_SALT = cipherProvider.formatSaltForScrypt(SALT)
         logger.info("Expected salt: ${EXPECTED_FORMATTED_SALT}")
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
         // Act
 
         // Initialize a cipher for encryption
-        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true);
-        byte[] iv = cipher.getIV();
+        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true)
+        byte[] iv = cipher.getIV()
         logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-        byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-        logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+        byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+        logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
         // Manually initialize a cipher for decrypt with the expected salt
         byte[] parsedSalt = new byte[cipherProvider.defaultSaltLength]
@@ -287,31 +287,31 @@ public class ScryptCipherProviderGroovyTest {
         SecretKey key = new SecretKeySpec(keyBytes, "AES")
         Cipher manualCipher = Cipher.getInstance(encryptionMethod.algorithm, encryptionMethod.provider)
         manualCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv))
-        byte[] recoveredBytes = manualCipher.doFinal(cipherBytes);
-        String recovered = new String(recoveredBytes, "UTF-8");
+        byte[] recoveredBytes = manualCipher.doFinal(cipherBytes)
+        String recovered = new String(recoveredBytes, "UTF-8")
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert plaintext.equals(recovered);
+        assert plaintext.equals(recovered)
     }
 
     @Test
-    public void testGetCipherShouldNotAcceptInvalidSalts() throws Exception {
+    void testGetCipherShouldNotAcceptInvalidSalts() throws Exception {
         // Arrange
-        final String PASSWORD = "thisIsABadPassword";
+        final String PASSWORD = "thisIsABadPassword"
 
         final def INVALID_SALTS = ['bad_sal', '$3a$11$', 'x', '$2a$10$', '$400$1$1$abcdefghijklmnopqrstuvwxyz']
         final LENGTH_MESSAGE = "The raw salt must be between 8 and 32 bytes"
 
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
         // Act
         INVALID_SALTS.each { String salt ->
             logger.info("Checking salt ${salt}")
 
             def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true);
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true)
             }
             logger.expected(msg)
 
@@ -321,20 +321,20 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldHandleUnformattedSalts() throws Exception {
+    void testGetCipherShouldHandleUnformattedSalts() throws Exception {
         // Arrange
-        final String PASSWORD = "thisIsABadPassword";
+        final String PASSWORD = "thisIsABadPassword"
 
         final def RECOVERABLE_SALTS = ['$ab$00$acbdefghijklmnopqrstuv', '$4$1$1$0123456789abcdef', '$400$1$1$abcdefghijklmnopqrstuv']
 
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
         // Act
         RECOVERABLE_SALTS.each { String salt ->
             logger.info("Checking salt ${salt}")
 
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true)
 
             // Assert
             assert cipher
@@ -342,16 +342,16 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldRejectEmptySalt() throws Exception {
+    void testGetCipherShouldRejectEmptySalt() throws Exception {
         // Arrange
-        final String PASSWORD = "thisIsABadPassword";
+        final String PASSWORD = "thisIsABadPassword"
 
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
         // Act
         def msg = shouldFail(IllegalArgumentException) {
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true)
         }
         logger.expected(msg)
 
@@ -360,27 +360,27 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherForDecryptShouldRequireIV() throws Exception {
+    void testGetCipherForDecryptShouldRequireIV() throws Exception {
         // Arrange
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("00" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message.";
+        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
-            logger.info("Using algorithm: ${em.getAlgorithm()}");
+            logger.info("Using algorithm: ${em.getAlgorithm()}")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
-            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {
-                cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false);
+                cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false)
             }
             logger.expected(msg)
 
@@ -390,13 +390,13 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGetCipherShouldAcceptValidKeyLengths() throws Exception {
+    void testGetCipherShouldAcceptValidKeyLengths() throws Exception {
         // Arrange
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("01" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("01" * 16 as char[])
 
-        final String PLAINTEXT = "This is a plaintext message.";
+        final String PLAINTEXT = "This is a plaintext message."
 
         // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
         final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
@@ -407,30 +407,30 @@ public class ScryptCipherProviderGroovyTest {
             logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
-            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}");
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
+            logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, false);
-            byte[] recoveredBytes = cipher.doFinal(cipherBytes);
-            String recovered = new String(recoveredBytes, "UTF-8");
+            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered);
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
     @Test
-    public void testGetCipherShouldNotAcceptInvalidKeyLengths() throws Exception {
+    void testGetCipherShouldNotAcceptInvalidKeyLengths() throws Exception {
         // Arrange
-        final String PASSWORD = "shortPassword";
+        final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
-        final byte[] IV = Hex.decodeHex("00" * 16 as char[]);
+        final byte[] IV = Hex.decodeHex("00" * 16 as char[])
 
-        final String PLAINTEXT = "This is a plaintext message.";
+        final String PLAINTEXT = "This is a plaintext message."
 
         // Even though Scrypt can derive keys of arbitrary length, it will fail to validate if the underlying cipher does not support it
         final def INVALID_KEY_LENGTHS = [-1, 40, 64, 112, 512]
@@ -443,7 +443,7 @@ public class ScryptCipherProviderGroovyTest {
 
             // Initialize a cipher for encryption
             def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true);
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true)
             }
             logger.expected(msg)
 
@@ -453,7 +453,7 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testScryptShouldNotAcceptInvalidPassword() {
+    void testScryptShouldNotAcceptInvalidPassword() {
         // Arrange
         String badPassword = ""
         byte[] salt = [0x01 as byte] * 16
@@ -470,9 +470,9 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testGenerateSaltShouldUseProvidedParameters() throws Exception {
+    void testGenerateSaltShouldUseProvidedParameters() throws Exception {
         // Arrange
-        RandomIVPBECipherProvider cipherProvider = new ScryptCipherProvider(8, 2, 2);
+        RandomIVPBECipherProvider cipherProvider = new ScryptCipherProvider(8, 2, 2)
         int n = cipherProvider.getN()
         int r = cipherProvider.getR()
         int p = cipherProvider.getP()
@@ -488,7 +488,7 @@ public class ScryptCipherProviderGroovyTest {
     }
 
     @Test
-    public void testShouldParseSalt() throws Exception {
+    void testShouldParseSalt() throws Exception {
         // Arrange
         cipherProvider = cipherProvider as ScryptCipherProvider
 
@@ -498,7 +498,7 @@ public class ScryptCipherProviderGroovyTest {
         final int EXPECTED_P = 36
 
         final String FORMATTED_SALT = "\$s0\$a0824\$9bgFbqbmbtuNATrEMquiSg"
-        logger.info("Using salt: ${FORMATTED_SALT}");
+        logger.info("Using salt: ${FORMATTED_SALT}")
 
         byte[] rawSalt = new byte[16]
         def params = []
@@ -515,7 +515,7 @@ public class ScryptCipherProviderGroovyTest {
 
     @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
     @Test
-    public void testDefaultConstructorShouldProvideStrongParameters() {
+    void testDefaultConstructorShouldProvideStrongParameters() {
         // Arrange
         ScryptCipherProvider testCipherProvider = new ScryptCipherProvider()
 
