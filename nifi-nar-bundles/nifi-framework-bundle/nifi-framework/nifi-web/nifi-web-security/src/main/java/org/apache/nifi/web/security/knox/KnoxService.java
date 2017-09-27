@@ -100,7 +100,8 @@ public class KnoxService {
      *
      * @param jwt signed jwt string
      * @return the user authentication
-     * @throws ParseException
+     * @throws ParseException if the payload of the jwt doesn't represent a valid json object and a jwt claims set
+     * @throws JOSEException if the JWS object couldn't be verified
      */
     public String getAuthenticationFromToken(final String jwt) throws ParseException, JOSEException {
         if (!configuration.isKnoxEnabled()) {
@@ -130,8 +131,8 @@ public class KnoxService {
      *
      * @param jwtToken knox jwt
      * @return whether this jwt is valid
-     * @throws JOSEException
-     * @throws ParseException
+     * @throws JOSEException if the jws object couldn't be verified
+     * @throws ParseException if the payload of the jwt doesn't represent a valid json object and a jwt claims set
      */
     private boolean validateToken(final SignedJWT jwtToken) throws JOSEException, ParseException {
         final boolean validSignature = validateSignature(jwtToken);
@@ -146,7 +147,7 @@ public class KnoxService {
      *
      * @param jwtToken knox jwt
      * @return whether this jwt signature is valid
-     * @throws JOSEException
+     * @throws JOSEException if the jws object couldn't be verified
      */
     private boolean validateSignature(final SignedJWT jwtToken) throws JOSEException {
         boolean valid = false;
@@ -174,7 +175,7 @@ public class KnoxService {
      *
      * @param jwtToken knox jwt
      * @return whether this jwt audience is valid
-     * @throws ParseException
+     * @throws ParseException if the payload of the jwt doesn't represent a valid json object and a jwt claims set
      */
     private boolean validateAudience(final SignedJWT jwtToken) throws ParseException {
         if (audiences == null) {
@@ -215,7 +216,7 @@ public class KnoxService {
      *
      * @param jwtToken knox jwt
      * @return whether this jwt is not expired
-     * @throws ParseException
+     * @throws ParseException if the payload of the jwt doesn't represent a valid json object and a jwt claims set
      */
     private boolean validateExpiration(final SignedJWT jwtToken) throws ParseException {
         boolean valid = false;
