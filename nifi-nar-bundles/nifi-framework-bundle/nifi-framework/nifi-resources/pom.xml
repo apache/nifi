@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.4.0</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -186,9 +186,9 @@
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
-        <nifi.zookeeper.auth.type/>
-        <nifi.zookeeper.kerberos.removeHostFromPrincipal/>
-        <nifi.zookeeper.kerberos.removeRealmFromPrincipal/>
+        <nifi.zookeeper.auth.type />
+        <nifi.zookeeper.kerberos.removeHostFromPrincipal />
+        <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
