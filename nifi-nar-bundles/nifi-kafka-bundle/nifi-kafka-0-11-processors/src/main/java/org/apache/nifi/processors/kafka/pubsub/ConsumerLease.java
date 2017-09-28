@@ -402,6 +402,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 out.write(value);
             });
         }
+        flowFile = session.putAllAttributes(flowFile, getAttributes(record));
         tracker.updateFlowFile(flowFile);
         populateAttributes(tracker);
         session.transfer(tracker.flowFile, REL_SUCCESS);
