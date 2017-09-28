@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**

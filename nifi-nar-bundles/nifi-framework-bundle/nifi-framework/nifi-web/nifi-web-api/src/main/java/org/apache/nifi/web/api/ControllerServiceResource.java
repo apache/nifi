@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
@@ -155,7 +155,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -206,7 +206,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -270,7 +270,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets the state for a controller service",
             response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -325,7 +325,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Clears the state for a controller service",
             response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -387,7 +387,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service",
             response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -437,7 +437,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Updates a controller services references",
             response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each referencing component specified", type = "")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each referencing component specified")
             }
     )
     @ApiResponses(
@@ -572,8 +572,8 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Updates a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -663,10 +663,10 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Deletes a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write - Controller if scoped by Controller - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - Controller if scoped by Controller - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(

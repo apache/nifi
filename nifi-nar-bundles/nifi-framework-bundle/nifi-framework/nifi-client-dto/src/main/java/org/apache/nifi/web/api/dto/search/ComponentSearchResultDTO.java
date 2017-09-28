@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.List;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 /**
  * The components that match a search performed on this NiFi.

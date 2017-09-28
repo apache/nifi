@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -81,7 +81,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets the input content for a provenance event",
             response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -164,7 +164,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets the output content for a provenance event",
             response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -247,7 +247,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -320,8 +320,8 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Replays content from a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}"),
+                    @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(

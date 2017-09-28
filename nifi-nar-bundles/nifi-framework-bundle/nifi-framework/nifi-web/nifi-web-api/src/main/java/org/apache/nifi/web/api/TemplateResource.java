@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -97,7 +97,7 @@ public class TemplateResource extends ApplicationResource {
             value = "Exports a template",
             response = String.class,
             authorizations = {
-                    @Authorization(value = "Read - /templates/{uuid}", type = "")
+                    @Authorization(value = "Read - /templates/{uuid}")
             }
     )
     @ApiResponses(
@@ -165,8 +165,8 @@ public class TemplateResource extends ApplicationResource {
             value = "Deletes a template",
             response = TemplateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /templates/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /templates/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
             }
     )
     @ApiResponses(

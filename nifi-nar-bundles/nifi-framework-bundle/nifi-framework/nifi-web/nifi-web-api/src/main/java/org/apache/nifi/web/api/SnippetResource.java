@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
@@ -135,7 +135,7 @@ public class SnippetResource extends ApplicationResource {
             value = "Creates a snippet. The snippet will be automatically discarded if not used in a subsequent request after 1 minute.",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components", type = "")
+                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
@@ -220,8 +220,8 @@ public class SnippetResource extends ApplicationResource {
             value = "Move's the components in this Snippet into a new Process Group and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = "")
+                    @Authorization(value = "Write Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
@@ -301,8 +301,8 @@ public class SnippetResource extends ApplicationResource {
             value = "Deletes the components in a snippet and discards the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
             }
     )
     @ApiResponses(

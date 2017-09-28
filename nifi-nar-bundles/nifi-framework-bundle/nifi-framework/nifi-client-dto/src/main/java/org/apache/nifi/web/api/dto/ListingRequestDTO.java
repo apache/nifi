@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.util.Date;
-import java.util.List;
-
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
+import java.util.List;
 
 @XmlType(name = "listingRequest")
 public class ListingRequestDTO {

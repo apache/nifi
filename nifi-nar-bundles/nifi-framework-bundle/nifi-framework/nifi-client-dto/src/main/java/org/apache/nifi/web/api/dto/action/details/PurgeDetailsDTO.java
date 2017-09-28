@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Date;
 
 /**
  * Details of a purge operation.

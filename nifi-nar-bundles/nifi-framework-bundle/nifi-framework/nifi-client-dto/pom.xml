@@ -23,7 +23,7 @@
     <artifactId>nifi-client-dto</artifactId>
     <dependencies>
         <dependency>
-            <groupId>com.wordnik</groupId>
+            <groupId>io.swagger</groupId>
             <artifactId>swagger-annotations</artifactId>
         </dependency>
     </dependencies>
