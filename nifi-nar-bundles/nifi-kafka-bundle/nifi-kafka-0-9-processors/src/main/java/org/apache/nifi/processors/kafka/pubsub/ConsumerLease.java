@@ -392,7 +392,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 }
                 final byte[] value = record.value();
                 if (value != null) {
-                	out.write(record.value());
+                    out.write(record.value());
                 }
                 useDemarcator = true;
             }

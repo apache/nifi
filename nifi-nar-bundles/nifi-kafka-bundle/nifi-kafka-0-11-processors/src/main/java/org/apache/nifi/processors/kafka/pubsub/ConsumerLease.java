@@ -441,7 +441,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     }
                     final byte[] value = record.value();
                     if (value != null) {
-                    	out.write(record.value());
+                        out.write(record.value());
                     }
                     useDemarcator = true;
                 }
@@ -468,7 +468,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         final byte[] value = consumerRecord.value();
         if (value != null) {
-        	failureFlowFile = session.write(failureFlowFile, out -> out.write(value));
+            failureFlowFile = session.write(failureFlowFile, out -> out.write(value));
         }
         failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
 
