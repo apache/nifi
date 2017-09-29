@@ -281,6 +281,10 @@
             <scope>test</scope>
             <version>${kite.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hadoop-utils</artifactId>
+        </dependency>
 
     </dependencies>
 
