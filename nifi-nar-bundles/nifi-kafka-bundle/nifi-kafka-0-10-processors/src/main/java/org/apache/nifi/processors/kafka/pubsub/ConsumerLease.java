@@ -387,9 +387,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         FlowFile flowFile = session.create();
         final BundleTracker tracker = new BundleTracker(record, topicPartition, keyEncoding);
         tracker.incrementRecordCount(1);
-        flowFile = session.write(flowFile, out -> {
-            out.write(record.value());
-        });
+        final byte[] value = record.value();
+        if (value != null) {
+            flowFile = session.write(flowFile, out -> {
+                out.write(value);
+            });
+        }
         tracker.updateFlowFile(flowFile);
         populateAttributes(tracker);
         session.transfer(tracker.flowFile, REL_SUCCESS);
@@ -418,7 +421,10 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 if (useDemarcator) {
                     out.write(demarcatorBytes);
                 }
-                out.write(record.value());
+                final byte[] value = record.value();
+                if (value != null) {
+                	out.write(record.value());
+                }
                 useDemarcator = true;
             }
         });
@@ -439,7 +445,10 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, consumerRecord.topic());
 
         FlowFile failureFlowFile = session.create();
-        failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+        final byte[] value = consumerRecord.value();
+        if (value != null) {
+        	failureFlowFile = session.write(failureFlowFile, out -> out.write(value));
+        }        
         failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
 
         final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, consumerRecord.topic());
