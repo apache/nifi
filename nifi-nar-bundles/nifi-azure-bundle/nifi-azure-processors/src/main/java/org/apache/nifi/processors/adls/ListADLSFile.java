@@ -172,11 +172,7 @@ public class ListADLSFile extends ADLSAbstractProcessor {
             return;
         }
 
-        ADLStoreClient adlStoreClient = getAdlStoreClient();
-        if(adlStoreClient == null) {
-            createADLSClient(processContext);
-            adlStoreClient = getAdlStoreClient();
-        }
+        ADLStoreClient adlStoreClient = getAdlStoreClient(processContext);
         final boolean recursive = processContext.getProperty(RECURSE_SUBDIRS).asBoolean();
 
         List<DirectoryEntry> directoryEntries = null;

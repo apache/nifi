@@ -109,7 +109,9 @@ public abstract class ADLSAbstractProcessor extends AbstractProcessor {
         }
     }
 
-    public ADLStoreClient getAdlStoreClient() {
+    public ADLStoreClient getAdlStoreClient(ProcessContext context) {
+        if(adlStoreClient == null)
+            createADLSClient(context);
         return adlStoreClient;
     }
 

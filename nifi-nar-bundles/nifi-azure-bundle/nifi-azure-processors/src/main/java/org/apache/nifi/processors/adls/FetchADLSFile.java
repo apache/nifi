@@ -68,11 +68,7 @@ public class FetchADLSFile extends ADLSAbstractProcessor {
             return;
         }
 
-        ADLStoreClient adlsClient = getAdlStoreClient();
-        if(adlsClient == null) {
-            createADLSClient(context);
-            adlsClient = getAdlStoreClient();
-        }
+        ADLStoreClient adlsClient = getAdlStoreClient(context);
 
         StopWatch stopWatch = new StopWatch();
         final String filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();

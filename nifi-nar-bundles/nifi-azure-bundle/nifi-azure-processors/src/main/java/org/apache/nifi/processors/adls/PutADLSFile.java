@@ -145,13 +145,7 @@ public class PutADLSFile extends ADLSAbstractProcessor {
         final StopWatch dataRateStopWatch = new StopWatch();
         final StopWatch completeProcessStopWatch = new StopWatch(true);
 
-        ADLStoreClient adlsClient = getAdlStoreClient();
-        //safe check
-        if(adlsClient == null) {
-            createADLSClient(context);
-            adlsClient = getAdlStoreClient();
-        }
-        final ADLStoreClient adlsClientFinal = adlsClient;
+        final ADLStoreClient adlsClientFinal = getAdlStoreClient(context);
         final String coreAttributeFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
         Path directoryPath = Paths.get(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
