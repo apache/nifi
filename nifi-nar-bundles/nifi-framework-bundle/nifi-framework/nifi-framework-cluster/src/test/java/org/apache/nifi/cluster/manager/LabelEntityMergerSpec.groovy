@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.cluster.manager
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector
 import org.apache.nifi.cluster.protocol.NodeIdentifier
 import org.apache.nifi.web.api.dto.LabelDTO
 import org.apache.nifi.web.api.dto.PermissionsDTO
 import org.apache.nifi.web.api.entity.LabelEntity
-import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.map.SerializationConfig
-import org.codehaus.jackson.map.annotate.JsonSerialize
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -32,9 +31,9 @@ class LabelEntityMergerSpec extends Specification {
     def "Merge"() {
         given:
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector))
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+
         def entity = nodeEntityMap.entrySet().first().value
 
         when:

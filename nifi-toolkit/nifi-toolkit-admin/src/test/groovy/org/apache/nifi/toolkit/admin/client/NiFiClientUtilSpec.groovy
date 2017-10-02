@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.toolkit.admin.client
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.entity.ClusterEntity
 import org.junit.Rule
@@ -26,6 +23,9 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Invocation
+import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.Response
 
 class NiFiClientUtilSpec extends Specification{
@@ -57,9 +57,9 @@ class NiFiClientUtilSpec extends Specification{
         given:
         def Client client = Mock Client
         def NiFiProperties niFiProperties = Mock NiFiProperties
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
 
         when:
@@ -68,11 +68,11 @@ class NiFiClientUtilSpec extends Specification{
         then:
 
         3 * niFiProperties.getProperty(_)
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.get(_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.get() >> response
         1 * response.getStatus() >> 200
-        1 * response.getEntity(ClusterEntity.class) >> clusterEntity
+        1 * response.readEntity(ClusterEntity.class) >> clusterEntity
         entity == clusterEntity
 
     }
@@ -82,9 +82,9 @@ class NiFiClientUtilSpec extends Specification{
         given:
         def Client client = Mock Client
         def NiFiProperties niFiProperties = Mock NiFiProperties
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def ClusterEntity clusterEntity = Mock ClusterEntity
 
         when:
@@ -95,12 +95,12 @@ class NiFiClientUtilSpec extends Specification{
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT) >> "8081"
         niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) >> "localhost"
 
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
         1 * builder.header(_,_) >> builder
-        1 * builder.get(_) >> response
+        1 * builder.get() >> response
         1 * response.getStatus() >> 200
-        1 * response.getEntity(ClusterEntity.class) >> clusterEntity
+        1 * response.readEntity(ClusterEntity.class) >> clusterEntity
         entity == clusterEntity
 
     }
@@ -111,9 +111,9 @@ class NiFiClientUtilSpec extends Specification{
         given:
         def Client client = Mock Client
         def NiFiProperties niFiProperties = Mock NiFiProperties
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def Response.StatusType statusType = Mock Response.StatusType
 
         when:
@@ -123,11 +123,11 @@ class NiFiClientUtilSpec extends Specification{
         then:
 
         3 * niFiProperties.getProperty(_)
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.get(_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.get() >> response
         1 * response.getStatus() >> 500
-        1 * response.getEntity(String.class) >> "Only a node connected to a cluster can process the request."
+        1 * response.readEntity(String.class) >> "Only a node connected to a cluster can process the request."
         def e = thrown(RuntimeException)
         e.message == "Unable to obtain cluster information"
 

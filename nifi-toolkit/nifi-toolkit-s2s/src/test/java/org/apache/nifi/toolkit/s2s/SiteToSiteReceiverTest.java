@@ -17,7 +17,8 @@
 
 package org.apache.nifi.toolkit.s2s;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
@@ -42,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SiteToSiteReceiverTest {
-    private final ObjectMapper objectMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private final ObjectMapper objectMapper = new ObjectMapper().setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));;
     @Mock
     SiteToSiteClient siteToSiteClient;
     @Mock

@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.cluster.coordination.http
 
-import com.sun.jersey.api.client.ClientResponse
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector
 import org.apache.nifi.cluster.manager.NodeResponse
 import org.apache.nifi.cluster.protocol.NodeIdentifier
 import org.apache.nifi.util.NiFiProperties
@@ -34,13 +36,10 @@ import org.apache.nifi.web.api.entity.FunnelEntity
 import org.apache.nifi.web.api.entity.FunnelsEntity
 import org.apache.nifi.web.api.entity.LabelEntity
 import org.apache.nifi.web.api.entity.LabelsEntity
-import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.map.SerializationConfig
-import org.codehaus.jackson.map.annotate.JsonSerialize
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import javax.ws.rs.core.Response
 import java.text.NumberFormat
 
 @Unroll
@@ -60,12 +59,12 @@ class StandardHttpResponseMapperSpec extends Specification {
         def responseMapper = new StandardHttpResponseMapper(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI('http://server/resource')
         def requestId = UUID.randomUUID().toString()
-        def Map<ClientResponse, Map<String, Integer>> mockToRequestEntity = [:]
+        def Map<Response, Map<String, Integer>> mockToRequestEntity = [:]
         def nodeResponseSet = nodeResponseData.collect {
             int n = it.node
-            def clientResponse = Mock(ClientResponse)
-            mockToRequestEntity.put clientResponse, it
-            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, clientResponse, 500L, requestId)
+            def response = Mock(Response)
+            mockToRequestEntity.put response, it
+            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L, requestId)
         } as Set
 
         when:
@@ -73,8 +72,8 @@ class StandardHttpResponseMapperSpec extends Specification {
 
         then:
         mockToRequestEntity.entrySet().forEach {
-            ClientResponse mockClientResponse = it.key
-            _ * mockClientResponse.getStatus() >> it.value.status
+            Response response = it.key
+            _ * response.getStatus() >> it.value.status
         }
         0 * _
         returnedResponse == expectedStatus
@@ -90,21 +89,20 @@ class StandardHttpResponseMapperSpec extends Specification {
     def "MergeResponses: #responseEntities.size() HTTP 200 #httpMethod responses for #requestUriPart"() {
         given: "json serialization setup"
         def mapper = new ObjectMapper();
-        def jaxbIntrospector = new JaxbAnnotationIntrospector();
-        def SerializationConfig serializationConfig = mapper.getSerializationConfig();
-        mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
 
         and: "setup of the data to be used in the test"
         def responseMerger = new StandardHttpResponseMapper(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI("http://server/$requestUriPart")
         def requestId = UUID.randomUUID().toString()
-        def Map<ClientResponse, Object> mockToRequestEntity = [:]
+        def Map<Response, Object> mockToRequestEntity = [:]
         def n = 0
         def nodeResponseSet = responseEntities.collect {
             ++n
-            def clientResponse = Mock(ClientResponse)
-            mockToRequestEntity.put clientResponse, it
-            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, clientResponse, 500L, requestId)
+            def response = Mock(Response)
+            mockToRequestEntity.put response, it
+            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L, requestId)
         } as Set
 
         when:
@@ -112,10 +110,10 @@ class StandardHttpResponseMapperSpec extends Specification {
 
         then:
         mockToRequestEntity.entrySet().forEach {
-            ClientResponse mockClientResponse = it.key
+            Response response = it.key
             def entity = it.value
-            _ * mockClientResponse.getStatus() >> 200
-            1 * mockClientResponse.getEntity(_) >> entity
+            _ * response.getStatus() >> 200
+            1 * response.readEntity(_) >> entity
         }
         responseEntities.size() == mockToRequestEntity.size()
         0 * _

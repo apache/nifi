@@ -17,6 +17,16 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,16 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
-import org.apache.nifi.web.api.entity.ProvenanceEntity;
 
 public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
     public static final String PROVENANCE_URI = "/nifi-api/provenance";
@@ -60,12 +60,12 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ProvenanceEntity responseEntity = clientResponse.getClientResponse().getEntity(ProvenanceEntity.class);
+        final ProvenanceEntity responseEntity = clientResponse.getClientResponse().readEntity(ProvenanceEntity.class);
         final ProvenanceDTO dto = responseEntity.getProvenance();
 
         final Map<NodeIdentifier, ProvenanceDTO> dtoMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ProvenanceEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProvenanceEntity.class);
+            final ProvenanceEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ProvenanceEntity.class);
             final ProvenanceDTO nodeDto = nodeResponseEntity.getProvenance();
             dtoMap.put(nodeResponse.getNodeId(), nodeDto);
         }

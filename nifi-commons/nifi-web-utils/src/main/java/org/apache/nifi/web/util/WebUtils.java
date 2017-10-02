@@ -16,13 +16,9 @@
  */
 package org.apache.nifi.web.util;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +26,8 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -90,9 +88,13 @@ public final class WebUtils {
      */
     private static Client createClientHelper(final ClientConfig config, final SSLContext ctx) {
 
-        final ClientConfig finalConfig = (config == null) ? new DefaultClientConfig() : config;
+        ClientBuilder clientBuilder = ClientBuilder.newBuilder();
 
-        if (ctx != null && StringUtils.isBlank((String) finalConfig.getProperty(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES))) {
+        if (config != null) {
+            clientBuilder = clientBuilder.withConfig(config);
+        }
+
+        if (ctx != null) {
 
             // custom hostname verifier that checks subject alternative names against the hostname of the URI
             final HostnameVerifier hostnameVerifier = new HostnameVerifier() {
@@ -117,14 +119,12 @@ public final class WebUtils {
                 }
             };
 
-            finalConfig.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(hostnameVerifier, ctx));
+            clientBuilder = clientBuilder.sslContext(ctx).hostnameVerifier(hostnameVerifier);
         }
 
-        finalConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-        finalConfig.getClasses().add(ObjectMapperResolver.class);
+        clientBuilder = clientBuilder.register(ObjectMapperResolver.class).register(JacksonJaxbJsonProvider.class);
 
-        // web client for restful request
-        return Client.create(finalConfig);
+        return clientBuilder.build();
 
     }
 

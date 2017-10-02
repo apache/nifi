@@ -16,14 +16,32 @@
  */
 package org.apache.nifi.update.attributes.api;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.update.attributes.Action;
+import org.apache.nifi.update.attributes.Condition;
+import org.apache.nifi.update.attributes.Criteria;
+import org.apache.nifi.update.attributes.FlowFilePolicy;
+import org.apache.nifi.update.attributes.Rule;
+import org.apache.nifi.update.attributes.UpdateAttributeModelFactory;
+import org.apache.nifi.update.attributes.dto.DtoFactory;
+import org.apache.nifi.update.attributes.dto.RuleDTO;
+import org.apache.nifi.update.attributes.entity.ActionEntity;
+import org.apache.nifi.update.attributes.entity.ConditionEntity;
+import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
+import org.apache.nifi.update.attributes.entity.RuleEntity;
+import org.apache.nifi.update.attributes.entity.RulesEntity;
+import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
+import org.apache.nifi.web.ComponentDetails;
+import org.apache.nifi.web.HttpServletConfigurationRequestContext;
+import org.apache.nifi.web.HttpServletRequestContext;
+import org.apache.nifi.web.InvalidRevisionException;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
+import org.apache.nifi.web.NiFiWebRequestContext;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UiExtensionType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +49,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -45,36 +64,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
-
-import org.apache.nifi.update.attributes.Action;
-import org.apache.nifi.update.attributes.Condition;
-import org.apache.nifi.update.attributes.Criteria;
-import org.apache.nifi.update.attributes.Rule;
-import org.apache.nifi.update.attributes.UpdateAttributeModelFactory;
-import org.apache.nifi.update.attributes.dto.DtoFactory;
-import org.apache.nifi.update.attributes.dto.RuleDTO;
-import org.apache.nifi.update.attributes.entity.ActionEntity;
-import org.apache.nifi.update.attributes.entity.ConditionEntity;
-import org.apache.nifi.update.attributes.entity.RuleEntity;
-import org.apache.nifi.update.attributes.entity.RulesEntity;
-import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.nifi.web.InvalidRevisionException;
-import org.apache.nifi.web.Revision;
-import org.apache.commons.lang3.StringUtils;
-
-import com.sun.jersey.api.NotFoundException;
-
-import org.apache.nifi.update.attributes.FlowFilePolicy;
-import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
-import org.apache.nifi.web.ComponentDetails;
-import org.apache.nifi.web.HttpServletConfigurationRequestContext;
-import org.apache.nifi.web.HttpServletRequestContext;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
-import org.apache.nifi.web.NiFiWebRequestContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  *
@@ -255,7 +252,6 @@ public class RuleResource {
     @Path("/rules/conditions")
     public Response createCondition(
             @Context final UriInfo uriInfo,
-            @PathParam("id") final String ruleId,
             final ConditionEntity requestEntity) {
 
         // generate a new id
@@ -289,7 +285,6 @@ public class RuleResource {
     @Path("/rules/actions")
     public Response createAction(
             @Context final UriInfo uriInfo,
-            @PathParam("id") final String ruleId,
             final ActionEntity requestEntity) {
 
         // generate a new id

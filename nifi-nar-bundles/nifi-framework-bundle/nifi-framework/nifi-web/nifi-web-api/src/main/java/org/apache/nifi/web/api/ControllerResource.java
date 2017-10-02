@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -81,9 +80,6 @@ public class ControllerResource extends ApplicationResource {
 
     private ReportingTaskResource reportingTaskResource;
     private ControllerServiceResource controllerServiceResource;
-
-    @Context
-    private ResourceContext resourceContext;
 
     /**
      * Authorizes access to the flow.

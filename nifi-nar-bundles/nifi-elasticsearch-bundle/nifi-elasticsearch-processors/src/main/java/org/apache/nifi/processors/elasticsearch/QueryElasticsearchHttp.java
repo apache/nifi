@@ -16,23 +16,11 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -51,12 +39,23 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.codehaus.jackson.JsonNode;
 
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
@@ -361,7 +360,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     });
                 } else {
                     Map<String, String> attributes = new HashMap<>();
-                    for(Iterator<Entry<String, JsonNode>> it = source.getFields(); it.hasNext(); ) {
+                    for(Iterator<Entry<String, JsonNode>> it = source.fields(); it.hasNext(); ) {
                         Entry<String, JsonNode> entry = it.next();
                         attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), entry.getValue().asText());
                     }

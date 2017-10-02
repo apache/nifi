@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
@@ -27,6 +26,7 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 
+import javax.ws.rs.core.Response;
 import java.io.File;
 
 import static org.junit.Assert.assertEquals;
@@ -109,7 +109,7 @@ public class AccessControlHelper {
     }
 
     public void testGenericGetUri(final String uri) throws Exception {
-        ClientResponse response;
+        Response response;
 
         // read
         response = getReadUser().testGet(uri);
