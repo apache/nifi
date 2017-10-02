@@ -17,18 +17,6 @@
 
 package org.apache.nifi.confluent.schemaregistry.client;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -38,13 +26,21 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.web.util.WebUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * <p>
@@ -72,9 +68,9 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
-        final ClientConfig clientConfig = new DefaultClientConfig();
-        clientConfig.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, timeoutMillis);
-        clientConfig.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, timeoutMillis);
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
+        clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
     }
 
@@ -157,12 +153,12 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String trimmedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
             final String url = trimmedBase + path;
 
-            final WebResource.Builder builder = client.resource(url).accept(MediaType.APPLICATION_JSON);
-            final ClientResponse response = builder.get(ClientResponse.class);
+            final WebTarget webTarget = client.target(url);
+            final Response response = webTarget.request().accept(MediaType.APPLICATION_JSON).get();
             final int responseCode = response.getStatus();
 
             if (responseCode == Response.Status.OK.getStatusCode()) {
-                final JsonNode responseJson = response.getEntity(JsonNode.class);
+                final JsonNode responseJson = response.readEntity(JsonNode.class);
                 return responseJson;
             }
 
@@ -171,7 +167,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             }
 
             if (errorMessage == null) {
-                errorMessage = response.getEntity(String.class);
+                errorMessage = response.readEntity(String.class);
             }
         }
 

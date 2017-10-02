@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -60,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.UnsupportedEncodingException;
@@ -335,7 +335,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -351,7 +351,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return processor
                 ProcessorEntity entity = (ProcessorEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ProcessorEntity.class);
                 }
                 processor = entity.getComponent();
             } else {
@@ -420,7 +420,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return processor
                 ProcessorEntity entity = (ProcessorEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ProcessorEntity.class);
                 }
                 processor = entity.getComponent();
             } else {
@@ -528,7 +528,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -544,7 +544,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return controller service
                 ControllerServiceEntity entity = (ControllerServiceEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ControllerServiceEntity.class);
                 }
                 controllerService = entity.getComponent();
             }
@@ -635,7 +635,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return controller service
                 ControllerServiceEntity entity = (ControllerServiceEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ControllerServiceEntity.class);
                 }
                 controllerService = entity.getComponent();
             }
@@ -693,7 +693,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -709,7 +709,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return reporting task
                 ReportingTaskEntity entity = (ReportingTaskEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ReportingTaskEntity.class);
                 }
                 reportingTask = entity.getComponent();
             }
@@ -801,7 +801,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return reporting task
                 ReportingTaskEntity entity = (ReportingTaskEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ReportingTaskEntity.class);
                 }
                 reportingTask = entity.getComponent();
             }

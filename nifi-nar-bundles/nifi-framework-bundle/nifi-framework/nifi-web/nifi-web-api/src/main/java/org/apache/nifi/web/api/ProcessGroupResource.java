@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.multipart.FormDataParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -100,6 +97,7 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.util.Pause;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -119,6 +117,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -165,9 +164,6 @@ import java.util.stream.Collectors;
 public class ProcessGroupResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
-
-    @Context
-    private ResourceContext resourceContext;
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -826,7 +822,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -983,7 +979,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -1416,7 +1412,7 @@ public class ProcessGroupResource extends ApplicationResource {
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
-            entity = nodeResponse.getClientResponse().getEntity(clazz);
+            entity = nodeResponse.getClientResponse().readEntity(clazz);
         }
         return entity;
     }

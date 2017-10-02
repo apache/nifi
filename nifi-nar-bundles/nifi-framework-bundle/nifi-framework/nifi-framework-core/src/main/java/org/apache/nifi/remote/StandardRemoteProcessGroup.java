@@ -79,11 +79,6 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.api.client.UniformInterfaceException;
-
 /**
  * Represents the Root Process Group of a remote NiFi Instance. Holds
  * information about that remote instance, as well as {@link IncomingPort}s and
@@ -94,8 +89,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroup.class);
 
     // status codes
-    private static final int UNAUTHORIZED_STATUS_CODE = Status.UNAUTHORIZED.getStatusCode();
-    private static final int FORBIDDEN_STATUS_CODE = Status.FORBIDDEN.getStatusCode();
+    private static final int UNAUTHORIZED_STATUS_CODE = Response.Status.UNAUTHORIZED.getStatusCode();
+    private static final int FORBIDDEN_STATUS_CODE = Response.Status.FORBIDDEN.getStatusCode();
 
     private final String id;
 
@@ -879,7 +874,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             } finally {
                 writeLock.unlock();
             }
-        } catch (final ClientHandlerException | UniformInterfaceException e) {
+        } catch (final IOException e) {
             throw new CommunicationsException(e);
         }
     }
@@ -1195,7 +1190,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                             // attempt to issue a registration request in case the target instance is a 0.x
                             final boolean isApiSecure = apiClient.getBaseUrl().toLowerCase().startsWith("https");
                             final RemoteNiFiUtils utils = new RemoteNiFiUtils(isApiSecure ? sslContext : null);
-                            final ClientResponse requestAccountResponse = utils.issueRegistrationRequest(apiClient.getBaseUrl());
+                            final Response requestAccountResponse = utils.issueRegistrationRequest(apiClient.getBaseUrl());
                             if (Response.Status.Family.SUCCESSFUL.equals(requestAccountResponse.getStatusInfo().getFamily())) {
                                 logger.info("{} Issued a Request to communicate with remote instance", this);
                             } else {

@@ -17,18 +17,8 @@
 package org.apache.nifi.hbase;
 
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -48,8 +38,18 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SupportsBatching
@@ -208,7 +208,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final AtomicReference<String> rowIdHolder = new AtomicReference<>(null);
 
         // convert each field/value to a column for the put, skip over nulls and arrays
-        final Iterator<String> fieldNames = rootNode.getFieldNames();
+        final Iterator<String> fieldNames = rootNode.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
             final AtomicReference<byte[]> fieldValueHolder = new AtomicReference<>(null);
@@ -263,7 +263,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         // if we are expecting a field name to use for the row id and the incoming document doesn't have it
         // log an error message so the user can see what the field names were and return null so it gets routed to failure
         if (extractRowId && rowIdHolder.get() == null) {
-            final String fieldNameStr = StringUtils.join(rootNode.getFieldNames(), ",");
+            final String fieldNameStr = StringUtils.join(rootNode.fieldNames(), ",");
             getLogger().error("Row ID field named '{}' not found in field names '{}'; routing to failure", new Object[] {rowFieldName, fieldNameStr});
             return null;
         }

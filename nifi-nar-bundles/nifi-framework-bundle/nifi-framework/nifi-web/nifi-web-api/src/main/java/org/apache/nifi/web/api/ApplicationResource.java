@@ -18,10 +18,6 @@ package org.apache.nifi.web.api;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -66,6 +62,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -122,9 +119,6 @@ public abstract class ApplicationResource {
 
     @Context
     private UriInfo uriInfo;
-
-    @Context
-    private HttpContext httpContext;
 
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
@@ -300,22 +294,16 @@ public abstract class ApplicationResource {
     }
 
     protected MultivaluedMap<String, String> getRequestParameters() {
-        final MultivaluedMap<String, String> entity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> entity = new MultivaluedHashMap();
 
-        // get the form that jersey processed and use it if it exists (only exist for requests with a body and application form urlencoded
-        final Form form = (Form) httpContext.getProperties().get(FormDispatchProvider.FORM_PROPERTY);
-        if (form == null) {
-            for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
-                if (entry.getValue() == null) {
-                    entity.add(entry.getKey(), null);
-                } else {
-                    for (final String aValue : entry.getValue()) {
-                        entity.add(entry.getKey(), aValue);
-                    }
+        for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
+            if (entry.getValue() == null) {
+                entity.add(entry.getKey(), null);
+            } else {
+                for (final String aValue : entry.getValue()) {
+                    entity.add(entry.getKey(), aValue);
                 }
             }
-        } else {
-            entity.putAll(form);
         }
 
         return entity;

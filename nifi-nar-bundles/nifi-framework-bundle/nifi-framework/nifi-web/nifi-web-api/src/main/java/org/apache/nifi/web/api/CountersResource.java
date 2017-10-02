@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -61,9 +60,6 @@ import javax.ws.rs.core.Response;
         description = "Endpoint for managing counters."
 )
 public class CountersResource extends ApplicationResource {
-
-    @Context
-    private ResourceContext resourceContext;
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;

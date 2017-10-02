@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -41,7 +42,6 @@ import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
