@@ -253,38 +253,47 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long nextEventId = idGenerator.get();
         final File updatedEventFile = new File(partitionDirectory, nextEventId + ".prov");
         final RecordWriter updatedWriter = recordWriterFactory.createWriter(updatedEventFile, idGenerator, false, true);
-        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
-        final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
-        if (updated) {
-            updatedWriter.writeHeader(nextEventId);
+        // Synchronize on the writer to ensure that no other thread is able to obtain the writer and start writing events to it until after it has
+        // been fully initialized (i.e., the header has been written, etc.)
+        synchronized (updatedWriter) {
+            final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
+            final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
-            synchronized (minEventIdToPathMap) {
-                minEventIdToPathMap.put(nextEventId, updatedEventFile);
-            }
+            if (updated) {
+                if (lease != null) {
+                    lease.close();
+                }
 
-            if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
-                boolean offered = false;
-                while (!offered && !closed) {
-                    try {
-                        offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
+                updatedWriter.writeHeader(nextEventId);
+
+                synchronized (minEventIdToPathMap) {
+                    minEventIdToPathMap.put(nextEventId, updatedEventFile);
+                }
+
+                if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
+                    boolean offered = false;
+                    while (!offered && !closed) {
+                        try {
+                            offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
+                        } catch (final InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
+                        }
                     }
                 }
-            }
 
-            return true;
-        } else {
-            try {
-                updatedWriter.close();
-            } catch (final Exception e) {
-                logger.warn("Failed to close Record Writer {}; some resources may not be cleaned up properly.", updatedWriter, e);
-            }
+                return true;
+            } else {
+                try {
+                    updatedWriter.close();
+                } catch (final Exception e) {
+                    logger.warn("Failed to close Record Writer {}; some resources may not be cleaned up properly.", updatedWriter, e);
+                }
 
-            updatedEventFile.delete();
-            return false;
+                updatedEventFile.delete();
+                return false;
+            }
         }
     }
 
