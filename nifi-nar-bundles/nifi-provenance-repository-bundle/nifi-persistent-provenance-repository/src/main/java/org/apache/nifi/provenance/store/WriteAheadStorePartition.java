@@ -257,6 +257,10 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
         if (updated) {
+            if (lease != null) {
+                lease.close();
+            }
+
             updatedWriter.writeHeader(nextEventId);
 
             synchronized (minEventIdToPathMap) {
