@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
 
@@ -68,28 +67,33 @@ public class SocketChannelInputStream extends InputStream {
         oneByteBuffer.clear();
 
         final long maxTime = System.currentTimeMillis() + timeoutMillis;
-        int bytesRead;
-        do {
-            bytesRead = channel.read(oneByteBuffer);
-            if (bytesRead == 0) {
-                if (System.currentTimeMillis() > maxTime) {
-                    throw new SocketTimeoutException("Timed out reading from socket");
-                }
-                try {
-                    TimeUnit.NANOSECONDS.sleep(CHANNEL_EMPTY_WAIT_NANOS);
-                } catch (InterruptedException e) {
-                    close();
-                    Thread.currentThread().interrupt(); // set the interrupt status
-                    throw new ClosedByInterruptException(); // simulate an interrupted blocked read operation
-                }
-            }
-        } while (bytesRead == 0);
 
-        if (bytesRead == -1) {
-            return -1;
+        final boolean blocking = channel.isBlocking();
+
+        try {
+            channel.configureBlocking(true);
+
+            int bytesRead;
+            do {
+                bytesRead = channel.read(oneByteBuffer);
+                if (bytesRead == 0) {
+                    if (System.currentTimeMillis() > maxTime) {
+                        throw new SocketTimeoutException("Timed out reading from socket");
+                    }
+                }
+            } while (bytesRead == 0);
+
+            if (bytesRead == -1) {
+                return -1;
+            }
+
+            oneByteBuffer.flip();
+            return oneByteBuffer.get() & 0xFF;
+        } finally {
+            if (!blocking) {
+                channel.configureBlocking(false);
+            }
         }
-        oneByteBuffer.flip();
-        return oneByteBuffer.get() & 0xFF;
     }
 
     @Override
@@ -108,25 +112,27 @@ public class SocketChannelInputStream extends InputStream {
 
         final ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
 
-        final long maxTime = System.currentTimeMillis() + timeoutMillis;
-        int bytesRead;
-        do {
-            bytesRead = channel.read(buffer);
-            if (bytesRead == 0) {
-                if (System.currentTimeMillis() > maxTime) {
-                    throw new SocketTimeoutException("Timed out reading from socket");
-                }
-                try {
-                    TimeUnit.NANOSECONDS.sleep(CHANNEL_EMPTY_WAIT_NANOS);
-                } catch (InterruptedException e) {
-                    close();
-                    Thread.currentThread().interrupt(); // set the interrupt status
-                    throw new ClosedByInterruptException(); // simulate an interrupted blocked read operation
-                }
-            }
-        } while (bytesRead == 0);
+        final boolean blocking = channel.isBlocking();
+        try {
+            channel.configureBlocking(true);
 
-        return bytesRead;
+            final long maxTime = System.currentTimeMillis() + timeoutMillis;
+            int bytesRead;
+            do {
+                bytesRead = channel.read(buffer);
+                if (bytesRead == 0) {
+                    if (System.currentTimeMillis() > maxTime) {
+                        throw new SocketTimeoutException("Timed out reading from socket");
+                    }
+                }
+            } while (bytesRead == 0);
+
+            return bytesRead;
+        } finally {
+            if (!blocking) {
+                channel.configureBlocking(false);
+            }
+        }
     }
 
     @Override
