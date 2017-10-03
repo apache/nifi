@@ -69,8 +69,13 @@
                         <configuration>
                             <apiSources>
                                 <apiSource>
-                                    <locations>org.apache.nifi.web.api</locations>
-                                    <schemes>http,https</schemes>
+                                    <locations>
+                                        <location>org.apache.nifi.web.api</location>
+                                    </locations>
+                                    <schemes>
+                                        <scheme>http</scheme>
+                                        <scheme>https</scheme>
+                                    </schemes>
                                     <basePath>/nifi-api</basePath>
                                     <info>
                                         <title>NiFi Rest Api</title>
