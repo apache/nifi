@@ -28,13 +28,14 @@
                 'nf.CanvasUtils',
                 'nf.ControllerServices',
                 'nf.ErrorHandler',
+                'nf.FilteredDialogCommon',
                 'nf.ReportingTask',
                 'nf.Shell',
                 'nf.ComponentState',
                 'nf.ComponentVersion',
                 'nf.PolicyManagement'],
-            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
-                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
+            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -47,6 +48,7 @@
                 require('nf.CanvasUtils'),
                 require('nf.ControllerServices'),
                 require('nf.ErrorHandler'),
+                require('nf.FilteredDialogCommon'),
                 require('nf.ReportingTask'),
                 require('nf.Shell'),
                 require('nf.ComponentState'),
@@ -62,13 +64,14 @@
             root.nf.CanvasUtils,
             root.nf.ControllerServices,
             root.nf.ErrorHandler,
+            root.nf.FilteredDialogCommon,
             root.nf.ReportingTask,
             root.nf.Shell,
             root.nf.ComponentState,
             root.nf.ComponentVersion,
             root.nf.PolicyManagement);
     }
-}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
     'use strict';
 
 
@@ -321,7 +324,7 @@
 
             // update the selection if possible
             if (reportingTaskTypesData.getLength() > 0) {
-                reportingTaskTypesGrid.setSelectedRows([0]);
+                nfFilteredDialogCommon.choseFirstRow(reportingTaskTypesGrid);
             }
         }
     };
@@ -451,7 +454,7 @@
 
             // select the new reporting task
             var row = reportingTaskData.getRowById(reportingTaskEntity.id);
-            reportingTaskGrid.setSelectedRows([row]);
+            nfFilteredDialogCommon.choseRow(reportingTaskGrid, row);
             reportingTaskGrid.scrollRowIntoView(row);
         }).fail(nfErrorHandler.handleAjaxError);
 
@@ -465,26 +468,6 @@
      * Initializes the new reporting task dialog.
      */
     var initNewReportingTaskDialog = function () {
-        // define the function for filtering the list
-        $('#reporting-task-type-filter').on('keyup', function (e) {
-            var code = e.keyCode ? e.keyCode : e.which;
-            if (code === $.ui.keyCode.ENTER) {
-                // get the grid reference
-                var grid = $('#reporting-task-types-table').data('gridInstance');
-                var selected = grid.getSelectedRows();
-
-                if (selected.length > 0) {
-                    // grid configured with multi-select = false
-                    var item = grid.getDataItem(selected[0]);
-                    if (isSelectable(item)) {
-                        addSelectedReportingTask();
-                    }
-                }
-            } else {
-                applyReportingTaskTypeFilter();
-            }
-        });
-
         // initialize the reporting task type table
         var reportingTaskTypesColumns = [
             {
@@ -697,6 +680,35 @@
                 select: applyReportingTaskTypeFilter
             });
         }).fail(nfErrorHandler.handleAjaxError);
+
+        var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
+        // define the function for filtering the list
+        $('#reporting-task-type-filter').off('keyup').on('keyup', function (e) {
+            var code = e.keyCode ? e.keyCode : e.which;
+
+            // ignore navigation keys
+            if ($.inArray(code, navigationKeys) !== -1) {
+                return;
+            }
+
+            if (code === $.ui.keyCode.ENTER) {
+                var selected = reportingTaskTypesGrid.getSelectedRows();
+
+                if (selected.length > 0) {
+                    // grid configured with multi-select = false
+                    var item = reportingTaskTypesGrid.getDataItem(selected[0]);
+                    if (isSelectable(item)) {
+                        addSelectedReportingTask();
+                    }
+                }
+            } else {
+                applyReportingTaskTypeFilter();
+            }
+        });
+
+        // setup row navigation
+        nfFilteredDialogCommon.addKeydownListener('#reporting-task-type-filter', reportingTaskTypesGrid, reportingTaskTypesGrid.getData());
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
@@ -1297,7 +1309,7 @@
 
                         // select the first row if possible
                         if (reportingTaskTypesData.getLength() > 0) {
-                            reportingTaskTypesGrid.setSelectedRows([0]);
+                            nfFilteredDialogCommon.choseFirstRow(reportingTaskTypesGrid);
                         }
                     }
 
@@ -1349,7 +1361,7 @@
 
             // select the desired service
             var row = controllerServiceData.getRowById(controllerServiceId);
-            controllerServiceGrid.setSelectedRows([row]);
+            nfFilteredDialogCommon.choseRow(controllerServiceGrid, row);
             controllerServiceGrid.scrollRowIntoView(row);
 
             // select the controller services tab
@@ -1367,7 +1379,7 @@
 
             // select the desired service
             var row = reportingTaskData.getRowById(reportingTaskId);
-            reportingTaskGrid.setSelectedRows([row]);
+            nfFilteredDialogCommon.choseRow(reportingTaskGrid, row);
             reportingTaskGrid.scrollRowIntoView(row);
 
             // select the controller services tab
