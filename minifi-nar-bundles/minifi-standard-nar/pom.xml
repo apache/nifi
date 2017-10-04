@@ -33,13 +33,18 @@ limitations under the License.
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <type>nar</type>
+            <artifactId>nifi-standard-processors</artifactId>
+            <version>${org.apache.nifi.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-processors</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

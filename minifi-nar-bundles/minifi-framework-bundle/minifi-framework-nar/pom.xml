@@ -43,6 +43,12 @@ limitations under the License.
             <artifactId>minifi-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- NiFi Framework level dependencies -->
         <dependency>
