@@ -512,7 +512,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             for (final ConsumerRecord<byte[], byte[]> consumerRecord : records) {
                 final Map<String, String> attributes = getAttributes(consumerRecord);
 
-                try (final InputStream in = new ByteArrayInputStream(consumerRecord.value())) {
+                final byte[] recordBytes = consumerRecord.value() == null ? new byte[0] : consumerRecord.value();
+                try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
                     final RecordReader reader;
 
                     try {

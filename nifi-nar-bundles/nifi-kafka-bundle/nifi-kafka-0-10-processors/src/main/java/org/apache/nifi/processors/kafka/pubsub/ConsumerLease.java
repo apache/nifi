@@ -446,7 +446,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
 
             FlowFile failureFlowFile = session.create();
-            failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+            if (consumerRecord.value() != null) {
+                failureFlowFile = session.write(failureFlowFile, out -> out.write(consumerRecord.value()));
+            }
             failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
 
             final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topicPartition.topic());
@@ -461,7 +463,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         try {
             for (final ConsumerRecord<byte[], byte[]> consumerRecord : messages) {
-                try (final InputStream in = new ByteArrayInputStream(consumerRecord.value())) {
+                final byte[] recordBytes = consumerRecord.value() == null ? new byte[0] : consumerRecord.value();
+                try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
 
                     final RecordReader reader;
                     final Record firstRecord;
