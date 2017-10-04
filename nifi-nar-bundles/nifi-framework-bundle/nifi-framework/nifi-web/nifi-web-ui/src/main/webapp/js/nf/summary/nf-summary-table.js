@@ -413,6 +413,15 @@
                 resizable: true,
                 formatter: nfCommon.genericValueFormatter
             },
+            {
+                id: 'parentGroup',
+                field: 'parentProcessGroupName',
+                name: 'Process Group',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter,
+                toolTip: 'Parent Process Group name'
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -430,7 +439,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '" style="margin-right: 3px;"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
@@ -2523,12 +2532,21 @@
      * @argument {array} inputPortItems                 The input port data
      * @argument {array} outputPortItems                The input port data
      * @argument {array} remoteProcessGroupItems        The remote process group data
-     * @argument {object} aggregateSnapshot            The process group status
+     * @argument {object} aggregateSnapshot             The process group status
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
      */
-    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot) {
+    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, ancestorsSnapshot) {
         // add the processors to the summary grid
         $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatusEntity) {
-            processorItems.push(procStatusEntity.processorStatusSnapshot);
+            var currentProcessorStatusSnapshot = procStatusEntity.processorStatusSnapshot;
+
+            currentProcessorStatusSnapshot.parentProcessGroupName = aggregateSnapshot.name;
+            // construct a 'path' based on hierarchical group levels
+            currentProcessorStatusSnapshot.processGroupNamePath = ancestorsSnapshot.reduce(function(tempGroupNamesPath, ancestorGroup) {
+                return tempGroupNamesPath + '/' + ancestorGroup.name;
+            }, '');
+
+            processorItems.push(currentProcessorStatusSnapshot);
         });
 
         // add the processors to the summary grid
@@ -2556,8 +2574,21 @@
 
         // add any child group's status
         $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroupEntity) {
-            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupEntity.processGroupStatusSnapshot);
+            var childProcessGroupStatusSnapshot = childProcessGroupEntity.processGroupStatusSnapshot;
+            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupStatusSnapshot, createUpdatedAncestorsSnapshot(ancestorsSnapshot, childProcessGroupStatusSnapshot));
         });
+    };
+
+    /**
+     * Creates a new process group hierarchy.
+     *
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
+     * @argument {object} newAncestor                   The process group to add
+     */
+    var createUpdatedAncestorsSnapshot = function(ancestorsSnapshot, newAncestor) {
+        var snapshotCopy = ancestorsSnapshot.slice();
+        snapshotCopy.push(newAncestor);
+        return snapshotCopy;
     };
 
     /**
@@ -3105,7 +3136,7 @@
                     var remoteProcessGroupItems = [];
 
                     // populate the tables
-                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot);
+                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
 
                     // update the processors
                     processorsData.setItems(processorItems);
