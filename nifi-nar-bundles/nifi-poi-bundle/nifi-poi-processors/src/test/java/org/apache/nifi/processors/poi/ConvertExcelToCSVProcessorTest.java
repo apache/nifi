@@ -20,9 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
@@ -39,16 +39,6 @@ public class ConvertExcelToCSVProcessorTest {
     @Before
     public void init() {
         testRunner = TestRunners.newTestRunner(ConvertExcelToCSVProcessor.class);
-    }
-
-    @Test
-    public void testColToIndex() {
-        assertEquals(Integer.valueOf(0), ConvertExcelToCSVProcessor.columnToIndex("A"));
-        assertEquals(Integer.valueOf(1), ConvertExcelToCSVProcessor.columnToIndex("B"));
-        assertEquals(Integer.valueOf(25), ConvertExcelToCSVProcessor.columnToIndex("Z"));
-        assertEquals(Integer.valueOf(29), ConvertExcelToCSVProcessor.columnToIndex("AD"));
-        assertEquals(Integer.valueOf(239), ConvertExcelToCSVProcessor.columnToIndex("IF"));
-        assertEquals(Integer.valueOf(16383), ConvertExcelToCSVProcessor.columnToIndex("XFD"));
     }
 
     @Test
@@ -79,6 +69,144 @@ public class ConvertExcelToCSVProcessorTest {
         //Since TestRunner.run() will create a random filename even if the attribute is set in enqueue manually we just check that "_{SHEETNAME}.csv is present
         assertTrue(ffSheetB.getAttribute(CoreAttributes.FILENAME.key()).endsWith("_TestSheetB.csv"));
 
+    }
+
+    @Test
+    public void testDataFormatting() throws Exception {
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
+
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "false");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        ff.assertContentEquals("Numbers,Timestamps,Money\n" +
+                "1234.4559999999999,42736.5,123.45\n" +
+                "1234.4559999999999,42736.5,123.45\n" +
+                "1234.4559999999999,42736.5,123.45\n" +
+                "1234.4559999999999,42736.5,1023.45\n" +
+                "1234.4559999999999,42736.5,1023.45\n" +
+                "987654321,42736.5,1023.45\n" +
+                "987654321,,\n" +
+                "987654321,,\n");
+    }
+
+    @Test
+    public void testQuoting() throws Exception {
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
+
+        testRunner.setProperty(CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL);
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        ff.assertContentEquals("Numbers,Timestamps,Money\n" +
+                "1234.456,1/1/17,$   123.45\n" +
+                "1234.46,12:00:00 PM,£   123.45\n" +
+                "1234.5,\"Sunday, January 01, 2017\",¥   123.45\n" +
+                "\"1,234.46\",1/1/17 12:00,\"$   1,023.45\"\n" +
+                "\"1,234.4560\",12:00 PM,\"£   1,023.45\"\n" +
+                "9.88E+08,2017/01/01/ 12:00,\"¥   1,023.45\"\n" +
+                "9.877E+08,,\n" +
+                "9.8765E+08,,\n");
+    }
+
+    @Test
+    public void testSkipRows() throws Exception {
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
+
+        testRunner.setProperty(ConvertExcelToCSVProcessor.ROWS_TO_SKIP, "2");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertEquals("Row count does match expected value.", "7", rowsSheet.toString());
+
+        ff.assertContentEquals("1234.46,12:00:00 PM,£   123.45\n" +
+                "1234.5,Sunday\\, January 01\\, 2017,¥   123.45\n" +
+                "1\\,234.46,1/1/17 12:00,$   1\\,023.45\n" +
+                "1\\,234.4560,12:00 PM,£   1\\,023.45\n" +
+                "9.88E+08,2017/01/01/ 12:00,¥   1\\,023.45\n" +
+                "9.877E+08,,\n" +
+                "9.8765E+08,,\n");
+    }
+
+    @Test
+    public void testSkipColumns() throws Exception {
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
+
+        testRunner.setProperty(ConvertExcelToCSVProcessor.COLUMNS_TO_SKIP, "2");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        ff.assertContentEquals("Numbers,Money\n" +
+                "1234.456,$   123.45\n" +
+                "1234.46,£   123.45\n" +
+                "1234.5,¥   123.45\n" +
+                "1\\,234.46,$   1\\,023.45\n" +
+                "1\\,234.4560,£   1\\,023.45\n" +
+                "9.88E+08,¥   1\\,023.45\n" +
+                "9.877E+08,\n" +
+                "9.8765E+08,\n");
+    }
+
+    @Test
+    public void testCustomDelimiters() throws Exception {
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
+
+        testRunner.setProperty(CSVUtils.VALUE_SEPARATOR, "|");
+        testRunner.setProperty(CSVUtils.RECORD_SEPARATOR, "\\r\\n");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        ff.assertContentEquals("Numbers|Timestamps|Money\r\n" +
+                "1234.456|1/1/17|$   123.45\r\n" +
+                "1234.46|12:00:00 PM|£   123.45\r\n" +
+                "1234.5|Sunday, January 01, 2017|¥   123.45\r\n" +
+                "1,234.46|1/1/17 12:00|$   1,023.45\r\n" +
+                "1,234.4560|12:00 PM|£   1,023.45\r\n" +
+                "9.88E+08|2017/01/01/ 12:00|¥   1,023.45\r\n" +
+                "9.877E+08||\r\n" +
+                "9.8765E+08||\r\n");
     }
 
     /**
@@ -181,7 +309,7 @@ public class ConvertExcelToCSVProcessorTest {
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertTrue(l == 8l);
-        ff.isContentEqual("test", StandardCharsets.UTF_8);
+
         ff.assertContentEquals(new File("src/test/resources/with-blank-cells.csv"));
     }
 
@@ -199,8 +327,8 @@ public class ConvertExcelToCSVProcessorTest {
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 1);
 
         List<LogMessage> errorMessages = testRunner.getLogger().getErrorMessages();
-        Assert.assertEquals(2, errorMessages.size());
+        Assert.assertEquals(1, errorMessages.size());
         String messageText = errorMessages.get(0).getMsg();
-        Assert.assertTrue(messageText.contains("Excel") && messageText.contains("supported"));
+        Assert.assertTrue(messageText.contains("Excel") && messageText.contains("OLE2"));
     }
 }
