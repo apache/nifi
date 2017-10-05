@@ -108,6 +108,7 @@
         <storm.version>1.1.1</storm.version>
         <hwx.registry.version>0.3.0</hwx.registry.version>
         <jackson.version>2.8.6</jackson.version>
+        <jackson.old.version>1.9.13</jackson.old.version>
     </properties>
 
     <repositories>
@@ -794,21 +795,6 @@
                 <artifactId>h2</artifactId>
                 <version>1.3.176</version>
             </dependency>
-            <dependency>
-                <groupId>org.jasypt</groupId>
-                <artifactId>jasypt</artifactId>
-                <version>1.9.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.jackson</groupId>
-                <artifactId>jackson-mapper-asl</artifactId>
-                <version>1.9.13</version>
-            </dependency>
-            <!--<dependency>-->
-                <!--<groupId>com.fasterxml.jackson.core</groupId>-->
-                <!--<artifactId>jackson-databind</artifactId>-->
-                <!--<version>${jackson.version}</version>-->
-            <!--</dependency>-->
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-streaming_2.10</artifactId>
