@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.microsoft.azure.storage.StorageUri;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.BlobProperties;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -37,24 +35,25 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.Azure;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @TriggerSerially
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
@@ -79,14 +78,25 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
         "where the previous node left off, without duplicating the data.")
 public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
-    private static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder().name("prefix").displayName("Prefix").description("Search prefix for listing")
+    private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder().name("prefix").displayName("Prefix").description("Search prefix for listing")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(false).build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, PREFIX));
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            Azure.CONTAINER,
+            Azure.PROP_SAS_TOKEN,
+            Azure.ACCOUNT_NAME,
+            Azure.ACCOUNT_KEY,
+            PROP_PREFIX));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        return Azure.validateCredentialProperties(validationContext);
     }
 
     @Override
@@ -107,15 +117,16 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions().getValue();
+        return context.getProperty(Azure.CONTAINER).evaluateAttributeExpressions().getValue();
     }
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
-        return PREFIX.equals(property)
-                   || AzureConstants.ACCOUNT_NAME.equals(property)
-                   || AzureConstants.CONTAINER.equals(property);
+        return PROP_PREFIX.equals(property)
+                   || Azure.ACCOUNT_NAME.equals(property)
+                   || Azure.CONTAINER.equals(property)
+                   || Azure.PROP_SAS_TOKEN.equals(property);
     }
 
     @Override
@@ -125,15 +136,14 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions().getValue();
-        String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
+        String containerName = context.getProperty(Azure.CONTAINER).evaluateAttributeExpressions().getValue();
+        String prefix = context.getProperty(PROP_PREFIX).evaluateAttributeExpressions().getValue();
         if (prefix == null) {
             prefix = "";
         }
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudStorageAccount storageAccount = createStorageConnection(context);
-            CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
+            CloudBlobClient blobClient = Azure.createCloudBlobClient(context, getLogger());
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
@@ -142,43 +152,32 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                     BlobProperties properties = cloudBlob.getProperties();
                     StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
 
-                    Builder builder = new BlobInfo.Builder().primaryUri(uri.getPrimaryUri().toString()).secondaryUri(uri.getSecondaryUri().toString()).contentType(properties.getContentType())
-                            .contentLanguage(properties.getContentLanguage()).etag(properties.getEtag()).lastModifiedTime(properties.getLastModified().getTime()).length(properties.getLength());
+                    Builder builder = new BlobInfo.Builder()
+                                              .primaryUri(uri.getPrimaryUri().toString())
+                                              .contentType(properties.getContentType())
+                                              .contentLanguage(properties.getContentLanguage())
+                                              .etag(properties.getEtag())
+                                              .lastModifiedTime(properties.getLastModified().getTime())
+                                              .length(properties.getLength());
+
+                    if (uri.getSecondaryUri() != null) {
+                        builder.secondaryUri(uri.getSecondaryUri().toString());
+                    }
 
                     if (blob instanceof CloudBlockBlob) {
-                        builder.blobType(AzureConstants.BLOCK);
+                        builder.blobType(Azure.BLOCK);
                     } else {
-                        builder.blobType(AzureConstants.PAGE);
+                        builder.blobType(Azure.PAGE);
                     }
                     listing.add(builder.build());
                 }
             }
-        } catch (IllegalArgumentException | URISyntaxException | StorageException e) {
-            throw (new IOException(e));
+        } catch (Throwable t) {
+            throw new IOException(ExceptionUtils.getRootCause(t));
         }
         return listing;
     }
 
-    private CloudStorageAccount createStorageConnection(ProcessContext context) {
-        final String accountName = context.getProperty(AzureConstants.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        final String accountKey = context.getProperty(AzureConstants.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        final String storageConnectionString = String.format(AzureConstants.FORMAT_DEFAULT_CONNECTION_STRING, accountName, accountKey);
-        try {
 
-            CloudStorageAccount storageAccount;
-            try {
-                storageAccount = CloudStorageAccount.parse(storageConnectionString);
-            } catch (IllegalArgumentException | URISyntaxException e) {
-                getLogger().error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
-                throw e;
-            } catch (InvalidKeyException e) {
-                getLogger().error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
-                throw e;
-            }
-            return storageAccount;
-        } catch (InvalidKeyException | URISyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
 
 }
