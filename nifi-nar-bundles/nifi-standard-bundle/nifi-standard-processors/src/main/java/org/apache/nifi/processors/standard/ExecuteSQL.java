@@ -248,7 +248,11 @@ public class ExecuteSQL extends AbstractProcessor {
 
                 resultCount++;
                 // are there anymore result sets?
-                results = st.getMoreResults();
+                try{
+                    results = st.getMoreResults();
+                } catch(SQLException ex){
+                    results = false;
+                }
             }
 
             //If we had at least one result then it's OK to drop the original file, but if we had no results then
