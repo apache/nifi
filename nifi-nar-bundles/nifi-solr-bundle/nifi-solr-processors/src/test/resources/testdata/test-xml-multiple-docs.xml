@@ -1,5 +1,6 @@
 <add>
     <doc>
+        <field name="id">1</field>
         <field name="first">John</field>
         <field name="last">Doe</field>
         <field name="grade">8</field>
@@ -8,6 +9,7 @@
         <field name="marks">90</field>
     </doc>
     <doc>
+        <field name="id">2</field>
         <field name="first">John</field>
         <field name="last">Doe</field>
         <field name="grade">8</field>

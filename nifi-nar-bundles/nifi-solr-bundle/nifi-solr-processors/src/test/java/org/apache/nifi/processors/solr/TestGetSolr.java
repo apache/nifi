@@ -18,9 +18,15 @@
  */
 package org.apache.nifi.processors.solr;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
@@ -29,19 +35,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.TimeZone;
-
-import static org.junit.Assert.assertTrue;
 
 public class TestGetSolr {
 
@@ -51,13 +51,9 @@ public class TestGetSolr {
 
     @Before
     public void setup() {
-        // create the conf dir if it doesn't exist
-        File confDir = new File("conf");
-        if (!confDir.exists()) {
-            confDir.mkdir();
-        }
 
         try {
+
             // create an EmbeddedSolrServer for the processor to use
             String relPath = getClass().getProtectionDomain().getCodeSource()
                     .getLocation().getFile() + "../../target";
@@ -65,52 +61,30 @@ public class TestGetSolr {
             solrClient = EmbeddedSolrServerFactory.create(EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
                     DEFAULT_SOLR_CORE, relPath);
 
-            // create some test documents
-            SolrInputDocument doc1 = new SolrInputDocument();
-            doc1.addField("first", "bob");
-            doc1.addField("last", "smith");
-            doc1.addField("created", new Date());
+            for (int i = 0; i < 10; i++) {
+                SolrInputDocument doc = new SolrInputDocument();
+                doc.addField("id", "doc" + i);
+                doc.addField("created", new Date());
+                doc.addField("string_single", "single" + i + ".1");
+                doc.addField("string_multi", "multi" + i + ".1");
+                doc.addField("string_multi", "multi" + i + ".2");
+                doc.addField("integer_single", i);
+                doc.addField("integer_multi", 1);
+                doc.addField("integer_multi", 2);
+                doc.addField("integer_multi", 3);
+                doc.addField("double_single", 0.5 + i);
+                solrClient.add(doc);
 
-            SolrInputDocument doc2 = new SolrInputDocument();
-            doc2.addField("first", "alice");
-            doc2.addField("last", "smith");
-            doc2.addField("created", new Date());
-
-            SolrInputDocument doc3 = new SolrInputDocument();
-            doc3.addField("first", "mike");
-            doc3.addField("last", "smith");
-            doc3.addField("created", new Date());
-
-            SolrInputDocument doc4 = new SolrInputDocument();
-            doc4.addField("first", "john");
-            doc4.addField("last", "smith");
-            doc4.addField("created", new Date());
-
-            SolrInputDocument doc5 = new SolrInputDocument();
-            doc5.addField("first", "joan");
-            doc5.addField("last", "smith");
-            doc5.addField("created", new Date());
-
-            // add the test data to the index
-            solrClient.add(Arrays.asList(doc1, doc2, doc3, doc4, doc5));
+            }
             solrClient.commit();
         } catch (Exception e) {
+            e.printStackTrace();
             Assert.fail(e.getMessage());
         }
     }
 
     @After
     public void teardown() {
-        File confDir = new File("conf");
-        assertTrue(confDir.exists());
-        File[] files = confDir.listFiles();
-        if (files.length > 0) {
-            for (File file : files) {
-                assertTrue("Failed to delete " + file.getName(), file.delete());
-            }
-        }
-        assertTrue(confDir.delete());
-
         try {
             solrClient.close();
         } catch (Exception e) {
@@ -118,51 +92,17 @@ public class TestGetSolr {
     }
 
     @Test
-    public void testMoreThanBatchSizeShouldProduceMultipleFlowFiles() throws IOException, SolrServerException {
-        final TestableProcessor proc = new TestableProcessor(solrClient);
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-
-        // setup a lastEndDate file to simulate picking up from a previous end date
-        SimpleDateFormat sdf = new SimpleDateFormat(GetSolr.LAST_END_DATE_PATTERN, Locale.US);
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-        Calendar cal = new GregorianCalendar();
-        cal.add(Calendar.MINUTE, -30);
-        final String lastEndDate = sdf.format(cal.getTime());
-
-        File lastEndDateCache = new File(GetSolr.FILE_PREFIX + proc.getIdentifier());
-        try (FileOutputStream fos = new FileOutputStream(lastEndDateCache)) {
-            Properties props = new Properties();
-            props.setProperty(GetSolr.LAST_END_DATE, lastEndDate);
-            props.store(fos, "GetSolr LastEndDate value");
-        } catch (IOException e) {
-            Assert.fail("Failed to setup last end date value: " + e.getMessage());
-        }
-
-        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.SOLR_QUERY, "last:smith");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "first, last, created");
-        runner.setProperty(GetSolr.SORT_CLAUSE, "created desc, first asc");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
-        runner.setProperty(GetSolr.BATCH_SIZE, "2");
-
-        runner.run();
-        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 3);
-    }
-
-    @Test
     public void testLessThanBatchSizeShouldProduceOneFlowFile() throws IOException, SolrServerException {
-        final TestableProcessor proc = new TestableProcessor(solrClient);
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
         runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.SOLR_QUERY, "last:smith");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "created");
-        runner.setProperty(GetSolr.SORT_CLAUSE, "created desc");
         runner.setProperty(GetSolr.DATE_FIELD, "created");
-        runner.setProperty(GetSolr.BATCH_SIZE, "10");
+        runner.setProperty(GetSolr.BATCH_SIZE, "20");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 1);
@@ -170,40 +110,243 @@ public class TestGetSolr {
 
     @Test
     public void testNoResultsShouldProduceNoOutput() throws IOException, SolrServerException {
-        final TestableProcessor proc = new TestableProcessor(solrClient);
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
         runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.SOLR_QUERY, "last:xyz");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "created");
-        runner.setProperty(GetSolr.SORT_CLAUSE, "created desc");
+        runner.setProperty(GetSolr.SOLR_QUERY, "integer_single:1000");
         runner.setProperty(GetSolr.DATE_FIELD, "created");
-        runner.setProperty(GetSolr.BATCH_SIZE, "10");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
     }
 
     @Test
-    public void testOnRemovedRemovesState() throws IOException, SolrServerException {
-        final TestableProcessor proc = new TestableProcessor(solrClient);
+    public void testSolrModes() throws IOException, SolrServerException {
+
+    }
+
+    @Test(expected = java.lang.AssertionError.class)
+    public void testValidation() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
         runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.SOLR_QUERY, "last:smith");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "created");
-        runner.setProperty(GetSolr.SORT_CLAUSE, "created desc");
         runner.setProperty(GetSolr.DATE_FIELD, "created");
-        runner.setProperty(GetSolr.BATCH_SIZE, "10");
+        runner.setProperty(GetSolr.BATCH_SIZE, "2");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_REC.getValue());
 
-        runner.run();
+        runner.run(1);
+    }
 
-        File lastEndDateCache = new File(GetSolr.FILE_PREFIX + proc.getIdentifier());
-        Assert.assertTrue("State file should exist, but doesn't", lastEndDateCache.exists());
-        proc.onRemoved();
-        Assert.assertFalse("State file should have been removed, but wasn't", lastEndDateCache.exists());
+    @Test
+    public void testCompletenessDespiteUpdates() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        SolrInputDocument doc0 = new SolrInputDocument();
+        doc0.addField("id", "doc0");
+        doc0.addField("created", new Date());
+        SolrInputDocument doc1 = new SolrInputDocument();
+        doc1.addField("id", "doc1");
+        doc1.addField("created", new Date());
+
+        solrClient.add(doc0);
+        solrClient.add(doc1);
+        solrClient.commit();
+
+        runner.run(1,true, false);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 2);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
+    }
+
+    @Test
+    public void testCompletenessDespiteDeletions() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        SolrInputDocument doc10 = new SolrInputDocument();
+        doc10.addField("id", "doc10");
+        doc10.addField("created", new Date());
+        SolrInputDocument doc11 = new SolrInputDocument();
+        doc11.addField("id", "doc11");
+        doc11.addField("created", new Date());
+
+        solrClient.add(doc10);
+        solrClient.add(doc11);
+        solrClient.deleteById("doc0");
+        solrClient.deleteById("doc1");
+        solrClient.deleteById("doc2");
+        solrClient.commit();
+
+        runner.run(1,true, false);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 2);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
+    }
+
+    @Test
+    public void testInitialDateFilter() throws IOException, SolrServerException {
+        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        final Date dateToFilter = new Date();
+
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.DATE_FILTER, df.format(dateToFilter));
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        SolrInputDocument doc10 = new SolrInputDocument();
+        doc10.addField("id", "doc10");
+        doc10.addField("created", new Date());
+        SolrInputDocument doc11 = new SolrInputDocument();
+        doc11.addField("id", "doc11");
+        doc11.addField("created", new Date());
+
+        solrClient.add(doc10);
+        solrClient.add(doc11);
+        solrClient.commit();
+
+        runner.run(1,true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 2);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
+    }
+
+    @Test
+    public void testPropertyModified() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // Change property contained in propertyNamesForActivatingClearState
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created,string_multi");
+        runner.run(1, false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // Change property not contained in propertyNamesForActivatingClearState
+        runner.setProperty(GetSolr.BATCH_SIZE, "2");
+        runner.run(1, true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testStateCleared() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // run without clearing statemanager
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        // run with cleared statemanager
+        runner.getStateManager().clear(Scope.CLUSTER);
+        runner.run(1, true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+
+    }
+
+    @Test
+    public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "2");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/test-schema.avsc")));
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(jsonWriter);
+        runner.setProperty(GetSolr.RECORD_WRITER, "writer");
+
+        runner.run(1,true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 5);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
     }
 
     // Override createSolrClient and return the passed in SolrClient

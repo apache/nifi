@@ -275,7 +275,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
     }
 
     @Override
-    protected final Collection<ValidationResult> customValidate(ValidationContext context) {
+    final protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
