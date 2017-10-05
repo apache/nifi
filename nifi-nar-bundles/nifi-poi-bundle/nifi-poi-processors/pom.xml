@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <properties>
-        <poi.version>3.14</poi.version>
+        <poi.version>3.17</poi.version>
     </properties>
 
     <parent>
@@ -66,7 +66,6 @@
             <artifactId>poi-ooxml</artifactId>
             <version>${poi.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
@@ -74,6 +73,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-record-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
