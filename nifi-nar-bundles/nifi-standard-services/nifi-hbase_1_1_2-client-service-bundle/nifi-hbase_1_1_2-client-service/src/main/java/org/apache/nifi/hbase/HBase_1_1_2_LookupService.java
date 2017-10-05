@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -91,25 +90,23 @@ public class HBase_1_1_2_LookupService extends HBase_1_1_2_ClientService impleme
     private List<byte[]> families;
     private List<byte[]> qualifiers;
     private Charset charset;
-    private List<PropertyDescriptor> lookupProperties;
 
     @Override
-    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
-        super.init(config);
-        this.lookupProperties = new ArrayList<>();
-        this.lookupProperties.addAll(properties);
-        this.lookupProperties.add(TABLE_NAME);
-        this.lookupProperties.add(RETURN_CFS);
-        this.lookupProperties.add(RETURN_QFS);
-        this.lookupProperties.add(CHARSET);
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        List<PropertyDescriptor> retVal = new ArrayList<>();
+        retVal.add(TABLE_NAME);
+        retVal.add(RETURN_CFS);
+        retVal.add(RETURN_QFS);
+        retVal.add(CHARSET);
+        return retVal;
     }
 
     @Override
     public Optional<Record> lookup(Map<String, String> coordinates) throws LookupFailureException {
-        byte[] rowKey = ((String)coordinates.get("rowKey")).getBytes();
+        byte[] rowKey = coordinates.get("rowKey").getBytes();
         try {
             Map<String, Object> values = new HashMap<>();
-            try (Table table = this.connection.getTable(TableName.valueOf(tableName))) {
+            try (Table table = getConnection().getTable(TableName.valueOf(tableName))) {
                 Get get = new Get(rowKey);
                 Result result = table.get(get);
 
@@ -131,7 +128,7 @@ public class HBase_1_1_2_LookupService extends HBase_1_1_2_ClientService impleme
                 final RecordSchema schema = new SimpleRecordSchema(fields);
                 return Optional.ofNullable(new MapRecord(schema, values));
             } else {
-                throw new LookupFailureException(String.format("Nothing was found that matched the criteria for row key %s", coordinates.get("rowKey")));
+                return Optional.empty();
             }
         } catch (IOException e) {
             getLogger().error("Error occurred loading {}", new Object[] { coordinates.get("rowKey") }, e);
@@ -147,11 +144,6 @@ public class HBase_1_1_2_LookupService extends HBase_1_1_2_ClientService impleme
     @Override
     public Set<String> getRequiredKeys() {
         return REQUIRED_KEYS;
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
     }
 
     @OnEnabled
