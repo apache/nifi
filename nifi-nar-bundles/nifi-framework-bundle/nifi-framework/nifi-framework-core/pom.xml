@@ -165,6 +165,7 @@
         <dependency>
             <groupId>org.jasypt</groupId>
             <artifactId>jasypt</artifactId>
+            <version>1.9.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>

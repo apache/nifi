@@ -20,7 +20,6 @@
         <artifactId>nifi-external</artifactId>
         <version>1.5.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-storm-spout</artifactId>
 
     <dependencies>
