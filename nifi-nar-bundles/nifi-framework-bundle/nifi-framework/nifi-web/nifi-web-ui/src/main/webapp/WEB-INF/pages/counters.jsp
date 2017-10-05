@@ -58,6 +58,7 @@
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-utility.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/yes-no-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/counters/counters-content.jsp"/>
     </body>
 </html>
