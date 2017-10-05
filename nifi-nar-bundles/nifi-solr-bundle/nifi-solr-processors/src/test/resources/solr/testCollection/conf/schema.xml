@@ -16,6 +16,16 @@
     <field name="marks" type="int" indexed="true" stored="true" />
     <field name="test" type="string" indexed="true" stored="true" />
     <field name="subject" type="string" indexed="true" stored="true" />
+
     <field name="created" type="date" indexed="true" stored="true" />
+
+    <field name="id" type="string" indexed="true" stored="true" />
+    <field name="double_single" type="double" indexed="true" stored="true" />
+    <field name="integer_single" type="int" indexed="true" stored="true" />
+    <field name="integer_multi" type="int" indexed="true" stored="true"  multiValued="true"/>
+    <field name="string_single" type="string" indexed="true" stored="true" />
+    <field name="string_multi" type="string" indexed="true" stored="true" multiValued="true"/>
+
+    <uniqueKey>id</uniqueKey>
 
 </schema>
