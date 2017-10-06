@@ -19,6 +19,7 @@ package org.apache.nifi.metrics.reporting.reporter.service;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
+import com.codahale.metrics.graphite.GraphiteReporter;
 import com.codahale.metrics.graphite.GraphiteSender;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
@@ -66,12 +67,17 @@ public class GraphiteMetricReporterServiceTest {
     private static final Charset TEST_CHARSET = StandardCharsets.UTF_16LE;
 
     /**
+     * Sample prefix for metric names.
+     */
+    private static final String METRIC_NAMES_PREFIX = "test-metric-name-prefix";
+
+    /**
      * Sample metric for verifying that a graphite sender with the correct configuration is used.
      */
     private static final String TEST_METRIC_NAME = "test-metric";
 
     /**
-     *  The fixed value of {@link #TEST_METRIC_NAME}.
+     * The fixed value of {@link #TEST_METRIC_NAME}.
      */
     private static final int TEST_METRIC_VALUE = 2;
 
@@ -122,7 +128,7 @@ public class GraphiteMetricReporterServiceTest {
     @Test
     public void testGraphiteMetricReporterSanityConfiguration() throws Exception {
         runner.addControllerService(SERVICE_IDENTIFIER, testedService);
-        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET);
+        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET, METRIC_NAMES_PREFIX);
         runner.enableControllerService(testedService);
 
         runner.assertValid(testedService);
@@ -137,14 +143,15 @@ public class GraphiteMetricReporterServiceTest {
     public void testCreateReporterUsesCorrectSender() throws Exception {
         testedService = new TestableGraphiteMetricReporterService();
         runner.addControllerService(SERVICE_IDENTIFIER, testedService);
-        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET);
+        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET, METRIC_NAMES_PREFIX);
         when(graphiteSenderMock.isConnected()).thenReturn(false);
         runner.enableControllerService(testedService);
 
         ScheduledReporter createdReporter = testedService.createReporter(metricRegistryStub);
         createdReporter.report();
 
-        verify(graphiteSenderMock).send(eq(TEST_METRIC_NAME), eq(String.valueOf(TEST_METRIC_VALUE)), anyLong());
+        String expectedMetricName = MetricRegistry.name(METRIC_NAMES_PREFIX, TEST_METRIC_NAME);
+        verify(graphiteSenderMock).send(eq(expectedMetricName), eq(String.valueOf(TEST_METRIC_VALUE)), anyLong());
     }
 
     /**
@@ -154,7 +161,7 @@ public class GraphiteMetricReporterServiceTest {
     public void testShutdownClosesSender() throws Exception {
         testedService = new TestableGraphiteMetricReporterService();
         runner.addControllerService(SERVICE_IDENTIFIER, testedService);
-        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET);
+        setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET, METRIC_NAMES_PREFIX);
         runner.enableControllerService(testedService);
         runner.disableControllerService(testedService);
 
@@ -164,14 +171,16 @@ public class GraphiteMetricReporterServiceTest {
     /**
      * Set the test subject's properties.
      *
-     * @param host populates {@link GraphiteMetricReporterService#HOST}.
-     * @param port populates {@link GraphiteMetricReporterService#PORT}.
-     * @param charset populates {@link GraphiteMetricReporterService#CHARSET}.
+     * @param host              populates {@link GraphiteMetricReporterService#HOST}.
+     * @param port              populates {@link GraphiteMetricReporterService#PORT}.
+     * @param charset           populates {@link GraphiteMetricReporterService#CHARSET}.
+     * @param metricNamesPrefix populates {@link GraphiteMetricReporterService#METRIC_NAME_PREFIX}.
      */
-    private void setServiceProperties(String host, int port, Charset charset) {
+    private void setServiceProperties(String host, int port, Charset charset, String metricNamesPrefix) {
         runner.setProperty(testedService, GraphiteMetricReporterService.HOST, host);
         runner.setProperty(testedService, GraphiteMetricReporterService.PORT, String.valueOf(port));
         runner.setProperty(testedService, GraphiteMetricReporterService.CHARSET, charset.name());
+        runner.setProperty(testedService, GraphiteMetricReporterService.METRIC_NAME_PREFIX, metricNamesPrefix);
     }
 
     /**
@@ -182,12 +191,12 @@ public class GraphiteMetricReporterServiceTest {
 
         /**
          * Overrides the actual methods in order to inject the mock {@link #graphiteSenderMock}.
-         *
+         * <p>
          * If this method is called with the test property values, it returns the mock. Otherwise operate
          * regularly.
          *
-         * @param host the provided hostname.
-         * @param port the provided port.
+         * @param host    the provided hostname.
+         * @param port    the provided port.
          * @param charset the provided graphite server charset.
          * @return {@link #graphiteSenderMock} if all params were the constant test params, regular result otherwise.
          */
