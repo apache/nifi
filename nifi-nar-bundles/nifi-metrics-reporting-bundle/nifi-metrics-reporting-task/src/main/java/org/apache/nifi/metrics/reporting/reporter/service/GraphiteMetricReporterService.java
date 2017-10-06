@@ -83,6 +83,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HOST);
         props.add(PORT);
+        props.add(CHARSET);
         properties = Collections.unmodifiableList(props);
     }
 
