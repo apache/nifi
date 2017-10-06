@@ -34,6 +34,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api</artifactId>
             <version>1.5.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
