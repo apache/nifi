@@ -55,8 +55,8 @@ public class MetricsReportingTask extends AbstractReportingTask {
      * Points to the service which provides {@link ScheduledReporter} instances.
      */
     protected static final PropertyDescriptor REPORTER_SERVICE = new PropertyDescriptor.Builder()
-            .name("Metric Reporter Service")
-            .displayName("metric reporter service")
+            .name("metric reporter service")
+            .displayName("Metric Reporter Service")
             .description("The service that provides a reporter for the gathered metrics")
             .identifiesControllerService(MetricReporterService.class)
             .required(true)
