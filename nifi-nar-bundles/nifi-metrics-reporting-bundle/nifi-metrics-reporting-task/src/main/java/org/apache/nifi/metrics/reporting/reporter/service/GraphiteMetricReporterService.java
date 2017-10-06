@@ -49,7 +49,9 @@ import java.util.List;
         "Used by MetricsReportingTask.")
 public class GraphiteMetricReporterService extends AbstractControllerService implements MetricReporterService {
 
-    /** Points to the hostname of the graphite listener. */
+    /**
+     * Points to the hostname of the graphite listener.
+     */
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
             .name("host")
             .displayName("Host")
@@ -59,7 +61,9 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .expressionLanguageSupported(true)
             .build();
 
-    /** Points to the port on which the graphite server listens. */
+    /**
+     * Points to the port on which the graphite server listens.
+     */
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
             .displayName("Port")
@@ -69,7 +73,9 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .expressionLanguageSupported(true)
             .build();
 
-    /** Points to the charset name that the graphite server expects. */
+    /**
+     * Points to the charset name that the graphite server expects.
+     */
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("charset")
             .displayName("Charset")
@@ -80,7 +86,9 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .expressionLanguageSupported(true)
             .build();
 
-    /** Prefix for all metric names sent by reporters - for separation of NiFi stats in graphite. */
+    /**
+     * Prefix for all metric names sent by reporters - for separation of NiFi stats in graphite.
+     */
     protected static final PropertyDescriptor METRIC_NAME_PREFIX = new PropertyDescriptor.Builder()
             .name("metric name prefix")
             .displayName("Metric Name Prefix")
@@ -91,7 +99,9 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .expressionLanguageSupported(true)
             .build();
 
-    /** List of property descriptors used by the service. */
+    /**
+     * List of property descriptors used by the service.
+     */
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -102,10 +112,14 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
         properties = Collections.unmodifiableList(props);
     }
 
-    /** Graphite sender, a connection to the server. */
+    /**
+     * Graphite sender, a connection to the server.
+     */
     private GraphiteSender graphiteSender;
 
-    /** The configured {@link #METRIC_NAME_PREFIX} value. */
+    /**
+     * The configured {@link #METRIC_NAME_PREFIX} value.
+     */
     private String metricNamePrefix;
 
     /**
