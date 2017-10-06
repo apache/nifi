@@ -99,6 +99,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
+    protected Connection getConnection() {
+        return connection;
+    }
+
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         kerberosConfigFile = config.getKerberosConfigurationFile();
@@ -113,7 +117,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         props.add(PHOENIX_CLIENT_JAR_LOCATION);
+        props.addAll(getAdditionalProperties());
         this.properties = Collections.unmodifiableList(props);
+    }
+
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return new ArrayList<>();
     }
 
     protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
