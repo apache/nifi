@@ -19,7 +19,6 @@ package org.apache.nifi.metrics.reporting.reporter.service;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
-import com.codahale.metrics.graphite.GraphiteReporter;
 import com.codahale.metrics.graphite.GraphiteSender;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
