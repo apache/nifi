@@ -51,7 +51,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
     /** Points to the hostname of the graphite listener. */
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
             .name("host")
-            .displayName("host")
+            .displayName("Host")
             .description("The hostname of the carbon listener")
             .required(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
@@ -60,7 +60,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
     /** Points to the port on which the graphite server listens. */
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
-            .displayName("port")
+            .displayName("Port")
             .description("The port on which carbon listens")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
@@ -69,7 +69,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
     /** Points to the charset name that the graphite server expects. */
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("charset")
-            .displayName("charset")
+            .displayName("Charset")
             .description("The charset used by the graphite server")
             .required(true)
             .defaultValue("UTF-8")
