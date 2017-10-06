@@ -55,6 +55,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The hostname of the carbon listener")
             .required(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     /** Points to the port on which the graphite server listens. */
@@ -64,6 +65,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The port on which carbon listens")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     /** Points to the charset name that the graphite server expects. */
@@ -73,7 +75,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The charset used by the graphite server")
             .required(true)
             .defaultValue("UTF-8")
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     /** List of property descriptors used by the service. */
@@ -97,8 +99,8 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        String host = context.getProperty(HOST).getValue();
-        int port = context.getProperty(PORT).asInteger();
+        String host = context.getProperty(HOST).evaluateAttributeExpressions().getValue();
+        int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
         graphiteSender = createSender(host, port, charset);
     }
