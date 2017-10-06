@@ -35,7 +35,7 @@
       <bundle>
         <artifact>nifi-standard-nar</artifact>
         <group>org.apache.nifi</group>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </bundle>
       <config>
         <bulletinLevel>WARN</bulletinLevel>
@@ -148,7 +148,7 @@
       <bundle>
         <artifact>nifi-standard-nar</artifact>
         <group>org.apache.nifi</group>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </bundle>
       <config>
         <bulletinLevel>WARN</bulletinLevel>

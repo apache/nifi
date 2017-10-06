@@ -676,13 +676,13 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-oauth-api-nar</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-oauth-nar</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>
