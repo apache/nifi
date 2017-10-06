@@ -29,8 +29,10 @@ import org.apache.nifi.metrics.reporting.reporter.service.MetricReporterService;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockReportingContext;
+import org.apache.nifi.util.MockReportingInitializationContext;
 import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,16 +41,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,9 +64,30 @@ import static org.mockito.Mockito.when;
 public class MetricsReportingTaskTest {
 
     /**
-     * Identifier for {@link #reporterServiceStub} \
+     * Identifier for {@link #reporterServiceStub}.
      */
-    public static final String REPORTER_SERVICE_IDENTIFIER = "reporter-service";
+    private static final String REPORTER_SERVICE_IDENTIFIER = "reporter-service";
+
+    /**
+     * Id for the group with status {@link #innerGroupStatus}.
+     */
+    private static final String TEST_GROUP_ID = "test-process-group-id";
+
+    /**
+     * Id for the {@link #reportingInitContextStub}.
+     */
+    private static final String TEST_INIT_CONTEXT_ID = "test-init-context-id";
+
+    /**
+     * Name for {@link #reportingInitContextStub}.
+     */
+    private static final String TEST_INIT_CONTEXT_NAME = "test-init-context-name";
+
+    /**
+     * Id for the tested tested reporting task.
+     */
+    private static final String TEST_TASK_ID = "test-task-id";
+
 
     /**
      * Stub context, used by {@link MetricsReportingTask#onTrigger(ReportingContext)} for reaching the status.
@@ -89,9 +112,19 @@ public class MetricsReportingTaskTest {
     private ScheduledReporter reporterMock;
 
     /**
-     * Used for overriding {@link MetricsReportingTask#currentStatusReference}. This is a patch for testing.
+     * A status for the "root" process group.
      */
-    private AtomicReference<ProcessGroupStatus> statusReference;
+    private ProcessGroupStatus rootGroupStatus;
+
+    /**
+     * Same as {@link #rootGroupStatus}, used when {@link MetricsReportingTask#PROCESS_GROUP_ID} is set.
+     */
+    private ProcessGroupStatus innerGroupStatus;
+
+    /**
+     * Stub initialization context for calling {@link MetricsReportingTask#initialize(ReportingInitializationContext)}.
+     */
+    private MockReportingInitializationContext reportingInitContextStub;
 
     /**
      * The test subject.
@@ -111,11 +144,8 @@ public class MetricsReportingTaskTest {
         reportingContextStub = new MockReportingContext(
                 services, new MockStateManager(testedReportingTask), new MockVariableRegistry());
 
-        // This is a patch. Since there no convenient way to inject a mock MetricRegistry, this line is needed
-        // in order to make sure the most current ProcessGroupStatus is used.
-        testedReportingTask.currentStatusReference = statusReference;
-
-        statusReference = new AtomicReference<>();
+        rootGroupStatus = new ProcessGroupStatus();
+        innerGroupStatus = new ProcessGroupStatus();
         when(reporterServiceStub.createReporter(any())).thenReturn(reporterMock);
         when(reporterServiceStub.getIdentifier()).thenReturn(REPORTER_SERVICE_IDENTIFIER);
         reportingContextStub.setProperty(MetricsReportingTask.REPORTER_SERVICE.getName(), REPORTER_SERVICE_IDENTIFIER);
@@ -123,6 +153,10 @@ public class MetricsReportingTaskTest {
 
         configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
                 reportingContextStub.getControllerServiceLookup());
+        reportingInitContextStub = new MockReportingInitializationContext(
+                TEST_INIT_CONTEXT_ID,
+                TEST_INIT_CONTEXT_NAME,
+                new MockComponentLog(TEST_TASK_ID, testedReportingTask));
     }
 
     /**
@@ -131,10 +165,11 @@ public class MetricsReportingTaskTest {
      */
     @Test
     public void testValidLifeCycleReportsCorrectly() throws Exception {
-        testedReportingTask.init(mock(ReportingInitializationContext.class));
+        reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
+
+        testedReportingTask.initialize(reportingInitContextStub);
         testedReportingTask.connect(configurationContextStub);
         testedReportingTask.onTrigger(reportingContextStub);
-
         verify(reporterMock).report();
 
         // Verify correct metrics are registered
@@ -143,10 +178,54 @@ public class MetricsReportingTaskTest {
         MetricRegistry usedRegistry = registryCaptor.getValue();
         Map<String, Metric> usedMetrics = usedRegistry.getMetrics();
         assertTrue(usedMetrics.keySet().containsAll(new MemoryUsageGaugeSet().getMetrics().keySet()));
-        assertTrue(usedMetrics.keySet().containsAll(new FlowMetricSet(statusReference).getMetrics().keySet()));
+        assertTrue(usedMetrics.keySet()
+                .containsAll(new FlowMetricSet(testedReportingTask.currentStatusReference).getMetrics().keySet()));
 
         // Verify the most current ProcessGroupStatus is updated
-        assertEquals(reportingContextStub.getEventAccess().getControllerStatus(), statusReference.get());
+        assertEquals(testedReportingTask.currentStatusReference.get(), rootGroupStatus);
+    }
+
+    /**
+     * Make sure that in a single life cycle the correct metrics are registered, the correct {@link ProcessGroupStatus}
+     * is used and that metrics are actually reported.
+     */
+    @Test
+    public void testValidLifeCycleReportsCorrectlyProcessGroupSpecified() throws Exception {
+        reportingContextStub.setProperty(MetricsReportingTask.PROCESS_GROUP_ID.getName(), TEST_GROUP_ID);
+        reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP_ID, innerGroupStatus);
+
+        testedReportingTask.initialize(reportingInitContextStub);
+        testedReportingTask.connect(configurationContextStub);
+        testedReportingTask.onTrigger(reportingContextStub);
+        verify(reporterMock).report();
+
+        // Verify correct metrics are registered
+        ArgumentCaptor<MetricRegistry> registryCaptor = ArgumentCaptor.forClass(MetricRegistry.class);
+        verify(reporterServiceStub).createReporter(registryCaptor.capture());
+        MetricRegistry usedRegistry = registryCaptor.getValue();
+        Map<String, Metric> usedMetrics = usedRegistry.getMetrics();
+        assertTrue(usedMetrics.keySet().containsAll(new MemoryUsageGaugeSet().getMetrics().keySet()));
+        assertTrue(usedMetrics.keySet()
+                .containsAll(new FlowMetricSet(testedReportingTask.currentStatusReference).getMetrics().keySet()));
+
+        // Verify the most current ProcessGroupStatus is updated
+        assertEquals(testedReportingTask.currentStatusReference.get(), innerGroupStatus);
+    }
+
+    /**
+     * Make sure that in a single life cycle the correct metrics are registered, the correct {@link ProcessGroupStatus}
+     * is used and that metrics are actually reported.
+     */
+    @Test
+    public void testInvalidProcessGroupId() throws Exception {
+        reportingContextStub.setProperty(MetricsReportingTask.PROCESS_GROUP_ID.getName(), TEST_GROUP_ID + "-invalid");
+        reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP_ID, innerGroupStatus);
+
+        testedReportingTask.initialize(reportingInitContextStub);
+        testedReportingTask.connect(configurationContextStub);
+        testedReportingTask.onTrigger(reportingContextStub);
+        verify(reporterMock, never()).report();
+        assertNull(testedReportingTask.currentStatusReference.get());
     }
 
     /**
@@ -155,7 +234,7 @@ public class MetricsReportingTaskTest {
      */
     @Test
     public void testConnectCreatesSingleReporter() throws Exception {
-        testedReportingTask.init(mock(ReportingInitializationContext.class));
+        testedReportingTask.initialize(reportingInitContextStub);
         testedReportingTask.connect(configurationContextStub);
         testedReportingTask.connect(configurationContextStub);
 
@@ -167,7 +246,9 @@ public class MetricsReportingTaskTest {
      */
     @Test
     public void testGetSupportedPropertyDescriptorsSanity() throws Exception {
-        List<PropertyDescriptor> expected = Collections.singletonList(MetricsReportingTask.REPORTER_SERVICE);
+        List<PropertyDescriptor> expected = Arrays.asList(
+                MetricsReportingTask.REPORTER_SERVICE,
+                MetricsReportingTask.PROCESS_GROUP_ID);
         assertEquals(expected, testedReportingTask.getSupportedPropertyDescriptors());
     }
 }
