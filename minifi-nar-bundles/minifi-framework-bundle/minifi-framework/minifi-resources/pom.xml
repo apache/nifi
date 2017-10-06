@@ -25,6 +25,58 @@
     <description>holds common resources used to build installers</description>
     <build>
         <plugins>
+        	<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>ant-contrib</groupId>
+						<artifactId>ant-contrib</artifactId>
+						<version>20020829</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>download-commons-daemon</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<tasks>
+								<taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+								<if>
+									<available file="${basedir}/src/main/resources/bin/minifiw.exe" />
+									<then>
+										<echo message="Skipping download of commons-daemon." />
+									</then>
+									<else>
+										<echo message="Downloading Commons Daemon Windows binaries." />
+										<get
+											src="http://www.apache.org/dist/commons/daemon/binaries/windows/commons-daemon-1.0.15-bin-windows.zip"
+											dest="${java.io.tmpdir}/commons-daemon-1.0.15-bin-windows.zip"
+											skipexisting="true" />
+										<local name="checksum.matches" />
+										<property name="sha256sum" value="f46d87be0997b5c0f5c3a340ee8addca04cb2a32b2dc3e3a9e89a592ccf6abed" />
+										<checksum file="${java.io.tmpdir}/commons-daemon-1.0.15-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches"/>
+										<echo message="Checksum match = ${checksum.matches}"/>
+										<condition property="checksum.matches.fail">
+      										<equals arg1="${checksum.matches}" arg2="false"/>
+      									</condition>
+      									<fail if="checksum.matches.fail">Checksum error</fail>
+										<unzip
+											src="${java.io.tmpdir}/commons-daemon-1.0.15-bin-windows.zip"
+											dest="${java.io.tmpdir}" />
+										<copy file="${java.io.tmpdir}/prunmgr.exe"
+											tofile="${basedir}/src/main/resources/bin/minifiw.exe" />
+										<copy file="${java.io.tmpdir}/prunsrv.exe" tofile="${basedir}/src/main/resources/bin/minifi.exe" />
+									</else>
+								</if>
+							</tasks>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>

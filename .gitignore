@@ -13,4 +13,5 @@ nb-configuration.xml
 *.iml
 *.iws
 *~
+*.exe
 
