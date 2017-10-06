@@ -19,6 +19,7 @@ package org.apache.nifi.metrics.reporting.reporter.service;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.graphite.Graphite;
+import com.codahale.metrics.graphite.GraphiteRabbitMQ;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.codahale.metrics.graphite.GraphiteSender;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -75,6 +76,18 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .description("The charset used by the graphite server")
             .required(true)
             .defaultValue("UTF-8")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    /** Prefix for all metric names sent by reporters - for separation of NiFi stats in graphite. */
+    protected static final PropertyDescriptor METRIC_NAME_PREFIX = new PropertyDescriptor.Builder()
+            .name("metric name prefix")
+            .displayName("Metric Name Prefix")
+            .description("A prefix that will be used for all metric names sent by reporters provided by this service.")
+            .required(true)
+            .defaultValue("nifi")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
@@ -92,6 +105,9 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
     /** Graphite sender, a connection to the server. */
     private GraphiteSender graphiteSender;
 
+    /** The configured {@link #METRIC_NAME_PREFIX} value. */
+    private String metricNamePrefix;
+
     /**
      * Create the {@link #graphiteSender} according to configuration.
      *
@@ -103,6 +119,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
         int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
         graphiteSender = createSender(host, port, charset);
+        metricNamePrefix = context.getProperty(METRIC_NAME_PREFIX).evaluateAttributeExpressions().getValue();
     }
 
     /**
@@ -127,7 +144,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
      */
     @Override
     public ScheduledReporter createReporter(MetricRegistry metricRegistry) {
-        return GraphiteReporter.forRegistry(metricRegistry).build(graphiteSender);
+        return GraphiteReporter.forRegistry(metricRegistry).prefixedWith(metricNamePrefix).build(graphiteSender);
 
     }
 
