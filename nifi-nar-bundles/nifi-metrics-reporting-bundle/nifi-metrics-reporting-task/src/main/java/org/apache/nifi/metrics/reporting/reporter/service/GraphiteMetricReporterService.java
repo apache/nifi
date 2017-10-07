@@ -107,6 +107,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
         props.add(HOST);
         props.add(PORT);
         props.add(CHARSET);
+        props.add(METRIC_NAME_PREFIX);
         properties = Collections.unmodifiableList(props);
     }
 
