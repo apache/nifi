@@ -82,7 +82,6 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .expressionLanguageSupported(true)
             .build();
 
     /**
