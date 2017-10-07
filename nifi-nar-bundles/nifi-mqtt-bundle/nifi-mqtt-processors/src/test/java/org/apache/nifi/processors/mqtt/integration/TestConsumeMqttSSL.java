@@ -59,6 +59,7 @@ public class TestConsumeMqttSSL extends TestConsumeMqttCommon {
 
         configProps.put(BrokerConstants.WEB_SOCKET_PORT_PROPERTY_NAME, "1884");
         configProps.put(BrokerConstants.SSL_PORT_PROPERTY_NAME, "8883");
+        configProps.put(BrokerConstants.WSS_PORT_PROPERTY_NAME, "8884");
         configProps.put(BrokerConstants.JKS_PATH_PROPERTY_NAME, "src/test/resources/localhost-ks.jks");
         configProps.put(BrokerConstants.KEY_STORE_PASSWORD_PROPERTY_NAME, "localtest");
         configProps.put(BrokerConstants.KEY_MANAGER_PASSWORD_PROPERTY_NAME, "localtest");
@@ -67,11 +68,15 @@ public class TestConsumeMqttSSL extends TestConsumeMqttCommon {
         MQTT_server.startServer(server_config);
     }
 
+    public String getUri() {
+        return "ssl://localhost:8883";
+    }
+
     @Before
     public void init() throws IOException, InitializationException {
         startServer();
 
-        broker = "ssl://localhost:8883";
+        broker = getUri();
         testRunner = TestRunners.newTestRunner(ConsumeMQTT.class);
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, broker);
         testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");

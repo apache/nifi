@@ -58,6 +58,8 @@ public abstract class TestConsumeMqttCommon {
 
     public abstract void internalPublish(PublishMessage publishMessage);
 
+    abstract public String getUri();
+
     @Test
     public void testLastWillConfig() throws Exception {
         testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_MESSAGE, "lastWill message");

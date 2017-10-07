@@ -58,11 +58,15 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         MQTT_server.startServer(server_config);
     }
 
+    public String getUri() {
+        return "tcp://localhost:1883";
+    }
+
     @Before
     public void init() throws IOException {
         startServer();
 
-        broker = "tcp://localhost:1883";
+        broker = getUri();
         testRunner = TestRunners.newTestRunner(ConsumeMQTT.class);
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, broker);
         testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");

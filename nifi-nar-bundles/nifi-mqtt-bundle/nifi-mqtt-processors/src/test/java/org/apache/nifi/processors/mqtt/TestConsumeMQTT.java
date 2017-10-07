@@ -60,11 +60,15 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
     }
 
+    public String getUri() {
+        return "tcp://localhost:1883";
+    }
+
     @Before
     public void init() throws IOException {
         PUBLISH_WAIT_MS = 0;
 
-        broker = "tcp://localhost:1883";
+        broker = getUri();
         UnitTestableConsumeMqtt proc = new UnitTestableConsumeMqtt();
         testRunner = TestRunners.newTestRunner(proc);
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, broker);
