@@ -242,6 +242,24 @@ public class TestAvroTypeUtil {
         // Make sure the 'parent' field has a schema reference back to the original top level record schema
         Assert.assertEquals(recordASchema, ((RecordDataType)recordBParentField.get().getDataType()).getChildSchema());
     }
+    
+    @Test
+    public void testMapWithNullSchema() throws IOException {
+        
+        Schema recursiveSchema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"OSMEntity\",\"namespace\":\"org.osm.avro\",\"fields\":[{\"name\":\"osmtype\",\"type\":{\"type\":\"enum\",\"name\":\"OSMType\",\"symbols\":[\"NODE\",\"WAY\",\"POLYGON\",\"RELATION\"]}},{\"name\":\"id\",\"type\":\"long\"},{\"name\":\"node\",\"type\":[\"null\",{\"type\":\"record\",\"name\":\"ANode\",\"fields\":[{\"name\":\"id\",\"type\":\"long\"},{\"name\":\"x\",\"type\":\"double\"},{\"name\":\"y\",\"type\":\"double\"},{\"name\":\"fields\",\"type\":[\"null\",{\"type\":\"map\",\"values\":{\"type\":\"string\",\"avro.java.string\":\"String\"},\"avro.java.string\":\"String\"}]}]}]},{\"name\":\"way\",\"type\":[\"null\",{\"type\":\"record\",\"name\":\"AComplex\",\"fields\":[{\"name\":\"id\",\"type\":\"long\"},{\"name\":\"geometry\",\"type\":\"bytes\"},{\"name\":\"fields\",\"type\":[\"null\",{\"type\":\"map\",\"values\":{\"type\":\"string\",\"avro.java.string\":\"String\"},\"avro.java.string\":\"String\"}]}]}]},{\"name\":\"polygon\",\"type\":[\"null\",\"AComplex\"]},{\"name\":\"rel\",\"type\":[\"null\",{\"type\":\"record\",\"name\":\"ARelation\",\"fields\":[{\"name\":\"id\",\"type\":\"long\"},{\"name\":\"fields\",\"type\":[\"null\",{\"type\":\"map\",\"values\":{\"type\":\"string\",\"avro.java.string\":\"String\"},\"avro.java.string\":\"String\"}]},{\"name\":\"related\",\"type\":[\"null\",{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"ARelated\",\"fields\":[{\"name\":\"relatedId\",\"type\":\"long\"},{\"name\":\"type\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}},{\"name\":\"role\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}}]}}]}]}]}]}"
+        );
+        
+        // Make sure the following doesn't throw an exception
+        RecordSchema recordASchema = AvroTypeUtil.createSchema(recursiveSchema);
+  
+        // check the fix with the proper file
+        try(DataFileStream<GenericRecord> r = new DataFileStream<>(getClass().getResourceAsStream("error.avro"), 
+                new GenericDatumReader<>())) {
+            GenericRecord n= r.next();
+            AvroTypeUtil.convertAvroRecordToMap(n, recordASchema);
+        }
+    }
 
     @Test
     public void testMapWithNullSchema() throws IOException {
