@@ -601,7 +601,7 @@ public class AvroTypeUtil {
         final Map<String, Object> values = new HashMap<>(recordSchema.getFieldCount());
 
         for (final RecordField recordField : recordSchema.getFields()) {
-            
+
             Object value = avroRecord.get(recordField.getFieldName());
             if (value == null) {
                 for (final String alias : recordField.getAliases()) {
