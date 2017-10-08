@@ -770,7 +770,7 @@
         $('<div class="referencing-component-bulletins"></div>').addClass(affectedControllerService.id + '-affected-bulletins').appendTo(affectedControllerServiceContainer);
 
         // controller service name
-        $('<span class="link"></span>').text(affectedControllerService.name).on('click', function () {
+        $('<span class="referencing-component-name link"></span>').text(affectedControllerService.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // show the component in question
