@@ -698,7 +698,7 @@ public class AvroTypeUtil {
                 }
                 break;
             case MAP:
-                if (value instanceof MapRecord) {
+                if (value instanceof Map) {
                     return true;
                 }
         }
