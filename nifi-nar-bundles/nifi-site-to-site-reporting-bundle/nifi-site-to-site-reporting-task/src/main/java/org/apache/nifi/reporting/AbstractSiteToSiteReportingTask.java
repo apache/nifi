@@ -29,6 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
@@ -190,7 +191,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                 context.getProperty(HTTP_PROXY_USERNAME).getValue(), context.getProperty(HTTP_PROXY_PASSWORD).getValue());
 
         siteToSiteClient = new SiteToSiteClient.Builder()
-                .url(destinationUrl)
+                .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
                 .portName(context.getProperty(PORT_NAME).getValue())
                 .useCompression(context.getProperty(COMPRESS).asBoolean())
                 .eventReporter(eventReporter)
