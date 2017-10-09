@@ -707,26 +707,18 @@ image::comments-tab.png["Comments Tab"]
 
 === Additional Help
 
-You can access additional documentation about each Processor's usage by right-clicking
-on the Processor and selecting `Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right
-corner of the UI to display a Help page with all of the documentation, including usage documentation
-for all the Processors that are available. Click on the desired Processor to view usage documentation.
+You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting `Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
 [[Using_Custom_Properties]]
 === Using Custom Properties with Expression Language
-You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values,
-and manipulate their values when you are creating and configuring dataflows.
+You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values, and manipulate their values when you are creating and configuring dataflows. For more information on Expression Language, see the link:expression-language-guide.html[Expression Language Guide].
 
 In addition to using FlowFile attributes, system properties, and environment properties within Express
 Language, you can also define custom properties for Expression Language use. Defining custom properties
 gives you more flexibility in handling and processing dataflows. You can also create custom properties
 for connection, server, and service properties, for easier dataflow configuration.
 
-To create custom properties for use with Expression Language, identify one or more sets of key/value
-pairs, and give them to your system administrator.
-
 NiFi properties have resolution precedence of which you should be aware when creating custom properties: 
-
 
 * Processor-specific attributes
 * FlowFile properties 
@@ -738,11 +730,106 @@ NiFi properties have resolution precedence of which you should be aware when cre
 
 When you are creating custom properties, ensure that each custom property contains a distinct property value,
 so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
-Once you have added the new custom properties, ensure that you have updated the nifi.variable.registry.properties
-field in the nifi.properties file, with the custom properties location.
 
-For more information on Expression Language, see the link:expression-language-guide.html[Expression Lanuaguage Guide].
-For information on how to define custom properties, see the link:administration-guide.html[System Administrator’s Guide].
+There are two ways to use and manage custom properties:
+
+* In the NiFi UI via the Variables window
+* Referencing custom properties via 'nifi.properties'
+
+[[Variables_Window]]
+==== Variables Window
+
+Variables can be created and configured within the NiFi UI.  The variables can be used in any field that supports Expression Language.  NiFi automatically picks up new or modified variables created in the UI.
+
+To access the Variables window, right-click on the canvas with nothing selected:
+
+image::variables-context_menu-rpg.png["Variables in Context Menu for RPG"]
+
+Select "Variables" from the Context Menu:
+
+image::variables_window_empty.png["Empty Variables Window"]
+
+"Variables" is also available in the right-click Context Menu when a process group is selected:
+
+image::variables-context_menu-pg.png["Variables in Context Menu for PG"]
+
+===== Creating a Variable
+
+In the Variables window, click the "+" button to create a new variable.  Add a name:
+
+image::variable-name.png["Variable Name Creation"]
+
+and a value:
+
+image::variable-value.png["Variable Value Creation"]
+
+Select "Apply":
+
+image::new_variable-apply.png["New Variable Applied"]
+
+Steps to update the variable are performed (Identifying components affected, Stopping affected Processors, etc.).  For example, the Referencing Processors section now lists the "PutFile-Root" processor.  Selecting the name of the processor in the list will navigate to that processor on the canvas.  Looking at the properties of the processor, `${putfile_dir}` is referenced by the Directory property:
+
+image::variable-putfile-property.png["Processor Property Using Variable"]
+
+===== Variable Scope
+
+Variables are scoped by the Process Group they are defined in and are available to any Processor defined at that level and below (i.e. any descendant Processors).
+
+Variables in a descendant group override the value in a parent group.  More specifically, if a variable `x` is declared at the root group and also declared inside a process group, components inside the process group will use the value of `x` defined in the process group.
+
+For example, in addition to the `putfile_dir` variable that exists at the root process group, assume another `putfile_dir` variable was created within Process Group A.  If one of the components within Process Group A references `putfile_dir`, both variables will be listed, but the `putfile_dir` from the root group will have a strikethrough indicating that is is being overridden:
+
+image::variable-overridden.png["Variable Overridden"]
+
+A variable can only be modified for the process group it was created in, which is listed at the top of the Variables window.  To modify a variable defined in a different process group, select the "arrow" icon in that variable's row:
+
+image::variable_window-goto.png["Variable Go To"]
+
+which will navigate to the Variables window for that process group:
+
+image::variable_window-rpg.png["Variables Window for RPG"]
+
+===== Variable Permissions
+
+Variable permissions are based solely on the privileges configured on the corresponding Process Group.
+
+For example, if a user does not have access to View a process group, the Variables window can not be viewed for that process group:
+
+image::variable_insufficient-permissions.png["Insufficient Permissions to View Variables"]
+
+If a user has access to View a process group but does not have access to Modify the process group, the variables can be viewed but not modified.
+
+For information on how to manage privileges on components, see the  <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
+
+===== Referencing Controller Services
+
+In addition to Referencing Processors, the Variables window also displays Referencing Controller Services:
+
+image::variables-window_controller-services.png["Referencing Controller Services"]
+
+Selecting the name of the controller service will navigate to that controller service in the Configuration window:
+
+image::variable_nav-controller_services.png["Controller Service Using Variable"]
+
+===== Unauthorized Referencing Components
+
+When View or Modify privileges are not given to a component that references a variable, the UUID of the component will be displayed in the Variables window:
+
+image::variables-window_unauthorized.png["Unauthorized Referencing Components"]
+
+In the above example, the variable `property1` is referenced by a processor that "user1" is not able to view:
+
+image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
+
+==== Referencing Custom Properties via nifi.properties
+Identify one or more sets of key/value pairs, and give them to your system administrator.
+
+Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
+field in the 'nifi.properties' file is updated with the custom properties location.
+
+NOTE: NiFi must be restarted for these updates to be picked up.
+
+For more information, see the <<administration-guide.adoc#custom_properties,Custom Properties>> section in the System Administrator's Guide.
 
 [[Controller_Services]]
 === Controller Services
