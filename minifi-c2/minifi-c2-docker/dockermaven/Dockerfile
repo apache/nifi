@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM openjdk:8
+FROM openjdk:8-jre-alpine
 MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
 ARG UID=1000
@@ -28,9 +28,9 @@ ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
 ENV MINIFI_C2_HOME $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION
 
 # Setup MiNiFi C2 user
-RUN groupadd -g $GID c2 || groupmod -n c2 `getent group $GID | cut -d: -f1`
-RUN useradd --shell /bin/bash -u $UID -g $GID -m c2
-RUN mkdir -p $MINIFI_C2_HOME 
+RUN addgroup -g $GID c2 || groupmod -n c2 `getent group $GID | cut -d: -f1`
+RUN adduser -S -H -G c2 c2
+RUN mkdir -p $MINIFI_C2_HOME
 
 ADD $MINIFI_C2_BINARY $MINIFI_C2_BASE_DIR
 RUN chown -R c2:c2 $MINIFI_C2_HOME
