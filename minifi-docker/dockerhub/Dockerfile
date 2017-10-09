@@ -20,7 +20,7 @@ FROM openjdk:8-jre-alpine
 MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
 ARG UID=1000
-ARG GID=50
+ARG GID=1000
 ARG MINIFI_VERSION=0.2.0
 
 ENV MINIFI_BASE_DIR /opt/minifi
