@@ -252,21 +252,28 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      * Close any senders that haven't been active with in the given threshold
      *
      * @param idleThreshold the threshold to consider a sender as idle
+     * @return the number of connections that were closed as a result of being idle
      */
-    protected void pruneIdleSenders(final long idleThreshold) {
+    protected PruneResult pruneIdleSenders(final long idleThreshold) {
+        int numClosed = 0;
+        int numConsidered = 0;
+
         long currentTime = System.currentTimeMillis();
         final List<ChannelSender> putBack = new ArrayList<>();
 
         // if a connection hasn't been used with in the threshold then it gets closed
         ChannelSender sender;
         while ((sender = senderPool.poll()) != null) {
+            numConsidered++;
             if (currentTime > (sender.getLastUsed() + idleThreshold)) {
                 getLogger().debug("Closing idle connection...");
                 sender.close();
+                numClosed++;
             } else {
                 putBack.add(sender);
             }
         }
+
         // re-queue senders that weren't idle, but if the queue is full then close the sender
         for (ChannelSender putBackSender : putBack) {
             boolean returned = senderPool.offer(putBackSender);
@@ -274,6 +281,8 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 putBackSender.close();
             }
         }
+
+        return new PruneResult(numClosed, numConsidered);
     }
 
     /**
@@ -370,6 +379,31 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             }
         }
     }
+
+    /**
+     * The results from pruning connections.
+     */
+    protected static class PruneResult {
+
+        private final int numClosed;
+
+        private final int numConsidered;
+
+        public PruneResult(final int numClosed, final int numConsidered) {
+            this.numClosed = numClosed;
+            this.numConsidered = numConsidered;
+        }
+
+        public int getNumClosed() {
+            return numClosed;
+        }
+
+        public int getNumConsidered() {
+            return numConsidered;
+        }
+
+    }
+
 
     /**
      * Represents a range of messages from a FlowFile.
