@@ -3150,11 +3150,19 @@ To configure custom properties for use with NiFi’s Expression Language:
 * Create the custom property. Ensure that:
 ** Each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
 ** Each node in a clustered environment is configured with the same custom properties.
-* Update the 'nifi.properties' file with the location of the custom property files.
+* Update `nifi.variable.registry.properties` with the location of the custom property file(s):
 
 |====
 |*Property*|*Description*
 |nifi.variable.registry.properties|This is a comma-separated list of file location paths for one or more custom property files.
 |====
 
-NOTE: *For Upgrading* - Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
+* Restart your NiFi instance(s) for the updates to be picked up.
+
+Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
+
+[WARNING]
+.Upgrading
+============
+Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
+============
