@@ -64,7 +64,7 @@ import com.google.common.collect.Maps;
         @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request"),
         @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
 })
-@SeeAlso({ListHDFS.class})
+@SeeAlso({ListHDFS.class, PutHDFS.class})
 public class DeleteHDFS extends AbstractHadoopProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
