@@ -77,22 +77,9 @@ public class NiFi {
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(final Thread t, final Throwable e) {
-                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                LOGGER.error("", e);
-            }
-        });
+        setDefaultUncaughtExceptionHandler();
 
-        // register the shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // shutdown the jetty server
-                shutdownHook();
-            }
-        }));
+        registerShutdownHook();
 
         final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
         if (bootstrapPort != null) {
@@ -124,9 +111,7 @@ public class NiFi {
 
         detectTimingIssues();
 
-        // redirect JUL log events
-        SLF4JBridgeHandler.removeHandlersForRootLogger();
-        SLF4JBridgeHandler.install();
+        initLogging();
 
         final Bundle systemBundle = SystemBundle.create(properties);
 
@@ -167,6 +152,35 @@ public class NiFi {
             LOGGER.info("Controller initialization took " + duration + " nanoseconds "
                     + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
         }
+    }
+
+    protected void setDefaultUncaughtExceptionHandler() {
+
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(final Thread t, final Throwable e) {
+                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
+                LOGGER.error("", e);
+            }
+        });
+    }
+
+    protected void registerShutdownHook() {
+
+        // register the shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // shutdown the jetty server
+                shutdownHook();
+            }
+        }));
+    }
+
+    protected void initLogging() {
+        // redirect JUL log events
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
     }
 
     private static ClassLoader createBootstrapClassLoader() throws IOException {
@@ -262,13 +276,29 @@ public class NiFi {
     public static void main(String[] args) {
         LOGGER.info("Launching NiFi...");
         try {
-            final ClassLoader bootstrap = createBootstrapClassLoader();
-            NiFiProperties properties = initializeProperties(args, bootstrap);
-            properties.validate();
-            new NiFi(properties);
+            startNiFiEngine(args);
         } catch (final Throwable t) {
             LOGGER.error("Failure to launch NiFi due to " + t, t);
         }
+    }
+
+    public static NiFi startNiFiEngine(String[] args)
+            throws  IOException, ClassNotFoundException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException, InvocationTargetException {
+
+        final ClassLoader bootstrap = createBootstrapClassLoader();
+        NiFiProperties properties = initializeProperties(args, bootstrap);
+
+        return startNiFiEngine(properties);
+    }
+
+    public static NiFi startNiFiEngine(NiFiProperties properties)
+            throws  IOException, ClassNotFoundException, NoSuchMethodException, InstantiationException,
+            IllegalAccessException, InvocationTargetException {
+
+        properties.validate();
+
+        return new NiFi(properties);
     }
 
     private static NiFiProperties initializeProperties(final String[] args, final ClassLoader boostrapLoader) {
