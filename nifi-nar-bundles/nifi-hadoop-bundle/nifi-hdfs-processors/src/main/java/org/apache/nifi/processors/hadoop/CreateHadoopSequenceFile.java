@@ -64,8 +64,7 @@ import java.util.concurrent.TimeUnit;
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})
-@CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files."
-        + " If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
+@CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files")
 @SeeAlso(PutHDFS.class)
 public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 

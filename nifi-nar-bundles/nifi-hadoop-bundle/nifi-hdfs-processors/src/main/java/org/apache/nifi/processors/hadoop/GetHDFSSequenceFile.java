@@ -52,8 +52,7 @@ import java.util.concurrent.TimeUnit;
  */
 @TriggerWhenEmpty
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "sequence file"})
-@CapabilityDescription("Fetch sequence files from Hadoop Distributed File System (HDFS) into FlowFiles."
-        + " If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
+@CapabilityDescription("Fetch sequence files from Hadoop Distributed File System (HDFS) into FlowFiles")
 @SeeAlso(PutHDFS.class)
 public class GetHDFSSequenceFile extends GetHDFS {
 

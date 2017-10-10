@@ -80,8 +80,7 @@ import java.util.regex.Pattern;
         "to JSON and written to the flow file's content. For example, if event.type is APPEND then the content of the flow file will contain a JSON file containing the information about the " +
         "append event. If successful the flow files are sent to the 'success' relationship. Be careful of where the generated flow files are stored. If the flow files are stored in one of " +
         "processor's watch directories there will be a never ending flow of events. It is also important to be aware that this processor must consume all events. The filtering must happen within " +
-        "the processor. This is because the HDFS admin's event notifications API does not have filtering. " +
-        "If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
+        "the processor. This is because the HDFS admin's event notifications API does not have filtering.")
 @Stateful(scopes = Scope.CLUSTER, description = "The last used transaction id is stored. This is used ")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class, ListHDFS.class})
 public class GetHDFSEvents extends AbstractHadoopProcessor {

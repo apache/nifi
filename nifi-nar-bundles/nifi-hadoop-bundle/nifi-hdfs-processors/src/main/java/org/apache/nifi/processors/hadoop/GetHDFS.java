@@ -67,8 +67,7 @@ import java.util.regex.Pattern;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem", "restricted"})
-@CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it."
-        + " If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
+@CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
     @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on HDFS. For example, if the Directory property "

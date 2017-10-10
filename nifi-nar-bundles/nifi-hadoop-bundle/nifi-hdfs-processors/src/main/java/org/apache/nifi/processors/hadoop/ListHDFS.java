@@ -70,8 +70,7 @@ import java.util.regex.Pattern;
         + "cases where files with the same timestamp are written immediately before and after a single execution of the processor. For each file that is "
         + "listed in HDFS, this processor creates a FlowFile that represents the HDFS file to be fetched in conjunction with FetchHDFS. This Processor is "
         +  "designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left "
-        +  "off without duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS."
-        + " If you want to use SSL-secured file system like swebhdfs, please see the 'SSL Configuration' topic of the 'Additional Details' of PutHDFS.")
+        +  "off without duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.")
 @WritesAttributes({
     @WritesAttribute(attribute="filename", description="The name of the file that was read from HDFS."),
     @WritesAttribute(attribute="path", description="The path is set to the absolute path of the file's directory on HDFS. For example, if the Directory property is set to /tmp, "
