@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -523,13 +524,20 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     String text = "Supports Expression Language: true";
+                    final String perFF = " (will be evaluated using flow file attributes and registry)";
+                    final String registry = " (will be evaluated using registry only)";
+                    final InputRequirement inputRequirement = configurableComponent.getClass().getAnnotation(InputRequirement.class);
 
                     switch(property.getExpressionLanguageScope()) {
                         case FLOWFILE_ATTRIBUTES:
-                            text += " (will be evaluated per flow file)";
+                            if(inputRequirement != null && inputRequirement.value().equals(Requirement.INPUT_FORBIDDEN)) {
+                                text += registry;
+                            } else {
+                                text += perFF;
+                            }
                             break;
                         case VARIABLE_REGISTRY_ONLY:
-                            text += " (will only be evaluated using registry)";
+                            text += registry;
                             break;
                         case NONE:
                         default:
