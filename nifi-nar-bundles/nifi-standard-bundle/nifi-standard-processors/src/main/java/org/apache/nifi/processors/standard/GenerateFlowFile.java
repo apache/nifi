@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -104,6 +105,14 @@ public class GenerateFlowFile extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("character-set")
+            .displayName("Character Set")
+            .description("Specifies the character set to use when writing the bytes of Custom Text to a flow file.")
+            .required(true)
+            .defaultValue("UTF-8")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
@@ -122,6 +131,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         descriptors.add(DATA_FORMAT);
         descriptors.add(UNIQUE_FLOWFILES);
         descriptors.add(CUSTOM_TEXT);
+        descriptors.add(CHARSET);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -198,7 +208,8 @@ public class GenerateFlowFile extends AbstractProcessor {
         if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
             data = generateData(context);
         } else if(context.getProperty(CUSTOM_TEXT).isSet()) {
-            data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes();
+            final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+            data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
         } else {
             data = this.data.get();
         }

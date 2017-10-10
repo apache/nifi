@@ -173,6 +173,16 @@ public class JdbcCommon {
         return convertToAvroStream(rs, outStream, options, callback);
     }
 
+    public static void createEmptyAvroStream(final OutputStream outStream) throws IOException {
+        final FieldAssembler<Schema> builder = SchemaBuilder.record("NiFi_ExecuteSQL_Record").namespace("any.data").fields();
+        final Schema schema = builder.endRecord();
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
+            dataFileWriter.create(schema, outStream);
+        }
+    }
+
     public static class AvroConversionOptions {
         private final String recordName;
         private final int maxRows;

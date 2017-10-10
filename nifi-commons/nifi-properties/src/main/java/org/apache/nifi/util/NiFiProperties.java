@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -155,6 +156,12 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_CLIENT_ID = "nifi.security.user.oidc.client.id";
     public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
+
+    // apache knox
+    public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
+    public static final String SECURITY_USER_KNOX_PUBLIC_KEY = "nifi.security.user.knox.publicKey";
+    public static final String SECURITY_USER_KNOX_COOKIE_NAME = "nifi.security.user.knox.cookieName";
+    public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
     // web properties
     public static final String WEB_WAR_DIR = "nifi.web.war.directory";
@@ -886,18 +893,70 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns whether Knox SSO is enabled.
+     *
+     * @return whether Knox SSO is enabled
+     */
+    public boolean isKnoxSsoEnabled() {
+        return !StringUtils.isBlank(getKnoxUrl());
+    }
+
+    /**
+     * Returns the Knox URL.
+     *
+     * @return Knox URL
+     */
+    public String getKnoxUrl() {
+        return getProperty(SECURITY_USER_KNOX_URL);
+    }
+
+    /**
+     * Gets the configured Knox Audiences.
+     *
+     * @return Knox audiences
+     */
+    public Set<String> getKnoxAudiences() {
+        final String rawAudiences = getProperty(SECURITY_USER_KNOX_AUDIENCES);
+        if (StringUtils.isBlank(rawAudiences)) {
+            return null;
+        } else {
+            final String[] audienceTokens = rawAudiences.split(",");
+            return Stream.of(audienceTokens).map(String::trim).filter(aud -> !StringUtils.isEmpty(aud)).collect(Collectors.toSet());
+        }
+    }
+
+    /**
+     * Returns the path to the Knox public key.
+     *
+     * @return path to the Knox public key
+     */
+    public Path getKnoxPublicKeyPath() {
+        return Paths.get(getProperty(SECURITY_USER_KNOX_PUBLIC_KEY));
+    }
+
+    /**
+     * Returns the name of the Knox cookie.
+     *
+     * @return name of the Knox cookie
+     */
+    public String getKnoxCookieName() {
+        return getProperty(SECURITY_USER_KNOX_COOKIE_NAME);
+    }
+
+    /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      * <p>
      * - login identity provider is not populated
      * - Kerberos service support is not enabled
      * - openid connect is not enabled
+     * - knox sso is not enabled
+     * </p>
      *
-     * @return true if client certificates are required for access to the REST
-     * API
+     * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {

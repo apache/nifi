@@ -19,6 +19,7 @@ package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -48,7 +49,7 @@ public class CSVUtils {
     static final PropertyDescriptor VALUE_SEPARATOR = new PropertyDescriptor.Builder()
         .name("Value Separator")
         .description("The character that is used to separate values/fields in a CSV Record")
-        .addValidator(new SingleCharacterValidator())
+        .addValidator(CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(false)
         .defaultValue(",")
         .required(true)
@@ -56,7 +57,7 @@ public class CSVUtils {
     static final PropertyDescriptor QUOTE_CHAR = new PropertyDescriptor.Builder()
         .name("Quote Character")
         .description("The character that is used to quote values so that escape characters do not have to be used")
-        .addValidator(new SingleCharacterValidator())
+        .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(false)
         .defaultValue("\"")
         .required(true)
@@ -89,14 +90,14 @@ public class CSVUtils {
     static final PropertyDescriptor COMMENT_MARKER = new PropertyDescriptor.Builder()
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
-        .addValidator(new SingleCharacterValidator())
+        .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(false)
         .required(false)
         .build();
     static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
         .name("Escape Character")
         .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser.")
-        .addValidator(new SingleCharacterValidator())
+        .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(false)
         .defaultValue("\\")
         .required(true)
@@ -179,12 +180,16 @@ public class CSVUtils {
         }
     }
 
+    private static char getUnescapedChar(final ConfigurationContext context, final PropertyDescriptor property) {
+        return StringEscapeUtils.unescapeJava(context.getProperty(property).getValue()).charAt(0);
+    }
+
     private static char getChar(final ConfigurationContext context, final PropertyDescriptor property) {
         return CSVUtils.unescape(context.getProperty(property).getValue()).charAt(0);
     }
 
     private static CSVFormat buildCustomFormat(final ConfigurationContext context) {
-        final char valueSeparator = getChar(context, VALUE_SEPARATOR);
+        final char valueSeparator = getUnescapedChar(context, VALUE_SEPARATOR);
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();

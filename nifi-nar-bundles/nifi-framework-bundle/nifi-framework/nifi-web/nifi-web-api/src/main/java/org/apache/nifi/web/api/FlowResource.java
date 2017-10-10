@@ -17,12 +17,12 @@
 package org.apache.nifi.web.api;
 
 import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -220,7 +220,7 @@ public class FlowResource extends ApplicationResource {
             value = "Generates a client id.",
             response = String.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -249,7 +249,7 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves the configuration for this NiFi flow",
             response = FlowConfigurationEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -285,7 +285,7 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves the user identity of the user making the request",
             response = CurrentUserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     public Response getCurrentUser() {
@@ -324,7 +324,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets a process group",
             response = ProcessGroupFlowEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -372,7 +372,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets all controller services",
             response = ControllerServicesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -418,7 +418,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets all controller services",
             response = ControllerServicesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -471,7 +471,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets all reporting tasks",
             response = ReportingTasksEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -518,8 +518,8 @@ public class FlowResource extends ApplicationResource {
             value = "Schedule or unschedule components in the specified Process Group.",
             response = ScheduleComponentsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = ""),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled", type = "")
+                    @Authorization(value = "Read - /flow"),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled")
             }
     )
     @ApiResponses(
@@ -657,8 +657,8 @@ public class FlowResource extends ApplicationResource {
     @ApiOperation(value = "Enable or disable Controller Services in the specified Process Group.",
         response = ActivateControllerServicesEntity.class,
         authorizations = {
-            @Authorization(value = "Read - /flow", type = ""),
-            @Authorization(value = "Write - /{component-type}/{uuid} - For every service being enabled/disabled", type = "")
+            @Authorization(value = "Read - /flow"),
+            @Authorization(value = "Write - /{component-type}/{uuid} - For every service being enabled/disabled")
         })
     @ApiResponses(
             value = {
@@ -791,7 +791,7 @@ public class FlowResource extends ApplicationResource {
             notes = "Only search results from authorized components will be returned.",
             response = SearchResultsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -830,7 +830,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets the current status of this NiFi",
             response = ControllerStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -873,7 +873,7 @@ public class FlowResource extends ApplicationResource {
             value = "The cluster summary for this NiFi",
             response = ClusteSummaryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -929,10 +929,10 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves Controller level bulletins",
             response = ControllerBulletinsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = ""),
-                    @Authorization(value = "Read - /controller - For controller bulletins", type = ""),
-                    @Authorization(value = "Read - /controller-services/{uuid} - For controller service bulletins", type = ""),
-                    @Authorization(value = "Read - /reporting-tasks/{uuid} - For reporting task bulletins", type = "")
+                    @Authorization(value = "Read - /flow"),
+                    @Authorization(value = "Read - /controller - For controller bulletins"),
+                    @Authorization(value = "Read - /controller-services/{uuid} - For controller service bulletins"),
+                    @Authorization(value = "Read - /reporting-tasks/{uuid} - For reporting task bulletins")
             }
     )
     @ApiResponses(
@@ -969,7 +969,7 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves the banners for this NiFi",
             response = BannerEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1015,7 +1015,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ProcessorTypesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1073,7 +1073,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ControllerServiceTypesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1157,7 +1157,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ReportingTaskTypesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1214,7 +1214,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = PrioritizerTypesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1253,7 +1253,7 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves details about this NiFi to put in the About dialog",
             response = AboutEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1324,8 +1324,8 @@ public class FlowResource extends ApplicationResource {
             value = "Gets current bulletins",
             response = BulletinBoardEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = ""),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For component specific bulletins", type = "")
+                    @Authorization(value = "Read - /flow"),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For component specific bulletins")
             }
     )
     @ApiResponses(
@@ -1427,7 +1427,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status for a processor",
             response = ProcessorStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1500,7 +1500,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status for an input port",
             response = PortStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1573,7 +1573,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status for an output port",
             response = PortStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1646,7 +1646,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status for a remote process group",
             response = RemoteProcessGroupStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1722,7 +1722,7 @@ public class FlowResource extends ApplicationResource {
                     + "recursive set to true, it will return the current status of every component in the flow.",
             response = ProcessGroupStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1800,7 +1800,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status for a connection",
             response = ConnectionStatusEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1877,7 +1877,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status history for a processor",
             response = StatusHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1923,7 +1923,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets status history for a remote process group",
             response = StatusHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -1969,7 +1969,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets the status history",
             response = StatusHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -2015,7 +2015,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets the status history for a connection",
             response = StatusHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -2084,7 +2084,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = HistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -2222,7 +2222,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ActionEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -2272,8 +2272,8 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ComponentHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = ""),
-                    @Authorization(value = "Read underlying component - /{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /flow"),
+                    @Authorization(value = "Read underlying component - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -2354,7 +2354,7 @@ public class FlowResource extends ApplicationResource {
             value = "Gets all templates",
             response = TemplatesEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(
@@ -2406,7 +2406,7 @@ public class FlowResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = ClusterSearchResultsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow")
             }
     )
     @ApiResponses(

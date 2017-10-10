@@ -384,6 +384,7 @@
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
         <property name="oidcService" ref="oidcService"/>
+        <property name="knoxService" ref="knoxService"/>
         <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>

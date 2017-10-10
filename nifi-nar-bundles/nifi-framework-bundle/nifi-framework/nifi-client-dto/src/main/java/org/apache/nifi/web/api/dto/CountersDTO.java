@@ -17,11 +17,10 @@
 
 package org.apache.nifi.web.api.dto;
 
-import java.util.List;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.List;
 
 @XmlType(name = "counters")
 public class CountersDTO {

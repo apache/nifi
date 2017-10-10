@@ -24,11 +24,11 @@ import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
 import com.nimbusds.openid.connect.sdk.AuthenticationSuccessResponse;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import io.jsonwebtoken.JwtException;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -53,6 +53,7 @@ import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.kerberos.KerberosService;
+import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
@@ -111,6 +112,7 @@ public class AccessResource extends ApplicationResource {
     private JwtService jwtService;
     private OtpService otpService;
     private OidcService oidcService;
+    private KnoxService knoxService;
 
     private KerberosService kerberosService;
 
@@ -311,6 +313,63 @@ public class AccessResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(jwt).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/request")
+    @ApiOperation(
+            value = "Initiates a request to authenticate through Apache Knox.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            return;
+        }
+
+        // ensure knox is enabled
+        if (!knoxService.isKnoxEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            return;
+        }
+
+        // build the originalUri, and direct back to the ui
+        final String originalUri = generateResourceUri("access", "knox", "callback");
+
+        // build the authorization uri
+        final URI authorizationUri = UriBuilder.fromUri(knoxService.getKnoxUrl())
+                .queryParam("originalUrl", originalUri.toString())
+                .build();
+
+        // generate the response
+        httpServletResponse.sendRedirect(authorizationUri.toString());
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/callback")
+    @ApiOperation(
+            value = "Redirect/callback URI for processing the result of the Apache Knox login sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
+            return;
+        }
+
+        // ensure knox is enabled
+        if (!knoxService.isKnoxEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            return;
+        }
+
+        httpServletResponse.sendRedirect("../../../nifi");
     }
 
     /**
@@ -734,5 +793,9 @@ public class AccessResource extends ApplicationResource {
 
     public void setOidcService(OidcService oidcService) {
         this.oidcService = oidcService;
+    }
+
+    public void setKnoxService(KnoxService knoxService) {
+        this.knoxService = knoxService;
     }
 }

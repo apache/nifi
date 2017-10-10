@@ -111,7 +111,7 @@ run() {
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
 
    umask 0077
-   "${JAVA}" -cp "${CLASSPATH}" -Xms128m -Xmx256m org.apache.nifi.properties.ConfigEncryptionTool "$@"
+   "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS:--Xms128m -Xmx256m} org.apache.nifi.properties.ConfigEncryptionTool "$@"
    return $?
 }
 

@@ -94,6 +94,13 @@ public enum EncryptionMethod {
         return !algorithm.startsWith("PBE") && !algorithm.startsWith("PGP");
     }
 
+    /**
+     * @return true if this algorithm uses its own internal key derivation process from a password
+     */
+    public boolean isPBECipher() {
+        return algorithm.startsWith("PBE");
+    }
+
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);

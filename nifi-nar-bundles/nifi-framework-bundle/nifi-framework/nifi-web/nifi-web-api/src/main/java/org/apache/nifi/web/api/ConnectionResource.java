@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
@@ -107,8 +107,8 @@ public class ConnectionResource extends ApplicationResource {
             value = "Gets a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Source - /{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Read Destination - /{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Source - /{component-type}/{uuid}"),
+                    @Authorization(value = "Read Destination - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -163,10 +163,10 @@ public class ConnectionResource extends ApplicationResource {
             value = "Updates a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Write New Destination - /{component-type}/{uuid} - if updating Destination", type = ""),
-                    @Authorization(value = "Write Process Group - /process-groups/{uuid} - if updating Destination", type = "")
+                    @Authorization(value = "Write Source - /{component-type}/{uuid}"),
+                    @Authorization(value = "Write Destination - /{component-type}/{uuid}"),
+                    @Authorization(value = "Write New Destination - /{component-type}/{uuid} - if updating Destination"),
+                    @Authorization(value = "Write Process Group - /process-groups/{uuid} - if updating Destination")
             }
     )
     @ApiResponses(
@@ -294,9 +294,9 @@ public class ConnectionResource extends ApplicationResource {
             value = "Deletes a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                    @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Write Source - /{component-type}/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Write Destination - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(

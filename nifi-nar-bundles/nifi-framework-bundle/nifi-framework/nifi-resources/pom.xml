@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -155,6 +155,12 @@
         <nifi.security.user.oidc.client.secret />
         <nifi.security.user.oidc.preferred.jwsalgorithm />
 
+        <!-- nifi.properties: apache knox -->
+        <nifi.security.user.knox.url />
+        <nifi.security.user.knox.publicKey />
+        <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
+        <nifi.security.user.knox.audiences />
+
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
@@ -180,9 +186,9 @@
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
-        <nifi.zookeeper.auth.type/>
-        <nifi.zookeeper.kerberos.removeHostFromPrincipal/>
-        <nifi.zookeeper.kerberos.removeRealmFromPrincipal/>
+        <nifi.zookeeper.auth.type />
+        <nifi.zookeeper.kerberos.removeHostFromPrincipal />
+        <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>

@@ -37,7 +37,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.HadoopValidators;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -47,33 +47,16 @@ import org.kitesdk.data.spi.DefaultConfiguration;
 abstract class AbstractKiteProcessor extends AbstractProcessor {
 
     private static final Splitter COMMA = Splitter.on(',').trimResults();
-    protected static final Validator FILES_EXIST = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String configFiles,
-                ValidationContext context) {
-            if (configFiles != null && !configFiles.isEmpty()) {
-                for (String file : COMMA.split(configFiles)) {
-                    ValidationResult result = StandardValidators.FILE_EXISTS_VALIDATOR
-                            .validate(subject, file, context);
-                    if (!result.isValid()) {
-                        return result;
-                    }
-                }
-            }
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(configFiles)
-                    .explanation("Files exist")
-                    .valid(true)
-                    .build();
-        }
-    };
 
     protected static final PropertyDescriptor CONF_XML_FILES
             = new PropertyDescriptor.Builder()
             .name("Hadoop configuration files")
-            .description("A comma-separated list of Hadoop configuration files")
-            .addValidator(FILES_EXIST)
+            .displayName("Hadoop configuration Resources")
+            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+            .required(false)
+            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final Validator RECOGNIZED_URI = new Validator() {
@@ -163,7 +146,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected static final Validator SCHEMA_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
-            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).getValue());
+            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue());
             String error = null;
 
             final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
@@ -195,7 +178,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected void setDefaultConfiguration(ProcessContext context)
             throws IOException {
         DefaultConfiguration.set(getConfiguration(
-                context.getProperty(CONF_XML_FILES).getValue()));
+                context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue()));
     }
 
     protected static Configuration getConfiguration(String configFiles) {

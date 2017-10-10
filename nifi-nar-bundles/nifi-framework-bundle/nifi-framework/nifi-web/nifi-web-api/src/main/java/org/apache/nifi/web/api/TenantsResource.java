@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -129,7 +129,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -214,7 +214,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -269,7 +269,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UsersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -327,7 +327,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -417,7 +417,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -518,7 +518,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -603,7 +603,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -658,7 +658,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -715,7 +715,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -805,7 +805,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -885,7 +885,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = TenantsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(

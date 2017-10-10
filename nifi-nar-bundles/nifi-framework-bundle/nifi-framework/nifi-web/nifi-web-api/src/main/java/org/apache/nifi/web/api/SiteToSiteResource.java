@@ -17,11 +17,11 @@
 package org.apache.nifi.web.api;
 
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -109,7 +109,7 @@ public class SiteToSiteResource extends ApplicationResource {
             value = "Returns the details about this NiFi necessary to communicate via site to site",
             response = ControllerEntity.class,
             authorizations = {
-                @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site")
             }
     )
     @ApiResponses(
@@ -160,7 +160,7 @@ public class SiteToSiteResource extends ApplicationResource {
             value = "Returns the available Peers and its status of this NiFi",
             response = PeersEntity.class,
             authorizations = {
-                @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site")
             }
     )
     @ApiResponses(

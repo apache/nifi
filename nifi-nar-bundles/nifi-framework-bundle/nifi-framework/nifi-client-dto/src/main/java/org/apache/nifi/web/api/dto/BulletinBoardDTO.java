@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import java.util.List;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
-import org.apache.nifi.web.api.entity.BulletinEntity;
+import java.util.Date;
+import java.util.List;
 
 /**
  * The contents for the bulletin board including the bulletins and the timestamp when the board was generated.

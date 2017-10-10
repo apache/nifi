@@ -30,6 +30,7 @@
     
     
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.encrypt" level="DEBUG"/>
     <logger name="org.apache.nifi.controller.service.mock" level="ERROR"/>
     <logger name="org.apache.nifi.controller.service.StandardControllerServiceProvider" level="WARN" />
 

@@ -21,6 +21,7 @@ package org.apache.nifi.processors.kite;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import org.apache.avro.generic.GenericData.Record;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -29,14 +30,21 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.After;
 import org.junit.rules.TemporaryFolder;
+import org.kitesdk.data.DatasetDescriptor;
+import org.kitesdk.data.Datasets;
 import org.kitesdk.data.spi.DefaultConfiguration;
+import org.kitesdk.data.Dataset;
 
 public class TestConfigurationProperty {
 
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
     public File confLocation;
+
+    private String datasetUri = null;
+    private Dataset<Record> dataset = null;
 
     @Before
     public void saveConfiguration() throws IOException {
@@ -47,6 +55,20 @@ public class TestConfigurationProperty {
         FileOutputStream out = new FileOutputStream(confLocation);
         conf.writeXml(out);
         out.close();
+    }
+
+    @Before
+    public void createDataset() throws Exception {
+        DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
+                .schema(TestUtil.USER_SCHEMA)
+                .build();
+        this.datasetUri = "dataset:file:" + temp.newFolder("ns", "temp").toString();
+        this.dataset = Datasets.create(datasetUri, descriptor, Record.class);
+    }
+
+    @After
+    public void deleteDataset() throws Exception {
+        Datasets.delete(datasetUri);
     }
 
     @Test
@@ -71,6 +93,20 @@ public class TestConfigurationProperty {
         TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
         runner.setProperty(
                 AbstractKiteProcessor.CONF_XML_FILES, temp.newFile().toString());
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testConfigurationExpressionLanguage() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
+        runner.setProperty(
+                AbstractKiteProcessor.CONF_XML_FILES, "${filename:substring(0,0):append('pom.xml')}");
+        runner.setProperty(
+                StoreInKiteDataset.KITE_DATASET_URI, datasetUri);
+        runner.assertValid();
+        // botch the Expression Language evaluation
+        runner.setProperty(
+                AbstractKiteProcessor.CONF_XML_FILES, "${filename:substring(0,0):");
         runner.assertNotValid();
     }
 }

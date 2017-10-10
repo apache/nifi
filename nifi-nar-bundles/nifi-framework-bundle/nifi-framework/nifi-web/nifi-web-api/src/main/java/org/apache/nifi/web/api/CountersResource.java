@@ -17,12 +17,12 @@
 package org.apache.nifi.web.api;
 
 import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -93,7 +93,7 @@ public class CountersResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = CountersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /counters", type = "")
+                    @Authorization(value = "Read - /counters")
             }
     )
     @ApiResponses(
@@ -183,7 +183,7 @@ public class CountersResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = CounterEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /counters", type = "")
+                    @Authorization(value = "Write - /counters")
             }
     )
     @ApiResponses(
