@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.toolkit.admin.client
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.config.ClientConfig
-import com.sun.jersey.api.client.config.DefaultClientConfig
-import com.sun.jersey.client.urlconnection.HTTPSProperties
 import org.apache.commons.lang3.StringUtils
 import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.util.NiFiProperties
@@ -34,6 +30,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 import javax.net.ssl.TrustManagerFactory
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.ClientBuilder
 import java.security.KeyManagementException
 import java.security.KeyStore
 import java.security.KeyStoreException
@@ -82,13 +80,13 @@ class NiFiClientFactory implements ClientFactory{
                     "TLS");
         }
 
-        final ClientConfig config = new DefaultClientConfig();
+        final ClientBuilder clientBuilder = ClientBuilder.newBuilder();
 
         if (sslContext != null) {
-            config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,new HTTPSProperties(new NiFiHostnameVerifier(), sslContext))
+            clientBuilder.sslContext(sslContext).hostnameVerifier(new NiFiHostnameVerifier());
         }
 
-        return  Client.create(config)
+        return clientBuilder.build();
 
     }
 

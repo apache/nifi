@@ -18,9 +18,6 @@ package org.apache.nifi.toolkit.admin.client
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.collect.Lists
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.web.api.dto.NodeDTO
@@ -31,6 +28,9 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.WebTarget
+import javax.ws.rs.core.Response
 import java.text.SimpleDateFormat
 
 public class NiFiClientUtil {
@@ -98,13 +98,13 @@ public class NiFiClientUtil {
             try {
 
                 String url = activeUrl + GET_CLUSTER_ENDPOINT
-                final WebResource webResource = client.resource(url)
-                ClientResponse response
+                final WebTarget webTarget = client.target(url)
+                Response response
 
                 if(url.startsWith("https")) {
-                    response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).get(ClientResponse.class)
+                    response = webTarget.request().header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).get()
                 }else{
-                    response = webResource.type("application/json").get(ClientResponse.class)
+                    response = webTarget.request().get()
                 }
 
                 Integer status = response.status
@@ -113,10 +113,10 @@ public class NiFiClientUtil {
                     if (status == 404) {
                         logger.warn("This node is not attached to a cluster. Please connect to a node that is attached to the cluster for information")
                     } else {
-                        logger.warn("Failed with HTTP error code: {}, message: {}", status, response.getEntity(String.class))
+                        logger.warn("Failed with HTTP error code: {}, message: {}", status, response.readEntity(String.class))
                     }
                 } else if (status == 200) {
-                    return response.getEntity(ClusterEntity.class)
+                    return response.readEntity(ClusterEntity.class)
                 }
 
             }catch(Exception ex){

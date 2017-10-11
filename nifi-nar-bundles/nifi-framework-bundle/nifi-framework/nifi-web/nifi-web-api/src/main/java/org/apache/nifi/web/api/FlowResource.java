@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -139,9 +138,6 @@ public class FlowResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
-    @Context
-    private ResourceContext resourceContext;
-
     private ProcessorResource processorResource;
     private InputPortResource inputPortResource;
     private OutputPortResource outputPortResource;
@@ -153,6 +149,10 @@ public class FlowResource extends ApplicationResource {
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
+
+    public FlowResource() {
+        super();
+    }
 
     /**
      * Populates the remaining fields in the specified process group.

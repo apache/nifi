@@ -414,40 +414,6 @@
         <constructor-arg ref="flowController" />
     </bean>
 
-    <!-- configuration for jaxb serialization -->
-    <bean class="org.apache.nifi.web.util.ObjectMapperResolver" scope="singleton"/>
-
-    <!-- exception mapping -->
-    <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ClusterExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalClusterResourceRequestExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalClusterStateExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeDeletionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeDisconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeReconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalStateExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.InvalidRevisionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.JsonMappingExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.JsonParseExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.MutableRequestExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NiFiCoreExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoConnectedNodesExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoClusterCoordinatorExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoResponseFromNodesExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NodeDisconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.UnknownNodeExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ValidationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.WebApplicationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ThrowableMapper" scope="singleton"/>
-
     <!-- enable aop -->
     <!-- 
         By setting '-target-class' to 'true' Spring will use CGLIB for

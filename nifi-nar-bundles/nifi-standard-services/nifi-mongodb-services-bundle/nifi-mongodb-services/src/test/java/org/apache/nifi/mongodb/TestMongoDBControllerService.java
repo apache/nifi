@@ -17,10 +17,10 @@
 
 package org.apache.nifi.mongodb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

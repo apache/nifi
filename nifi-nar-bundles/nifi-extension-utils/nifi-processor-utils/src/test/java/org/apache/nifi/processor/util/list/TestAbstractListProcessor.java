@@ -17,27 +17,6 @@
 
 package org.apache.nifi.processor.util.list;
 
-import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MILLIS;
-import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MINUTES;
-import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_SECONDS;
-import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.apache.commons.io.Charsets;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -59,6 +38,27 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestWatcher;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MILLIS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_MINUTES;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.PRECISION_SECONDS;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
+import static org.junit.Assert.assertEquals;
 
 public class TestAbstractListProcessor {
 
@@ -398,7 +398,7 @@ public class TestAbstractListProcessor {
 
         // Create a persistence file of the format anticipated
         try (FileOutputStream fos = new FileOutputStream(persistenceFile);) {
-            fos.write(serviceState.getBytes(Charsets.UTF_8));
+            fos.write(serviceState.getBytes(StandardCharsets.UTF_8));
         }
 
         runner.run();

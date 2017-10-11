@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.integration;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.integration.util.SourceTestProcessor;
@@ -39,6 +36,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Ignore;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.Response;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -70,18 +69,18 @@ public class NiFiWebApiTest {
         processorEntity.setComponent(processorDTO);
 
         // add the processor
-        ClientResponse response = user.testPost(baseUrl + "/process-groups/root/processors", processorEntity);
+        Response response = user.testPost(baseUrl + "/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
         // get the processors id
-        processorEntity = response.getEntity(ProcessorEntity.class);
+        processorEntity = response.readEntity(ProcessorEntity.class);
         processorDTO = processorEntity.getComponent();
         String localSelectionId = processorDTO.getId();
         String localSelectionGroupId = processorDTO.getParentGroupId();
@@ -104,15 +103,15 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
         // get the processors id
-        processorEntity = response.getEntity(ProcessorEntity.class);
+        processorEntity = response.readEntity(ProcessorEntity.class);
         processorDTO = processorEntity.getComponent();
         String terminationId = processorDTO.getId();
         String terminationGroupId = processorDTO.getParentGroupId();
@@ -150,10 +149,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/connections", connectionEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
@@ -174,10 +173,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/labels", labelEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
@@ -197,10 +196,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/funnels", funnelEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
@@ -221,10 +220,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/process-groups", processGroupEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
@@ -245,10 +244,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/input-ports", inputPortEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
@@ -269,10 +268,10 @@ public class NiFiWebApiTest {
         response = user.testPost(baseUrl + "/process-groups/root/output-ports", outputPortEntity);
 
         // ensure a successful response
-        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+        if (Response.Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
-            final String responseEntity = response.getEntity(String.class);
+            final String responseEntity = response.readEntity(String.class);
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 

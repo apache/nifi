@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.yandex;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.Response.Status.Family;
-import javax.ws.rs.core.Response.StatusType;
-
 import org.apache.nifi.processors.yandex.model.Translation;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -36,9 +26,16 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.WebResource.Builder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status.Family;
+import javax.ws.rs.core.Response.StatusType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestYandexTranslate {
 
@@ -55,13 +52,13 @@ public class TestYandexTranslate {
     private TestRunner createTestRunner(final int statusCode) {
         return TestRunners.newTestRunner(new YandexTranslate() {
             @Override
-            protected Builder prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
-                final WebResource.Builder builder = Mockito.mock(WebResource.Builder.class);
+            protected Invocation prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
+                final Invocation invocation = Mockito.mock(Invocation.class);
 
-                Mockito.doAnswer(new Answer<ClientResponse>() {
+                Mockito.doAnswer(new Answer<Response>() {
                     @Override
-                    public ClientResponse answer(final InvocationOnMock invocation) throws Throwable {
-                        final ClientResponse response = Mockito.mock(ClientResponse.class);
+                    public Response answer(final InvocationOnMock invocation) throws Throwable {
+                        final Response response = Mockito.mock(Response.class);
 
                         final StatusType statusType = new StatusType() {
                             @Override
@@ -96,13 +93,13 @@ public class TestYandexTranslate {
 
                             translation.setText(translationList);
 
-                            Mockito.when(response.getEntity(Translation.class)).thenReturn(translation);
+                            Mockito.when(response.readEntity(Translation.class)).thenReturn(translation);
                         }
 
                         return response;
                     }
-                }).when(builder).post(ClientResponse.class);
-                return builder;
+                }).when(invocation).invoke();
+                return invocation;
             }
         });
     }
