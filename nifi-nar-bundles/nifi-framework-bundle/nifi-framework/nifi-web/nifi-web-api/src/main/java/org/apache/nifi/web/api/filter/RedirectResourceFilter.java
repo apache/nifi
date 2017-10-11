@@ -18,8 +18,6 @@ package org.apache.nifi.web.api.filter;
 
 
 import org.apache.nifi.web.api.SiteToSiteResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -33,14 +31,11 @@ import java.net.URI;
  */
 public class RedirectResourceFilter implements ContainerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedirectResourceFilter.class);
-
     /**
      * This method checks path of the incoming request, and
      * redirects following URIs:
      * <li>/controller -> SiteToSiteResource
      * @param requestContext request to be modified
-     * @return modified request
      */
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
