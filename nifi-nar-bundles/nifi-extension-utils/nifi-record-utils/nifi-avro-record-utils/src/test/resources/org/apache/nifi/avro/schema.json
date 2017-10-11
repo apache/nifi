@@ -1,0 +1,20 @@
+[ {
+	"namespace" : "net.a",
+	"type" : "record",
+	"name" : "O",
+	"fields" : [ {
+		"name" : "hash",
+		"type" : [ "null", {
+			"type" : "map",
+			"values" : "string"
+		} ]
+	} ]
+}, {
+	"namespace" : "net.a",
+	"type" : "record",
+	"name" : "A",
+	"fields" : [ {
+		"name" : "o",
+		"type" : [ "null", "O" ]
+	}]
+} ]

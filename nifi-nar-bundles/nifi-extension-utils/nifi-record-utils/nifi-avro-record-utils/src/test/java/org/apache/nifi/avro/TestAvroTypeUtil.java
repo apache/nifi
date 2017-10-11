@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,9 @@ import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -237,6 +241,22 @@ public class TestAvroTypeUtil {
 
         // Make sure the 'parent' field has a schema reference back to the original top level record schema
         Assert.assertEquals(recordASchema, ((RecordDataType)recordBParentField.get().getDataType()).getChildSchema());
+    }
+
+    @Test
+    public void testMapWithNullSchema() throws IOException {
+
+        Schema recursiveSchema = new Schema.Parser().parse(getClass().getResourceAsStream("schema.json"));
+
+        // Make sure the following doesn't throw an exception
+        RecordSchema recordASchema = AvroTypeUtil.createSchema(recursiveSchema.getTypes().get(0));
+
+        // check the fix with the proper file
+        try(DataFileStream<GenericRecord> r = new DataFileStream<>(getClass().getResourceAsStream("data.avro"),
+                new GenericDatumReader<>())) {
+            GenericRecord n= r.next();
+            AvroTypeUtil.convertAvroRecordToMap(n, recordASchema);
+        }
     }
 
 }
