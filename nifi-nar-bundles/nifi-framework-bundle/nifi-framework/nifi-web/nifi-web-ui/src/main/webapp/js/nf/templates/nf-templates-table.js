@@ -22,26 +22,29 @@
         define(['jquery',
                 'Slick',
                 'nf.Common',
+                'nf.Client',
                 'nf.Dialog',
                 'nf.ErrorHandler'],
-            function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
-                return (nf.TemplatesTable = factory($, Slick, nfCommon, nfDialog, nfErrorHandler));
+            function ($, Slick, nfCommon, nfClient, nfDialog, nfErrorHandler) {
+                return (nf.TemplatesTable = factory($, Slick, nfCommon, nfClient, nfDialog, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.TemplatesTable =
             factory(require('jquery'),
                 require('Slick'),
                 require('nf.Common'),
+                require('nf.Client'),
                 require('nf.Dialog'),
                 require('nf.ErrorHandler')));
     } else {
         nf.TemplatesTable = factory(root.$,
             root.Slick,
             root.nf.Common,
+            root.nf.Client,
             root.nf.Dialog,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
+}(this, function ($, Slick, nfCommon, nfClient, nfDialog, nfErrorHandler) {
     'use strict';
 
     /**
@@ -103,6 +106,117 @@
                 deleteTemplate(templateEntity);
             }
         });
+    };
+
+    /**
+     * Opens the edit dialog for the specified template.
+     *
+     * @argument {object} templateEntity     The template
+     */
+    var promptToEditTemplate = function (templateEntity) {
+        // open dialog
+        showEditTemplateDialog(templateEntity);
+    };
+
+    /**
+     * Shows the dialog for editing a template. //showEnableControllerServiceDialog
+     *
+     * @argument {object} templateEntity   The template
+     */
+    var showEditTemplateDialog = function (templateEntity) {
+        console.log(templateEntity);
+        // populate the edit template dialog
+        $('#edit-template-name').val(templateEntity.template.name);
+        $('#edit-template-description').val(templateEntity.template.description);
+        $('#edit-template-process-group-id').text(templateEntity.template.groupId);
+
+        // build the button model
+        var buttons = [{
+            buttonText: 'OK',
+            color: {
+                base: '#728E9B',
+                hover: '#004849',
+                text: '#ffffff'
+            },
+            handler: {
+                click: function () {
+                    updateTemplate(templateEntity);
+                    // hide the dialog
+                    $(this).modal('hide');
+                }
+            }
+        }, {
+            buttonText: 'Cancel',
+            color: {
+                base: '#E3E8EB',
+                hover: '#C7D2D7',
+                text: '#004849'
+            },
+            handler: {
+                click: function() {
+                    $(this).modal('hide');
+                }
+            }
+        }];
+
+        // show the dialog
+        $('#edit-template-dialog').modal('setButtonModel', buttons).modal('show');
+
+        // update the border if necessary
+        // updateReferencingComponentsBorder(referencingComponentsContainer);
+    };
+
+    /**
+     * Updates the template with the specified id.
+     *
+     * @argument {object} templateEntity     The template
+     */
+    var updateTemplate = function (templateEntity) {
+        // build the request entity
+        var entity = prepareUpdateEntity(templateEntity);
+
+        $.ajax({
+            type: 'PUT',
+            url: entity.template.uri,
+            data: JSON.stringify(entity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (response) {
+            var templatesGrid = $('#templates-table').data('gridInstance');
+            var templatesData = templatesGrid.getData();
+
+            // update the edited row
+            templatesData.updateItem(templateEntity.id, response);
+
+            // resort table rows
+            templatesData.reSort();
+            templatesGrid.invalidate();
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
+     *
+     * Creates an update entity for the specified template.
+     *
+     * @argument {object} templateEntity     The template
+     */
+    var prepareUpdateEntity = function (templateEntity) {
+        var template = templateEntity.template;
+
+        return {
+            id: templateEntity.id,
+            permissions: templateEntity.permissions,
+            revision: nfClient.getRevision(templateEntity),
+            template: {
+                description: $('#edit-template-description').val(),
+                encodingVersion: template.encodingVersion,
+                groupId: template.encodingVersion,
+                id: template.id,
+                name: $('#edit-template-name').val(),
+                timestamp: template.timestamp,
+                uri: template.uri
+            }
+        };
     };
 
     /**
@@ -286,8 +400,9 @@
                     markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
-                // all DFMs to remove templates
+                // allow DFMs to reqmove or modify templates
                 if (dataContext.permissions.canWrite === true) {
+                    markup += '<div title="Edit Template" class="pointer prompt-to-edit-template fa fa-pencil" style="margin-top: 2px; margin-right: 3px;"></div>';
                     markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
@@ -394,6 +509,8 @@
                 if (templatesGrid.getColumns()[args.cell].id === 'actions') {
                     if (target.hasClass('export-template')) {
                         downloadTemplate(item);
+                    } else if (target.hasClass('prompt-to-edit-template')) {
+                        promptToEditTemplate(item);
                     } else if (target.hasClass('prompt-to-delete-template')) {
                         promptToDeleteTemplate(item);
                     } else if (target.hasClass('edit-access-policies')) {
@@ -420,6 +537,18 @@
 
             // initialize the number of displayed items
             $('#displayed-templates').text('0');
+
+            // initialize the edit template dialog
+            $('#edit-template-dialog').modal({
+                headerText: 'Edit Template',
+                scrollableContentStyle: 'scrollable',
+                handler: {
+                    open: function () {
+                        // focus the name input box
+                        $('#edit-template-name').focus();
+                    }
+                }
+            });
         },
 
         /**

@@ -63,6 +63,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -266,6 +267,22 @@ public final class EntityFactory {
                 entity.setComponent(dto);
             }
         }
+        return entity;
+    }
+
+    public TemplateEntity crateTemplateEntity(final TemplateDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final TemplateEntity entity = new TemplateEntity();
+        entity.setRevision(revision);
+
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setTemplate(dto);
+            }
+        }
+
         return entity;
     }
 

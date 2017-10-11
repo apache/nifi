@@ -75,6 +75,17 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
+    public void verifyUpdateTemplate(final TemplateDTO templateDTO) {
+        final Template template = locateTemplate(templateDTO.getId());
+
+        verifyUpdate(templateDTO, template.getProcessGroup());
+    }
+
+    private void verifyUpdate(final TemplateDTO templateDTO, final ProcessGroup processGroup) {
+        processGroup.verifyCanUpdateTemplate(templateDTO.getName(), templateDTO.getId());
+    }
+
+    @Override
     public Template createTemplate(TemplateDTO templateDTO, String groupId) {
         final ProcessGroup processGroup = flowController.getGroup(groupId);
         if (processGroup == null) {
@@ -86,6 +97,22 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
         TemplateUtils.scrubTemplate(templateDTO);
         final Template template = new Template(templateDTO);
         processGroup.addTemplate(template);
+
+        return template;
+    }
+
+    @Override
+    public Template updateTemplate(TemplateDTO templateDTO) {
+        final Template template = locateTemplate(templateDTO.getId());
+
+        final TemplateDTO templateDetails = template.getDetails();
+
+        // update just name and description
+        templateDetails.setName(templateDTO.getName());
+
+        if (templateDTO.getDescription() != null) {
+            templateDetails.setDescription(templateDTO.getDescription());
+        }
 
         return template;
     }

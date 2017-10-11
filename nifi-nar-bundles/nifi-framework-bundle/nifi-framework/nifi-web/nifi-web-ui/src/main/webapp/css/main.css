@@ -74,12 +74,16 @@ div.context-menu-provenance {
     float: left;
 }
 
-#new-template-description {
+#new-template-description, #edit-template-description {
     position: absolute;
     top: 81px;
     bottom: 0px;
     height: inherit;
     min-height: 32px;
+}
+
+#edit-template-description {
+    top: 126px;
 }
 
 /* processor status styles */

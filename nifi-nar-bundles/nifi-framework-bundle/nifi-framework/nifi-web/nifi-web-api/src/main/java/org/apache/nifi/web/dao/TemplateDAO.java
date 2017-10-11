@@ -40,6 +40,13 @@ public interface TemplateDAO {
     void verifyComponentTypes(FlowSnippetDTO snippet);
 
     /**
+     * Verifies this template can be updated.
+     *
+     * @param templateDTO The template DTO
+     */
+    void verifyUpdateTemplate(TemplateDTO templateDTO);
+
+    /**
      * Creates a template.
      *
      * @param templateDTO The template DTO
@@ -47,6 +54,16 @@ public interface TemplateDAO {
      * @return The template
      */
     Template createTemplate(TemplateDTO templateDTO, String groupId);
+
+
+    /**
+     * Updates the specified Template.
+     *
+     * @param templateDTO The template DTO
+     *
+     * @return The template
+     */
+    Template updateTemplate(TemplateDTO templateDTO);
 
     /**
      * Import the specified template.

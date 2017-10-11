@@ -2602,6 +2602,25 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanUpdateTemplate(final String name, final String templateId) {
+        // ensure the name is specified
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("Template name cannot be blank.");
+        }
+
+        for (final Template template : getTemplates()) {
+            canUpdateTemplate(name, templateId, template.getDetails());
+        }
+    }
+
+    private void canUpdateTemplate(final String name, final String templateId, final TemplateDTO processGroupTemplate) {
+        // prevent renaming to another template's name
+        if (name.equals(processGroupTemplate.getName()) && !templateId.equals(processGroupTemplate.getId())) {
+            throw new IllegalStateException(String.format("Cant't rename template to '%s'. A template named '%s' already exists within the process group.", name, name));
+        }
+    }
+
+    @Override
     public void verifyCanUpdateVariables(final Map<String, String> updatedVariables) {
         if (updatedVariables == null || updatedVariables.isEmpty()) {
             return;

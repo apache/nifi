@@ -389,6 +389,13 @@ public interface NiFiServiceFacade {
     void verifyCanAddTemplate(String groupId, String name);
 
     /**
+     * Verifies this template can be updated.
+     *
+     * @param templateDTO The template DTO
+     */
+    void verifyUpdateTemplate(TemplateDTO templateDTO);
+
+    /**
      * Verifies the types of components in a template.
      *
      * @param snippet proposed template
@@ -406,6 +413,16 @@ public interface NiFiServiceFacade {
      * @return template
      */
     TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
+
+    /**
+     * Updates the specified Template.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param templateDTO The template DTO
+     *
+     * @return The access policy transfer object of the deleted access policy
+     */
+    TemplateEntity updateTemplate(Revision revision, TemplateDTO templateDTO);
 
     /**
      * Imports the specified Template.

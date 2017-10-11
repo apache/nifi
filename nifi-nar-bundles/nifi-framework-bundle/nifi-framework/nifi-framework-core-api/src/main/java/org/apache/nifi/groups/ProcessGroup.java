@@ -819,6 +819,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
 
     /**
+     * Verifies a template with the specified name can be updated.
+     *
+     * @param name name of the template
+     * @param templateId id of the template
+     */
+    void verifyCanUpdateTemplate(String name, String templateId);
+
+    /**
      * Ensures that the given variables can be updated
      *
      * @param updatedVariables the new set of variable names and values

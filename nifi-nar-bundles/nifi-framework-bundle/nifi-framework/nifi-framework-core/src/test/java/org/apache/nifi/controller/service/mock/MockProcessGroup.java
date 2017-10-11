@@ -614,6 +614,9 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanUpdateTemplate(String name, String templateId) { }
+
+    @Override
     public void verifyCanUpdateVariables(Map<String, String> updatedVariables) {
     }
 

@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl
 
 import org.apache.nifi.authorization.Authorizer
 import org.apache.nifi.controller.FlowController
+import org.apache.nifi.controller.Template
 import org.apache.nifi.controller.serialization.FlowEncodingVersion
 import org.apache.nifi.controller.service.ControllerServiceProvider
 import org.apache.nifi.groups.ProcessGroup
@@ -29,6 +30,7 @@ import org.apache.nifi.web.api.dto.PositionDTO
 import org.apache.nifi.web.api.dto.ProcessGroupDTO
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO
 import org.apache.nifi.web.api.dto.ProcessorDTO
+import org.apache.nifi.web.api.dto.TemplateDTO
 import org.apache.nifi.web.util.SnippetUtils
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -154,5 +156,65 @@ class StandardTemplateDAOSpec extends Specification {
         new PositionDTO(
                 x: position.x * factorX,
                 y: position.y * factorY)
+    }
+
+    @Unroll
+    def "test StandardTemplate update"() {
+        given:
+        final templateId = 't1'
+
+        def templateDTO = new TemplateDTO()
+        templateDTO.id = templateId
+        templateDTO.name = 'Template'
+        templateDTO.description = ''
+
+        def newTemplateDTO = new TemplateDTO()
+        newTemplateDTO.id = templateId
+        newTemplateDTO.name = name
+        newTemplateDTO.description = description
+
+        def flowController = Mock FlowController
+        def snippetUtils = new SnippetUtils()
+        snippetUtils.flowController = flowController
+
+        def dtoFactory = new DtoFactory()
+        dtoFactory.authorizer = Mock Authorizer
+        dtoFactory.controllerServiceProvider = Mock ControllerServiceProvider
+        snippetUtils.dtoFactory = dtoFactory
+
+        def standardTemplateDAO = new StandardTemplateDAO()
+        standardTemplateDAO.flowController = flowController
+        standardTemplateDAO.snippetUtils = snippetUtils
+
+        flowController.getGroup(_) >> { String gId ->
+            def pg = Mock ProcessGroup
+            pg.identifier >> gId
+            pg.inputPorts >> []
+            pg.outputPorts >> []
+            pg.processGroups >> []
+
+            pg.findTemplate(_) >> { String tId ->
+                def template = new Template(templateDTO)
+                return template
+            }
+
+            return pg
+        }
+        flowController.rootGroupId >> 'g1'
+
+        standardTemplateDAO.createTemplate(templateDTO, 'g1')
+
+        when:
+        def updatedTemplateDTO = standardTemplateDAO.updateTemplate(newTemplateDTO)
+        def updatedTemplate = updatedTemplateDTO.details
+
+        then:
+        updatedTemplateDTO != null
+        updatedTemplate.name == name
+        updatedTemplate.description == description
+
+        where:
+        name | description
+        'New Template' | 'foo'
     }
 }

@@ -1805,6 +1805,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyUpdateTemplate(TemplateDTO templateDTO) {
+        templateDAO.verifyUpdateTemplate(templateDTO);
+    }
+
+    @Override
     public void verifyComponentTypes(FlowSnippetDTO snippet) {
         templateDAO.verifyComponentTypes(snippet);
     }
@@ -1836,6 +1841,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         controllerFacade.save();
 
         return dtoFactory.createTemplateDTO(template);
+    }
+
+    @Override
+    public TemplateEntity updateTemplate(Revision revision, TemplateDTO templateDTO) {
+        final Template templateNode = templateDAO.getTemplate(templateDTO.getId());
+        final RevisionUpdate<TemplateDTO> snapshot = updateComponent(revision,
+                templateNode,
+                () -> templateDAO.updateTemplate(templateDTO),
+                template -> dtoFactory.createTemplateDTO(template));
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(templateNode);
+        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
+
+        return entityFactory.crateTemplateEntity(snapshot.getComponent(), updatedRevision, permissions);
     }
 
     /**
@@ -2552,6 +2571,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final PermissionsDTO permissions = dtoFactory.createPermissionsDto(template);
 
                     final TemplateEntity entity = new TemplateEntity();
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(dto.getId()));
+                    entity.setRevision(revision);
                     entity.setId(dto.getId());
                     entity.setPermissions(permissions);
                     entity.setTemplate(dto);

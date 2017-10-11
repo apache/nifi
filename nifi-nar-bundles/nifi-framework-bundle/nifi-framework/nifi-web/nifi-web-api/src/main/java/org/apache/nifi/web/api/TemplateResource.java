@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 
@@ -37,6 +38,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -72,6 +74,17 @@ public class TemplateResource extends ApplicationResource {
             }
         }
         return templateEntities;
+    }
+
+    /**
+     * Populates the uri for the specified labels.
+     *
+     * @param templateEntity template
+     * @return entities
+     */
+    public TemplateEntity populateRemainingTemplateEntityContent(TemplateEntity templateEntity) {
+        populateRemainingTemplateContent(templateEntity.getTemplate());
+        return templateEntity;
     }
 
     /**
@@ -218,8 +231,94 @@ public class TemplateResource extends ApplicationResource {
         );
     }
 
-    // setters
+    /**
+     * Updates the specified template.
+     *
+     * @param httpServletRequest request
+     * @param id                 The id of the template to remove.
+     * @return A templateEntity.
+     */
+    @PUT
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}")
+    @ApiOperation(
+            value = "Updates a template",
+            response = TemplateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /templates/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateTemplate(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The template id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The template details.",
+                    required = true
+            ) final TemplateEntity requestTemplateEntity) {
 
+        // check template validity
+        if (requestTemplateEntity == null) {
+            throw new IllegalArgumentException("Template details must be specified.");
+        }
+
+        if (requestTemplateEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // ensure the same id is being used in the request body and parameter
+        final TemplateDTO requestTemplateDTO = requestTemplateEntity.getTemplate();
+        if (!id.equals(requestTemplateDTO.getId())) {
+            throw new IllegalArgumentException(String.format("The template id (%s) in the request body does "
+                    + "not equal the template id of the requested resource (%s).", requestTemplateDTO.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestTemplateEntity);
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestTemplateEntity, id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestTemplateEntity,
+                requestRevision,
+                lookup -> {
+                    final Authorizable template = lookup.getTemplate(id);
+
+                    // ensure write permission to the template
+                    template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    template.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyUpdateTemplate(requestTemplateDTO),
+                (revision, templateEntity) -> {
+                    // update the template
+                    final TemplateEntity updatedTemplateEntity = serviceFacade.updateTemplate(revision, templateEntity.getTemplate());
+                    populateRemainingTemplateEntityContent(updatedTemplateEntity);
+
+                    return generateOkResponse(updatedTemplateEntity).build();
+                }
+        );
+    }
+
+    // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

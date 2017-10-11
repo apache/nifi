@@ -606,6 +606,7 @@
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-client.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
