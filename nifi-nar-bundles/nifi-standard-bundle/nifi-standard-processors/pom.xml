@@ -488,6 +488,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
@@ -501,6 +502,10 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt
                             because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>

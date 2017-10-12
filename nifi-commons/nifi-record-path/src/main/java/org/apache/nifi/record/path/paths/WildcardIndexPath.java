@@ -67,7 +67,7 @@ public class WildcardIndexPath extends RecordPathSegment {
                     return IntStream.range(0, array.length)
                         .mapToObj(index -> {
                             final DataType elementDataType = ((ArrayDataType) fieldValue.getField().getDataType()).getElementType();
-                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName() + "[" + index + "]", elementDataType);
+                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), elementDataType);
                             return new ArrayIndexFieldValue(array[index], elementField, fieldValue, index);
                         });
                 }

@@ -57,6 +57,7 @@ public class MultiArrayIndexPath extends RecordPathSegment {
                     .filter(range -> values.length > Math.abs(range.getMin()))
                     .flatMap(range -> {
                         final List<Object> valuesWithinRange = new ArrayList<>();
+                        final List<Integer> indexes = new ArrayList<Integer>();
 
                         final int min = range.getMin() < 0 ? values.length + range.getMin() : range.getMin();
                         final int max = range.getMax() < 0 ? values.length + range.getMax() : range.getMax();
@@ -64,13 +65,14 @@ public class MultiArrayIndexPath extends RecordPathSegment {
                         for (int i = min; i <= max; i++) {
                             if (values.length > i) {
                                 valuesWithinRange.add(values[i]);
+                                indexes.add(i);
                             }
                         }
 
                         return IntStream.range(0, valuesWithinRange.size())
                             .mapToObj(index -> {
-                                final RecordField elementField = new RecordField(arrayField.getFieldName() + "[" + index + "]", elementDataType);
-                                return new ArrayIndexFieldValue(valuesWithinRange.get(index), elementField, fieldValue, index);
+                                final RecordField elementField = new RecordField(arrayField.getFieldName(), elementDataType);
+                                return new ArrayIndexFieldValue(valuesWithinRange.get(index), elementField, fieldValue, indexes.get(index));
                             });
                     });
 

@@ -17,11 +17,15 @@
 
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
@@ -457,6 +461,205 @@ public class TestUpdateRecord {
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/name-and-mother-same.json")));
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+    }
+
+    @Test
+    public void testUpdateSimpleArray() throws InitializationException, IOException {
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.LITERAL_VALUES);
+        runner.enableControllerService(jsonWriter);
+
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[*]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "8, 8, 8");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[*]");
+
+        runner.clearTransferState();
+        runner.enqueue("{\"numbers\":null}");
+        runner.setProperty("/numbers[*]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        assertTrue(content.contains("\"numbers\" : null"));
+        runner.removeProperty("/numbers[*]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[1]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "1, 8, 4");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[1]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[0..1]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "8, 8, 4");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[0..1]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[0,2]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "8, null, 8");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[0,2]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[0,1..2]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "8, 8, 8");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[0,1..2]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/numbers[0..-1][. = 4]", "8");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json")));
+        expectedOutput = expectedOutput.replaceFirst("1, null, 4", "1, null, 8");
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/numbers[0..-1][. = 4]");
+    }
+
+    @Test
+    public void testUpdateComplexArrays() throws InitializationException, IOException {
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES);
+        runner.enableControllerService(jsonWriter);
+
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[*]", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        int count = StringUtils.countMatches(content, "Mary Doe");
+        assertEquals(4, count);
+        runner.removeProperty("/peoples[*]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[1]", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        count = StringUtils.countMatches(content, "Mary Doe");
+        assertEquals(2, count);
+        runner.removeProperty("/peoples[1]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0..1]", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json")));
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/peoples[0..1]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0,2]", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json")));
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/peoples[0,2]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0,1..2]", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        count = StringUtils.countMatches(content, "Mary Doe");
+        assertEquals(4, count);
+        runner.removeProperty("/peoples[0,1..2]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']", "/peoples[3]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        count = StringUtils.countMatches(content, "Mary Doe");
+        assertEquals(4, count);
+        runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[*]", "/peoples[3]/addresses[0]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        count = StringUtils.countMatches(content, "1 nifi road");
+        assertEquals(13, count);
+        runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[*]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]", "/peoples[3]/addresses[0]");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json")));
+        runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).assertContentEquals(expectedOutput);
+        runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]");
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json"));
+        runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]/city", "newCity");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.LITERAL_VALUES);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        content = new String(runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).toByteArray());
+        count = StringUtils.countMatches(content, "newCity");
+        assertEquals(9, count);
+        runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]/city");
     }
 
 }
