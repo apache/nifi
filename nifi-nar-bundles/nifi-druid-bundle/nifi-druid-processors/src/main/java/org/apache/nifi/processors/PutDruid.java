@@ -143,15 +143,10 @@ public class PutDruid extends AbstractSessionFactoryProcessor {
          //Convert each array element from JSON to HashMap and send to Druid
          for(String message: messageArray){
          	try {
-         		contentMap = new ObjectMapper().readValue(message, HashMap.class);
-         		//contentMap = new ObjectMapper().readValue(message, HashMap.class);
-         	} catch (JsonParseException e) {
-         		getLogger().error("Error parsing incoming message array in the flowfile body");
-         	} catch (JsonMappingException e) {
-         		getLogger().error("Error parsing incoming message array in the flowfile body");
-         	} catch (IOException e) {
-         		getLogger().error("Error parsing incoming message array in the flowfile body");
-         	}
+				contentMap = new ObjectMapper().readValue(message, HashMap.class);
+			} catch (IOException e1) {
+				getLogger().error("Error parsing incoming message array in the flowfile body");
+			}
 
          	getLogger().debug("Tranquilizer Status: " + tranquilizer.status().toString());
          	messageStatus.put(flowFile, "pending");
@@ -189,7 +184,7 @@ public class PutDruid extends AbstractSessionFactoryProcessor {
          		//This method will be asynch since this is a SessionFactoryProcessor and OnTrigger will create a new Thread
          		Await.result(future);
          	} catch (Exception e) {
-         		e.printStackTrace();
+         		getLogger().error(" Caught exception while waiting for result of put request: " + e.getMessage());
          	}
          }	
          //session.transfer(flowFile, REL_SUCCESS);
