@@ -422,6 +422,14 @@ text.process-group-name {
     font-size: 14px;
 }
 
+text.version-control {
+    font-family: FontAwesome;
+    font-size: 18px;
+    fill: rgba(0, 255, 0, 0.65);
+    stroke: rgba(0, 0, 0, 0.65);
+    visibility: hidden;
+}
+
 text.process-group-contents-count {
     fill: #775351;
     font-size: 15px;

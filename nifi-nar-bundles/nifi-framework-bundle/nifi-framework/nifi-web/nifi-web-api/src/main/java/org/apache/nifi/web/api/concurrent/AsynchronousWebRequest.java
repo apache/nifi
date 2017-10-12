@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.concurrent;
 
-import java.util.Date;
-
 import org.apache.nifi.authorization.user.NiFiUser;
+
+import java.util.Date;
 
 public interface AsynchronousWebRequest<T> {
 
@@ -67,7 +67,7 @@ public interface AsynchronousWebRequest<T> {
     /**
      * Indicates the reason that the request failed, or <code>null</code> if the request has not failed
      *
-     * @param explanation the reason that the request failed, or <code>null</code> if the request has not failed
+     * @return the reason that the request failed, or <code>null</code> if the request has not failed
      */
     String getFailureReason();
 

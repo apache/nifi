@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -31,7 +23,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.UnknownResourceException;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -62,6 +53,7 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -104,6 +96,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -118,6 +111,14 @@ import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -1320,6 +1321,14 @@ public interface NiFiServiceFacade {
     VersionControlInformationEntity setVersionControlInformation(Revision processGroupRevision, String processGroupId, VersionControlInformationDTO versionControlInfo,
         Map<String, String> versionedComponentMapping);
 
+    /**
+     * Disconnects the specified Process Group from version control.
+     *
+     * @param revision revision
+     * @param processGroupId group id
+     * @return version control information prior to disconnecting
+     */
+    VersionControlInformationEntity deleteVersionControl(final Revision revision, final String processGroupId);
 
     /**
      * Retrieves the Versioned Flow Snapshot for the coordinates provided by the given Version Control Information DTO
@@ -1380,8 +1389,6 @@ public interface NiFiServiceFacade {
      */
     ProcessGroupEntity updateProcessGroup(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
         boolean verifyNotModified);
-
-    void setFlowRegistryClient(FlowRegistryClient flowRegistryClient);
 
     // ----------------------------------------
     // Component state methods
@@ -1827,6 +1834,52 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId id
      */
     void verifyDeleteReportingTask(String reportingTaskId);
+
+    // ----------------------------------------
+    // Registry methods
+    // ----------------------------------------
+
+    /**
+     * Creates a registry.
+     *
+     * @param revision revision
+     * @param registryDTO The registry DTO
+     * @return The reporting task DTO
+     */
+    RegistryEntity createRegistry(Revision revision, RegistryDTO registryDTO);
+
+    /**
+     * Gets a registry with the specified id.
+     *
+     * @param registryId id
+     * @return entity
+     */
+    RegistryEntity getRegistry(String registryId);
+
+    /**
+     * Gets all registries.
+     *
+     * @return registries
+     */
+    Set<RegistryEntity> getRegistries();
+
+    /**
+     * Updates the specified registry using the specified revision.
+     *
+     * @param revision revision
+     * @param registryDTO the registry dto
+     * @return the updated registry registry entity
+     */
+    RegistryEntity updateRegistry(Revision revision, RegistryDTO registryDTO);
+
+    /**
+     * Deletes the specified registry using the specified revision.
+     *
+     * @param revision revision
+     * @param registryId id
+     * @return the deleted registry entity
+     */
+    RegistryEntity deleteRegistry(Revision revision, String registryId);
 
     // ----------------------------------------
     // History methods

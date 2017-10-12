@@ -18,7 +18,7 @@
 /* global nf */
 
 /**
- * Views state for a given component.
+ * Handles changing the version of a component bundle.
  */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {

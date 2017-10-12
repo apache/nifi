@@ -28,6 +28,7 @@ public class VersionedFlowDTO {
     private String flowId;
     private String flowName;
     private String description;
+    private String comments;
 
     @ApiModelProperty("The ID of the registry that the flow is tracked to")
     public String getRegistryId() {
@@ -72,5 +73,14 @@ public class VersionedFlowDTO {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    @ApiModelProperty("Comments for the changeset")
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
     }
 }

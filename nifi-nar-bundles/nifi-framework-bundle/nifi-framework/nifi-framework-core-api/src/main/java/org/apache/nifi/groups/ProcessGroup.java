@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.UnknownResourceException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -939,6 +937,11 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *            Version Controlled flow
      */
     void setVersionControlInformation(VersionControlInformation versionControlInformation, Map<String, String> versionedComponentIds);
+
+    /**
+     * Disconnects this Process Group from version control. If not currently under version control, this method does nothing.
+     */
+    void disconnectVersionControl();
 
     /**
      * Synchronizes the Process Group with the given Flow Registry, determining whether or not the local flow

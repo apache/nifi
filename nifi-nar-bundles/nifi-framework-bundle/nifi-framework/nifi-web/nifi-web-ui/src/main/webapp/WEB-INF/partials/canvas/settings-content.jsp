@@ -62,6 +62,9 @@
             <div id="reporting-tasks-tab-content" class="configuration-tab controller-settings-table">
                 <div id="reporting-tasks-table" class="settings-table"></div>
             </div>
+            <div id="registries-tab-content" class="configuration-tab controller-settings-table">
+                <div id="registries-table" class="settings-table"></div>
+            </div>
         </div>
     </div>
     <div id="settings-refresh-container">

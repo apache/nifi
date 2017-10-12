@@ -16,32 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -141,6 +116,7 @@ import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -179,6 +155,7 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
+import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -236,6 +213,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -279,7 +257,30 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -329,6 +330,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private Authorizer authorizer;
 
     private AuthorizableLookup authorizableLookup;
+
+    private Map<String, Tuple<Revision, RegistryDTO>> registryCache = new HashMap<>();
 
     // -----------------------------------------
     // Synchronization methods
@@ -2257,6 +2260,45 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createControllerServiceEntity(snapshot, null, permissions, null);
     }
 
+    private RegistryEntity createRegistryEntity(final Revision updatedRevision, final RegistryDTO registryDTO) {
+        final RegistryEntity entity = new RegistryEntity();
+        entity.setId(registryDTO.getId());
+        entity.setPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getController()));
+        entity.setRevision(dtoFactory.createRevisionDTO(updatedRevision));
+        entity.setComponent(registryDTO);
+        return entity;
+    }
+
+    @Override
+    public RegistryEntity createRegistry(Revision revision, RegistryDTO registryDTO) {
+        registryCache.put(registryDTO.getId(), new Tuple(revision, registryDTO));
+        return createRegistryEntity(revision, registryDTO);
+    }
+
+    @Override
+    public RegistryEntity getRegistry(String registryId) {
+        final Tuple<Revision, RegistryDTO> registry = registryCache.get(registryId);
+        return createRegistry(registry.getKey(), registry.getValue());
+    }
+
+    @Override
+    public Set<RegistryEntity> getRegistries() {
+        return registryCache.values().stream()
+                .map(registry -> createRegistry(registry.getKey(), registry.getValue()))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public RegistryEntity updateRegistry(Revision revision, RegistryDTO registryDTO) {
+        registryCache.put(registryDTO.getId(), new Tuple(revision, registryDTO));
+        return createRegistryEntity(revision, registryDTO);
+    }
+
+    @Override
+    public RegistryEntity deleteRegistry(Revision revision, String registryId) {
+        final Tuple<Revision, RegistryDTO> registry = registryCache.remove(registryId);
+        return createRegistryEntity(registry.getKey(), registry.getValue());
+    }
 
     @Override
     public ReportingTaskEntity createReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
@@ -3504,7 +3546,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return null;
         }
 
-        final VersionControlInformationDTO versionControlDto = dtoFactory.createVersionControlInformationDto(versionControlInfo);
+        final VersionControlInformationDTO versionControlDto = dtoFactory.createVersionControlInformationDto(processGroup);
         final RevisionDTO groupRevision = dtoFactory.createRevisionDTO(revisionManager.getRevision(groupId));
         return entityFactory.createVersionControlInformationEntity(versionControlDto, groupRevision);
     }
@@ -3555,7 +3597,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<VersionControlInformationDTO> snapshot = updateComponent(revision,
             group,
             () -> processGroupDAO.updateVersionControlInformation(versionControlInfo, versionedComponentMapping),
-            processGroup -> dtoFactory.createVersionControlInformationDto(processGroup.getVersionControlInformation()));
+            processGroup -> dtoFactory.createVersionControlInformationDto(processGroup));
+
+        return entityFactory.createVersionControlInformationEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()));
+    }
+
+    @Override
+    public VersionControlInformationEntity deleteVersionControl(final Revision revision, final String processGroupId) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
+
+        final RevisionUpdate<VersionControlInformationDTO> snapshot = updateComponent(revision,
+            group,
+            () -> processGroupDAO.disconnectVersionControl(processGroupId),
+            processGroup -> dtoFactory.createVersionControlInformationDto(group));
 
         return entityFactory.createVersionControlInformationEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()));
     }
@@ -3833,12 +3887,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroupNode.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
-    }
-
-
-    @Override
-    public void setFlowRegistryClient(final FlowRegistryClient client) {
-        this.flowRegistryClient = client;
     }
 
     private AuthorizationResult authorizeAction(final Action action) {
@@ -4193,5 +4241,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
         this.leaderElectionManager = leaderElectionManager;
+    }
+
+    public void setFlowRegistryClient(FlowRegistryClient flowRegistryClient) {
+        this.flowRegistryClient = flowRegistryClient;
+
+        // temp code to load the registry client cache
+        final Set<String> registryIdentifiers = flowRegistryClient.getRegistryIdentifiers();
+        if (registryIdentifiers != null) {
+
+            for (final String registryIdentifier : registryIdentifiers) {
+                final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryIdentifier);
+
+                final RegistryDTO registry = new RegistryDTO();
+                registry.setId(registryIdentifier);
+                registry.setName(flowRegistry.getName());
+                registry.setUri(flowRegistry.getURL());
+                registry.setDescription("Default client for storing Flow Revisions to the local disk.");
+
+                final RegistryEntity registryEntity = new RegistryEntity();
+                registryEntity.setComponent(registry);
+
+                registryCache.put(registryIdentifier, new Tuple(new Revision(0L, null, registryIdentifier), registry));
+            }
+        }
     }
 }

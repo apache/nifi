@@ -28,6 +28,7 @@ public class ControllerConfigurationDTO {
 
     private Integer maxTimerDrivenThreadCount;
     private Integer maxEventDrivenThreadCount;
+    private String registryUrl;
 
     /**
      * @return maximum number of timer driven threads this NiFi has available

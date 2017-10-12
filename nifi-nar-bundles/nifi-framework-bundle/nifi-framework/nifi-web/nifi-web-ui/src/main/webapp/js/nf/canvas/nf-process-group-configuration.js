@@ -215,7 +215,7 @@
                         $('#process-group-configuration').data('process-group', {
                             'permissions': {
                                 canRead: false,
-                                canWrite: nfCanvasUtils.canWrite()
+                                canWrite: nfCanvasUtils.canWriteCurrentGroup()
                             }
                         });
                     } else {

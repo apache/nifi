@@ -213,6 +213,7 @@ public final class EntityFactory {
 
     public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                        final ProcessGroupStatusDTO status, final List<BulletinEntity> bulletins) {
+
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {

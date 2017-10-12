@@ -75,6 +75,21 @@
             },
 
             /**
+             * Updates the version control information for the specified process group.
+             *
+             * @param processGroupId
+             * @param versionControlInformation
+             */
+            updateVersionControlInformation: function (processGroupId, versionControlInformation) {
+                $.each(this.breadcrumbs, function (_, breadcrumbEntity) {
+                    if (breadcrumbEntity.id === processGroupId) {
+                        breadcrumbEntity.breadcrumb.versionControlInformation = versionControlInformation;
+                        return false;
+                    }
+                });
+            },
+
+            /**
              * Reset the breadcrumbs.
              */
             resetBreadcrumbs: function () {

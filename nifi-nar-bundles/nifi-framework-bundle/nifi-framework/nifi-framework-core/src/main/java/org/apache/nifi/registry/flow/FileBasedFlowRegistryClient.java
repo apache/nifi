@@ -17,6 +17,15 @@
 
 package org.apache.nifi.registry.flow;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.registry.bucket.Bucket;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,13 +43,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
-
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.util.DefaultPrettyPrinter;
 
 /**
  * A simple file-based implementation of a Flow Registry Client. Rather than interacting
@@ -111,6 +113,35 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
     @Override
     public String getURL() {
         return directory.toURI().toString();
+    }
+
+    @Override
+    public String getName() {
+        return "Local Registry";
+    }
+
+    @Override
+    public Set<Bucket> getBuckets(NiFiUser user) throws IOException {
+        final Set<Bucket> buckets = new HashSet<>();
+
+        final File[] bucketDirs = directory.listFiles();
+        if (bucketDirs == null) {
+            throw new IOException("Could not get listing of directory " + directory);
+        }
+
+        for (final File bucketDirectory : bucketDirs) {
+            final String bucketIdentifier = bucketDirectory.getName();
+            final long creation = bucketDirectory.lastModified();
+
+            final Bucket bucket = new Bucket();
+            bucket.setIdentifier(bucketIdentifier);
+            bucket.setName("Bucket '" + bucketIdentifier + "'");
+            bucket.setCreatedTimestamp(creation);
+
+            buckets.add(bucket);
+        }
+
+        return buckets;
     }
 
     @Override
@@ -303,9 +334,9 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
         final File contentsFile = new File(versionDir, "flow.xml");
 
         final VersionedProcessGroup processGroup;
-        try (final JsonParser parser = jsonFactory.createJsonParser(contentsFile)) {
+        try (final JsonParser parser = jsonFactory.createParser(contentsFile)) {
             final ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
             parser.setCodec(mapper);
             processGroup = parser.readValueAs(VersionedProcessGroup.class);

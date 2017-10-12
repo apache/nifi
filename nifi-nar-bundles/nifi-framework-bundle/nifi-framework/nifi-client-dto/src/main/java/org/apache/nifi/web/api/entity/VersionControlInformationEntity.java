@@ -25,16 +25,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionControlInformationEntity")
 public class VersionControlInformationEntity extends Entity {
-    private VersionControlInformationDTO versionControlDto;
+    private VersionControlInformationDTO versionControlInformation;
     private RevisionDTO processGroupRevision;
 
     @ApiModelProperty("The Version Control information")
     public VersionControlInformationDTO getVersionControlInformation() {
-        return versionControlDto;
+        return versionControlInformation;
     }
 
     public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
-        this.versionControlDto = versionControlDto;
+        this.versionControlInformation = versionControlDto;
     }
 
     @ApiModelProperty("The Revision for the Process Group")

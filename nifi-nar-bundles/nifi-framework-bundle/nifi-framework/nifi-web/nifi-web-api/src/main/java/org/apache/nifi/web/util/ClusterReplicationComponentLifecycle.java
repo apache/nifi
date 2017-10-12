@@ -17,19 +17,6 @@
 
 package org.apache.nifi.web.util;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
@@ -55,7 +42,18 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response.Status;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ClusterReplicationComponentLifecycle implements ComponentLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(ClusterReplicationComponentLifecycle.class);
@@ -155,8 +153,9 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
      * Periodically polls the process group with the given ID, waiting for all processors whose ID's are given to have the given Scheduled State.
      *
      * @param user the user making the request
+     * @param originalUri the original uri
      * @param groupId the ID of the Process Group to poll
-     * @param processorIds the ID of all Processors whose state should be equal to the given desired state
+     * @param processors the Processors whose state should be equal to the given desired state
      * @param desiredState the desired state for all processors with the ID's given
      * @param pause the Pause that can be used to wait between polling
      * @return <code>true</code> if successful, <code>false</code> if unable to wait for processors to reach the desired state
@@ -172,7 +171,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -217,7 +216,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
-            entity = nodeResponse.getClientResponse().getEntity(clazz);
+            entity = nodeResponse.getClientResponse().readEntity(clazz);
         }
         return entity;
     }
@@ -354,7 +353,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -405,7 +404,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
      * Updates the affected controller services in the specified updateRequest with the serviceEntities.
      *
      * @param serviceEntities service entities
-     * @param updateRequest update request
+     * @param affectedServices affected services
      */
     private void updateAffectedControllerServices(final Set<ControllerServiceEntity> serviceEntities, final Map<String, AffectedComponentEntity> affectedServices) {
         // update the affected components
