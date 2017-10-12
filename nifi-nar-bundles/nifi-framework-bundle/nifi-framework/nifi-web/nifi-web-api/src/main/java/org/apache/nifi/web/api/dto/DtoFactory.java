@@ -1106,6 +1106,7 @@ public final class DtoFactory {
 
         // determine the run status
         snapshot.setRunStatus(procStatus.getRunStatus().toString());
+        snapshot.setExecutionNode(procStatus.getExecutionNode().toString());
 
         snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
         snapshot.setType(procStatus.getType());
