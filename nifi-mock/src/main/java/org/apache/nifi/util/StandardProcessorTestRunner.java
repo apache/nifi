@@ -804,6 +804,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public boolean removeProperty(String property) {
+        return context.removeProperty(property);
+    }
+
+    @Override
     public List<ProvenanceEventRecord> getProvenanceEvents() {
         return sharedState.getProvenanceEvents();
     }

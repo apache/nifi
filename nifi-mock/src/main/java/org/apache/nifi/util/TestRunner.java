@@ -856,6 +856,15 @@ public interface TestRunner {
     boolean removeProperty(PropertyDescriptor descriptor);
 
     /**
+     * Removes the property from the {@link ProcessContext},
+     * effectively setting its value to null, or the property's default value, if it has one.
+     *
+     * @param property name of the property to remove
+     * @return <code>true</code> if removed, <code>false</code> if the property was not set
+     */
+    boolean removeProperty(String property);
+
+    /**
      * Returns a {@link List} of all {@link ProvenanceEventRecord}s that were
      * emitted by the Processor
      *
