@@ -18,34 +18,34 @@
   <parent>
   	<groupId>org.apache.nifi</groupId>
   	<artifactId>nifi-druid-bundle</artifactId>
-  	<version>1.0-SNAPSHOT</version>
+  	<version>1.5.0-SNAPSHOT</version>
   </parent>
   
   <artifactId>nifi-druid-processors</artifactId> 
   
-   <properties>
+ <!--  <properties>
         <nifi.version>1.1.1</nifi.version>
-   </properties>
+   </properties> --> 
    <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.3.0</version>
         </dependency>
         <dependency>
         	<groupId>org.apache.nifi</groupId>
   			<artifactId>nifi-druid-controller-service-api</artifactId>
-  			<version>1.0-SNAPSHOT</version>
+  			<version>1.5.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
     		<groupId>io.druid</groupId>

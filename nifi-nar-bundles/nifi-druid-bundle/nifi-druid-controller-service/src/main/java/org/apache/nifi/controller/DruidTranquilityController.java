@@ -259,7 +259,6 @@ public class DruidTranquilityController extends AbstractControllerService implem
 		                .tuning(
 		                        ClusteredBeamTuning
 		                                .builder()
-		                                //.segmentGranularity(Granularity.MINUTE)
 		                                .segmentGranularity(getSegmentGranularity(segmentGranularity))
 		                                .windowPeriod(new Period(windowPeriod))
 		                                .partitions(clusterPartitions)
@@ -291,9 +290,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, String>> aggSpecList = null;
         try {
-        	getLogger().debug("Druid Tranquility Service: Aggregator Spec as String: " + aggregatorJson);
             aggSpecList = mapper.readValue(aggregatorJson, List.class);
-            getLogger().debug("Druid Tranquility Service: Aggregator Spec as List: " + aggSpecList);
         	return aggSpecList;
         } catch (IOException e) {
             throw new IllegalArgumentException("Exception while parsing the aggregratorJson");
@@ -311,31 +308,24 @@ public class DruidTranquilityController extends AbstractControllerService implem
         for (Map<String, String> aggregator : aggregatorInfo) {
 
             if (aggregator.get("type").equalsIgnoreCase("count")) {
-                //Map<String, String> map = aggregator.get("count");
                 aggregatorList.add(getCountAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("doublesum")) {
-                //Map<String, String> map = aggregator.get("doublesum");
                 aggregatorList.add(getDoubleSumAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("doublemax")) {
-                //Map<String, String> map = aggregator.get("doublemax");
                 aggregatorList.add(getDoubleMaxAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("doublemin")) {
-                //Map<String, String> map = aggregator.get("doublemin");
                 aggregatorList.add(getDoubleMinAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("longsum")) {
-                //Map<String, String> map = aggregator.get("longsum");
                 aggregatorList.add(getLongSumAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("longmax")) {
-                //Map<String, String> map = aggregator.get("longmax");
                 aggregatorList.add(getLongMaxAggregator(aggregator));
             }
             else if (aggregator.get("type").equalsIgnoreCase("longmin")) {
-                //Map<String, String> map = aggregator.get("longmin");
                 aggregatorList.add(getLongMinAggregator(aggregator));
             }
         }
