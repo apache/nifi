@@ -176,6 +176,7 @@ public class PutDruid extends AbstractSessionFactoryProcessor {
          		public void onSuccess(Object value) {
          			getLogger().debug(" FlowFile Processing Success : "+ value.toString());
          			session.transfer(flowFile, REL_SUCCESS);
+         			session.getProvenanceReporter().send(flowFile, "Druid Tranquility Service");
          		}
          	});
 
