@@ -177,6 +177,32 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .defaultValue("PT10M")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+	
+	public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("maxBatchSize")
+            .description("Maximum number of messages to send at once.")
+            .required(true)
+            .defaultValue("2000")
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .build();
+	
+	public static final PropertyDescriptor MAX_PENDING_BATCHES = new PropertyDescriptor.Builder()
+            .name("maxPendingBatches")
+            .description("Maximum number of batches that may be in flight before service blocks and waits for one to finish.")
+            .required(true)
+            .defaultValue("5")
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .build();
+	
+	public static final PropertyDescriptor LINGER_MILLIS = new PropertyDescriptor.Builder()
+            .name("lingerMillis")
+            .description("Wait this long for batches to collect more messages (up to maxBatchSize) before sending them. "
+            		+ "Set to zero to disable waiting. "
+            		+ "Set to -1 to always wait for complete batches before sending. ")
+            .required(true)
+            .defaultValue("1000")
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .build();
 
 	 private static final List<PropertyDescriptor> properties;
 	
@@ -192,6 +218,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
 	    props.add(QUERY_GRANULARITY);
 	    props.add(WINDOW_PERIOD);
 	    props.add(TIMESTAMP_FIELD);
+	    props.add(MAX_BATCH_SIZE);
+	    props.add(MAX_PENDING_BATCHES);
+	    props.add(LINGER_MILLIS);
 	    
 	    properties = Collections.unmodifiableList(props);
 	}
@@ -215,6 +244,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
 		final String windowPeriod = context.getProperty(WINDOW_PERIOD).getValue();
 		final String aggregatorJSON = context.getProperty(AGGREGATOR_JSON).getValue();
 		final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).getValue();
+		final int maxBatchSize = Integer.valueOf(context.getProperty(MAX_BATCH_SIZE).getValue());
+		final int maxPendingBatches = Integer.valueOf(context.getProperty(MAX_PENDING_BATCHES).getValue());
+		final int lingerMillis = Integer.valueOf(context.getProperty(LINGER_MILLIS).getValue());
 		
 		final List<String> dimensions = getDimensions(dimensionsStringList);
 	    final List<AggregatorFactory> aggregator = getAggregatorList(aggregatorJSON);
@@ -273,9 +305,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
 		                .buildBeam();
 		
 		tranquilizer = Tranquilizer.builder()
-                .maxBatchSize(10000000)
-                .maxPendingBatches(1000)
-                .lingerMillis(1000)
+                .maxBatchSize(maxBatchSize)
+                .maxPendingBatches(maxPendingBatches)
+                .lingerMillis(lingerMillis)
                 .blockOnFull(true)
                 .build(beam);
 		
