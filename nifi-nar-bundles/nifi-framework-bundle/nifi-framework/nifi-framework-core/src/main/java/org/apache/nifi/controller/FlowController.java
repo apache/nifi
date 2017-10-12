@@ -2976,6 +2976,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setRunStatus(RunStatus.Stopped);
         }
 
+        status.setExecutionNode(procNode.getExecutionNode());
         status.setActiveThreadCount(processScheduler.getActiveThreadCount(procNode));
 
         return status;
