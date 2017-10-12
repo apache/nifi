@@ -278,6 +278,11 @@ rect.birdseye-brush {
     top: 8px;
 }
 
+span.breadcrumb-version-control {
+    color: #0f0;
+    text-shadow: 0px 0px 1px #000;
+}
+
 #breadcrumbs-left-border {
     position: absolute;
     left: 0;

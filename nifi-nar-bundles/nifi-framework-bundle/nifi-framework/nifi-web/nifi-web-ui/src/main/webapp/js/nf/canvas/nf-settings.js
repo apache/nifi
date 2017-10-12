@@ -81,7 +81,9 @@
             controllerConfig: '../nifi-api/controller/config',
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
-            reportingTasks: '../nifi-api/flow/reporting-tasks'
+            reportingTasks: '../nifi-api/flow/reporting-tasks',
+            createRegistry: '../nifi-api/controller/registries',
+            registries: '../nifi-api/flow/registries'
         }
     };
 
@@ -465,6 +467,94 @@
     };
 
     /**
+     * Adds the specified entity.
+     */
+    var addRegistry = function () {
+        var registryEntity = {
+            'revision': nfClient.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
+            'component': {
+                'name': $('#registry-name').val(),
+                'uri': $('#registry-location').val(),
+                'description': $('#registry-description').val()
+            }
+        };
+
+        // add the new registry
+        var addRegistry = $.ajax({
+            type: 'POST',
+            url: config.urls.createRegistry,
+            data: JSON.stringify(registryEntity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (registryEntity) {
+            // add the item
+            var registriesGrid = $('#registries-table').data('gridInstance');
+            var registriesData = registriesGrid.getData();
+            registriesData.addItem($.extend({
+                type: 'Registry'
+            }, registryEntity));
+
+            // resort
+            registriesData.reSort();
+            registriesGrid.invalidate();
+
+            // select the new reporting task
+            var row = registriesData.getRowById(registryEntity.id);
+            nfFilteredDialogCommon.choseRow(registriesGrid, row);
+            registriesGrid.scrollRowIntoView(row);
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        // hide the dialog
+        $('#registry-configuration-dialog').modal('hide');
+
+        return addRegistry;
+    };
+
+    /**
+     * Updates the registry with the specified id.
+     *
+     * @param registryId
+     */
+    var updateRegistry = function (registryId) {
+        var registriesGrid = $('#registries-table').data('gridInstance');
+        var registriesData = registriesGrid.getData();
+
+        var registryEntity = registriesData.getItemById(registryId);
+        var requestRegistryEntity = {
+            'revision': nfClient.getRevision(registryEntity),
+            'component': {
+                'id': registryId,
+                'name': $('#registry-name').val(),
+                'uri': $('#registry-location').val(),
+                'description': $('#registry-description').val()
+            }
+        };
+
+        // add the new reporting task
+        var updateRegistry = $.ajax({
+            type: 'PUT',
+            url: registryEntity.uri,
+            data: JSON.stringify(requestRegistryEntity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (registryEntity) {
+            // add the item
+            registriesData.updateItem(registryId, $.extend({
+                type: 'Registry'
+            }, registryEntity));
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        // hide the dialog
+        $('#registry-configuration-dialog').modal('hide');
+
+        return updateRegistry;
+    };
+
+    /**
      * Initializes the new reporting task dialog.
      */
     var initNewReportingTaskDialog = function () {
@@ -783,6 +873,20 @@
                 }
             }
         });
+
+        // initialize the registry configuration dialog
+        $('#registry-configuration-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Add Registry',
+            handler: {
+                close: function () {
+                    $('#registry-id').text('');
+                    $('#registry-name').val('');
+                    $('#registry-location').val('');
+                    $('#registry-description').val('');
+                }
+            }
+        });
     };
 
     /**
@@ -1090,6 +1194,228 @@
         });
     };
 
+    var initRegistriesTable = function () {
+
+        var locationFormatter = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            }
+
+            return nfCommon.escapeHtml(dataContext.component.uri);
+        };
+
+        var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            }
+
+            return nfCommon.escapeHtml(dataContext.component.description);
+        };
+
+        var registriesActionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (nfCommon.canModifyController()) {
+                // edit registry
+                markup += '<div title="Edit" class="pointer edit-registry fa fa-pencil" style="margin-top: 2px; margin-right: 3px;" ></div>';
+
+                // remove registry
+                markup += '<div title="Remove" class="pointer remove-registry fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
+            }
+
+            return markup;
+        };
+
+        // define the column model for the reporting tasks table
+        var registriesColumnModel = [
+            {
+                id: 'name',
+                name: 'Name',
+                field: 'name',
+                formatter: nameFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'uri',
+                name: 'Location',
+                field: 'uri',
+                formatter: locationFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'description',
+                name: 'Description',
+                field: 'description',
+                formatter: descriptionFormatter,
+                sortable: true,
+                resizable: true
+            }
+        ];
+
+        // action column should always be last
+        registriesColumnModel.push({
+            id: 'actions',
+            name: '&nbsp;',
+            resizable: false,
+            formatter: registriesActionFormatter,
+            sortable: false,
+            width: 90,
+            maxWidth: 90
+        });
+
+        // initialize the dataview
+        var registriesData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        registriesData.setItems([]);
+
+        // initialize the sort
+        sort({
+            columnId: 'name',
+            sortAsc: true
+        }, registriesData);
+
+        // initialize the grid
+        var registriesGrid = new Slick.Grid('#registries-table', registriesData, registriesColumnModel, gridOptions);
+        registriesGrid.setSelectionModel(new Slick.RowSelectionModel());
+        registriesGrid.registerPlugin(new Slick.AutoTooltips());
+        registriesGrid.setSortColumn('name', true);
+        registriesGrid.onSort.subscribe(function (e, args) {
+            sort({
+                columnId: args.sortCol.id,
+                sortAsc: args.sortAsc
+            }, registriesData);
+        });
+
+        // configure a click listener
+        registriesGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the service at this row
+            var registryEntity = registriesData.getItem(args.row);
+
+            // determine the desired action
+            if (registriesGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('edit-registry')) {
+                    editRegistry(registryEntity);
+                } else if (target.hasClass('remove-registry')) {
+                    promptToRemoveRegistry(registryEntity);
+                }
+            } else if (registriesGrid.getColumns()[args.cell].id === 'moreDetails') {
+                // if (target.hasClass('view-reporting-task')) {
+                //     nfReportingTask.showDetails(reportingTaskEntity);
+                // } else if (target.hasClass('reporting-task-usage')) {
+                //     // close the settings dialog
+                //     $('#shell-close-button').click();
+                //
+                //     // open the documentation for this reporting task
+                //     nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                //         select: reportingTaskEntity.component.type,
+                //         group: reportingTaskEntity.component.bundle.group,
+                //         artifact: reportingTaskEntity.component.bundle.artifact,
+                //         version: reportingTaskEntity.component.bundle.version
+                //     })).done(function () {
+                //         nfSettings.showSettings();
+                //     });
+                // }
+            }
+        });
+
+        // wire up the dataview to the grid
+        registriesData.onRowCountChanged.subscribe(function (e, args) {
+            registriesGrid.updateRowCount();
+            registriesGrid.render();
+        });
+        registriesData.onRowsChanged.subscribe(function (e, args) {
+            registriesGrid.invalidateRows(args.rows);
+            registriesGrid.render();
+        });
+        registriesData.syncGridSelection(registriesGrid, true);
+
+        // hold onto an instance of the grid
+        $('#registries-table').data('gridInstance', registriesGrid);
+    };
+
+    /**
+     * Edits the specified registry entity.
+     *
+     * @param registryEntity
+     */
+    var editRegistry = function (registryEntity) {
+        // populate the dialog
+        $('#registry-id').text(registryEntity.id);
+        $('#registry-name').val(registryEntity.component.name);
+        $('#registry-location').val(registryEntity.component.uri);
+        $('#registry-description').val(registryEntity.component.description);
+
+        // show the dialog
+        $('#registry-configuration-dialog').modal('setButtonModel', [{
+            buttonText: 'Update',
+            color: {
+                base: '#728E9B',
+                hover: '#004849',
+                text: '#ffffff'
+            },
+            handler: {
+                click: function () {
+                    updateRegistry(registryEntity.id);
+                }
+            }
+        }, {
+            buttonText: 'Cancel',
+            color: {
+                base: '#E3E8EB',
+                hover: '#C7D2D7',
+                text: '#004849'
+            },
+            handler: {
+                click: function () {
+                    $(this).modal('hide');
+                }
+            }
+        }]).modal('show');
+    };
+
+    /**
+     * Prompts the user before attempting to delete the specified registry.
+     *
+     * @param {object} registryEntity
+     */
+    var promptToRemoveRegistry = function (registryEntity) {
+        // prompt for deletion
+        nfDialog.showYesNoDialog({
+            headerText: 'Delete Registry',
+            dialogContent: 'Delete registry \'' + nfCommon.escapeHtml(registryEntity.component.name) + '\'?',
+            yesHandler: function () {
+                removeRegistry(registryEntity);
+            }
+        });
+    };
+
+    /**
+     * Deletes the specified registry.
+     *
+     * @param {object} registryEntity
+     */
+    var removeRegistry = function (registryEntity) {
+        var revision = nfClient.getRevision(registryEntity);
+        $.ajax({
+            type: 'DELETE',
+            url: registryEntity.uri + '?' + $.param({
+                version: revision.version,
+                clientId: revision.clientId
+            }),
+            dataType: 'json'
+        }).done(function (response) {
+            // remove the task
+            var registryGrid = $('#registries-table').data('gridInstance');
+            var registryData = registryGrid.getData();
+            registryData.deleteItem(registryEntity.id);
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
     /**
      * Loads the settings.
      */
@@ -1158,6 +1484,9 @@
         // load the reporting tasks
         var reportingTasks = loadReportingTasks();
 
+        // load the registries
+        var registries = loadRegistries();
+
         // return a deferred for all parts of the settings
         return $.when(settings, controllerServicesXhr, reportingTasks).done(function (settingsResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
@@ -1195,6 +1524,32 @@
             reportingTasksData.setItems(tasks);
             reportingTasksData.reSort();
             reportingTasksGrid.invalidate();
+        });
+    };
+
+    /**
+     * Loads the registries.
+     */
+    var loadRegistries = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.registries,
+            dataType: 'json'
+        }).done(function (response) {
+            var registries = [];
+            $.each(response.registries, function (_, registryEntity) {
+                registries.push($.extend({
+                    type: 'Registry'
+                }, registryEntity));
+            });
+
+            var registriesGrid = $('#registries-table').data('gridInstance');
+            var registriesData = registriesGrid.getData();
+
+            // update the registries
+            registriesData.setItems(registries);
+            registriesData.reSort();
+            registriesGrid.invalidate();
         });
     };
 
@@ -1241,6 +1596,9 @@
                 }, {
                     name: 'Reporting Tasks',
                     tabContentId: 'reporting-tasks-tab-content'
+                }, {
+                    name: 'Registries',
+                    tabContentId: 'registries-tab-content'
                 }],
                 select: function () {
                     var tab = $(this).text();
@@ -1267,6 +1625,9 @@
                                 } else if (tab === 'Reporting Tasks') {
                                     $('#settings-save').hide();
                                     return 'Create a new reporting task';
+                                } else if (tab === 'Registries') {
+                                    $('#settings-save').hide();
+                                    return 'Register a new registry';
                                 }
                             });
                         } else {
@@ -1276,7 +1637,7 @@
 
                         if (tab === 'Reporting Task Controller Services') {
                             $('#controller-cs-availability').show();
-                        } else if (tab === 'Reporting Tasks') {
+                        } else if (tab === 'Reporting Tasks' || tab === 'Registries') {
                             $('#controller-cs-availability').hide();
                         }
 
@@ -1315,6 +1676,32 @@
 
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
+                } else if (selectedTab === 'Registries') {
+                    $('#registry-configuration-dialog').modal('setButtonModel', [{
+                        buttonText: 'Add',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        handler: {
+                            click: function () {
+                                addRegistry();
+                            }
+                        }
+                    }, {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                $(this).modal('hide');
+                            }
+                        }
+                    }]).modal('show');
                 }
             });
 
@@ -1322,6 +1709,7 @@
             initGeneral();
             nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
+            initRegistriesTable();
         },
 
         /**

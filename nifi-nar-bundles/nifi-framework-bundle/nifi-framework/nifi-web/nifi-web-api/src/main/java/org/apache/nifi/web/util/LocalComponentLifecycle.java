@@ -17,12 +17,6 @@
 
 package org.apache.nifi.web.util;
 
-import java.net.URI;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -37,6 +31,12 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class LocalComponentLifecycle implements ComponentLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(LocalComponentLifecycle.class);
@@ -232,7 +232,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
      * Periodically polls the process group with the given ID, waiting for all controller services whose ID's are given to have the given Controller Service State.
      *
      * @param groupId the ID of the Process Group to poll
-     * @param serviceIds the ID of all Controller Services whose state should be equal to the given desired state
+     * @param affectedServices all Controller Services whose state should be equal to the given desired state
      * @param desiredState the desired state for all services with the ID's given
      * @param pause the Pause that can be used to wait between polling
      * @param user the user that is retrieving the controller services
@@ -275,7 +275,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
      * Updates the affected controller services in the specified updateRequest with the serviceEntities.
      *
      * @param serviceEntities service entities
-     * @param updateRequest update request
+     * @param affectedServices all Controller Services whose state should be equal to the given desired state
      */
     private void updateAffectedControllerServices(final Set<ControllerServiceEntity> serviceEntities, final Map<String, AffectedComponentEntity> affectedServices) {
         // update the affected components

@@ -16,33 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -139,6 +113,7 @@ import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
@@ -209,6 +184,32 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
+import javax.ws.rs.WebApplicationException;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 public final class DtoFactory {
 
     @SuppressWarnings("rawtypes")
@@ -225,6 +226,7 @@ public final class DtoFactory {
     private EntityFactory entityFactory;
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private FlowRegistryClient flowRegistryClient;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -242,6 +244,7 @@ public final class DtoFactory {
         dto.setSupportsManagedAuthorizer(AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer));
         dto.setSupportsConfigurableUsersAndGroups(AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer));
         dto.setSupportsConfigurableAuthorizer(AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer));
+        dto.setSupportsFlowVersioning(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
 
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
@@ -1687,6 +1690,9 @@ public final class DtoFactory {
         dto.setId(group.getIdentifier());
         dto.setName(group.getName());
 
+        final VersionControlInformationDTO versionControlInformation = createVersionControlInformationDto(group);
+        dto.setVersionControlInformation(versionControlInformation);
+
         return dto;
     }
 
@@ -2145,7 +2151,7 @@ public final class DtoFactory {
         dto.setComments(group.getComments());
         dto.setName(group.getName());
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
-        dto.setVersionControlInformation(createVersionControlInformationDto(group.getVersionControlInformation()));
+        dto.setVersionControlInformation(createVersionControlInformationDto(group));
 
         final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> entry.getValue()));
@@ -2169,12 +2175,18 @@ public final class DtoFactory {
         return dto;
     }
 
-    public VersionControlInformationDTO createVersionControlInformationDto(final VersionControlInformation versionControlInfo) {
+    public VersionControlInformationDTO createVersionControlInformationDto(final ProcessGroup group) {
+        if (group == null) {
+            return null;
+        }
+
+        final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
         if (versionControlInfo == null) {
             return null;
         }
 
         final VersionControlInformationDTO dto = new VersionControlInformationDTO();
+        dto.setGroupId(group.getIdentifier());
         dto.setRegistryId(versionControlInfo.getRegistryIdentifier());
         dto.setBucketId(versionControlInfo.getBucketIdentifier());
         dto.setFlowId(versionControlInfo.getFlowIdentifier());
@@ -3721,5 +3733,9 @@ public final class DtoFactory {
 
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setFlowRegistryClient(FlowRegistryClient flowRegistryClient) {
+        this.flowRegistryClient = flowRegistryClient;
     }
 }

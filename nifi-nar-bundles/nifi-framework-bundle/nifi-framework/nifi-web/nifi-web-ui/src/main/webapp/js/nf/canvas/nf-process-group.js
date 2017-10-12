@@ -180,6 +180,15 @@
                 'class': 'process-group-name'
             });
 
+        // process group name
+        processGroup.append('text')
+            .attr({
+                'x': 3,
+                'y': 17,
+                'class': 'version-control'
+            })
+            .text('\uf00c');
+
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
             // enter this group on double click
@@ -868,12 +877,18 @@
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
+
+                    // update version control information
+                    processGroup.select('text.version-control').style('visibility', nfCommon.isDefinedAndNotNull(processGroupData.component.versionControlInformation) ? 'visible' : 'hidden');
                 } else {
                     // clear the process group comments
                     details.select('text.process-group-comments').text(null);
 
                     // clear the process group name
                     processGroup.select('text.process-group-name').text(null);
+
+                    // update version control information
+                    processGroup.select('text.version-control').style('visibility', false);
                 }
 
                 // populate the stats

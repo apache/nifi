@@ -17,7 +17,11 @@
 
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.registry.bucket.Bucket;
+
 import java.io.IOException;
+import java.util.Set;
 
 public interface FlowRegistry {
 
@@ -25,6 +29,19 @@ public interface FlowRegistry {
      * @return the URL of the Flow Registry
      */
     String getURL();
+
+    /**
+     * @return the name of the Flow Registry
+     */
+    String getName();
+
+    /**
+     * Gets the buckets for the specified user.
+     *
+     * @param user current user
+     * @return buckets for this user
+     */
+    Set<Bucket> getBuckets(NiFiUser user) throws IOException;
 
     /**
      * Registers the given Versioned Flow with the Flow Registry

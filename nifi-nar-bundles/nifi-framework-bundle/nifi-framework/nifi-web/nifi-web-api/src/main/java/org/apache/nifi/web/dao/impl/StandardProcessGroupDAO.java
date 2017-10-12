@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
@@ -42,6 +35,13 @@ import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
 
@@ -243,6 +243,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final VersionControlInformation vci = new StandardVersionControlInformation(registryId, bucketId, flowId, version, null, false, true);
         group.setVersionControlInformation(vci, versionedComponentMapping);
 
+        return group;
+    }
+
+    public ProcessGroup disconnectVersionControl(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        group.disconnectVersionControl();
         return group;
     }
 

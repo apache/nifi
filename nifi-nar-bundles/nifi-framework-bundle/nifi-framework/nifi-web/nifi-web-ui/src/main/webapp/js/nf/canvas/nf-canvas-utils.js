@@ -1820,6 +1820,13 @@
         },
 
         /**
+         * Returns whether this NiFi supports flow versioning.
+         */
+        supportsFlowVersioning: function () {
+            return nfCanvas.supportsFlowVersioning();
+        },
+
+        /**
          * Returns whether the authorizer is managed.
          */
         isManagedAuthorizer: function () {
@@ -1884,7 +1891,7 @@
          *
          * @returns {boolean}   can write
          */
-        canReadFromGroup: function () {
+        canReadCurrentGroup: function () {
             return nfCanvas.canRead();
         },
 
@@ -1893,7 +1900,7 @@
          *
          * @returns {boolean}   can write
          */
-        canWrite: function () {
+        canWriteCurrentGroup: function () {
             return nfCanvas.canWrite();
         },
 

@@ -37,6 +37,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
@@ -45,12 +46,16 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
+import org.apache.nifi.web.api.request.LongParameter;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -80,6 +85,17 @@ public class ControllerResource extends ApplicationResource {
 
     private ReportingTaskResource reportingTaskResource;
     private ControllerServiceResource controllerServiceResource;
+
+    /**
+     * Populate the uri's for the specified registry.
+     *
+     * @param registryEntity registry
+     * @return dtos
+     */
+    public RegistryEntity populateRemainingRegistryEntityContent(final RegistryEntity registryEntity) {
+        registryEntity.setUri(generateResourceUri("controller", "registries", registryEntity.getId()));
+        return registryEntity;
+    }
 
     /**
      * Authorizes access to the flow.
@@ -286,6 +302,288 @@ public class ControllerResource extends ApplicationResource {
 
                     // build the response
                     return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+                }
+        );
+    }
+
+    // ----------
+    // registries
+    // ----------
+
+    /**
+     * Creates a new Registry.
+     *
+     * @param httpServletRequest  request
+     * @param requestRegistryEntity A registryEntity.
+     * @return A registryEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries")
+    @ApiOperation(
+            value = "Creates a new registry",
+            response = RegistryEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+
+    public Response createRegistry(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The registry configuration details.",
+                    required = true
+            ) final RegistryEntity requestRegistryEntity) {
+
+        if (requestRegistryEntity == null || requestRegistryEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Registry details must be specified.");
+        }
+
+        if (requestRegistryEntity.getRevision() == null || (requestRegistryEntity.getRevision().getVersion() == null || requestRegistryEntity.getRevision().getVersion() != 0)) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
+        }
+
+        final RegistryDTO requestReportingTask = requestRegistryEntity.getComponent();
+        if (requestReportingTask.getId() != null) {
+            throw new IllegalArgumentException("Registry ID cannot be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestRegistryEntity);
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                requestRegistryEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                (registryEntity) -> {
+                    final RegistryDTO registry = registryEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    registry.setId(generateUuid());
+
+                    // create the reporting task and generate the json
+                    final Revision revision = getRevision(registryEntity, registry.getId());
+                    final RegistryEntity entity = serviceFacade.createRegistry(revision, registry);
+                    populateRemainingRegistryEntityContent(entity);
+
+                    // build the response
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+                }
+        );
+    }
+
+    /**
+     * Retrieves the specified registry.
+     *
+     * @param id The id of the registry to retrieve
+     * @return A registryEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registries/{id}")
+    @ApiOperation(
+            value = "Gets a registry",
+            response = RegistryEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getRegistry(
+            @ApiParam(
+                    value = "The registry id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        authorizeController(RequestAction.READ);
+
+        // get the registry
+        final RegistryEntity entity = serviceFacade.getRegistry(id);
+        populateRemainingRegistryEntityContent(entity);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Updates the specified registry.
+     *
+     * @param httpServletRequest      request
+     * @param id                      The id of the controller service to update.
+     * @param requestRegsitryEntity A controllerServiceEntity.
+     * @return A controllerServiceEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registries/{id}")
+    @ApiOperation(
+            value = "Updates a registry",
+            response = RegistryEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateControllerService(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The registry id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The registry configuration details.",
+                    required = true
+            ) final RegistryEntity requestRegsitryEntity) {
+
+        if (requestRegsitryEntity == null || requestRegsitryEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Registry details must be specified.");
+        }
+
+        if (requestRegsitryEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // ensure the ids are the same
+        final RegistryDTO requestRegistryDTO = requestRegsitryEntity.getComponent();
+        if (!id.equals(requestRegistryDTO.getId())) {
+            throw new IllegalArgumentException(String.format("The registry id (%s) in the request body does not equal the "
+                    + "registry id of the requested resource (%s).", requestRegistryDTO.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRegsitryEntity);
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestRegsitryEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestRegsitryEntity,
+                requestRevision,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                (revision, registryEntity) -> {
+                    final RegistryDTO registry = registryEntity.getComponent();
+
+                    // update the controller service
+                    final RegistryEntity entity = serviceFacade.updateRegistry(revision, registry);
+                    populateRemainingRegistryEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Removes the specified registry.
+     *
+     * @param httpServletRequest request
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the registry to remove.
+     * @return A entity containing the client id and an updated revision.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registries/{id}")
+    @ApiOperation(
+            value = "Deletes a reistry",
+            response = RegistryEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response deleteRegistry(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
+            @QueryParam(VERSION) final LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The registry id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final RegistryEntity requestRegistryEntity = new RegistryEntity();
+        requestRegistryEntity.setId(id);
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestRegistryEntity,
+                requestRevision,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                (revision, registryEntity) -> {
+                    // delete the specified registry
+                    final RegistryEntity entity = serviceFacade.deleteRegistry(revision, registryEntity.getId());
+                    return generateOkResponse(entity).build();
                 }
         );
     }

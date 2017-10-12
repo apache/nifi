@@ -22,56 +22,56 @@
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processor}}"
                     id="processor-component"
                     class="component-button icon icon-processor"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.processorComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.inputPort}}"
                     id="port-in-component"
                     class="component-button icon icon-port-in"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.inputPortComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.outputPort}}"
                     id="port-out-component"
                     class="component-button icon icon-port-out"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.outputPortComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processGroup}}"
                     id="group-component"
                     class="component-button icon icon-group"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.groupComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.remoteProcessGroup}}"
                     id="group-remote-component"
                     class="component-button icon icon-group-remote"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.remoteGroupComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.funnel}}"
                     id="funnel-component"
                     class="component-button icon icon-funnel"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.template}}"
                     id="template-component"
                     class="component-button icon icon-template"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.templateComponent);">
                 <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
                     id="label-component"
                     class="component-button icon icon-label"
-                    ng-disabled="!appCtrl.nf.CanvasUtils.canWrite();"
+                    ng-disabled="!appCtrl.nf.CanvasUtils.canWriteCurrentGroup();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.labelComponent);">
                 <span class="component-button-grip"></span>
             </button>

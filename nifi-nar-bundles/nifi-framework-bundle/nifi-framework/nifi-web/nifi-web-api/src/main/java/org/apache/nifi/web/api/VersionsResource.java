@@ -17,8 +17,6 @@
 
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.api.core.ResourceContext;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -84,9 +82,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -109,8 +107,6 @@ import java.util.stream.Collectors;
 public class VersionsResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(VersionsResource.class);
 
-    @Context
-    private ResourceContext resourceContext;
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
     private ComponentLifecycle clusterComponentLifecycle;
@@ -128,12 +124,11 @@ public class VersionsResource extends ApplicationResource {
     private ActiveRequest activeRequest = null;
     private final Object activeRequestMonitor = new Object();
 
-
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(value = "Gets the Version Control information for a process group", response = VersionControlInformationEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the Version Control information for a process group", response = VersionControlInformationEntity.class, notes = NON_GUARANTEED_ENDPOINT, authorizations = {
         @Authorization(value = "Read - /process-groups/{uuid}")
     })
     @ApiResponses(value = {
@@ -144,6 +139,7 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response getVersionInformation(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
@@ -155,9 +151,11 @@ public class VersionsResource extends ApplicationResource {
         });
 
         // get the version control information for this process group
-        final VersionControlInformationEntity entity = serviceFacade.getVersionControlInformation(groupId);
+        VersionControlInformationEntity entity = serviceFacade.getVersionControlInformation(groupId);
         if (entity == null) {
-            throw new ResourceNotFoundException("Process Group with ID " + groupId + " is not currently under Version Control");
+            final ProcessGroupEntity processGroup = serviceFacade.getProcessGroup(groupId);
+            entity = new VersionControlInformationEntity();
+            entity.setProcessGroupRevision(processGroup.getRevision());
         }
 
         return generateOkResponse(entity).build();
@@ -168,7 +166,10 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("start-requests")
-    @ApiOperation(value = "Creates a request so that a Process Group can be placed under Version Control or have its Version Control configuration changed", response = VersionControlInformationEntity.class)
+    @ApiOperation(
+            value = "Creates a request so that a Process Group can be placed under Version Control or have its Version Control configuration changed",
+            response = VersionControlInformationEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT)
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -186,6 +187,7 @@ public class VersionsResource extends ApplicationResource {
             serviceFacade,
             /* entity */ null,
             lookup -> {
+                // TODO - pass in PG ID to authorize
             },
             /* verifier */ null,
             requestEntity -> {
@@ -213,9 +215,13 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("start-requests/{id}")
-    @ApiOperation(value = "Updates the request with the given ID", response = VersionControlInformationEntity.class, authorizations = {
-        @Authorization(value = "Write - /process-groups/{uuid}")
-    })
+    @ApiOperation(
+            value = "Updates the request with the given ID",
+            response = VersionControlInformationEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Write - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -301,7 +307,9 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("start-requests/{id}")
-    @ApiOperation(value = "Deletes the request with the given ID")
+    @ApiOperation(
+            value = "Deletes the request with the given ID",
+            notes = NON_GUARANTEED_ENDPOINT)
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -343,9 +351,13 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(value = "Begins version controlling the Process Group with the given ID", response = VersionControlInformationEntity.class, authorizations = {
-        @Authorization(value = "Read - /process-groups/{uuid}")
-    })
+    @ApiOperation(
+            value = "Begins version controlling the Process Group with the given ID",
+            response = VersionControlInformationEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Read - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -545,10 +557,14 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(value = "Stops version controlling the Process Group with the given ID", response = VersionControlInformationEntity.class, authorizations = {
-        @Authorization(value = "Read - /process-groups/{uuid}"),
-        @Authorization(value = "Write - /process-groups/{uuid}"),
-    })
+    @ApiOperation(
+            value = "Stops version controlling the Process Group with the given ID",
+            response = VersionControlInformationEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Read - /process-groups/{uuid}"),
+                @Authorization(value = "Write - /process-groups/{uuid}"),
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -557,10 +573,14 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response stopVersionControl(
-        @ApiParam(value = "The version is used to verify the client is working with the latest version of the flow.", required = false) @QueryParam(VERSION) final LongParameter version,
-
-        @ApiParam(value = "If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.", required = false) @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-
+        @ApiParam(
+                value = "The version is used to verify the client is working with the latest version of the flow.",
+                required = false)
+        @QueryParam(VERSION) final LongParameter version,
+        @ApiParam(
+                value = "If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.",
+                required = false)
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
         @ApiParam("The process group id.") @PathParam("id") final String groupId) throws IOException {
 
         if (isReplicateRequest()) {
@@ -584,8 +604,8 @@ public class VersionsResource extends ApplicationResource {
                 }
             },
             (revision, groupEntity) -> {
-                // set the version control info to null
-                final VersionControlInformationEntity entity = serviceFacade.setVersionControlInformation(requestRevision, groupId, null, null);
+                // disconnect from version control
+                final VersionControlInformationEntity entity = serviceFacade.deleteVersionControl(requestRevision, groupId);
 
                 // generate the response
                 return generateOkResponse(entity).build();
@@ -597,12 +617,14 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(value = "For a Process Group that is already under Version Control, this will update the version of the flow to a different version",
-        response = VersionControlInformationEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}"),
-            @Authorization(value = "Write - /process-groups/{uuid}")
-        })
+    @ApiOperation(
+            value = "For a Process Group that is already under Version Control, this will update the version of the flow to a different version",
+            response = VersionControlInformationEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Read - /process-groups/{uuid}"),
+                @Authorization(value = "Write - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -686,10 +708,12 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("update-requests/{id}")
-    @ApiOperation(value = "Returns the Update Request with the given ID",
-        response = VersionedFlowUpdateRequestEntity.class,
-        authorizations = {
-        })
+    @ApiOperation(
+            value = "Returns the Update Request with the given ID",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -705,10 +729,12 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("revert-requests/{id}")
-    @ApiOperation(value = "Returns the Revert Request with the given ID",
-        response = VersionedFlowUpdateRequestEntity.class,
-        authorizations = {
-        })
+    @ApiOperation(
+            value = "Returns the Revert Request with the given ID",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -750,8 +776,12 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("update-requests/{id}")
-    @ApiOperation(value = "Deletes the Update Request with the given ID", response = VersionedFlowUpdateRequestEntity.class, authorizations = {
-    })
+    @ApiOperation(
+            value = "Deletes the Update Request with the given ID",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -767,8 +797,12 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("revert-requests/{id}")
-    @ApiOperation(value = "Deletes the Revert Request with the given ID", response = VersionedFlowUpdateRequestEntity.class, authorizations = {
-    })
+    @ApiOperation(
+            value = "Deletes the Revert Request with the given ID",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -813,11 +847,15 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("update-requests/process-groups/{id}")
-    @ApiOperation(value = "For a Process Group that is already under Version Control, this will initiate the action of changing "
-        + "from a specific version of the flow in the Flow Registry to a different version of the flow.", response = VersionedFlowUpdateRequestEntity.class, authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}"),
-            @Authorization(value = "Write - /process-groups/{uuid}")
-        })
+    @ApiOperation(
+            value = "For a Process Group that is already under Version Control, this will initiate the action of changing "
+                    + "from a specific version of the flow in the Flow Registry to a different version of the flow.",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Read - /process-groups/{uuid}"),
+                @Authorization(value = "Write - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -970,12 +1008,16 @@ public class VersionsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("revert-requests/process-groups/{id}")
-    @ApiOperation(value = "For a Process Group that is already under Version Control, this will initiate the action of reverting "
-        + "any changes that have been made to the Process Group since it was last synchronized with the Flow Registry. This will result in the "
-        + "flow matching the Versioned Flow that exists in the Flow Registry.", response = VersionedFlowUpdateRequestEntity.class, authorizations = {
-            @Authorization(value = "Read - /process-groups/{uuid}"),
-            @Authorization(value = "Write - /process-groups/{uuid}")
-        })
+    @ApiOperation(
+            value = "For a Process Group that is already under Version Control, this will initiate the action of reverting "
+                + "any changes that have been made to the Process Group since it was last synchronized with the Flow Registry. This will result in the "
+                + "flow matching the Versioned Flow that exists in the Flow Registry.",
+            response = VersionedFlowUpdateRequestEntity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            authorizations = {
+                @Authorization(value = "Read - /process-groups/{uuid}"),
+                @Authorization(value = "Write - /process-groups/{uuid}")
+            })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
         @ApiResponse(code = 401, message = "Client could not be authenticated."),
@@ -1250,7 +1292,7 @@ public class VersionsResource extends ApplicationResource {
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
-            entity = nodeResponse.getClientResponse().getEntity(clazz);
+            entity = nodeResponse.getClientResponse().readEntity(clazz);
         }
         return entity;
     }

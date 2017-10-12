@@ -33,6 +33,7 @@
                 'nf.Shell',
                 'nf.VariableRegistry',
                 'nf.ComponentState',
+                'nf.FlowVersion',
                 'nf.Draggable',
                 'nf.Birdseye',
                 'nf.Connection',
@@ -55,8 +56,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -74,6 +75,7 @@
                 require('nf.Shell'),
                 require('nf.VariableRegistry'),
                 require('nf.ComponentState'),
+                require('nf.FlowVersion'),
                 require('nf.Draggable'),
                 require('nf.Birdseye'),
                 require('nf.Connection'),
@@ -111,6 +113,7 @@
             root.nf.Shell,
             root.nf.VariableRegistry,
             root.nf.ComponentState,
+            root.nf.FlowVersion,
             root.nf.Draggable,
             root.nf.Birdseye,
             root.nf.Connection,
@@ -134,7 +137,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -1234,6 +1237,51 @@
 
             // view the state for the selected processor
             nfComponentState.showState(processor, nfCanvasUtils.isConfigurable(selection));
+        },
+
+        /**
+         * Shows the flow version dialog.
+         */
+        saveFlowVersion: function (selection) {
+            if (selection.empty()) {
+                nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    nfFlowVersion.showFlowVersionDialog(selectionData.id);
+                }
+            }
+        },
+
+        /**
+         * Reverts outstanding changes.
+         */
+        revertFlowChanges: function (selection) {
+            if (selection.empty()) {
+                nfFlowVersion.revertFlowChanges(nfCanvasUtils.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                nfFlowVersion.revertFlowChanges(selectionData.id);
+            }
+        },
+
+        /**
+         * Changes the flow version.
+         */
+        changeFlowVersion: function (selection) {
+
+        },
+
+        /**
+         * Disconnects a Process Group from flow versioning.
+         */
+        disconnectFlowVersioning: function (selection) {
+            if (selection.empty()) {
+                nfFlowVersion.disconnectFlowVersioning(nfCanvasUtils.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                nfFlowVersion.disconnectFlowVersioning(selectionData.id);
+            }
         },
 
         /**
