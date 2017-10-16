@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.hive;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,13 +51,17 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.PartialFunctions;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.hive.CsvOutputOptions;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
+
+import static org.apache.nifi.util.hive.HiveJdbcCommon.AVRO;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV_MIME_TYPE;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.MIME_TYPE_AVRO_BINARY;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -72,18 +74,20 @@ import org.apache.nifi.util.hive.HiveJdbcCommon;
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type for the outgoing flowfile to application/avro-binary for Avro or text/csv for CSV."),
         @WritesAttribute(attribute = "filename", description = "Adds .avro or .csv to the filename attribute depending on which output format is selected."),
-        @WritesAttribute(attribute = "selecthiveql.row.count", description = "Indicates how many rows were selected/returned by the query.")
+        @WritesAttribute(attribute = "selecthiveql.row.count", description = "Indicates how many rows were selected/returned by the query."),
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+                + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+                + "FlowFiles were produced")
 })
 public class SelectHiveQL extends AbstractHiveQLProcessor {
 
     public static final String RESULT_ROW_COUNT = "selecthiveql.row.count";
-
-    protected static final String AVRO = "Avro";
-    protected static final String CSV = "CSV";
-
-    public static final String AVRO_MIME_TYPE = "application/avro-binary";
-    public static final String CSV_MIME_TYPE = "text/csv";
-
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -99,9 +103,42 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     public static final PropertyDescriptor HIVEQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("hive-query")
             .displayName("HiveQL Select Query")
-            .description("HiveQL SELECT query to execute")
+            .description("HiveQL SELECT query to execute. If this is not set, the query is assumed to be in the content of an incoming FlowFile.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("hive-fetch-size")
+            .displayName("Fetch Size")
+            .description("The number of result rows to be fetched from the result set at a time. This is a hint to the driver and may not be "
+                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
+            .name("hive-max-rows")
+            .displayName("Max Rows Per Flow File")
+            .description("The maximum number of result rows that will be included in a single FlowFile. " +
+                    "This will allow you to break up very large result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor MAX_FRAGMENTS = new PropertyDescriptor.Builder()
+            .name("hive-max-frags")
+            .displayName("Maximum Number of Fragments")
+            .description("The maximum number of fragments. If the value specified is zero, then all fragments are returned. " +
+                    "This prevents OutOfMemoryError when this processor ingests huge table.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
@@ -174,7 +211,11 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(HIVE_DBCP_SERVICE);
         _propertyDescriptors.add(HIVEQL_SELECT_QUERY);
+        _propertyDescriptors.add(FETCH_SIZE);
+        _propertyDescriptors.add(MAX_ROWS_PER_FLOW_FILE);
+        _propertyDescriptors.add(MAX_FRAGMENTS);
         _propertyDescriptors.add(HIVEQL_OUTPUT_FORMAT);
+        _propertyDescriptors.add(NORMALIZE_NAMES_FOR_AVRO);
         _propertyDescriptors.add(HIVEQL_CSV_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_ALT_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_DELIMITER);
@@ -216,7 +257,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     }
 
     private void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final FlowFile fileToProcess = (context.hasIncomingConnection()? session.get():null);
+        final FlowFile fileToProcess = (context.hasIncomingConnection() ? session.get() : null);
         FlowFile flowfile = null;
 
         // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
@@ -243,95 +284,152 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
             final StringBuilder queryContents = new StringBuilder();
-            session.read(fileToProcess, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    queryContents.append(IOUtils.toString(in));
-                }
-            });
+            session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, charset)));
             selectQuery = queryContents.toString();
         }
 
 
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
+                ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions(fileToProcess).asInteger()
+                : 0;
         final String outputFormat = context.getProperty(HIVEQL_OUTPUT_FORMAT).getValue();
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final StopWatch stopWatch = new StopWatch(true);
         final boolean header = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
         final String altHeader = context.getProperty(HIVEQL_CSV_ALT_HEADER).evaluateAttributeExpressions(fileToProcess).getValue();
         final String delimiter = context.getProperty(HIVEQL_CSV_DELIMITER).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean quote = context.getProperty(HIVEQL_CSV_QUOTE).asBoolean();
         final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
+        final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection();
-             final Statement st = ( flowbased ? con.prepareStatement(selectQuery): con.createStatement())
+             final Statement st = (flowbased ? con.prepareStatement(selectQuery) : con.createStatement())
         ) {
 
-            final AtomicLong nrOfRows = new AtomicLong(0L);
-            if (fileToProcess == null) {
-                flowfile = session.create();
-            } else {
-                flowfile = fileToProcess;
+            if (fetchSize != null && fetchSize > 0) {
+                try {
+                    st.setFetchSize(fetchSize);
+                } catch (SQLException se) {
+                    // Not all drivers support this, just log the error (at debug level) and move on
+                    logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
+                }
             }
 
-            flowfile = session.write(flowfile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    try {
-                        logger.debug("Executing query {}", new Object[]{selectQuery});
-                        if (flowbased) {
-                            // Hive JDBC Doesn't Support this yet:
-                            // ParameterMetaData pmd = ((PreparedStatement)st).getParameterMetaData();
-                            // int paramCount = pmd.getParameterCount();
+            final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
+            try {
+                logger.debug("Executing query {}", new Object[]{selectQuery});
+                if (flowbased) {
+                    // Hive JDBC Doesn't Support this yet:
+                    // ParameterMetaData pmd = ((PreparedStatement)st).getParameterMetaData();
+                    // int paramCount = pmd.getParameterCount();
 
-                            // Alternate way to determine number of params in SQL.
-                            int paramCount = StringUtils.countMatches(selectQuery, "?");
+                    // Alternate way to determine number of params in SQL.
+                    int paramCount = StringUtils.countMatches(selectQuery, "?");
 
-                            if (paramCount > 0) {
-                                setParameters(1, (PreparedStatement) st, paramCount, fileToProcess.getAttributes());
-                            }
-                        }
-
-                        final ResultSet resultSet = (flowbased ? ((PreparedStatement)st).executeQuery(): st.executeQuery(selectQuery));
-
-                        if (AVRO.equals(outputFormat)) {
-                            nrOfRows.set(HiveJdbcCommon.convertToAvroStream(resultSet, out));
-                        } else if (CSV.equals(outputFormat)) {
-                            CsvOutputOptions options = new CsvOutputOptions(header, altHeader, delimiter, quote, escape);
-                            nrOfRows.set(HiveJdbcCommon.convertToCsvStream(resultSet, out,options));
-                        } else {
-                            nrOfRows.set(0L);
-                            throw new ProcessException("Unsupported output format: " + outputFormat);
-                        }
-                    } catch (final SQLException e) {
-                        throw new ProcessException(e);
+                    if (paramCount > 0) {
+                        setParameters(1, (PreparedStatement) st, paramCount, flowfile.getAttributes());
                     }
                 }
-            });
 
-            // Set attribute for how many rows were selected
-            flowfile = session.putAttribute(flowfile, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+                final ResultSet resultSet;
 
-            // Set MIME type on output document and add extension to filename
-            if (AVRO.equals(outputFormat)) {
-                flowfile = session.putAttribute(flowfile, CoreAttributes.MIME_TYPE.key(), AVRO_MIME_TYPE);
-                flowfile = session.putAttribute(flowfile, CoreAttributes.FILENAME.key(), flowfile.getAttribute(CoreAttributes.FILENAME.key()) + ".avro");
-            } else if (CSV.equals(outputFormat)) {
-                flowfile = session.putAttribute(flowfile, CoreAttributes.MIME_TYPE.key(), CSV_MIME_TYPE);
-                flowfile = session.putAttribute(flowfile, CoreAttributes.FILENAME.key(), flowfile.getAttribute(CoreAttributes.FILENAME.key()) + ".csv");
+                try {
+                    resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(selectQuery));
+                } catch (SQLException se) {
+                    // If an error occurs during the query, a flowfile is expected to be routed to failure, so create one here (the original will be removed)
+                    flowfile = session.create(fileToProcess);
+                    throw se;
+                }
+
+                int fragmentIndex = 0;
+                String baseFilename = (fileToProcess != null) ? fileToProcess.getAttribute(CoreAttributes.FILENAME.key()) : null;
+                while (true) {
+                    final AtomicLong nrOfRows = new AtomicLong(0L);
+                    flowfile = (flowfile == null) ? session.create() : session.create(flowfile);
+                    if (baseFilename == null) {
+                        baseFilename = flowfile.getAttribute(CoreAttributes.FILENAME.key());
+                    }
+                    try {
+                        flowfile = session.write(flowfile, out -> {
+                            try {
+                                if (AVRO.equals(outputFormat)) {
+                                    nrOfRows.set(HiveJdbcCommon.convertToAvroStream(resultSet, out, maxRowsPerFlowFile, convertNamesForAvro));
+                                } else if (CSV.equals(outputFormat)) {
+                                    CsvOutputOptions options = new CsvOutputOptions(header, altHeader, delimiter, quote, escape, maxRowsPerFlowFile);
+                                    nrOfRows.set(HiveJdbcCommon.convertToCsvStream(resultSet, out, options));
+                                } else {
+                                    nrOfRows.set(0L);
+                                    throw new ProcessException("Unsupported output format: " + outputFormat);
+                                }
+                            } catch (final SQLException | RuntimeException e) {
+                                throw new ProcessException("Error during database query or conversion of records.", e);
+                            }
+                        });
+                    } catch (ProcessException e) {
+                        // Add flowfile to results before rethrowing so it will be removed from session in outer catch
+                        resultSetFlowFiles.add(flowfile);
+                        throw e;
+                    }
+
+                    if (nrOfRows.get() > 0 || resultSetFlowFiles.isEmpty()) {
+                        // Set attribute for how many rows were selected
+                        flowfile = session.putAttribute(flowfile, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+                        // Set MIME type on output document and add extension to filename
+                        if (AVRO.equals(outputFormat)) {
+                            flowfile = session.putAttribute(flowfile, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_AVRO_BINARY);
+                            flowfile = session.putAttribute(flowfile, CoreAttributes.FILENAME.key(), baseFilename + "." + fragmentIndex + ".avro");
+                        } else if (CSV.equals(outputFormat)) {
+                            flowfile = session.putAttribute(flowfile, CoreAttributes.MIME_TYPE.key(), CSV_MIME_TYPE);
+                            flowfile = session.putAttribute(flowfile, CoreAttributes.FILENAME.key(), baseFilename + "." + fragmentIndex + ".csv");
+                        }
+
+                        if (maxRowsPerFlowFile > 0) {
+                            flowfile = session.putAttribute(flowfile, "fragment.identifier", fragmentIdentifier);
+                            flowfile = session.putAttribute(flowfile, "fragment.index", String.valueOf(fragmentIndex));
+                        }
+
+                        logger.info("{} contains {} Avro records; transferring to 'success'",
+                                new Object[]{flowfile, nrOfRows.get()});
+
+                        if (context.hasIncomingConnection()) {
+                            // If the flow file came from an incoming connection, issue a Modify Content provenance event
+
+                            session.getProvenanceReporter().modifyContent(flowfile, "Retrieved " + nrOfRows.get() + " rows",
+                                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        } else {
+                            // If we created a flow file from rows received from Hive, issue a Receive provenance event
+                            session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        }
+                        resultSetFlowFiles.add(flowfile);
+                    } else {
+                        // If there were no rows returned (and the first flow file has been sent, we're done processing, so remove the flowfile and carry on
+                        session.remove(flowfile);
+                        break;
+                    }
+
+                    fragmentIndex++;
+                    if (maxFragments > 0 && fragmentIndex >= maxFragments) {
+                        break;
+                    }
+                }
+
+                for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                    // Set count on all FlowFiles
+                    if (maxRowsPerFlowFile > 0) {
+                        resultSetFlowFiles.set(i,
+                                session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
+                    }
+                }
+
+            } catch (final SQLException e) {
+                throw e;
             }
 
-            logger.info("{} contains {} Avro records; transferring to 'success'",
-                    new Object[]{flowfile, nrOfRows.get()});
+            session.transfer(resultSetFlowFiles, REL_SUCCESS);
 
-            if (context.hasIncomingConnection()) {
-                // If the flow file came from an incoming connection, issue a Modify Content provenance event
-
-                session.getProvenanceReporter().modifyContent(flowfile, "Retrieved " + nrOfRows.get() + " rows",
-                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            } else {
-                // If we created a flow file from rows received from Hive, issue a Receive provenance event
-                session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            }
-            session.transfer(flowfile, REL_SUCCESS);
         } catch (final ProcessException | SQLException e) {
             logger.error("Issue processing SQL {} due to {}.", new Object[]{selectQuery, e});
             if (flowfile == null) {
@@ -352,7 +450,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 session.transfer(flowfile, REL_FAILURE);
             }
         } finally {
-
+            if (fileToProcess != null) {
+                session.remove(fileToProcess);
+            }
         }
     }
 }
