@@ -329,7 +329,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                     int paramCount = StringUtils.countMatches(selectQuery, "?");
 
                     if (paramCount > 0) {
-                        setParameters(1, (PreparedStatement) st, paramCount, flowfile.getAttributes());
+                        setParameters(1, (PreparedStatement) st, paramCount, fileToProcess.getAttributes());
                     }
                 }
 
