@@ -48,7 +48,7 @@ import java.util.Set;
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Bulk ingest documents into MonogDB using a configured record reader.")
+@CapabilityDescription("Bulk ingest documents into MongoDB using a configured record reader.")
 public class PutMongoRecord extends AbstractMongoProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
