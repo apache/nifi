@@ -353,11 +353,13 @@ public class TestSelectHiveQL {
             rowCount++;
         }
 
-        runner.setIncomingConnection(false);
-        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(true);
         runner.setProperty(SelectHiveQL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
         runner.setProperty(SelectHiveQL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.CSV);
-        runner.setVariable(MAX_ROWS_KEY, "9");
+
+        runner.enqueue("SELECT * FROM TEST_QUERY_DB_TABLE", new HashMap<String, String>() {{
+            put(MAX_ROWS_KEY, "9");
+        }});
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 12);

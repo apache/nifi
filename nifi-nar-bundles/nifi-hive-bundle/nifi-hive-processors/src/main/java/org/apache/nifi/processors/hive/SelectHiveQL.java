@@ -289,10 +289,10 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         }
 
 
-        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
-                ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
+                ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions(fileToProcess).asInteger()
                 : 0;
         final String outputFormat = context.getProperty(HIVEQL_OUTPUT_FORMAT).getValue();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
