@@ -29,6 +29,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.hive.HiveJdbcCommon;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -51,12 +52,17 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.apache.nifi.processors.hive.SelectHiveQL.HIVEQL_OUTPUT_FORMAT;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.AVRO;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV_MIME_TYPE;
+import static org.apache.nifi.util.hive.HiveJdbcCommon.MIME_TYPE_AVRO_BINARY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestSelectHiveQL {
 
     private static final Logger LOGGER;
+    private final static String MAX_ROWS_KEY = "maxRows";
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -67,14 +73,14 @@ public class TestSelectHiveQL {
         LOGGER = LoggerFactory.getLogger(TestSelectHiveQL.class);
     }
 
-    final static String DB_LOCATION = "target/db";
+    private final static String DB_LOCATION = "target/db";
 
-    final static String QUERY_WITH_EL = "select "
+    private final static String QUERY_WITH_EL = "select "
             + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
             + " from persons PER"
             + " where PER.ID > ${person.id}";
 
-    final static String QUERY_WITHOUT_EL = "select "
+    private final static String QUERY_WITHOUT_EL = "select "
             + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
             + " from persons PER"
             + " where PER.ID > 10";
@@ -132,6 +138,7 @@ public class TestSelectHiveQL {
         try {
             stmt.execute("drop table TEST_NULL_INT");
         } catch (final SQLException sqle) {
+            // Nothing to do, probably means the table didn't exist
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -160,6 +167,7 @@ public class TestSelectHiveQL {
         try {
             stmt.execute("drop table TEST_NO_ROWS");
         } catch (final SQLException sqle) {
+            // Nothing to do, probably means the table didn't exist
         }
 
         stmt.execute("create table TEST_NO_ROWS (id integer)");
@@ -176,13 +184,13 @@ public class TestSelectHiveQL {
     @Test
     public void invokeOnTriggerWithCsv()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(QUERY_WITHOUT_EL, false, SelectHiveQL.CSV);
+        invokeOnTrigger(QUERY_WITHOUT_EL, false, CSV);
     }
 
     @Test
     public void invokeOnTriggerWithAvro()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(QUERY_WITHOUT_EL, false, SelectHiveQL.AVRO);
+        invokeOnTrigger(QUERY_WITHOUT_EL, false, AVRO);
     }
 
     public void invokeOnTrigger(final String query, final boolean incomingFlowFile, String outputFormat)
@@ -230,8 +238,8 @@ public class TestSelectHiveQL {
         MockFlowFile flowFile = flowfiles.get(0);
         final InputStream in = new ByteArrayInputStream(flowFile.toByteArray());
         long recordsFromStream = 0;
-        if (SelectHiveQL.AVRO.equals(outputFormat)) {
-            assertEquals(SelectHiveQL.AVRO_MIME_TYPE, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+        if (AVRO.equals(outputFormat)) {
+            assertEquals(MIME_TYPE_AVRO_BINARY, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
             final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
             try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
                 GenericRecord record = null;
@@ -244,7 +252,7 @@ public class TestSelectHiveQL {
                 }
             }
         } else {
-            assertEquals(SelectHiveQL.CSV_MIME_TYPE, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+            assertEquals(CSV_MIME_TYPE, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
 
             String headerRow = br.readLine();
@@ -256,7 +264,7 @@ public class TestSelectHiveQL {
             while ((line = br.readLine()) != null) {
                 recordsFromStream++;
                 String[] values = line.split(",");
-                if(recordsFromStream < (nrOfRows - 10)) {
+                if (recordsFromStream < (nrOfRows - 10)) {
                     assertEquals(3, values.length);
                     assertTrue(values[1].startsWith("\""));
                     assertTrue(values[1].endsWith("\""));
@@ -267,6 +275,178 @@ public class TestSelectHiveQL {
         }
         assertEquals(nrOfRows - 10, recordsFromStream);
         assertEquals(recordsFromStream, Integer.parseInt(flowFile.getAttribute(SelectHiveQL.RESULT_ROW_COUNT)));
+    }
+
+    @Test
+    public void testMaxRowsPerFlowFileAvro() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+        InputStream in;
+        MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 100; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
+            rowCount++;
+        }
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+        runner.setProperty(SelectHiveQL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
+        runner.setProperty(SelectHiveQL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.AVRO);
+        runner.setVariable(MAX_ROWS_KEY, "9");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 12);
+
+        //ensure all but the last file have 9 records each
+        for (int ff = 0; ff < 11; ff++) {
+            mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(ff);
+            in = new ByteArrayInputStream(mff.toByteArray());
+            assertEquals(9, getNumberOfRecordsFromStream(in));
+
+            mff.assertAttributeExists("fragment.identifier");
+            assertEquals(Integer.toString(ff), mff.getAttribute("fragment.index"));
+            assertEquals("12", mff.getAttribute("fragment.count"));
+        }
+
+        //last file should have 1 record
+        mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(11);
+        in = new ByteArrayInputStream(mff.toByteArray());
+        assertEquals(1, getNumberOfRecordsFromStream(in));
+        mff.assertAttributeExists("fragment.identifier");
+        assertEquals(Integer.toString(11), mff.getAttribute("fragment.index"));
+        assertEquals("12", mff.getAttribute("fragment.count"));
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMaxRowsPerFlowFileCSV() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+        InputStream in;
+        MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 100; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
+            rowCount++;
+        }
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(SelectHiveQL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
+        runner.setProperty(SelectHiveQL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.CSV);
+
+        runner.enqueue("SELECT * FROM TEST_QUERY_DB_TABLE", new HashMap<String, String>() {{
+            put(MAX_ROWS_KEY, "9");
+        }});
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 12);
+
+        //ensure all but the last file have 9 records (10 lines = 9 records + header) each
+        for (int ff = 0; ff < 11; ff++) {
+            mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(ff);
+            in = new ByteArrayInputStream(mff.toByteArray());
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            assertEquals(10, br.lines().count());
+
+            mff.assertAttributeExists("fragment.identifier");
+            assertEquals(Integer.toString(ff), mff.getAttribute("fragment.index"));
+            assertEquals("12", mff.getAttribute("fragment.count"));
+        }
+
+        //last file should have 1 record (2 lines = 1 record + header)
+        mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(11);
+        in = new ByteArrayInputStream(mff.toByteArray());
+        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        assertEquals(2, br.lines().count());
+        mff.assertAttributeExists("fragment.identifier");
+        assertEquals(Integer.toString(11), mff.getAttribute("fragment.index"));
+        assertEquals("12", mff.getAttribute("fragment.count"));
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMaxRowsPerFlowFileWithMaxFragments() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+        InputStream in;
+        MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 100; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
+            rowCount++;
+        }
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+        runner.setProperty(SelectHiveQL.MAX_ROWS_PER_FLOW_FILE, "9");
+        Integer maxFragments = 3;
+        runner.setProperty(SelectHiveQL.MAX_FRAGMENTS, maxFragments.toString());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, maxFragments);
+
+        for (int i = 0; i < maxFragments; i++) {
+            mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(i);
+            in = new ByteArrayInputStream(mff.toByteArray());
+            assertEquals(9, getNumberOfRecordsFromStream(in));
+
+            mff.assertAttributeExists("fragment.identifier");
+            assertEquals(Integer.toString(i), mff.getAttribute("fragment.index"));
+            assertEquals(maxFragments.toString(), mff.getAttribute("fragment.count"));
+        }
+
+        runner.clearTransferState();
+    }
+
+    private long getNumberOfRecordsFromStream(InputStream in) throws IOException {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            GenericRecord record = null;
+            long recordsFromStream = 0;
+            while (dataFileReader.hasNext()) {
+                // Reuse record object by passing it to next(). This saves us from
+                // allocating and garbage collecting many objects for files with
+                // many items.
+                record = dataFileReader.next(record);
+                recordsFromStream += 1;
+            }
+
+            return recordsFromStream;
+        }
     }
 
     /**
@@ -283,8 +463,7 @@ public class TestSelectHiveQL {
         public Connection getConnection() throws ProcessException {
             try {
                 Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-                return con;
+                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
