@@ -22,10 +22,10 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -72,7 +72,7 @@ public class TestWriteAheadStorePartition {
             partition.addEvents(Collections.singleton(TestUtil.createEvent()));
         }
 
-        final Map<ProvenanceEventRecord, StorageSummary> reindexedEvents = new HashMap<>();
+        final Map<ProvenanceEventRecord, StorageSummary> reindexedEvents = new ConcurrentHashMap<>();
         final EventIndex eventIndex = Mockito.mock(EventIndex.class);
         Mockito.doAnswer(new Answer<Object>() {
             @Override
