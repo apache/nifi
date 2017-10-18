@@ -21,6 +21,7 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordSchema;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +37,7 @@ import java.util.Map;
 import static org.apache.nifi.controller.repository.RepositoryRecordType.SWAP_IN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -242,6 +245,29 @@ public class SchemaRepositoryRecordSerdeTest {
         RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
         assertEquals(SWAP_IN, repositoryRecord.getType());
+    }
+
+    @Test
+    public void testEOFExceptionOnDeserializeEdit() throws IOException {
+        RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+
+        // calling deserializeRecord on an empty stream should return a null record.
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNull(repositoryRecord);
+
+        dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+
+        // calling deserializeEdit on an empty stream should throw EOFException
+        try {
+            schemaRepositoryRecordSerde.deserializeEdit(dataInputStream, new HashMap<>(), 2);
+            Assert.fail("Expected EOFException");
+        } catch (final EOFException eof) {
+            // expected
+        }
     }
 
     private DataInputStream createDataInputStream() throws IOException {

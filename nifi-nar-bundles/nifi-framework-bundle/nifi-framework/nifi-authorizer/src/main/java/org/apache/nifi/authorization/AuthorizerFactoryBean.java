@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.authorization;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -25,29 +44,14 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Factory bean for loading the configured authorizer.
@@ -131,7 +135,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each authorizer
                     for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz()));
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
                     }
 
                     // configure each authorizer
@@ -165,9 +169,10 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                 final Schema schema = schemaFactory.newSchema(Authorizers.class.getResource(AUTHORIZERS_XSD));
 
                 // attempt to unmarshal
+                final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(authorizersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
-                final JAXBElement<Authorizers> element = unmarshaller.unmarshal(new StreamSource(authorizersConfigurationFile), Authorizers.class);
+                final JAXBElement<Authorizers> element = unmarshaller.unmarshal(xsr, Authorizers.class);
                 return element.getValue();
             } catch (SAXException | JAXBException e) {
                 throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
@@ -222,7 +227,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        return UserGroupProviderFactory.withNarLoader(instance);
+        return UserGroupProviderFactory.withNarLoader(instance, userGroupProviderClassLoader);
     }
 
     private AccessPolicyProvider createAccessPolicyProvider(final String identifier, final String accessPolicyProviderClassName) throws Exception {
@@ -270,10 +275,10 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        return AccessPolicyProviderFactory.withNarLoader(instance);
+        return AccessPolicyProviderFactory.withNarLoader(instance, accessPolicyProviderClassLoader);
     }
 
-    private Authorizer createAuthorizer(final String identifier, final String authorizerClassName) throws Exception {
+    private Authorizer createAuthorizer(final String identifier, final String authorizerClassName, final String classpathResources) throws Exception {
         // get the classloader for the specified authorizer
         final List<Bundle> authorizerBundles = ExtensionManager.getBundles(authorizerClassName);
 
@@ -286,7 +291,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
         }
 
         final Bundle authorizerBundle = authorizerBundles.get(0);
-        final ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+        ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -318,7 +323,12 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             }
         }
 
-        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance));
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
+
+        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance, authorizerClassLoader));
     }
 
     private AuthorizerConfigurationContext loadAuthorizerConfiguration(final String identifier, final List<Property> properties) {

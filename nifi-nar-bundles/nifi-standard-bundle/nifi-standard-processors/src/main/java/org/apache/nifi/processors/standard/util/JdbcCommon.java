@@ -33,6 +33,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NCLOB;
 import static java.sql.Types.NUMERIC;
 import static java.sql.Types.NVARCHAR;
 import static java.sql.Types.REAL;
@@ -47,11 +48,14 @@ import static java.sql.Types.VARCHAR;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -169,6 +173,16 @@ public class JdbcCommon {
         return convertToAvroStream(rs, outStream, options, callback);
     }
 
+    public static void createEmptyAvroStream(final OutputStream outStream) throws IOException {
+        final FieldAssembler<Schema> builder = SchemaBuilder.record("NiFi_ExecuteSQL_Record").namespace("any.data").fields();
+        final Schema schema = builder.endRecord();
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
+            dataFileWriter.create(schema, outStream);
+        }
+    }
+
     public static class AvroConversionOptions {
         private final String recordName;
         private final int maxRows;
@@ -272,6 +286,22 @@ public class JdbcCommon {
                             }
                             rec.put(i - 1, new String(buffer));
                             clob.free();
+                        } else {
+                            rec.put(i - 1, null);
+                        }
+                        continue;
+                    }
+
+                    if (javaSqlType == NCLOB) {
+                        NClob nClob = rs.getNClob(i);
+                        if (nClob != null) {
+                            final Reader characterStream = nClob.getCharacterStream();
+                            long numChars = (int) nClob.length();
+                            final CharBuffer buffer = CharBuffer.allocate((int) numChars);
+                            characterStream.read(buffer);
+                            buffer.flip();
+                            rec.put(i - 1, buffer.toString());
+                            nClob.free();
                         } else {
                             rec.put(i - 1, null);
                         }
@@ -454,6 +484,7 @@ public class JdbcCommon {
                 case NVARCHAR:
                 case VARCHAR:
                 case CLOB:
+                case NCLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 

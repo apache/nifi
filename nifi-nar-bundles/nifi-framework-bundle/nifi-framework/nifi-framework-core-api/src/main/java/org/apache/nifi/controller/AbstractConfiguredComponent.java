@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.util.CharacterFilterUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -53,6 +35,24 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
     private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
 
@@ -61,9 +61,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
+    private final AtomicReference<ValidationContext> validationContext = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final VariableRegistry variableRegistry;
+    private final ComponentVariableRegistry variableRegistry;
     private final ReloadComponent reloadComponent;
 
     private final AtomicBoolean isExtensionMissing;
@@ -73,7 +74,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                       final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
+                                       final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
                                        final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
@@ -118,6 +119,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setAnnotationData(final String data) {
+        invalidateValidationContext();
         annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
     }
 
@@ -215,7 +217,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                getComponent().onPropertyModified(descriptor, oldValue, value);
+                onPropertyModified(descriptor, oldValue, value);
             } catch (final Exception e) {
                 // nothing really to do here...
             }
@@ -251,7 +253,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                getComponent().onPropertyModified(descriptor, value, null);
+                onPropertyModified(descriptor, value, null);
             } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
             }
@@ -434,7 +436,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    public final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        invalidateValidationContext();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
@@ -449,8 +452,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
-            getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier()));
+        final Collection<ValidationResult> validationResults = validate(getValidationContext());
 
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
@@ -470,8 +472,13 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(
-                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final ValidationContext validationContext;
+            if (serviceIdentifiersNotToValidate == null || serviceIdentifiersNotToValidate.isEmpty()) {
+                validationContext = getValidationContext();
+            } else {
+                validationContext = getValidationContextFactory().newValidationContext(serviceIdentifiersNotToValidate,
+                    getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            }
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
@@ -515,7 +522,26 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return this.validationContextFactory;
     }
 
-    protected VariableRegistry getVariableRegistry() {
+    protected void invalidateValidationContext() {
+        this.validationContext.set(null);
+    }
+
+    protected ValidationContext getValidationContext() {
+        while (true) {
+            ValidationContext context = this.validationContext.get();
+            if (context != null) {
+                return context;
+            }
+
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final boolean updated = validationContext.compareAndSet(null, context);
+            if (updated) {
+                return context;
+            }
+        }
+    }
+
+    public ComponentVariableRegistry getVariableRegistry() {
         return this.variableRegistry;
     }
 

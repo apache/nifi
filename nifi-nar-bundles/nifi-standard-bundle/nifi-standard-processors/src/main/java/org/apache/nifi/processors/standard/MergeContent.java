@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +54,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -82,6 +84,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
+import org.apache.nifi.processors.standard.merge.AttributeStrategy;
+import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackager;
@@ -126,7 +130,7 @@ import org.apache.nifi.util.FlowFilePackagerV3;
     @WritesAttribute(attribute = "merge.count", description = "The number of FlowFiles that were merged into this bundle"),
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
         + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output") })
-@SeeAlso(SegmentContent.class)
+@SeeAlso({SegmentContent.class, MergeRecord.class})
 public class MergeContent extends BinFiles {
 
     // preferred attributes
@@ -139,6 +143,33 @@ public class MergeContent extends BinFiles {
     public static final String SEGMENT_INDEX_ATTRIBUTE = "segment.index";
     public static final String SEGMENT_COUNT_ATTRIBUTE = "segment.count";
     public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
+
+
+    public static final AllowableValue METADATA_STRATEGY_USE_FIRST = new AllowableValue("Use First Metadata", "Use First Metadata",
+            "For any input format that supports metadata (Avro, e.g.), the metadata for the first FlowFile in the bin will be set on the output FlowFile.");
+
+    public static final AllowableValue METADATA_STRATEGY_ALL_COMMON = new AllowableValue("Keep Only Common Metadata", "Keep Only Common Metadata",
+            "For any input format that supports metadata (Avro, e.g.), any FlowFile whose metadata values match those of the first FlowFile, any additional metadata "
+                    + "will be dropped but the FlowFile will be merged. Any FlowFile whose metadata values do not match those of the first FlowFile in the bin will not be merged.");
+
+    public static final AllowableValue METADATA_STRATEGY_IGNORE = new AllowableValue("Ignore Metadata", "Ignore Metadata",
+            "Ignores (does not transfer, compare, etc.) any metadata from a FlowFile whose content supports embedded metadata.");
+
+    public static final AllowableValue METADATA_STRATEGY_DO_NOT_MERGE = new AllowableValue("Do Not Merge Uncommon Metadata", "Do Not Merge Uncommon Metadata",
+            "For any input format that supports metadata (Avro, e.g.), any FlowFile whose metadata values do not match those of the first FlowFile in the bin will not be merged.");
+
+    public static final PropertyDescriptor METADATA_STRATEGY = new PropertyDescriptor.Builder()
+            .required(true)
+            .name("mergecontent-metadata-strategy")
+            .displayName("Metadata Strategy")
+            .description("For FlowFiles whose input format supports metadata (Avro, e.g.), this property determines which metadata should be added to the bundle. "
+                    + "If 'Use First Metadata' is selected, the metadata keys/values from the first FlowFile to be bundled will be used. If 'Keep Only Common Metadata' is selected, "
+                    + "only the metadata that exists on all FlowFiles in the bundle, with the same value, will be preserved. If 'Ignore Metadata' is selected, no metadata is transferred to "
+                    + "the outgoing bundled FlowFile. If 'Do Not Merge Uncommon Metadata' is selected, any FlowFile whose metadata values do not match those of the first bundled FlowFile "
+                    + "will not be merged.")
+            .allowableValues(METADATA_STRATEGY_USE_FIRST, METADATA_STRATEGY_ALL_COMMON, METADATA_STRATEGY_DO_NOT_MERGE, METADATA_STRATEGY_IGNORE)
+            .defaultValue(METADATA_STRATEGY_DO_NOT_MERGE.getValue())
+            .build();
 
     public static final AllowableValue MERGE_STRATEGY_BIN_PACK = new AllowableValue(
             "Bin-Packing Algorithm",
@@ -201,8 +232,6 @@ public class MergeContent extends BinFiles {
             MERGE_FORMAT_AVRO_VALUE,
             "The Avro contents of all FlowFiles will be concatenated together into a single FlowFile");
 
-    public static final String ATTRIBUTE_STRATEGY_ALL_COMMON = "Keep Only Common Attributes";
-    public static final String ATTRIBUTE_STRATEGY_ALL_UNIQUE = "Keep All Unique Attributes";
 
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
@@ -223,16 +252,6 @@ public class MergeContent extends BinFiles {
             .description("Determines the format that will be used to merge the content.")
             .allowableValues(MERGE_FORMAT_TAR, MERGE_FORMAT_ZIP, MERGE_FORMAT_FLOWFILE_STREAM_V3, MERGE_FORMAT_FLOWFILE_STREAM_V2, MERGE_FORMAT_FLOWFILE_TAR_V1, MERGE_FORMAT_CONCAT, MERGE_FORMAT_AVRO)
             .defaultValue(MERGE_FORMAT_CONCAT.getValue())
-            .build();
-    public static final PropertyDescriptor ATTRIBUTE_STRATEGY = new PropertyDescriptor.Builder()
-            .required(true)
-            .name("Attribute Strategy")
-            .description("Determines which FlowFile attributes should be added to the bundle. If 'Keep All Unique Attributes' is selected, any "
-                    + "attribute on any FlowFile that gets bundled will be kept unless its value conflicts with the value from another FlowFile. "
-                    + "If 'Keep Only Common Attributes' is selected, only the attributes that exist on all FlowFiles in the bundle, with the same "
-                    + "value, will be preserved.")
-            .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE)
-            .defaultValue(ATTRIBUTE_STRATEGY_ALL_COMMON)
             .build();
 
     public static final PropertyDescriptor CORRELATION_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
@@ -296,6 +315,16 @@ public class MergeContent extends BinFiles {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor TAR_MODIFIED_TIME = new PropertyDescriptor.Builder()
+            .name("Tar Modified Time")
+            .description("If using the Tar Merge Format, specifies if the Tar entry should store the modified timestamp either by expression "
+                    + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'; if using "
+                    + "other merge strategy or left blank, this value is ignored")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("${file.lastModifiedTime}")
+            .build();
 
     public static final Relationship REL_MERGED = new Relationship.Builder().name("merged").description("The FlowFile containing the merged content").build();
 
@@ -315,8 +344,9 @@ public class MergeContent extends BinFiles {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(MERGE_STRATEGY);
         descriptors.add(MERGE_FORMAT);
-        descriptors.add(ATTRIBUTE_STRATEGY);
+        descriptors.add(AttributeStrategyUtil.ATTRIBUTE_STRATEGY);
         descriptors.add(CORRELATION_ATTRIBUTE_NAME);
+        descriptors.add(METADATA_STRATEGY);
         descriptors.add(MIN_ENTRIES);
         descriptors.add(MAX_ENTRIES);
         descriptors.add(MIN_SIZE);
@@ -329,6 +359,7 @@ public class MergeContent extends BinFiles {
         descriptors.add(DEMARCATOR);
         descriptors.add(COMPRESSION_LEVEL);
         descriptors.add(KEEP_PATH);
+        descriptors.add(TAR_MODIFIED_TIME);
         return descriptors;
     }
 
@@ -378,7 +409,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected String getGroupId(final ProcessContext context, final FlowFile flowFile) {
+    protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final ProcessSession session) {
         final String correlationAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME)
                 .evaluateAttributeExpressions(flowFile).getValue();
         String groupId = correlationAttributeName == null ? null : flowFile.getAttribute(correlationAttributeName);
@@ -429,16 +460,7 @@ public class MergeContent extends BinFiles {
                 throw new AssertionError();
         }
 
-        final AttributeStrategy attributeStrategy;
-        switch (context.getProperty(ATTRIBUTE_STRATEGY).getValue()) {
-            case ATTRIBUTE_STRATEGY_ALL_UNIQUE:
-                attributeStrategy = new KeepUniqueAttributeStrategy();
-                break;
-            case ATTRIBUTE_STRATEGY_ALL_COMMON:
-            default:
-                attributeStrategy = new KeepCommonAttributeStrategy();
-                break;
-        }
+        final AttributeStrategy attributeStrategy = AttributeStrategyUtil.strategyFor(context);
 
         final List<FlowFile> contents = bin.getContents();
         final ProcessSession binSession = bin.getSession();
@@ -720,6 +742,17 @@ public class MergeContent extends BinFiles {
                                 }
                             }
 
+                            final String modTime = context.getProperty(TAR_MODIFIED_TIME)
+                                    .evaluateAttributeExpressions(flowFile).getValue();
+                            if (StringUtils.isNotBlank(modTime)) {
+                                try {
+                                    tarEntry.setModTime(Instant.parse(modTime).toEpochMilli());
+                                } catch (final Exception e) {
+                                    getLogger().debug("Attribute {} of {} is set to {}; expected ISO8601 format, so ignoring",
+                                            new Object[]{TAR_MODIFIED_TIME, flowFile, modTime});
+                                }
+                            }
+
                             out.putArchiveEntry(tarEntry);
 
                             bin.getSession().exportTo(flowFile, out);
@@ -880,6 +913,7 @@ public class MergeContent extends BinFiles {
             final ProcessSession session = bin.getSession();
             final List<FlowFile> contents = bin.getContents();
 
+            final String metadataStrategy = context.getProperty(METADATA_STRATEGY).getValue();
             final Map<String, byte[]> metadata = new TreeMap<>();
             final AtomicReference<Schema> schema = new AtomicReference<>(null);
             final AtomicReference<String> inputCodec = new AtomicReference<>(null);
@@ -902,11 +936,13 @@ public class MergeContent extends BinFiles {
                                             // this is the first file - set up the writer, and store the
                                             // Schema & metadata we'll use.
                                             schema.set(reader.getSchema());
-                                            for (String key : reader.getMetaKeys()) {
-                                                if (!DataFileWriter.isReservedMeta(key)) {
-                                                    byte[] metadatum = reader.getMeta(key);
-                                                    metadata.put(key, metadatum);
-                                                    writer.setMeta(key, metadatum);
+                                            if (!METADATA_STRATEGY_IGNORE.getValue().equals(metadataStrategy)) {
+                                                for (String key : reader.getMetaKeys()) {
+                                                    if (!DataFileWriter.isReservedMeta(key)) {
+                                                        byte[] metadatum = reader.getMeta(key);
+                                                        metadata.put(key, metadatum);
+                                                        writer.setMeta(key, metadatum);
+                                                    }
                                                 }
                                             }
                                             inputCodec.set(reader.getMetaString(DataFileConstants.CODEC));
@@ -924,19 +960,25 @@ public class MergeContent extends BinFiles {
                                                 unmerged.add(flowFile);
                                             }
 
-                                            // check that we're appending to the same metadata
-                                            for (String key : reader.getMetaKeys()) {
-                                                if (!DataFileWriter.isReservedMeta(key)) {
-                                                    byte[] metadatum = reader.getMeta(key);
-                                                    byte[] writersMetadatum = metadata.get(key);
-                                                    if (!Arrays.equals(metadatum, writersMetadatum)) {
-                                                        getLogger().debug("Input file {} has different non-reserved metadata, not merging",
-                                                                new Object[]{flowFile.getId()});
-                                                        canMerge = false;
-                                                        unmerged.add(flowFile);
+                                            if (METADATA_STRATEGY_DO_NOT_MERGE.getValue().equals(metadataStrategy)
+                                                    || METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy)) {
+                                                // check that we're appending to the same metadata
+                                                for (String key : reader.getMetaKeys()) {
+                                                    if (!DataFileWriter.isReservedMeta(key)) {
+                                                        byte[] metadatum = reader.getMeta(key);
+                                                        byte[] writersMetadatum = metadata.get(key);
+                                                        if (!Arrays.equals(metadatum, writersMetadatum)) {
+                                                            // Ignore additional metadata if ALL_COMMON is the strategy, otherwise don't merge
+                                                            if (!METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy) || writersMetadatum != null) {
+                                                                getLogger().debug("Input file {} has different non-reserved metadata, not merging",
+                                                                        new Object[]{flowFile.getId()});
+                                                                canMerge = false;
+                                                                unmerged.add(flowFile);
+                                                            }
+                                                        }
                                                     }
                                                 }
-                                            }
+                                            } // else the metadata in the first FlowFile was either ignored or retained in the if-clause above
 
                                             // check that we're appending to the same codec
                                             String thisCodec = reader.getMetaString(DataFileConstants.CODEC);
@@ -989,76 +1031,7 @@ public class MergeContent extends BinFiles {
         }
     }
 
-    private static class KeepUniqueAttributeStrategy implements AttributeStrategy {
 
-        @Override
-        public Map<String, String> getMergedAttributes(final List<FlowFile> flowFiles) {
-            final Map<String, String> newAttributes = new HashMap<>();
-            final Set<String> conflicting = new HashSet<>();
-
-            for (final FlowFile flowFile : flowFiles) {
-                for (final Map.Entry<String, String> attributeEntry : flowFile.getAttributes().entrySet()) {
-                    final String name = attributeEntry.getKey();
-                    final String value = attributeEntry.getValue();
-
-                    final String existingValue = newAttributes.get(name);
-                    if (existingValue != null && !existingValue.equals(value)) {
-                        conflicting.add(name);
-                    } else {
-                        newAttributes.put(name, value);
-                    }
-                }
-            }
-
-            for (final String attributeToRemove : conflicting) {
-                newAttributes.remove(attributeToRemove);
-            }
-
-            // Never copy the UUID from the parents - which could happen if we don't remove it and there is only 1 parent.
-            newAttributes.remove(CoreAttributes.UUID.key());
-            return newAttributes;
-        }
-    }
-
-    private static class KeepCommonAttributeStrategy implements AttributeStrategy {
-
-        @Override
-        public Map<String, String> getMergedAttributes(final List<FlowFile> flowFiles) {
-            final Map<String, String> result = new HashMap<>();
-
-            //trivial cases
-            if (flowFiles == null || flowFiles.isEmpty()) {
-                return result;
-            } else if (flowFiles.size() == 1) {
-                result.putAll(flowFiles.iterator().next().getAttributes());
-            }
-
-            /*
-             * Start with the first attribute map and only put an entry to the
-             * resultant map if it is common to every map.
-             */
-            final Map<String, String> firstMap = flowFiles.iterator().next().getAttributes();
-
-            outer:
-            for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
-                final String key = mapEntry.getKey();
-                final String value = mapEntry.getValue();
-
-                for (final FlowFile flowFile : flowFiles) {
-                    final Map<String, String> currMap = flowFile.getAttributes();
-                    final String curVal = currMap.get(key);
-                    if (curVal == null || !curVal.equals(value)) {
-                        continue outer;
-                    }
-                }
-                result.put(key, value);
-            }
-
-            // Never copy the UUID from the parents - which could happen if we don't remove it and there is only 1 parent.
-            result.remove(CoreAttributes.UUID.key());
-            return result;
-        }
-    }
 
     private static class FragmentComparator implements Comparator<FlowFile> {
 
@@ -1079,8 +1052,4 @@ public class MergeContent extends BinFiles {
         List<FlowFile> getUnmergedFlowFiles();
     }
 
-    private interface AttributeStrategy {
-
-        Map<String, String> getMergedAttributes(List<FlowFile> flowFiles);
-    }
 }

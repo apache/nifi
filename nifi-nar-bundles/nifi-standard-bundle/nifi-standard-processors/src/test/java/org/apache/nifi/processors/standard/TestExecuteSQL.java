@@ -222,7 +222,10 @@ public class TestExecuteSQL {
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 1);
+        //No incoming flow file containing a query, and an exception causes no outbound flowfile.
+        // There should be no flow files on either relationship
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 0);
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 0);
     }
 
     public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final boolean setQueryProperty)
@@ -262,6 +265,8 @@ public class TestExecuteSQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_ROW_COUNT);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
         final InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
@@ -281,6 +286,8 @@ public class TestExecuteSQL {
             assertEquals(nrOfRows, recordsFromStream);
         }
     }
+
+
 
     /**
      * Simple implementation only for ExecuteSQL processor testing.

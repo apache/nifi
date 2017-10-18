@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Collection;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Collection;
 
 /**
  * DTO for serializing the controller status.

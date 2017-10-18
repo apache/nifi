@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+import java.util.Date;
 
 /**
  * A request to drop the contents of a connection.

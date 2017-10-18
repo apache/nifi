@@ -53,7 +53,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -84,19 +83,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
 
     private final StringEncryptor encryptor;
-    private final VariableRegistry variableRegistry;
 
     public StandardProcessScheduler(
             final ControllerServiceProvider controllerServiceProvider,
             final StringEncryptor encryptor,
             final StateManagerProvider stateManagerProvider,
-            final VariableRegistry variableRegistry,
             final NiFiProperties nifiProperties
     ) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
-        this.variableRegistry = variableRegistry;
 
         administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
@@ -301,15 +297,17 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable).
      */
     @Override
-    public synchronized void startProcessor(final ProcessorNode procNode) {
+    public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
+            this.encryptor, getStateManager(procNode.getIdentifier()));
         final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
 
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
             public void trigger() {
                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
+                future.complete(null);
             }
 
             @Override
@@ -324,7 +322,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             }
         };
 
+        LOG.info("Starting {}", procNode);
         procNode.start(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, processContext, callback);
+        return future;
     }
 
     /**
@@ -335,12 +335,13 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)
      */
     @Override
-    public synchronized void stopProcessor(final ProcessorNode procNode) {
+    public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
+            this.encryptor, getStateManager(procNode.getIdentifier()));
         final ScheduleState state = getScheduleState(procNode);
 
-        procNode.stop(this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), state);
+        LOG.info("Stopping {}", procNode);
+        return procNode.stop(this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), state);
     }
 
     @Override
@@ -537,20 +538,35 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service) {
+        LOG.info("Enabling " + service);
         return service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis);
     }
 
     @Override
-    public void disableControllerService(final ControllerServiceNode service) {
-        service.disable(this.componentLifeCycleThreadPool);
+    public CompletableFuture<Void> disableControllerService(final ControllerServiceNode service) {
+        LOG.info("Disabling {}", service);
+        return service.disable(this.componentLifeCycleThreadPool);
     }
 
     @Override
-    public void disableControllerServices(final List<ControllerServiceNode> services) {
+    public CompletableFuture<Void> disableControllerServices(final List<ControllerServiceNode> services) {
+        if (services == null || services.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        CompletableFuture<Void> future = null;
         if (!requireNonNull(services).isEmpty()) {
             for (ControllerServiceNode controllerServiceNode : services) {
-                this.disableControllerService(controllerServiceNode);
+                final CompletableFuture<Void> serviceFuture = this.disableControllerService(controllerServiceNode);
+
+                if (future == null) {
+                    future = serviceFuture;
+                } else {
+                    future = CompletableFuture.allOf(future, serviceFuture);
+                }
             }
         }
+
+        return future;
     }
 }

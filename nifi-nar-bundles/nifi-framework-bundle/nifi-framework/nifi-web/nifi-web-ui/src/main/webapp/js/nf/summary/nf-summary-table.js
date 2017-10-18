@@ -2415,6 +2415,19 @@
                 });
             }
 
+            // provenance repo storage usage
+            var provenanceRepositoryUsageContainer = $('#provenance-repository-storage-usage-container').empty();
+            if (nfCommon.isDefinedAndNotNull(aggregateSnapshot.provenanceRepositoryStorageUsage)) {
+                // sort the provenance repos
+                var sortedProvenanceRepositoryStorageUsage = aggregateSnapshot.provenanceRepositoryStorageUsage.sort(function (a, b) {
+                    return a.identifier === b.identifier ? 0 : a.identifier > b.identifier ? 1 : -1;
+                });
+                // add each to the UI
+                $.each(sortedProvenanceRepositoryStorageUsage, function (_, provenanceRepository) {
+                    addStorageUsage(provenanceRepositoryUsageContainer, provenanceRepository);
+                });
+            }
+
             // Version
             var versionSpanSelectorToFieldMap = {
                 '#version-nifi': aggregateSnapshot.versionInfo.niFiVersion,

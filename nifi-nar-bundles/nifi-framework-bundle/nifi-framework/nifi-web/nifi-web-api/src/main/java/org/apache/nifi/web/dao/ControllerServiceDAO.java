@@ -63,7 +63,7 @@ public interface ControllerServiceDAO {
      *
      * @return The controller services
      */
-    Set<ControllerServiceNode> getControllerServices(String groupId);
+    Set<ControllerServiceNode> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups);
 
     /**
      * Updates the specified controller service.

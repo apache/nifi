@@ -18,7 +18,6 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.persistence.TemplateDeserializer;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -32,16 +31,15 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.w3c.dom.Element;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,9 +47,18 @@ public class TemplateUtils {
 
     public static TemplateDTO parseDto(final Element templateElement) {
         try {
-            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            return unmarshaller.unmarshal(new DOMSource(templateElement), TemplateDTO.class).getValue();
+            final DOMSource domSource = new DOMSource(templateElement);
+
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            final StreamResult streamResult = new StreamResult(baos);
+
+            // need to stream the template element as the TemplateDeserializer.deserialize operation needs to re-parse
+            // in order to apply explicit properties on the XMLInputFactory
+            final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            final Transformer transformer = transformerFactory.newTransformer();
+            transformer.transform(domSource, streamResult);
+
+            return parseDto(baos.toByteArray());
         } catch (final Exception e) {
             throw new RuntimeException("Could not parse XML as a valid template", e);
         }
@@ -61,40 +68,8 @@ public class TemplateUtils {
         try (final InputStream in = new ByteArrayInputStream(bytes)) {
             return TemplateDeserializer.deserialize(in);
         } catch (final IOException ioe) {
-            throw new RuntimeException("Could not parse bytes as template", ioe); // won't happen because of the types of streams being used
+            throw new RuntimeException("Could not parse bytes as template", ioe);
         }
-    }
-
-    public static List<Template> parseTemplateStream(final byte[] bytes) {
-        final List<Template> templates = new ArrayList<>();
-
-        try (final InputStream rawIn = new ByteArrayInputStream(bytes);
-            final DataInputStream in = new DataInputStream(rawIn)) {
-
-            while (isMoreData(in)) {
-                final int length = in.readInt();
-                final byte[] buffer = new byte[length];
-                StreamUtils.fillBuffer(in, buffer, true);
-                final TemplateDTO dto = TemplateDeserializer.deserialize(new ByteArrayInputStream(buffer));
-                templates.add(new Template(dto));
-            }
-        } catch (final IOException e) {
-            throw new RuntimeException("Could not parse bytes", e);  // won't happen because of the types of streams being used
-        }
-
-        return templates;
-    }
-
-
-    private static boolean isMoreData(final InputStream in) throws IOException {
-        in.mark(1);
-        final int nextByte = in.read();
-        if (nextByte == -1) {
-            return false;
-        }
-
-        in.reset();
-        return true;
     }
 
     /**
@@ -205,7 +180,6 @@ public class TemplateUtils {
             processorDTO.setDescription(null);
             processorDTO.setInputRequirement(null);
             processorDTO.setPersistsState(null);
-            processorDTO.setState(null);
             processorDTO.setSupportsBatching(null);
             processorDTO.setSupportsEventDriven(null);
             processorDTO.setSupportsParallelProcessing(null);

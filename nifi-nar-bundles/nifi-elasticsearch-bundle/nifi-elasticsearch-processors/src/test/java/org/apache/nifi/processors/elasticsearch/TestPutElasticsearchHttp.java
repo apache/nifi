@@ -38,9 +38,11 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,7 +55,7 @@ public class TestPutElasticsearchHttp {
     @Before
     public void once() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-        docExample = IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json")).getBytes();
+        docExample = IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json"), StandardCharsets.UTF_8).getBytes();
     }
 
     @After
@@ -322,6 +324,32 @@ public class TestPutElasticsearchHttp {
         assertNotNull(out);
     }
 
+    @Test
+    public void testPutElasticSearchOnTriggerQueryParameter() throws IOException {
+        PutElasticsearchTestProcessor p = new PutElasticsearchTestProcessor(false); // no failures
+        p.setExpectedUrl("http://127.0.0.1:9200/_bulk?pipeline=my-pipeline");
+
+        runner = TestRunners.newTestRunner(p);
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+
+        // Set dynamic property, to be added to the URL as a query parameter
+        runner.setProperty("pipeline", "my-pipeline");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -330,6 +358,7 @@ public class TestPutElasticsearchHttp {
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
+        String expectedUrl = null;
 
         PutElasticsearchTestProcessor(boolean responseHasFailures) {
             this.responseHasFailures = responseHasFailures;
@@ -338,6 +367,10 @@ public class TestPutElasticsearchHttp {
         void setStatus(int code, String message) {
             statusCode = code;
             statusMessage = message;
+        }
+
+        void setExpectedUrl(String url) {
+            expectedUrl = url;
         }
 
         @Override
@@ -351,6 +384,7 @@ public class TestPutElasticsearchHttp {
                     final Call call = mock(Call.class);
                     if (statusCode != -1) {
                         Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                        assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
                         StringBuilder sb = new StringBuilder("{\"took\": 1, \"errors\": \"");
                         sb.append(responseHasFailures);
                         sb.append("\", \"items\": [");

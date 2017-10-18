@@ -117,6 +117,7 @@ div.documentation-header {
 #component-listing-container {
     flex-grow: 1;
     min-width: 312px;
+    max-width: 350px;
     padding: 0px 4px 0px 4px;
 }
 

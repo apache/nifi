@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.security.Principal;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -64,6 +37,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -75,7 +49,35 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import com.sun.jersey.api.client.ClientResponse.Status;
+
+import javax.servlet.AsyncContext;
+import javax.servlet.DispatcherType;
+import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response.Status;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.security.Principal;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
@@ -90,10 +92,11 @@ import com.sun.jersey.api.client.ClientResponse.Status;
     @WritesAttribute(attribute = "http.method", description = "The HTTP Method that was used for the request, such as GET or POST"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_LOCAL_NAME, description = "IP address/hostname of the server"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_PORT, description = "Listening port of the server"),
-    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of hte Request URL"),
+    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of the Request URL"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REMOTE_HOST, description = "The hostname of the requestor"),
     @WritesAttribute(attribute = "http.remote.addr", description = "The hostname:port combination of the requestor"),
     @WritesAttribute(attribute = "http.remote.user", description = "The username of the requestor"),
+    @WritesAttribute(attribute = "http.protocol", description = "The protocol used to communicate"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
@@ -105,7 +108,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\"")})
 @SeeAlso(value = {HandleHttpResponse.class},
-        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.RestrictedStandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
@@ -145,7 +148,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; "
                     + "otherwise, the server will accept only HTTP requests")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Default URL Character Set")
@@ -447,6 +450,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
+        sslFactory.setProtocol(sslService.getSslAlgorithm());
+
         if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
             sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
@@ -527,6 +532,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
             putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
             putAttribute(attributes, "http.remote.user", request.getRemoteUser());
+            putAttribute(attributes, "http.protocol", request.getProtocol());
             putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
             putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());

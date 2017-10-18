@@ -17,19 +17,16 @@
 
 package org.apache.nifi.toolkit.admin.nodemanager
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
-import org.apache.nifi.toolkit.admin.AbstractAdminTool
-import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
+import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.nifi.toolkit.admin.util.AdminUtil
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
@@ -40,6 +37,10 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Entity
+import javax.ws.rs.client.WebTarget
+import javax.ws.rs.core.Response
 import java.nio.file.Paths
 
 public class NodeManagerTool extends AbstractAdminTool {
@@ -95,8 +96,8 @@ public class NodeManagerTool extends AbstractAdminTool {
         return nodeDTOs.find{ it.address == nodeHost }
     }
 
-    NodeEntity updateNode(final String url, final Client client, final NodeDTO nodeDTO, final STATUS nodeStatus,final String proxyDN){
-        final WebResource webResource = client.resource(url)
+    NodeEntity updateNode(final String url, final Client client, final NodeDTO nodeDTO, final STATUS nodeStatus, final String proxyDN){
+        final WebTarget webTarget = client.target(url)
         nodeDTO.status = nodeStatus
         String json = NiFiClientUtil.convertToJson(nodeDTO)
 
@@ -104,37 +105,37 @@ public class NodeManagerTool extends AbstractAdminTool {
             logger.info("Sending node info for update: " + json)
         }
 
-        ClientResponse response
+        Response response
 
         if(url.startsWith("https")) {
-            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).put(ClientResponse.class, json)
+            response = webTarget.request().header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).put(Entity.json(json))
         }else{
-            response = webResource.type("application/json").put(ClientResponse.class, json)
+            response = webTarget.request().put(Entity.json(json))
         }
 
         if(response.status != 200){
-            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.getEntity(String.class))
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " + response.readEntity(String.class))
         }else{
-            response.getEntity(NodeEntity.class)
+            response.readEntity(NodeEntity.class)
         }
     }
 
     void deleteNode(final String url, final Client client, final String proxyDN){
-        final WebResource webResource = client.resource(url)
+        final WebTarget webTarget = client.target(url)
 
         if(isVerbose){
             logger.info("Attempting to delete node" )
         }
-        ClientResponse response
+        Response response
 
         if(url.startsWith("https")) {
-            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).delete(ClientResponse.class)
+            response = webTarget.request().header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).delete()
         }else{
-            response = webResource.type("application/json").delete(ClientResponse.class)
+            response = webTarget.request().delete()
         }
 
         if(response.status != 200){
-            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " +response.getEntity(String.class))
+            throw new RuntimeException("Failed with HTTP error code " + response.status + " with reason: " + response.readEntity(String.class))
         }
     }
 
@@ -146,18 +147,18 @@ public class NodeManagerTool extends AbstractAdminTool {
 
         for(String activeUrl: activeUrls) {
             final String url = activeUrl + NIFI_ENDPOINT
-            final WebResource webResource = client.resource(url)
+            final WebTarget webTarget = client.target(url)
 
             if (isVerbose) {
                 logger.info("Checking if node is available")
             }
 
             try {
-                final ClientResponse response = webResource.get(ClientResponse.class)
+                final Response response = webTarget.request().get()
                 if (response.status == 200) {
                     System.out.println("NiFi Node is running and available at "+url)
                 } else {
-                    System.out.println("Attempt to contact NiFi Node at "+url+" returned Response Code: " + response.status + " with reason: " + response.getEntity(String.class))
+                    System.out.println("Attempt to contact NiFi Node at "+url+" returned Response Code: " + response.status + " with reason: " + response.readEntity(String.class))
                 }
             } catch (Exception ex) {
                 System.out.println("Attempt to contact NiFi Node "+url+" did not complete due to exception: " + ex.localizedMessage)

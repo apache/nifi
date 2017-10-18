@@ -17,6 +17,7 @@
 package org.apache.nifi.remote;
 
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.exception.BadRequestException;
@@ -29,6 +30,7 @@ import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSessio
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,12 +48,12 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.nifi.remote.cluster.ClusterNodeInformation;
-import org.apache.nifi.util.NiFiProperties;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
@@ -86,6 +88,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     @Override
     public void start() throws IOException {
         final boolean secure = (sslContext != null);
+        final List<Thread> threads = new ArrayList<Thread>();
 
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(true);
@@ -132,8 +135,9 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     LOG.trace("Got connection");
 
                     if (stopped.get()) {
-                        return;
+                        break;
                     }
+
                     final Socket socket = acceptedSocket;
                     final SocketChannel socketChannel = socket.getChannel();
                     final Thread thread = new Thread(new Runnable() {
@@ -304,6 +308,14 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     thread.setName("Site-to-Site Worker Thread-" + (threadCount++));
                     LOG.debug("Handing connection to {}", thread);
                     thread.start();
+                    threads.add(thread);
+                    threads.removeIf(t -> !t.isAlive());
+                }
+
+                for(Thread thread : threads) {
+                    if(thread != null) {
+                        thread.interrupt();
+                    }
                 }
             }
         });

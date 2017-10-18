@@ -13,7 +13,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -34,17 +34,14 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-toolkit-tls</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-client-dto</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -55,7 +52,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -98,23 +95,19 @@ language governing permissions and limitations under the License. -->
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
+            <groupId>org.glassfish.jersey.core</groupId>
+            <artifactId>jersey-client</artifactId>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.jaxrs</groupId>
-            <artifactId>jackson-jaxrs-json-provider</artifactId>
-            <version>RELEASE</version>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-bundle</artifactId>
-            <version>RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-json</artifactId>
-            <version>RELEASE</version>
+            <groupId>org.glassfish.jersey.inject</groupId>
+            <artifactId>jersey-hk2</artifactId>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

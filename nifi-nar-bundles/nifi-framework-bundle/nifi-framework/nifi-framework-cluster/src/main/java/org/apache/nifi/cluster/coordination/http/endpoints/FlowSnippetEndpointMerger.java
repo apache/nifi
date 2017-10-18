@@ -17,12 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -30,6 +24,12 @@ import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
     public static final Pattern TEMPLATE_INSTANCE_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/template-instance");
@@ -43,7 +43,7 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
 
     @Override
     public NodeResponse merge(final URI uri, final String method, Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
-        final FlowEntity responseEntity = clientResponse.getClientResponse().getEntity(FlowEntity.class);
+        final FlowEntity responseEntity = clientResponse.getClientResponse().readEntity(FlowEntity.class);
         final FlowDTO flowDto = responseEntity.getFlow();
 
         if (flowDto == null) {
@@ -53,7 +53,7 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
             final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> remoteProcessGroupMap = new HashMap<>();
 
             for (final NodeResponse nodeResponse : successfulResponses) {
-                final FlowEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(FlowEntity.class);
+                final FlowEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(FlowEntity.class);
                 final FlowDTO nodeContents = nodeResponseEntity.getFlow();
 
                 for (final ProcessorEntity nodeProcessor : nodeContents.getProcessors()) {

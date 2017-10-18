@@ -70,10 +70,15 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             return 0;
         }
 
-        synchronized (claim) {
-            final ClaimCount counter = claimantCounts.get(claim);
-            return counter == null ? 0 : counter.getCount().get();
-        }
+        // No need to synchronize on the Resource Claim here, since this is simply obtaining a value.
+        // We synchronize elsewhere because we want to atomically perform multiple operations, such as
+        // getting the claimant count and then updating a queue. However, the operation of obtaining
+        // the ClaimCount and getting its count value has no side effect and therefore can be performed
+        // without synchronization (since the claimantCounts map and the ClaimCount are also both thread-safe
+        // and there is no need for the two actions of obtaining the ClaimCount and getting its Count value
+        // to be performed atomically).
+        final ClaimCount counter = claimantCounts.get(claim);
+        return counter == null ? 0 : counter.getCount().get();
     }
 
     @Override

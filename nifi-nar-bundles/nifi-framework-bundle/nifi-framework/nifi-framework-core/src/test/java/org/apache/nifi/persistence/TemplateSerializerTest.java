@@ -27,12 +27,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
+import javax.xml.stream.XMLStreamReader;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -65,11 +64,12 @@ public class TemplateSerializerTest {
         origTemplate.setSnippet(snippet);
         byte[] serTemplate = TemplateSerializer.serialize(origTemplate);
 
-        // Deserialize Template into TemplateDTP
+        // Deserialize Template into TemplateDTO
         ByteArrayInputStream in = new ByteArrayInputStream(serTemplate);
         JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
         Unmarshaller unmarshaller = context.createUnmarshaller();
-        JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(in), TemplateDTO.class);
+        XMLStreamReader xsr = XmlUtils.createSafeReader(in);
+        JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
         TemplateDTO deserTemplate = templateElement.getValue();
 
         // Modify deserialized template
@@ -98,7 +98,7 @@ public class TemplateSerializerTest {
         diffList.addAll(new HistogramDiff().diff(RawTextComparator.DEFAULT, rt1, rt2));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (DiffFormatter diff = new DiffFormatter(out);) {
+        try (DiffFormatter diff = new DiffFormatter(out)) {
             diff.format(diffList, rt1, rt2);
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(out.toByteArray()), StandardCharsets.UTF_8));

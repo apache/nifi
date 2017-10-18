@@ -53,6 +53,7 @@ public class StandardContentViewerController extends HttpServlet {
     static {
         supportedMimeTypes.add("application/json");
         supportedMimeTypes.add("application/xml");
+        supportedMimeTypes.add("text/xml");
         supportedMimeTypes.add("text/plain");
         supportedMimeTypes.add("text/csv");
         supportedMimeTypes.add("application/avro-binary");
@@ -85,7 +86,7 @@ public class StandardContentViewerController extends HttpServlet {
                     final ObjectMapper mapper = new ObjectMapper();
                     final Object objectJson = mapper.readValue(content.getContentStream(), Object.class);
                     formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
-                } else if ("application/xml".equals(contentType)) {
+                } else if ("application/xml".equals(contentType) || "text/xml".equals(contentType)) {
                     // format xml
                     final StringWriter writer = new StringWriter();
 

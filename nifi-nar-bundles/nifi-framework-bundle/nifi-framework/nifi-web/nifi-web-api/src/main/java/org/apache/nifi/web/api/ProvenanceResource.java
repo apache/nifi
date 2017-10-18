@@ -16,22 +16,15 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
@@ -101,31 +94,10 @@ public class ProvenanceResource extends ApplicationResource {
     }
 
     private void authorizeProvenanceRequest() {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getProvenanceResource())
-                .identity(user.getIdentity())
-                .groups(user.getGroups())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.READ)
-                .userContext(userContext)
-                .explanationSupplier(() -> "Unable to query provenance.")
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable provenance = lookup.getProvenance();
+            provenance.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     /**
@@ -141,7 +113,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets the searchable attributes for provenance events",
             response = ProvenanceOptionsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(
@@ -190,8 +162,8 @@ public class ProvenanceResource extends ApplicationResource {
                     + "should be deleted by the client who originally submitted it.",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -286,8 +258,8 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets a provenance query",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -364,7 +336,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Deletes a provenance query",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(
@@ -442,8 +414,8 @@ public class ProvenanceResource extends ApplicationResource {
                     + "should be deleted by the client who originally submitted it.",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -541,8 +513,8 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets a lineage query",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -601,7 +573,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Deletes a lineage query",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(

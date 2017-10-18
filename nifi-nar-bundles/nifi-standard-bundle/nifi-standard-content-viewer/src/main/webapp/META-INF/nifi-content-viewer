@@ -14,6 +14,7 @@
 # limitations under the License.
 application/xml
 application/json
+text/xml
 text/plain
 text/csv
 avro/binary

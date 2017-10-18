@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -64,7 +64,7 @@
         <nifi.swap.out.threads>4</nifi.swap.out.threads>
 
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
-        <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
+        <nifi.content.claim.max.appendable.size>1 MB</nifi.content.claim.max.appendable.size>
         <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
         <nifi.content.repository.archive.max.retention.period>12 hours</nifi.content.repository.archive.max.retention.period>
@@ -147,6 +147,20 @@
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
 
+        <!-- nifi.properties: openid connect -->
+        <nifi.security.user.oidc.discovery.url />
+        <nifi.security.user.oidc.connect.timeout>5 secs</nifi.security.user.oidc.connect.timeout>
+        <nifi.security.user.oidc.read.timeout>5 secs</nifi.security.user.oidc.read.timeout>
+        <nifi.security.user.oidc.client.id />
+        <nifi.security.user.oidc.client.secret />
+        <nifi.security.user.oidc.preferred.jwsalgorithm />
+
+        <!-- nifi.properties: apache knox -->
+        <nifi.security.user.knox.url />
+        <nifi.security.user.knox.publicKey />
+        <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
+        <nifi.security.user.knox.audiences />
+
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
@@ -160,6 +174,7 @@
         <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
+        <nifi.cluster.node.max.concurrent.requests>100</nifi.cluster.node.max.concurrent.requests>
         <nifi.cluster.firewall.file />
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
         <nifi.cluster.flow.election.max.candidates />
@@ -171,6 +186,9 @@
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
+        <nifi.zookeeper.auth.type />
+        <nifi.zookeeper.kerberos.removeHostFromPrincipal />
+        <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>

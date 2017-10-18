@@ -20,6 +20,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 import org.apache.nifi.util.ComponentStatusReport;
 import org.apache.nifi.util.ComponentStatusReport.ComponentType;
 import org.apache.nifi.util.NiFiProperties;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
+import java.util.Map;
 
 public class VolatileComponentStatusRepository implements ComponentStatusRepository {
 
@@ -72,7 +74,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     }
 
     @Override
-    public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints) {
+    public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
         final StandardStatusHistory history = new StandardStatusHistory();
         history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
 
@@ -95,6 +97,21 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                 for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
                     if (descriptor.isVisible()) {
                         snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
+                    }
+                }
+
+                if (includeCounters) {
+                    final Map<String, Long> counters = status.getCounters();
+                    if (counters != null) {
+                        for (final Map.Entry<String, Long> entry : counters.entrySet()) {
+                            final String counterName = entry.getKey();
+
+                            final String label = entry.getKey() + " (5 mins)";
+                            final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(entry.getKey(), label, label, Formatter.COUNT,
+                                s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
+
+                            snapshot.addStatusMetric(metricDescriptor, entry.getValue());
+                        }
                     }
                 }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -30,8 +32,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -49,6 +49,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * A base class for Elasticsearch processors that use the HTTP API
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
+
+    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String QUERY_QUERY_PARAM = "q";
+    static final String SORT_QUERY_PARAM = "sort";
+    static final String SIZE_QUERY_PARAM = "size";
+
 
     public static final PropertyDescriptor ES_URL = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-url")
@@ -96,6 +102,17 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .build();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
 
     @Override
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {

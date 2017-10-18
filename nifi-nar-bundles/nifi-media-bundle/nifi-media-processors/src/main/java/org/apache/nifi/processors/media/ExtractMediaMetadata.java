@@ -210,7 +210,11 @@ public class ExtractMediaMetadata extends AbstractProcessor {
                                            Integer maxAttribLen) throws IOException, TikaException, SAXException {
         final Metadata metadata = new Metadata();
         final TikaInputStream tikaInputStream = TikaInputStream.get(sourceStream);
-        autoDetectParser.parse(tikaInputStream, new DefaultHandler(), metadata);
+        try {
+            autoDetectParser.parse(tikaInputStream, new DefaultHandler(), metadata);
+        } finally {
+            tikaInputStream.close();
+        }
 
         final Map<String, String> results = new HashMap<>();
         final Pattern metadataKeyFilter = metadataKeyFilterRef.get();

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.status;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,6 +44,7 @@ public class ProcessorStatus implements Cloneable {
     private long bytesReceived;
     private int flowFilesSent;
     private long bytesSent;
+    private Map<String, Long> counters;
 
     public String getId() {
         return id;
@@ -211,6 +214,14 @@ public class ProcessorStatus implements Cloneable {
         this.bytesSent = bytesSent;
     }
 
+    public Map<String, Long> getCounters() {
+        return counters;
+    }
+
+    public void setCounters(final Map<String, Long> counters) {
+        this.counters = counters;
+    }
+
     @Override
     public ProcessorStatus clone() {
         final ProcessorStatus clonedObj = new ProcessorStatus();
@@ -234,6 +245,7 @@ public class ProcessorStatus implements Cloneable {
         clonedObj.flowFilesRemoved = flowFilesRemoved;
         clonedObj.runStatus = runStatus;
         clonedObj.type = type;
+        clonedObj.counters = counters == null ? null : new HashMap<>(counters);
         return clonedObj;
     }
 
@@ -268,6 +280,8 @@ public class ProcessorStatus implements Cloneable {
         builder.append(processingNanos);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
+        builder.append(", counters=");
+        builder.append(counters);
         builder.append("]");
         return builder.toString();
     }

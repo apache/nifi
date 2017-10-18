@@ -98,6 +98,13 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    protected static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
+            .name("timestamp")
+            .displayName("Timestamp")
+            .description("The timestamp for the cells being created in HBase. This field can be left blank and HBase will use the current time.")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .build();
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("The maximum number of FlowFiles to process in a single execution. The FlowFiles will be " +
@@ -107,11 +114,11 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .defaultValue("25")
             .build();
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after it has been successfully stored in HBase")
             .build();
-    protected static final Relationship REL_FAILURE = new Relationship.Builder()
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship if it cannot be sent to HBase")
             .build();

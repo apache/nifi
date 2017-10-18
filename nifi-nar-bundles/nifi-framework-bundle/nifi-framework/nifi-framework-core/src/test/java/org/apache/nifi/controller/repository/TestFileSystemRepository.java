@@ -50,6 +50,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -286,10 +287,12 @@ public class TestFileSystemRepository {
         repository.incrementClaimaintCount(claim);
 
         final Path claimPath = getPath(claim);
+        final String maxAppendableClaimLength = nifiProperties.getMaxAppendableClaimSize();
+        final int maxClaimLength = DataUnit.parseDataSize(maxAppendableClaimLength, DataUnit.B).intValue();
 
         // Create the file.
         try (final OutputStream out = repository.write(claim)) {
-            out.write(new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH]);
+            out.write(new byte[maxClaimLength]);
         }
 
         int count = repository.decrementClaimantCount(claim);
@@ -495,7 +498,9 @@ public class TestFileSystemRepository {
 
         // write at least 1 MB to the output stream so that when we close the output stream
         // the repo won't keep the stream open.
-        final byte[] buff = new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH];
+        final String maxAppendableClaimLength = nifiProperties.getMaxAppendableClaimSize();
+        final int maxClaimLength = DataUnit.parseDataSize(maxAppendableClaimLength, DataUnit.B).intValue();
+        final byte[] buff = new byte[maxClaimLength];
         out.write(buff);
         out.write(buff);
 

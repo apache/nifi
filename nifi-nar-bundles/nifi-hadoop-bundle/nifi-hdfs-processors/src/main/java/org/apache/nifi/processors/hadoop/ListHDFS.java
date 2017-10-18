@@ -33,6 +33,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -48,6 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,7 +60,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
 
 @TriggerSerially
 @TriggerWhenEmpty
@@ -114,6 +116,24 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+        .name("minimum-file-age")
+        .displayName("Minimum File Age")
+        .description("The minimum age that a file must be in order to be pulled; any file younger than this "
+                + "amount of time (based on last modification date) will be ignored")
+        .required(false)
+        .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+        .build();
+
+    public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
+        .name("maximum-file-age")
+        .displayName("Maximum File Age")
+        .description("The maximum age that a file must be in order to be pulled; any file older than this "
+                + "amount of time (based on last modification date) will be ignored. Minimum value is 100ms.")
+        .required(false)
+        .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("All FlowFiles are transferred to this relationship")
@@ -144,6 +164,8 @@ public class ListHDFS extends AbstractHadoopProcessor {
         props.add(DIRECTORY);
         props.add(RECURSE_SUBDIRS);
         props.add(FILE_FILTER);
+        props.add(MIN_AGE);
+        props.add(MAX_AGE);
         return props;
     }
 
@@ -152,6 +174,23 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
         return relationships;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
+
+        final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long minimumAge = (minAgeProp == null) ? 0L : minAgeProp;
+        final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
+
+        if (minimumAge > maximumAge) {
+            problems.add(new ValidationResult.Builder().valid(false).subject("GetHDFS Configuration")
+                    .explanation(MIN_AGE.getName() + " cannot be greater than " + MAX_AGE.getName()).build());
+        }
+
+        return problems;
     }
 
     protected String getKey(final String directory) {
@@ -171,15 +210,28 @@ public class ListHDFS extends AbstractHadoopProcessor {
      * Determines which of the given FileStatus's describes a File that should be listed.
      *
      * @param statuses the eligible FileStatus objects that we could potentially list
+     * @param context processor context with properties values
      * @return a Set containing only those FileStatus objects that we want to list
      */
-    Set<FileStatus> determineListable(final Set<FileStatus> statuses) {
+    Set<FileStatus> determineListable(final Set<FileStatus> statuses, ProcessContext context) {
         final long minTimestamp = this.latestTimestampListed;
         final TreeMap<Long, List<FileStatus>> orderedEntries = new TreeMap<>();
+
+        final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        // NIFI-4144 - setting to MIN_VALUE so that in case the file modification time is in
+        // the future relative to the nifi instance, files are not skipped.
+        final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
+        final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
         // Build a sorted map to determine the latest possible entries
         for (final FileStatus status : statuses) {
             if (status.getPath().getName().endsWith("_COPYING_")) {
+                continue;
+            }
+
+            final long fileAge = System.currentTimeMillis() - status.getModificationTime();
+            if (minimumAge > fileAge || fileAge > maximumAge) {
                 continue;
             }
 
@@ -293,7 +345,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final Set<FileStatus> listable = determineListable(statuses);
+        final Set<FileStatus> listable = determineListable(statuses, context);
         getLogger().debug("Of the {} files found in HDFS, {} are listable", new Object[] {statuses.size(), listable.size()});
 
         for (final FileStatus status : listable) {

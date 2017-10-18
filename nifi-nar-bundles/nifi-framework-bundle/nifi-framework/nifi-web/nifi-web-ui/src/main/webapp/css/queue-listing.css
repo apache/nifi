@@ -117,7 +117,7 @@ div.detail-name {
     color: #262626;
 }
 
-div.detail-value {
+div.detail-value, div.flowfile-info {
     line-height: normal;
     width: 100%;
     color: #775351;

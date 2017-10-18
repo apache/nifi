@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hbase-bundle</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hbase-processors</artifactId>
     <description>Support for interacting with HBase</description>
@@ -27,13 +27,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase-client-service-api</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -45,13 +45,27 @@
             <artifactId>nifi-processor-utils</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.4</version>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -64,12 +78,6 @@
             <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.5.4</version>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -80,6 +88,11 @@
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

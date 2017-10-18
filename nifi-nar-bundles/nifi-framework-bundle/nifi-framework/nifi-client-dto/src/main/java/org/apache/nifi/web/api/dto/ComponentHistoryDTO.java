@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Map;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
 
 /**
  * History of a component's properties.

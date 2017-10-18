@@ -35,9 +35,10 @@
                 'nf.Connectable',
                 'nf.Draggable',
                 'nf.Selectable',
-                'nf.ContextMenu'],
-            function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
-                return (nf.Graph = factory($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu));
+                'nf.ContextMenu',
+                'nf.QuickSelect'],
+            function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect) {
+                return (nf.Graph = factory($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Graph =
@@ -57,7 +58,8 @@
                 require('nf.Connectable'),
                 require('nf.Draggable'),
                 require('nf.Selectable'),
-                require('nf.ContextMenu')));
+                require('nf.ContextMenu'),
+                require('nf.QuickSelect')));
     } else {
         nf.Graph = factory(root.$,
             root.d3,
@@ -75,9 +77,10 @@
             root.nf.Connectable,
             root.nf.Draggable,
             root.nf.Selectable,
-            root.nf.ContextMenu);
+            root.nf.ContextMenu,
+            root.nf.QuickSelect);
     }
-}(this, function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
+}(this, function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfConnectionConfiguration, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect) {
     'use strict';
 
     var combinePorts = function (contents) {
@@ -198,13 +201,13 @@
     var nfGraph = {
         init: function () {
             // initialize the object responsible for each type of component
-            nfLabel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfLabel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
             nfFunnel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
-            nfPort.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
-            nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfPort.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
+            nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
             nfProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
-            nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
-            nfConnection.init(nfSelectable, nfContextMenu, nfConnectionConfiguration);
+            nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu, nfQuickSelect);
+            nfConnection.init(nfSelectable, nfContextMenu, nfQuickSelect, nfConnectionConfiguration);
 
             // display the deep link
             return nfCanvasUtils.showDeepLink(true);

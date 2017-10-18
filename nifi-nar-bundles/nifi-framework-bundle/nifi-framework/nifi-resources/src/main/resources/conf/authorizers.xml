@@ -153,6 +153,47 @@
     To enable the ldap-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
+        The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources.
+
+        - User Group Provider [unique key] - The identifier of user group providers to load from. The name of
+            each property must be unique, for example: "User Group Provider A", "User Group Provider B",
+            "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
+
+            NOTE: Any identity mapping rules specified in nifi.properties are not applied in this implementation. This behavior
+            would need to be applied by the base implementation.
+    -->
+    <!-- To enable the composite-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>composite-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.CompositeUserGroupProvider</class>
+        <property name="User Group Provider 1"></property>
+    </userGroupProvider>
+    To enable the composite-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
+        The CompositeConfigurableUserGroupProvider will provide support for retrieving users and groups from multiple sources.
+        Additionally, a single configurable user group provider is required. Users from the configurable user group provider
+        are configurable, however users loaded from one of the User Group Provider [unique key] will not be.
+
+        - Configurable User Group Provider - A configurable user group provider.
+
+        - User Group Provider [unique key] - The identifier of user group providers to load from. The name of
+            each property must be unique, for example: "User Group Provider A", "User Group Provider B",
+            "User Group Provider C" or "User Group Provider 1", "User Group Provider 2", "User Group Provider 3"
+
+            NOTE: Any identity mapping rules specified in nifi.properties are not applied in this implementation. This behavior
+            would need to be applied by the base implementation.
+    -->
+    <!-- To enable the composite-configurable-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>composite-configurable-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider</class>
+        <property name="Configurable User Group Provider">file-user-group-provider</property>
+        <property name="User Group Provider 1"></property>
+    </userGroupProvider>
+    To enable the composite-configurable-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
         The FileAccessPolicyProvider will provide support for managing access policies which is backed by a file
         on the local file system.
 

@@ -191,9 +191,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         if (context.getProperty(PROXY_HOST).isSet()) {
-            String proxyHost = context.getProperty(PROXY_HOST).getValue();
+            String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
             config.setProxyHost(proxyHost);
-            Integer proxyPort = context.getProperty(PROXY_HOST_PORT).asInteger();
+            Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
             config.setProxyPort(proxyPort);
         }
 

@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Date;
 
 /**
  * A event for a node within this NiFi cluster.

@@ -104,15 +104,16 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         final AtomicInteger recordCount = new AtomicInteger();
 
         final FlowFile original = flowFile;
+        final Map<String, String> originalAttributes = flowFile.getAttributes();
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(original, reader.getSchema());
-                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out)) {
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
                             writer.beginRecordSet();
 
                             Record record;

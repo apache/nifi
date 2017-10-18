@@ -34,6 +34,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
@@ -118,7 +119,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("SSL Context Service")
         .description("The Controller Service to use in order to obtain an SSL Context")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
         .name("HTTP Headers to receive as Attributes (Regex)")
@@ -227,6 +228,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             contextFactory.setKeyStoreType(keyStoreType);
         }
 
+        if (sslContextService != null) {
+            contextFactory.setProtocol(sslContextService.getSslAlgorithm());
+        }
+
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setName(String.format("%s (%s) Web Server", getClass().getSimpleName(), getIdentifier()));
@@ -249,6 +254,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
+
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         }
 
@@ -329,7 +335,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         for (final String id : findOldFlowFileIds(context)) {
             final FlowFileEntryTimeWrapper wrapper = flowFileMap.remove(id);
             if (wrapper != null) {
-                getLogger().warn("failed to received acknowledgment for HOLD with ID {}; rolling back session", new Object[] {id});
+                getLogger().warn("failed to received acknowledgment for HOLD with ID {} sent by {}; rolling back session", new Object[] {id, wrapper.getClientIP()});
                 wrapper.session.rollback();
             }
         }
@@ -342,11 +348,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         private final Set<FlowFile> flowFiles;
         private final long entryTime;
         private final ProcessSession session;
+        private final String clientIP;
 
-        public FlowFileEntryTimeWrapper(final ProcessSession session, final Set<FlowFile> flowFiles, final long entryTime) {
+        public FlowFileEntryTimeWrapper(final ProcessSession session, final Set<FlowFile> flowFiles, final long entryTime, final String clientIP) {
             this.flowFiles = flowFiles;
             this.entryTime = entryTime;
             this.session = session;
+            this.clientIP = clientIP;
         }
 
         public Set<FlowFile> getFlowFiles() {
@@ -359,6 +367,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         public ProcessSession getSession() {
             return session;
+        }
+
+        public String getClientIP() {
+            return clientIP;
         }
     }
 }

@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
@@ -23,13 +30,14 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
 
@@ -61,6 +69,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     @Override
     public boolean hasProcessGroup(String groupId) {
         return flowController.getGroup(groupId) != null;
+    }
+
+    @Override
+    public void verifyUpdate(final ProcessGroupDTO processGroup) {
     }
 
     @Override
@@ -99,14 +111,32 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+    public void verifyActivateControllerServices(final String groupId, final ControllerServiceState state, final Set<String> serviceIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        group.findAllControllerServices().stream()
+            .filter(service -> serviceIds.contains(service.getIdentifier()))
+            .forEach(service -> {
+                if (state == ControllerServiceState.ENABLED) {
+                    service.verifyCanEnable();
+                } else {
+                    service.verifyCanDisable();
+                }
+            });
+    }
+
+    @Override
+    public CompletableFuture<Void> scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
 
         for (final String componentId : componentIds) {
             final Connectable connectable = group.findLocalConnectable(componentId);
             if (ScheduledState.RUNNING.equals(state)) {
                 if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
+                    final CompletableFuture<?> processorFuture = connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
+                    future = CompletableFuture.allOf(future, processorFuture);
                 } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
                     connectable.getProcessGroup().startInputPort((Port) connectable);
                 } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
@@ -114,7 +144,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                 }
             } else {
                 if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
+                    final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
+                    future = CompletableFuture.allOf(future, processorFuture);
                 } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
                     connectable.getProcessGroup().stopInputPort((Port) connectable);
                 } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
@@ -122,6 +153,27 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                 }
             }
         }
+
+        return future;
+    }
+
+    @Override
+    public Future<Void> activateControllerServices(final String groupId, final ControllerServiceState state, final Set<String> serviceIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+        for (final String serviceId : serviceIds) {
+            final ControllerServiceNode serviceNode = group.findControllerService(serviceId);
+            if (ControllerServiceState.ENABLED.equals(state)) {
+                final CompletableFuture<Void> serviceFuture = flowController.enableControllerService(serviceNode);
+                future = CompletableFuture.allOf(future, serviceFuture);
+            } else {
+                final CompletableFuture<Void> serviceFuture = flowController.disableControllerService(serviceNode);
+                future = CompletableFuture.allOf(future, serviceFuture);
+            }
+        }
+
+        return future;
     }
 
     @Override
@@ -141,6 +193,22 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setComments(comments);
         }
 
+        return group;
+    }
+
+    @Override
+    public ProcessGroup updateVariableRegistry(final VariableRegistryDTO variableRegistry) {
+        final ProcessGroup group = locateProcessGroup(flowController, variableRegistry.getProcessGroupId());
+        if (group == null) {
+            throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistry.getProcessGroupId());
+        }
+
+        final Map<String, String> variableMap = new HashMap<>();
+        variableRegistry.getVariables().stream() // have to use forEach here instead of using Collectors.toMap because value may be null
+            .map(VariableEntity::getVariable)
+            .forEach(var -> variableMap.put(var.getName(), var.getValue()));
+
+        group.setVariables(variableMap);
         return group;
     }
 

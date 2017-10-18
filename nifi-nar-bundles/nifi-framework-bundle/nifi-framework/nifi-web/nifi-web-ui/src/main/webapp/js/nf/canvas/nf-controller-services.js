@@ -27,6 +27,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
+                'nf.FilteredDialogCommon',
                 'nf.Dialog',
                 'nf.Common',
                 'nf.ControllerService',
@@ -35,8 +36,8 @@
                 'nf.ComponentState',
                 'nf.ComponentVersion',
                 'nf.ng.Bridge'],
-            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
-                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
+            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerServices =
@@ -48,6 +49,7 @@
                 require('nf.ProcessGroupConfiguration'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
+                require('nf.FilteredDialogCommon'),
                 require('nf.Dialog'),
                 require('nf.Common'),
                 require('nf.ControllerService'),
@@ -65,6 +67,7 @@
             root.nf.ProcessGroupConfiguration,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
+            root.nf.FilteredDialogCommon,
             root.nf.Dialog,
             root.nf.Common,
             root.nf.ControllerService,
@@ -74,7 +77,7 @@
             root.nf.ComponentVersion,
             root.nf.ng.Bridge);
     }
-}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
     'use strict';
 
     var dblClick = null;
@@ -137,7 +140,9 @@
 
             // update the selection if possible
             if (controllerServiceTypesData.getLength() > 0) {
-                controllerServiceTypesGrid.setSelectedRows([0]);
+                nfFilteredDialogCommon.choseFirstRow(controllerServiceTypesGrid);
+                // make the first row visible
+                controllerServiceTypesGrid.scrollRowToTop(0);
             }
         }
     };
@@ -324,7 +329,7 @@
 
             // select the new controller service
             var row = controllerServicesData.getRowById(controllerServiceEntity.id);
-            controllerServicesGrid.setSelectedRows([row]);
+            nfFilteredDialogCommon.choseRow(controllerServicesGrid, row);
             controllerServicesGrid.scrollRowIntoView(row);
         }).fail(nfErrorHandler.handleAjaxError);
 
@@ -783,11 +788,9 @@
             if (!dataContext.permissions.canRead) {
                 return '';
             }
-            
-            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
+            var markup = '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
@@ -855,9 +858,10 @@
 
                 if (definedByCurrentGroup === true) {
                     if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
+                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration" style="margin-top: 2px; margin-right: 3px;" ></div>';
                         markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
                     } else if (dataContext.component.state === 'DISABLED') {
-                        markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                        markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                         // if there are no validation errors allow enabling
                         if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
@@ -985,6 +989,8 @@
             if (controllerServicesGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-controller-service')) {
                     nfControllerService.showConfiguration(serviceTable, controllerServiceEntity);
+                } else if (target.hasClass('view-controller-service')) {
+                    nfControllerService.showDetails(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('enable-controller-service')) {
                     nfControllerService.enable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('disable-controller-service')) {
@@ -1021,9 +1027,7 @@
                     });
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
-                if (target.hasClass('view-controller-service')) {
-                    nfControllerService.showDetails(serviceTable, controllerServiceEntity);
-                } else if (target.hasClass('controller-service-usage')) {
+                if (target.hasClass('controller-service-usage')) {
                      // close the settings dialog
                      $('#shell-close-button').click();
 
@@ -1033,7 +1037,7 @@
                             group: controllerServiceEntity.component.bundle.group,
                             artifact: controllerServiceEntity.component.bundle.artifact,
                             version: controllerServiceEntity.component.bundle.version
-                     })).done(function() {
+                    })).done(function() {
                          if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
                              var groupId;
                              var processGroup = nfProcessGroup.get(controllerServiceEntity.component.parentGroupId);
@@ -1048,8 +1052,8 @@
                          } else {
                              showSettings();
                          }
-                     });
-                 }
+                    });
+                }
             }
         });
 
@@ -1192,9 +1196,17 @@
             var grid = $('#controller-service-types-table').data('gridInstance');
             var dataview = grid.getData();
 
+            var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
             // update the keyhandler
             $('#controller-service-type-filter').off('keyup').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
+
+                // ignore navigation keys
+                if ($.inArray(code, navigationKeys) !== -1) {
+                    return;
+                }
+
                 if (code === $.ui.keyCode.ENTER) {
                     var selected = grid.getSelectedRows();
 
@@ -1209,6 +1221,9 @@
                     applyControllerServiceTypeFilter();
                 }
             });
+
+            // setup row navigation
+            nfFilteredDialogCommon.addKeydownListener('#controller-service-type-filter', grid, dataview);
 
             // update the button model and show the dialog
             $('#new-controller-service-dialog').modal('setButtonModel', [{
@@ -1268,7 +1283,7 @@
 
             // auto select the first row if possible
             if (dataview.getLength() > 0) {
-                grid.setSelectedRows([0]);
+                nfFilteredDialogCommon.choseFirstRow(grid);
             }
 
             // set the initial focus

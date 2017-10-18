@@ -17,6 +17,26 @@
 
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -46,6 +66,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
 import org.apache.nifi.util.MockPropertyValue;
@@ -55,26 +76,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestStandardProcessorNode {
 
@@ -98,10 +99,10 @@ public class TestStandardProcessorNode {
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
-                NiFiProperties.createBasicNiFiProperties(null, null), VariableRegistry.EMPTY_REGISTRY, reloadComponent);
+            NiFiProperties.createBasicNiFiProperties(null, null), new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
         final ScheduledExecutorService taskScheduler = new FlowEngine(2, "TestClasspathResources", true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, null);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null);
         final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
             @Override
             public void postMonitor() {
@@ -414,7 +415,8 @@ public class TestStandardProcessorNode {
         processor.initialize(initContext);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), componentLog);
-        return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler, null, niFiProperties, variableRegistry, reloadComponent);
+        return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
+            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent);
     }
 
     private static class MockReloadComponent implements ReloadComponent {

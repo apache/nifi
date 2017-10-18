@@ -28,12 +28,20 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.18.3 - https://jersey.java.net/jersey-core/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.18.3 - https://jersey.java.net/jersey-server/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.18.3 - https://jersey.java.net/index.html)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-servlet (com.sun.jersey:jersey-servlet:jar:1.18.3 - https://jersey.java.net/index.html)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (org.glassfish.jersey.core:jersey-client:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-common (org.glassfish.jersey.core:jersey-common:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-hk2 (org.glassfish.jersey.inject:jersey-hk2:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (org.glassfish.jersey.core:jersey-server:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2.core:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2.core:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2.core:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.2.3-1 - http://jaxb.java.net/)
     (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
 
 ************************
 Common Development and Distribution License 1.0

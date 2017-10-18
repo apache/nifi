@@ -41,4 +41,5 @@ public interface StatusHistory {
      * @return List of snapshots for a given component
      */
     List<StatusSnapshot> getStatusSnapshots();
+
 }

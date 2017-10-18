@@ -641,7 +641,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
             xmlStreamWriter.writeEmptyElement("br");
             if (implementations.length > 0) {
-                final String title = implementations.length > 1 ? "Implementations: " : "Implementation:";
+                final String title = implementations.length > 1 ? "Implementations: " : "Implementation: ";
                 writeSimpleElement(xmlStreamWriter, "strong", title);
                 iterateAndLinkComponents(xmlStreamWriter, implementations, null,  "<br>");
             } else {

@@ -27,7 +27,6 @@ import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordReader
 import org.apache.nifi.util.MockComponentLog
-import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
@@ -98,10 +97,9 @@ class ScriptedReaderTest {
         recordReaderFactory.initialize initContext
         recordReaderFactory.onEnabled configurationContext
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
 
-        RecordReader recordReader = recordReaderFactory.createRecordReader(mockFlowFile, inStream, logger)
+        RecordReader recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, logger)
         assertNotNull(recordReader)
 
         3.times {
@@ -157,8 +155,7 @@ class ScriptedReaderTest {
         recordReaderFactory.initialize initContext
         recordReaderFactory.onEnabled configurationContext
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
-        mockFlowFile.putAttributes(['record.tag': 'myRecord'])
+        Map<String, String> schemaVariables = ['record.tag': 'myRecord']
 
         InputStream inStream = new ByteArrayInputStream('''
                 <root>
@@ -180,7 +177,7 @@ class ScriptedReaderTest {
                 </root>
             '''.bytes)
 
-        RecordReader recordReader = recordReaderFactory.createRecordReader(mockFlowFile, inStream, logger)
+        RecordReader recordReader = recordReaderFactory.createRecordReader(schemaVariables, inStream, logger)
         assertNotNull(recordReader)
 
         3.times {

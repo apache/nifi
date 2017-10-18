@@ -32,7 +32,7 @@ public interface ListableEntity {
 
 
     /**
-     * @return the timestamp for this entity so that we can be efficient about not performing listings of the same
+     * @return the timestamp for this entity in milliseconds so that we can be efficient about not performing listings of the same
      *         entities multiple times
      */
     long getTimestamp();

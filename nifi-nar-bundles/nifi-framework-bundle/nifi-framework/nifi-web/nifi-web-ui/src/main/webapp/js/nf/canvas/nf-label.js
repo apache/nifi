@@ -47,6 +47,7 @@
     var nfConnectable;
     var nfDraggable;
     var nfSelectable;
+    var nfQuickSelect;
     var nfContextMenu;
 
     var dimensions = {
@@ -142,7 +143,7 @@
             });
 
         // always support selecting
-        label.call(nfSelectable.activate).call(nfContextMenu.activate);
+        label.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
     };
 
     /**
@@ -313,12 +314,14 @@
          * @param nfDraggableRef   The nfDraggable module.
          * @param nfSelectableRef   The nfSelectable module.
          * @param nfContextMenuRef   The nfContextMenu module.
+         * @param nfQuickSelectRef   The nfQuickSelect module.
          */
-        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef, nfQuickSelectRef) {
             nfConnectable = nfConnectableRef;
             nfDraggable = nfDraggableRef;
             nfSelectable = nfSelectableRef;
             nfContextMenu = nfContextMenuRef;
+            nfQuickSelect = nfQuickSelectRef;
 
             labelMap = d3.map();
             removedCache = d3.map();

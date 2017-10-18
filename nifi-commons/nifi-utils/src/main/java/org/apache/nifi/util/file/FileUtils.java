@@ -592,4 +592,22 @@ public class FileUtils {
         return digest.digest();
     }
 
+    /**
+     * Returns the capacity for a given path
+     * @param path path
+     * @return total space
+     */
+    public static long getContainerCapacity(final Path path) {
+        return path.toFile().getTotalSpace();
+    }
+
+    /**
+     * Returns the free capacity for a given path
+     * @param path path
+     * @return usable space
+     */
+    public static long getContainerUsableSpace(final Path path) {
+        return path.toFile().getUsableSpace();
+    }
+
 }

@@ -213,6 +213,45 @@ div.progress-label {
 }
 
 /*
+    Variable Registry
+ */
+
+#variable-registry-dialog {
+    width: 850px;
+    height: 575px;
+}
+
+#variable-registry-dialog div.settings-left {
+    float: left;
+    width: 65%;
+}
+
+#variable-registry-dialog div.settings-right {
+    float: left;
+    width: 33%;
+}
+
+#variable-registry-table {
+    height: 400px;
+}
+
+#add-variable {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+li.affected-component-container {
+    margin-bottom: 3px;
+    height: 16px;
+}
+
+div.slick-cell div.overridden {
+    text-decoration: line-through;
+}
+
+/*
     General dialog styles.
 */
 
@@ -238,4 +277,16 @@ ul.result li {
 .dialog-content div.spacer {
     float: left;
     width: 2%;
+}
+
+div.variable-step {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}
+
+#variable-update-steps li {
+    width: 300px;
+    margin-bottom: 2px;
 }

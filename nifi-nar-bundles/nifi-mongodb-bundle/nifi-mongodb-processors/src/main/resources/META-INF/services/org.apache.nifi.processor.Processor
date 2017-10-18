@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.mongodb.GetMongo
 org.apache.nifi.processors.mongodb.PutMongo
+org.apache.nifi.processors.mongodb.PutMongoRecord

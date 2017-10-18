@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
-    license agreements. See the NOTICE file distributed with this work for additional
-    information regarding copyright ownership. The ASF licenses this file to
-    You under the Apache License, Version 2.0 (the "License"); you may not use
-    this file except in compliance with the License. You may obtain a copy of
-    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
-    by applicable law or agreed to in writing, software distributed under the
-    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
-    OF ANY KIND, either express or implied. See the License for the specific
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
     language governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -69,12 +69,9 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+            <version>2.1</version>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
@@ -180,6 +177,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -191,18 +189,14 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
+            <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>2.7.1</version>
+            <version>3.8.1</version>
         </dependency>
         <dependency>
             <groupId>com.burgstaller</groupId>
             <artifactId>okhttp-digest</artifactId>
-            <version>0.6</version>
+            <version>1.13</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -247,12 +241,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-schema-registry-service-api</artifactId>
+            <version>1.5.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -295,7 +284,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.4.0-SNAPSHOT</version>
+            <version>1.5.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -305,11 +294,38 @@
         <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>ParCEFone</artifactId>
-            <version>1.2.4</version>
+            <version>1.2.5</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.bval</groupId>
+            <artifactId>bval-jsr</artifactId>
+            <version>1.1.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-el-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.geronimo.specs</groupId>
+                    <artifactId>geronimo-annotation_1.2_spec</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.geronimo.specs</groupId>
+                    <artifactId>geronimo-jcdi_1.1.spec</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.geronimo.specs</groupId>
+                    <artifactId>geronimo-jpa_2.0.spec</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.bval</groupId>
+                    <artifactId>bval-xstream</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -329,6 +345,11 @@
             <artifactId>calcite-core</artifactId>
             <version>1.12.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -368,6 +389,7 @@
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
@@ -464,13 +486,23 @@
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
-                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
+                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt
+                            because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>
                 </configuration>

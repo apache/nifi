@@ -106,7 +106,7 @@ public class PublisherLease implements Closeable {
         Record record;
         int recordCount = 0;
 
-        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, flowFile, baos)) {
+        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
             while ((record = recordSet.next()) != null) {
                 recordCount++;
                 baos.reset();
@@ -192,6 +192,10 @@ public class PublisherLease implements Closeable {
     }
 
     public InFlightMessageTracker getTracker() {
+        if (tracker == null) {
+            tracker = new InFlightMessageTracker();
+        }
+
         return tracker;
     }
 }

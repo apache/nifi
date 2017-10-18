@@ -52,6 +52,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -319,9 +320,12 @@ public class TlsHelperTest {
         assert subjectName.equals(DN);
 
         List<String> extractedSans = extractSanFromCsr(csrWithSan);
-        assert extractedSans.size() == SAN_COUNT;
+        assert extractedSans.size() == SAN_COUNT + 1;
         List<String> formattedSans = SAN_ENTRIES.stream().map(s -> "DNS: " + s).collect(Collectors.toList());
         assert extractedSans.containsAll(formattedSans);
+
+        // We check that the SANs also contain the CN
+        assert extractedSans.contains("DNS: localhost");
     }
 
     private List<String> extractSanFromCsr(JcaPKCS10CertificationRequest csr) {

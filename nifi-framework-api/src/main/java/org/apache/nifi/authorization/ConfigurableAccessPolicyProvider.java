@@ -65,6 +65,21 @@ public interface ConfigurableAccessPolicyProvider extends AccessPolicyProvider {
     AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
 
     /**
+     * Determines whether the specified access policy is configurable. Provides the opportunity for a ConfigurableAccessPolicyProvider to prevent
+     * editing of a specific access policy. By default, all known access policies are configurable.
+     *
+     * @param accessPolicy the access policy
+     * @return is configurable
+     */
+    default boolean isConfigurable(AccessPolicy accessPolicy) {
+        if (accessPolicy == null) {
+            throw new IllegalArgumentException("Access policy cannot be null");
+        }
+
+        return getAccessPolicy(accessPolicy.getIdentifier()) != null;
+    }
+
+    /**
      * The policy represented by the provided instance will be updated based on the provided instance.
      *
      * @param accessPolicy an updated policy

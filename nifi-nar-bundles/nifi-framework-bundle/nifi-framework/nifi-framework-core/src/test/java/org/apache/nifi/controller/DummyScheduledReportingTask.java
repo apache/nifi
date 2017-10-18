@@ -17,7 +17,12 @@
 
 package org.apache.nifi.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -27,6 +32,32 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
  */
 @DefaultSchedule(strategy = SchedulingStrategy.CRON_DRIVEN, period = "0 0 0 1/1 * ?")
 public class DummyScheduledReportingTask extends AbstractReportingTask {
+
+    public static final PropertyDescriptor TEST_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder()
+        .name("Test with default value")
+        .description("Test with default value")
+        .required(true)
+        .expressionLanguageSupported(true)
+        .defaultValue("nifi")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor TEST_WITHOUT_DEFAULT_VALUE = new PropertyDescriptor.Builder()
+        .name("Test without default value")
+        .description("Test without default value")
+        .required(false)
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(TEST_WITH_DEFAULT_VALUE);
+        properties.add(TEST_WITHOUT_DEFAULT_VALUE);
+        return properties;
+    }
+
     @Override
     public void onTrigger(ReportingContext context) {
 

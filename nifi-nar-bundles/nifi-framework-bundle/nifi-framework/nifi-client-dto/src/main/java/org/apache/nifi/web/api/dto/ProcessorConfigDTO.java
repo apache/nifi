@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Map;
-import java.util.Set;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Configuration details for a processor in this NiFi.

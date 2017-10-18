@@ -24,24 +24,24 @@ import org.apache.nifi.serialization.record.Record;
 
 public interface RecordWriter extends Closeable {
     /**
-     * Writes the given result set to the given output stream
+     * Writes the given record to the underlying stream
      *
-     * @param record the record set to serialize
+     * @param record the record to write
      * @return the results of writing the data
-     * @throws IOException if unable to write to the given OutputStream
+     * @throws IOException if unable to write to the underlying stream
      */
     WriteResult write(Record record) throws IOException;
 
     /**
-     * @return the MIME Type that the Result Set Writer produces. This will be added to FlowFiles using
+     * @return the MIME Type that the Record Writer produces. This will be added to FlowFiles using
      *         the mime.type attribute.
      */
     String getMimeType();
 
     /**
-     * Flushes any buffered data to the underlying storage mechanism
+     * Flushes any buffered data to the underlying stream
      *
-     * @throws IOException if unable to write to the underlying storage mechanism
+     * @throws IOException if unable to write to the underlying stream
      */
     void flush() throws IOException;
 }

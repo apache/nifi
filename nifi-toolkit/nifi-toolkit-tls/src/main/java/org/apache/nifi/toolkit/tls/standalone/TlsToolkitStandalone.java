@@ -17,7 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -181,8 +180,7 @@ public class TlsToolkitStandalone {
             tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
-            Extensions sanDnsExtensions = StringUtils.isBlank(tlsClientConfig.getDomainAlternativeNames())
-                    ? null : TlsHelper.createDomainAlternativeNamesExtensions(tlsClientConfig.getDomainAlternativeNames());
+            Extensions sanDnsExtensions = TlsHelper.createDomainAlternativeNamesExtensions(tlsClientConfig.getDomainAlternativeNames(), tlsClientConfig.calcDefaultDn(hostname));
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(tlsClientConfig.calcDefaultDn(hostname),
                     keyPair.getPublic(), sanDnsExtensions, certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);

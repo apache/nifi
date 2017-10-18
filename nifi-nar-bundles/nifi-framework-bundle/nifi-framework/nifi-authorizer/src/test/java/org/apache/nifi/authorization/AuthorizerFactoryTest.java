@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,6 +25,9 @@ import org.mockito.Mockito;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AuthorizerFactoryTest {
 
@@ -259,6 +263,85 @@ public class AuthorizerFactoryTest {
             Assert.fail("Should have thrown exception");
         } catch (IllegalStateException e) {
 
+        }
+    }
+
+    @Test
+    public void testAuditInvoked() {
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+
+        AccessPolicy policy1 = new AccessPolicy.Builder()
+                .identifier("policy-id-1")
+                .resource("resource1")
+                .action(RequestAction.READ)
+                .addUser(user1.getIdentifier())
+                .build();
+
+        Set<AccessPolicy> policies = new LinkedHashSet<>();
+        policies.add(policy1);
+
+        Set<User> users = new LinkedHashSet<>();
+        users.add(user1);
+
+        final MockPolicyBasedAuthorizer mockAuthorizer = new MockPolicyBasedAuthorizer(new HashSet<>(), users, policies);
+
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(mockAuthorizer);
+        authorizer.onConfigured(context);
+
+        final AuthorizationRequest accessAttempt = new AuthorizationRequest.Builder()
+                .resource(new MockResource("resource1", "Resource 1"))
+                .identity("user-1")
+                .action(RequestAction.READ)
+                .accessAttempt(true)
+                .anonymous(false)
+                .build();
+
+        final AuthorizationResult accessAttemptResult = authorizer.authorize(accessAttempt);
+
+        assertTrue(Result.Approved.equals(accessAttemptResult.getResult()));
+        assertTrue(mockAuthorizer.isAudited(accessAttempt));
+
+        final AuthorizationRequest nonAccessAttempt = new AuthorizationRequest.Builder()
+                .resource(new MockResource("resource1", "Resource 1"))
+                .identity("user-1")
+                .accessAttempt(false)
+                .action(RequestAction.READ)
+                .anonymous(false)
+                .build();
+
+        final AuthorizationResult nonAccessAttempResult = authorizer.authorize(nonAccessAttempt);
+
+        assertTrue(Result.Approved.equals(nonAccessAttempResult.getResult()));
+        assertFalse(mockAuthorizer.isAudited(nonAccessAttempt));
+    }
+
+    /**
+     * Resource implementation for testing.
+     */
+    private static class MockResource implements Resource {
+
+        private final String identifier;
+        private final String name;
+
+        public MockResource(String identifier, String name) {
+            this.identifier = identifier;
+            this.name = name;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return name;
         }
     }
 }

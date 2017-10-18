@@ -131,9 +131,10 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
      *
      * @param context context
      * @param flowFile flowFile
+     * @param session the session for accessing the FlowFile
      * @return The appropriate group ID
      */
-    protected abstract String getGroupId(final ProcessContext context, final FlowFile flowFile);
+    protected abstract String getGroupId(final ProcessContext context, final FlowFile flowFile, final ProcessSession session);
 
     /**
      * Performs any additional setup of the bin manager. Called during the OnScheduled phase.
@@ -271,8 +272,15 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             final Map<String, List<FlowFile>> flowFileGroups = new HashMap<>();
             for (FlowFile flowFile : flowFiles) {
                 flowFile = this.preprocessFlowFile(context, session, flowFile);
-                final String groupingIdentifier = getGroupId(context, flowFile);
-                flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
+
+                try {
+                    final String groupingIdentifier = getGroupId(context, flowFile, session);
+                    flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
+                } catch (final Exception e) {
+                    getLogger().error("Could not determine which Bin to add {} to; will route to failure", new Object[] {flowFile}, e);
+                    session.transfer(flowFile, REL_FAILURE);
+                    continue;
+                }
             }
 
             for (final Map.Entry<String, List<FlowFile>> entry : flowFileGroups.entrySet()) {

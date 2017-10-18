@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -158,8 +159,10 @@ public final class NarUnpacker {
                         }
                     }
                 }
-                final long endTime = System.nanoTime();
-                logger.info("NAR loading process took " + (endTime - startTime) + " nanoseconds.");
+
+                final long duration = System.nanoTime() - startTime;
+                logger.info("NAR loading process took " + duration + " nanoseconds "
+                        + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
             }
 
             // attempt to delete any docs files that exist so that any components that have been removed

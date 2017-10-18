@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.update.attributes.serde;
 
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -25,8 +26,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.update.attributes.Criteria;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.Rule;
@@ -35,6 +37,15 @@ import org.apache.nifi.update.attributes.Rule;
  *
  */
 public class CriteriaSerDe {
+    private static final JAXBContext JAXB_CONTEXT;
+
+    static {
+        try {
+            JAXB_CONTEXT = JAXBContext.newInstance(CriteriaBinding.class);
+        } catch (JAXBException e) {
+            throw new RuntimeException("Could not create JAXB Context for UpdateAttribute", e);
+        }
+    }
 
     /**
      * Handles the Criteria binding during the (de)serialization process. This
@@ -86,8 +97,7 @@ public class CriteriaSerDe {
             binding.setRules(criteria.getRules());
 
             // serialize the binding
-            final JAXBContext context = JAXBContext.newInstance(CriteriaBinding.class);
-            final Marshaller marshaller = context.createMarshaller();
+            final Marshaller marshaller = JAXB_CONTEXT.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshaller.marshal(binding, writer);
@@ -110,16 +120,15 @@ public class CriteriaSerDe {
         if (string != null && !string.trim().equals("")) {
             try {
                 // deserialize the binding
-                final JAXBContext context = JAXBContext.newInstance(CriteriaBinding.class);
-                final Unmarshaller unmarshaller = context.createUnmarshaller();
-                final Source source = new StreamSource(new StringReader(string));
-                final JAXBElement<CriteriaBinding> element = unmarshaller.unmarshal(source, CriteriaBinding.class);
+                final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
+                XMLStreamReader xsr = XmlUtils.createSafeReader(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)));
+                final JAXBElement<CriteriaBinding> element = unmarshaller.unmarshal(xsr, CriteriaBinding.class);
 
                 // create the criteria from the binding
                 final CriteriaBinding binding = element.getValue();
                 criteria = new Criteria(binding.getFlowFilePolicy(), binding.getRules());
-            } catch (final JAXBException jaxbe) {
-                throw new IllegalArgumentException(jaxbe);
+            } catch (final JAXBException | XMLStreamException e) {
+                throw new IllegalArgumentException(e);
             }
         }
 

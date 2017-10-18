@@ -30,6 +30,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -54,6 +55,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,9 +141,10 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
                 final Schema schema = schemaFactory.newSchema(LoginIdentityProviders.class.getResource(LOGIN_IDENTITY_PROVIDERS_XSD));
 
                 // attempt to unmarshal
+                XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(loginIdentityProvidersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
-                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(new StreamSource(loginIdentityProvidersConfigurationFile), LoginIdentityProviders.class);
+                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(xsr, LoginIdentityProviders.class);
                 return element.getValue();
             } catch (SAXException | JAXBException e) {
                 throw new Exception("Unable to load the login identity provider configuration file at: " + loginIdentityProvidersConfigurationFile.getAbsolutePath());

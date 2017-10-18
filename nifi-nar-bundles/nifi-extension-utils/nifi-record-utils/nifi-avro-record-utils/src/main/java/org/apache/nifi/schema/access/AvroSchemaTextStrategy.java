@@ -20,13 +20,13 @@ package org.apache.nifi.schema.access;
 import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
@@ -40,13 +40,14 @@ public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
-        final String schemaText = schemaTextPropertyValue.evaluateAttributeExpressions(flowFile).getValue();
+    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
+        final String schemaText;
+        schemaText = schemaTextPropertyValue.evaluateAttributeExpressions(variables).getValue();
         if (schemaText == null || schemaText.trim().isEmpty()) {
             throw new SchemaNotFoundException("FlowFile did not contain appropriate attributes to determine Schema Text");
         }
 
-        logger.debug("For {} found schema text {}", flowFile, schemaText);
+        logger.debug("For {} found schema text {}", variables, schemaText);
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);

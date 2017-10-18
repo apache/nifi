@@ -282,7 +282,7 @@ public class ListenHTTPServlet extends HttpServlet {
                     uuid = UUID.randomUUID().toString();
                 }
 
-                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis());
+                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis(), request.getRemoteHost());
                 FlowFileEntryTimeWrapper previousWrapper;
                 do {
                     previousWrapper = flowFileMap.putIfAbsent(uuid, wrapper);

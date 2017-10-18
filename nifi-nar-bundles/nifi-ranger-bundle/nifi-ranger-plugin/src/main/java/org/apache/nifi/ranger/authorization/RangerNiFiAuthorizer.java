@@ -21,6 +21,7 @@ package org.apache.nifi.ranger.authorization;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.authorization.AuthorizationAuditor;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
@@ -33,23 +34,26 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerAccessResultProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Authorizer implementation that uses Apache Ranger to make authorization decisions.
  */
-public class RangerNiFiAuthorizer implements Authorizer {
+public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
 
     private static final Logger logger = LoggerFactory.getLogger(RangerNiFiAuthorizer.class);
 
@@ -66,6 +70,8 @@ public class RangerNiFiAuthorizer implements Authorizer {
     static final String RESOURCES_RESOURCE = "/resources";
     static final String HADOOP_SECURITY_AUTHENTICATION = "hadoop.security.authentication";
     static final String KERBEROS_AUTHENTICATION = "kerberos";
+
+    private final ConcurrentMap<AuthorizationRequest, RangerAccessResult> resultLookup = new ConcurrentHashMap<>();
 
     private volatile RangerBasePluginWithPolicies nifiPlugin = null;
     private volatile RangerDefaultAuditHandler defaultAuditHandler = null;
@@ -135,6 +141,7 @@ public class RangerNiFiAuthorizer implements Authorizer {
     @Override
     public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
         final String identity = request.getIdentity();
+        final Set<String> userGroups = request.getGroups();
         final String resourceIdentifier = request.getResource().getIdentifier();
 
         // if a ranger admin identity was provided, and it equals the identity making the request,
@@ -159,24 +166,25 @@ public class RangerNiFiAuthorizer implements Authorizer {
         rangerRequest.setAction(request.getAction().name());
         rangerRequest.setAccessType(request.getAction().name());
         rangerRequest.setUser(identity);
+        rangerRequest.setUserGroups(userGroups);
         rangerRequest.setAccessTime(new Date());
 
         if (!StringUtils.isBlank(clientIp)) {
             rangerRequest.setClientIPAddress(clientIp);
         }
 
-        // for a direct access request use the default audit handler so we generate audit logs
-        // for non-direct access provide a null result processor so no audit logs get generated
-        final RangerAccessResultProcessor resultProcessor = request.isAccessAttempt() ?  defaultAuditHandler : null;
-
-        final RangerAccessResult result = nifiPlugin.isAccessAllowed(rangerRequest, resultProcessor);
+        final RangerAccessResult result = nifiPlugin.isAccessAllowed(rangerRequest);
 
         if (result != null && result.getIsAllowed()) {
+            // store the result for auditing purposes later
+            resultLookup.put(request, result);
+
+            // return approved
             return AuthorizationResult.approved();
         } else {
             // if result.getIsAllowed() is false, then we need to determine if it was because no policy exists for the
             // given resource, or if it was because a policy exists but not for the given user or action
-            final boolean doesPolicyExist = nifiPlugin.doesPolicyExist(request.getResource().getIdentifier());
+            final boolean doesPolicyExist = nifiPlugin.doesPolicyExist(request.getResource().getIdentifier(), request.getAction());
 
             if (doesPolicyExist) {
                 final String reason = result == null ? null : result.getReason();
@@ -184,12 +192,30 @@ public class RangerNiFiAuthorizer implements Authorizer {
                     logger.debug(String.format("Unable to authorize %s due to %s", identity, reason));
                 }
 
+                // store the result for auditing purposes later
+                resultLookup.put(request, result);
+
                 // a policy does exist for the resource so we were really denied access here
                 return AuthorizationResult.denied(request.getExplanationSupplier().get());
             } else {
                 // a policy doesn't exist so return resource not found so NiFi can work back up the resource hierarchy
                 return AuthorizationResult.resourceNotFound();
             }
+        }
+    }
+
+    @Override
+    public void auditAccessAttempt(final AuthorizationRequest request, final AuthorizationResult result) {
+        final RangerAccessResult rangerResult = resultLookup.remove(request);
+
+        if (rangerResult != null && rangerResult.getIsAudited()) {
+            AuthzAuditEvent event = defaultAuditHandler.getAuthzEvents(rangerResult);
+
+            // update the event with the originally requested resource
+            event.setResourceType(RANGER_NIFI_RESOURCE_NAME);
+            event.setResourcePath(request.getRequestedResource().getIdentifier());
+
+            defaultAuditHandler.logAuthzAudit(event);
         }
     }
 

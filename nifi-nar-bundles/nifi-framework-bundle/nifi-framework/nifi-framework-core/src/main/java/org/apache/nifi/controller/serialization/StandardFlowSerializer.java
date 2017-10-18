@@ -37,6 +37,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -70,7 +72,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class StandardFlowSerializer implements FlowSerializer {
 
-    private static final String MAX_ENCODING_VERSION = "1.1";
+    private static final String MAX_ENCODING_VERSION = "1.2";
 
     private final StringEncryptor encryptor;
 
@@ -202,6 +204,18 @@ public class StandardFlowSerializer implements FlowSerializer {
         for (final Template template : group.getTemplates()) {
             addTemplate(element, template);
         }
+
+        final VariableRegistry variableRegistry = group.getVariableRegistry();
+        for (final Map.Entry<VariableDescriptor, String> entry : variableRegistry.getVariableMap().entrySet()) {
+            addVariable(element, entry.getKey().getName(), entry.getValue());
+        }
+    }
+
+    private static void addVariable(final Element parentElement, final String variableName, final String variableValue) {
+        final Element variableElement = parentElement.getOwnerDocument().createElement("variable");
+        variableElement.setAttribute("name", variableName);
+        variableElement.setAttribute("value", variableValue);
+        parentElement.appendChild(variableElement);
     }
 
     private static void addBundle(final Element parentElement, final BundleCoordinate coordinate) {

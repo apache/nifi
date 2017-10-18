@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.RingBufferEventRepository;
 import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
+import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -132,6 +134,11 @@ public class TestRingBufferEventRepository {
             @Override
             public long getBytesSent() {
                 return 0;
+            }
+
+            @Override
+            public Map<String, Long> getCounters() {
+                return Collections.emptyMap();
             }
         };
     }

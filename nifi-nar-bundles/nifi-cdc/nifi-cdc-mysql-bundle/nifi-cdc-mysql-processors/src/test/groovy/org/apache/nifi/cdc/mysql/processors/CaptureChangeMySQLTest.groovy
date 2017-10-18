@@ -446,6 +446,10 @@ class CaptureChangeMySQLTest {
             assertEquals((i < 8) ? 'master.000001' : 'master.000002', e.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY))
             assertTrue(Long.valueOf(e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY)) % 4 == 0L)
             assertEquals(expectedEventTypes[i], e.getAttribute('cdc.event.type'))
+            // Check that DDL didn't change
+            if (e.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY) == "32") {
+                assertEquals('ALTER TABLE myTable add column col1 int', new JsonSlurper().parse(testRunner.getContentAsByteArray(e)).query?.toString())
+            }
         }
         assertEquals(13, resultFiles.size())
         assertEquals(13, testRunner.provenanceEvents.size())

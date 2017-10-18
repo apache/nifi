@@ -29,6 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
@@ -67,7 +68,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .displayName("SSL Context Service")
             .description("The SSL Context Service to use when communicating with the destination. If not specified, communications will not be secure.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     static final PropertyDescriptor INSTANCE_URL = new PropertyDescriptor.Builder()
             .name("Instance URL")

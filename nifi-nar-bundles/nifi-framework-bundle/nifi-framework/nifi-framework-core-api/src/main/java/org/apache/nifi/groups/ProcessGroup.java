@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.groups;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
@@ -30,12 +38,8 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
 
 /**
  * <p>
@@ -84,6 +88,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     /**
      * @return the ID of the ProcessGroup
      */
+    @Override
     String getIdentifier();
 
     /**
@@ -159,7 +164,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @throws IllegalStateException if the processor is not valid, or is
      * already running
      */
-    void startProcessor(ProcessorNode processor);
+    CompletableFuture<Void> startProcessor(ProcessorNode processor);
 
     /**
      * Starts the given Input Port
@@ -187,7 +192,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      *
      * @param processor to stop
      */
-    void stopProcessor(ProcessorNode processor);
+    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Stops the given Port
@@ -814,6 +819,15 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup);
 
     /**
+     * Ensures that the given variables can be updated
+     *
+     * @param updatedVariables the new set of variable names and values
+     *
+     * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
+     */
+    void verifyCanUpdateVariables(Map<String, String> updatedVariables);
+
+    /**
      * Adds the given template to this Process Group
      *
      * @param template the template to add
@@ -853,4 +867,27 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @return a Set of all Templates that belong to this Process Group and any descendant Process Groups
      */
     Set<Template> findAllTemplates();
+
+    /**
+     * Updates the variables that are provided by this Process Group
+     *
+     * @param variables the variables to provide
+     * @throws IllegalStateException if the Process Group is not in a state that allows the variables to be updated
+     */
+    void setVariables(Map<String, String> variables);
+
+    /**
+     * Returns the Variable Registry for this Process Group
+     *
+     * @return the Variable Registry for this Process Group
+     */
+    ComponentVariableRegistry getVariableRegistry();
+
+    /**
+     * Returns a set of all components that are affected by the variable with the given name
+     *
+     * @param variableName the name of the variable
+     * @return a set of all components that are affected by the variable with the given name
+     */
+    Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName);
 }

@@ -99,6 +99,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
+    protected Connection getConnection() {
+        return connection;
+    }
+
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         kerberosConfigFile = config.getKerberosConfigurationFile();
@@ -113,7 +117,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         props.add(PHOENIX_CLIENT_JAR_LOCATION);
+        props.addAll(getAdditionalProperties());
         this.properties = Collections.unmodifiableList(props);
+    }
+
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return new ArrayList<>();
     }
 
     protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
@@ -284,10 +293,18 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 }
 
                 for (final PutColumn column : putFlowFile.getColumns()) {
-                    put.addColumn(
-                            column.getColumnFamily(),
-                            column.getColumnQualifier(),
-                            column.getBuffer());
+                    if (column.getTimestamp() != null) {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getTimestamp(),
+                                column.getBuffer());
+                    } else {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getBuffer());
+                    }
                 }
             }
 
@@ -487,6 +504,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public byte[] toBytes(boolean b) {
         return Bytes.toBytes(b);
+    }
+
+    @Override
+    public byte[] toBytes(float f) {
+        return Bytes.toBytes(f);
+    }
+
+    @Override
+    public byte[] toBytes(int i) {
+        return Bytes.toBytes(i);
     }
 
     @Override

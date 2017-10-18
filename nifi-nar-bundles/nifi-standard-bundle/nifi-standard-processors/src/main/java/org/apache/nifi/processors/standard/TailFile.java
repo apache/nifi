@@ -689,8 +689,7 @@ public class TailFile extends AbstractProcessor {
 
         // Check if file has rotated
         if (rolloverOccurred
-                || (timestamp <= file.lastModified() && length > file.length())
-                || (timestamp < file.lastModified() && length >= file.length())) {
+                || (timestamp <= file.lastModified() && length > file.length())) {
 
             // Since file has rotated, we close the reader, create a new one, and then reset our state.
             try {

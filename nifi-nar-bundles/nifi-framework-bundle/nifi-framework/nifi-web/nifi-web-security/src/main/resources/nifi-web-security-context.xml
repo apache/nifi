@@ -68,6 +68,18 @@
         <constructor-arg ref="authorizer" index="2"/>
     </bean>
 
+    <!-- knox service -->
+    <bean id="knoxService" class="org.apache.nifi.web.security.knox.KnoxServiceFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- knox authentication provider -->
+    <bean id="knoxAuthenticationProvider" class="org.apache.nifi.web.security.knox.KnoxAuthenticationProvider">
+        <constructor-arg ref="knoxService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+        <constructor-arg ref="authorizer" index="2"/>
+    </bean>
+
     <!-- Kerberos service -->
     <bean id="kerberosService" class="org.apache.nifi.web.security.spring.KerberosServiceFactoryBean">
         <property name="properties" ref="nifiProperties"/>
@@ -76,6 +88,15 @@
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- oidc -->
+    <bean id="oidcProvider" class="org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider">
+        <constructor-arg ref="jwtService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+    </bean>
+    <bean id="oidcService" class="org.apache.nifi.web.security.oidc.OidcService">
+        <constructor-arg ref="oidcProvider"/>
     </bean>
 
 </beans>

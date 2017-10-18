@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -116,7 +116,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     + "a 403 response will be returned.",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /policies/{resource}", type = "")
+                    @Authorization(value = "Read - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -183,7 +183,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Creates an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -274,7 +274,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Gets an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /policies/{resource}", type = "")
+                    @Authorization(value = "Read - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -331,7 +331,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Updates a access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -422,8 +422,8 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Deletes an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = ""),
-                    @Authorization(value = "Write - Policy of the parent resource - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}"),
+                    @Authorization(value = "Write - Policy of the parent resource - /policies/{resource}")
             }
     )
     @ApiResponses(

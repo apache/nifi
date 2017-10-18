@@ -119,8 +119,13 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
+        final PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property.getName());
+        if (descriptor == null) {
+            return null;
+        }
+
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

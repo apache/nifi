@@ -352,6 +352,89 @@
         }]
     };
 
+    var provenanceTab = {
+        name: 'Provenance Storage',
+        data: {
+            dataSet: 'systemDiagnostics',
+            update: updateProvenanceTableData
+        },
+        tabContentId: 'cluster-provenance-tab-content',
+        tableId: 'cluster-provenance-table',
+        tableColumnModel: [
+            {
+                id: 'node',
+                field: 'node',
+                name: 'Node Address',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'provenanceRepoId',
+                field: 'provenanceRepoId',
+                name: 'Provenance Repository',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'provenanceRepoTotal',
+                field: 'provenanceRepoTotal',
+                name: 'Total Space',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right',
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'provenanceRepoUsed',
+                field: 'provenanceRepoUsed',
+                name: 'Used Space',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right',
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'provenanceRepoFree',
+                field: 'provenanceRepoFree',
+                name: 'Free Space',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right',
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'provenanceRepoUtil',
+                field: 'provenanceRepoUtil',
+                name: 'Utilization',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right',
+                formatter: nfCommon.genericValueFormatter
+            }
+        ],
+        tableIdColumn: 'id',
+        tableOptions: commonTableOptions,
+        tableOnClick: null,
+        createTableOnEnter: null,
+        cleanUpTable: null,
+        init: commonTableInit,
+        onSort: sort,
+        onTabSelected: onSelectTab,
+        filterOptions: [{
+            text: 'by address',
+            value: 'node'
+        }, {
+            text: 'by repository',
+            value: 'contentRepoId'
+        }]
+    };
+
     var versionTab = {
         name: 'Versions',
         data: {
@@ -432,7 +515,7 @@
         }]
     };
 
-    var clusterTabs = [nodesTab, systemTab, jvmTab, flowFileTab, contentTab, versionTab];
+    var clusterTabs = [nodesTab, systemTab, jvmTab, flowFileTab, contentTab, provenanceTab, versionTab];
     var tabsByName = {};
     var dataSetHandlers = {};
 
@@ -1197,6 +1280,39 @@
             contentTab.grid.invalidate();
         } else {
             contentTab.rowCount = 0;
+        }
+    }
+
+    /**
+     * Applies system diagnostics data to the Provenance Storage tab.
+     */
+    function updateProvenanceTableData(systemDiagnosticsResponse) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+
+            var provenanceStorageTableRows = [];
+            systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
+                var snapshot = nodeSnapshot.snapshot;
+                snapshot.provenanceRepositoryStorageUsage.forEach(function (provenanceRepoUsage) {
+                	provenanceStorageTableRows.push({
+                        id: nodeSnapshot.nodeId + ':' + provenanceRepoUsage.identifier,
+                        address: nodeSnapshot.address,
+                        node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
+                        provenanceRepoId: provenanceRepoUsage.identifier,
+                        provenanceRepoTotal: provenanceRepoUsage.totalSpace,
+                        provenanceRepoUsed: provenanceRepoUsage.usedSpace,
+                        provenanceRepoFree: provenanceRepoUsage.freeSpace,
+                        provenanceRepoUtil: provenanceRepoUsage.utilization
+                    });
+                });
+            });
+
+            provenanceTab.rowCount = provenanceStorageTableRows.length;
+            provenanceTab.dataView.setItems(provenanceStorageTableRows);
+            provenanceTab.dataView.reSort();
+            provenanceTab.grid.invalidate();
+        } else {
+        	provenanceTab.rowCount = 0;
         }
     }
 

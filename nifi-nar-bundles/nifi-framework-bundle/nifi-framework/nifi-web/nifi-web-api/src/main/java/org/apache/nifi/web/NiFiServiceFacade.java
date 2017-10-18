@@ -24,6 +24,7 @@ import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -57,6 +58,7 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
+import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
@@ -67,6 +69,8 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -96,6 +100,7 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 
 import java.util.Date;
 import java.util.List;
@@ -514,9 +519,10 @@ public interface NiFiServiceFacade {
      * Gets all the Processor transfer objects for this controller.
      *
      * @param groupId group
+     * @param includeDescendants if processors from descendent groups should be included
      * @return List of all the Processor transfer object
      */
-    Set<ProcessorEntity> getProcessors(String groupId);
+    Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
 
     /**
      * Verifies the specified processor can be updated.
@@ -887,6 +893,57 @@ public interface NiFiServiceFacade {
     ProcessGroupEntity getProcessGroup(String groupId);
 
     /**
+     * Returns the Variable Registry for the Process Group with the given ID
+     *
+     * @param groupId the ID of the Process Group
+     * @param includeAncestorGroups whether or not to include the variables that are defined in the the process group's parent group & its parent group, etc.
+     * @return the Variable Registry transfer object
+     */
+    VariableRegistryEntity getVariableRegistry(String groupId, boolean includeAncestorGroups);
+
+    /**
+     * Returns a Variable Registry that includes the variables in the given DTO but has the affected components populated
+     *
+     * @param variableRegistryDto the Variable Registry that contains the variables of interest
+     * @return a Variable Registry that has the affected components populated
+     */
+    VariableRegistryEntity populateAffectedComponents(VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Updates the variable registry on behalf of the user currently logged in
+     *
+     * @param revision Revision to compare with current base revision
+     * @param variableRegistryDto the Variable Registry
+     */
+    VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Updates the variable registry on behalf of the given user
+     *
+     * @param user the user who performed the action
+     * @param revision Revision to compare with current base revision
+     * @param variableRegistryDto the Variable Registry
+     */
+    VariableRegistryEntity updateVariableRegistry(NiFiUser user, Revision revision, VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Determines which components will be affected by updating the given Variable Registry.
+     *
+     * @param variableRegistryDto the variable registry
+     * @return the components that will be affected
+     */
+    Set<AffectedComponentEntity> getComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Determines which components are active and will be affected by updating the given Variable Registry. These active components
+     * are needed to authorize the request and deactivate prior to changing the variables.
+     *
+     * @param variableRegistryDto the variable registry
+     * @return the components that will be affected
+     */
+    Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+
+    /**
      * Gets all process groups in the specified parent group.
      *
      * @param parentGroupId The id of the parent group
@@ -904,7 +961,37 @@ public interface NiFiServiceFacade {
     void verifyScheduleComponents(String processGroupId, ScheduledState state, Set<String> componentIds);
 
     /**
-     * Schedules all applicable components under the specified ProcessGroup.
+     * Verifies the controller services with the given ID's can be enabled or disabled
+     *
+     * @param processGroupId the ID of the process group
+     * @param state the state
+     * @param serviceIds the id's of the services
+     */
+    void verifyActivateControllerServices(String processGroupId, ControllerServiceState state, Set<String> serviceIds);
+
+    /**
+     * Enables or disables the controller services with the given IDs & Revisions on behalf of the currently logged in user
+     *
+     * @param processGroupId the ID of the process group
+     * @param state the desired state of the services
+     * @param serviceRevisions a mapping of Controller Service ID to current Revision
+     * @return snapshot
+     */
+    ActivateControllerServicesEntity activateControllerServices(String processGroupId, ControllerServiceState state, Map<String, Revision> serviceRevisions);
+
+    /**
+     * Enables or disables the controller services with the given IDs & Revisions on behalf of the given user
+     *
+     * @param user the user performing the action
+     * @param processGroupId the ID of the process group
+     * @param state the desired state of the services
+     * @param serviceRevisions a mapping of Controller Service ID to current Revision
+     * @return snapshot
+     */
+    ActivateControllerServicesEntity activateControllerServices(NiFiUser user, String processGroupId, ControllerServiceState state, Map<String, Revision> serviceRevisions);
+
+    /**
+     * Schedules all applicable components under the specified ProcessGroup on behalf of the currently logged in user.
      *
      * @param processGroupId The ProcessGroup id
      * @param state schedule state
@@ -914,6 +1001,17 @@ public interface NiFiServiceFacade {
     ScheduleComponentsEntity scheduleComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
 
     /**
+     * Schedules all applicable components under the specified ProcessGroup on behalf of the given user.
+     *
+     * @param user the user performing the action
+     * @param processGroupId The ProcessGroup id
+     * @param state schedule state
+     * @param componentRevisions components and their revision
+     * @return snapshot
+     */
+    ScheduleComponentsEntity scheduleComponents(NiFiUser user, String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
+
+    /**
      * Updates the specified process group.
      *
      * @param revision Revision to compare with current base revision
@@ -921,6 +1019,14 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ProcessGroupEntity updateProcessGroup(Revision revision, ProcessGroupDTO processGroupDTO);
+
+    /**
+     * Verifies that the Process Group identified by the given DTO can be updated in the manner appropriate according
+     * to the DTO
+     *
+     * @param processGroupDTO the DTO that indicates the updates to occur
+     */
+    void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO);
 
     /**
      * Verifies the specified process group can be removed.
@@ -1378,9 +1484,22 @@ public interface NiFiServiceFacade {
      * Gets all controller services that belong to the given group and its parent/ancestor groups
      *
      * @param groupId the id of the process group of interest
+     * @param includeAncestorGroups if true, parent and ancestor groups' services will be returned as well
+     * @param includeDescendantGroups if true, child and descendant groups' services will be returned as well
      * @return services
      */
-    Set<ControllerServiceEntity> getControllerServices(String groupId);
+    Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups);
+
+    /**
+     * Gets all controller services that belong to the given group and its parent/ancestor groups
+     *
+     * @param groupId the id of the process group of interest
+     * @param includeAncestorGroups if true, parent and ancestor groups' services will be returned as well
+     * @param includeDescendantGroups if true, child and descendant groups' services will be returned as well
+     * @param user the user that is retrieving the Controller Services
+     * @return services
+     */
+    Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups, NiFiUser user);
 
     /**
      * Gets the specified controller service.

@@ -537,7 +537,7 @@ div.context-menu-item.hover {
     background-size: cover;
 }
 
-.context-menu-item-img.fa{
+.context-menu-item-img.fa {
     position: relative;
     top: 2px;
     left: 2px;
@@ -554,6 +554,21 @@ div.context-menu-item-text {
     line-height: 16px;
     float: left;
     color: #262626;
+}
+
+div.context-menu-group-item-img {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-size: cover;
+    font-size: 14px;
+}
+
+div.context-menu-item-separator {
+    height: 1px;
+    background-color: #C7D2D7;
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
 /* search */

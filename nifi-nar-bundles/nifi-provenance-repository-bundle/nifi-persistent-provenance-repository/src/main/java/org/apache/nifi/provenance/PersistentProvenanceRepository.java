@@ -68,6 +68,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
@@ -519,6 +520,40 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public RepositoryConfiguration getConfiguration() {
         return configuration;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(configuration.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 
     private void recover() throws IOException {

@@ -74,7 +74,7 @@
                     <div class="setting">
                         <div class="setting-header">Non-heap <span id="utilization-non-heap"></span></div>
                         <div class="setting-field">
-                            <table id="heap-table">
+                            <table id="non-heap-table">
                                 <tbody>
                                 <tr>
                                     <td class="memory-header setting-name">Max:</td>
@@ -147,69 +147,73 @@
                 </div>
             </div>
             <div id="system-tab-content"class="configuration-tab">
-            <div class="settings-left">
+                <div class="settings-left">
+                    <div class="setting">
+                        <div class="setting-name">Available Processors:</div>
+                        <div class="setting-field">
+                            <div id="available-processors"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="spacer"></div>
+                <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Processor Load Average:
+                            <div class="fa fa-question-circle" alt="Info" title="Processor load average for the last minute. Not available on all platforms."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="processor-load-average"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
                 <div class="setting">
-                    <div class="setting-name">Available Processors:</div>
+                    <div class="setting-header">FlowFile Repository Storage</div>
                     <div class="setting-field">
-                        <div id="available-processors"></div>
+                        <div id="flow-file-repository-storage-usage-container"></div>
                     </div>
                 </div>
-            </div>
-            <div class="spacer"></div>
-            <div class="settings-right">
                 <div class="setting">
-                    <div class="setting-name">
-                        Processor Load Average:
-                        <div class="fa fa-question-circle" alt="Info" title="Processor load average for the last minute. Not available on all platforms."></div>
-                    </div>
+                    <div class="setting-header">Content Repository Storage</div>
                     <div class="setting-field">
-                        <div id="processor-load-average"></div>
+                        <div id="content-repository-storage-usage-container"></div>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-header">Provenance Repository Storage</div>
+                    <div class="setting-field">
+                        <div id="provenance-repository-storage-usage-container"></div>
                     </div>
                 </div>
             </div>
-            <div class="clear"></div>
-            <div class="setting">
-                <div class="setting-header">FlowFile Repository Storage</div>
-                <div class="setting-field">
-                    <div id="flow-file-repository-storage-usage-container"></div>
+            <div id="version-tab-content" class="configuration-tab">
+                <div class="setting">
+                    <div class="setting-header">NiFi</div>
+                    <dl class="setting-attributes-list">
+                        <dt>NiFi Version</dt><dd><span id="version-nifi"></span></dd>
+                        <dt>Tag</dt><dd><span id="version-build-tag"></span></dd>
+                        <dt>Build Date/Time</dt><dd><span id="version-build-timestamp"></span></dd>
+                        <dt>Branch</dt><dd><span id="version-build-branch"></span></dd>
+                        <dt>Revision</dt><dd><span id="version-build-revision"></span></dd>
+                    </dl>
+                </div>
+                <div class="setting">
+                    <div class="setting-header">Java</div>
+                    <dl class="setting-attributes-list">
+                        <dt>Version</dt><dd><span id="version-java-version"></span></dd>
+                        <dt>Vendor</dt><dd><span id="version-java-vendor"></span></dd>
+                    </dl>
+                </div>
+                <div class="setting">
+                    <div class="setting-header">Operating System</div>
+                    <dl class="setting-attributes-list">
+                        <dt>Name</dt><dd><span id="version-os-name"></span></dd>
+                        <dt>Version</dt><dd><span id="version-os-version"></span></dd>
+                        <dt>Architecture</dt><dd><span id="version-os-arch"></span></dd>
+                    </dl>
                 </div>
             </div>
-            <div class="setting">
-                <div class="setting-header">Content Repository Storage</div>
-                <div class="setting-field">
-                    <div id="content-repository-storage-usage-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="version-tab-content" class="configuration-tab">
-            <div class="setting">
-                <div class="setting-header">NiFi</div>
-                <dl class="setting-attributes-list">
-                    <dt>NiFi Version</dt><dd><span id="version-nifi"></span></dd>
-                    <dt>Tag</dt><dd><span id="version-build-tag"></span></dd>
-                    <dt>Build Date/Time</dt><dd><span id="version-build-timestamp"></span></dd>
-                    <dt>Branch</dt><dd><span id="version-build-branch"></span></dd>
-                    <dt>Revision</dt><dd><span id="version-build-revision"></span></dd>
-                </dl>
-            </div>
-            <div class="setting">
-                <div class="setting-header">Java</div>
-                <dl class="setting-attributes-list">
-                    <dt>Version</dt><dd><span id="version-java-version"></span></dd>
-                    <dt>Vendor</dt><dd><span id="version-java-vendor"></span></dd>
-                </dl>
-            </div>
-            <div class="setting">
-                <div class="setting-header">Operating System</div>
-                <dl class="setting-attributes-list">
-                    <dt>Name</dt><dd><span id="version-os-name"></span></dd>
-                    <dt>Version</dt><dd><span id="version-os-version"></span></dd>
-                    <dt>Architecture</dt><dd><span id="version-os-arch"></span></dd>
-                </dl>
-            </div>
-        </div>
-
         </div>
         <div id="system-diagnostics-refresh-container">
             <button id="system-diagnostics-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>

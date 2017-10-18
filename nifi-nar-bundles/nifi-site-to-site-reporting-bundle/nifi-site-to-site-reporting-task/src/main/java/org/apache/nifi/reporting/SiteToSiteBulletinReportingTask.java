@@ -192,6 +192,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinId", bulletin.getId());
         addField(builder, "bulletinCategory", bulletin.getCategory());
         addField(builder, "bulletinGroupId", bulletin.getGroupId());
+        addField(builder, "bulletinGroupName", bulletin.getGroupName());
         addField(builder, "bulletinLevel", bulletin.getLevel());
         addField(builder, "bulletinMessage", bulletin.getMessage());
         addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress());

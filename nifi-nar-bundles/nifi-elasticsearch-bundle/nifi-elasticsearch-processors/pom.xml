@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-elasticsearch-processors</artifactId>
@@ -76,6 +76,12 @@ language governing permissions and limitations under the License. -->
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${es.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -91,10 +97,6 @@ language governing permissions and limitations under the License. -->
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service</artifactId>
             <scope>test</scope>
@@ -102,8 +104,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.5.4</version>
-            <scope>test</scope>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
     </dependencies>
 

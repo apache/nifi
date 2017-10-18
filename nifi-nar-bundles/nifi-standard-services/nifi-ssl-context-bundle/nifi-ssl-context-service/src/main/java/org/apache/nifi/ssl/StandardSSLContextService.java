@@ -16,10 +16,17 @@
  */
 package org.apache.nifi.ssl;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -34,22 +41,12 @@ import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
+@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
-        + "keystore and/or truststore properties once and reuse that configuration throughout the application")
+        + "keystore and/or truststore properties once and reuse that configuration throughout the application. "
+        + "This service can be used to communicate with both legacy and modern systems. If you only need to "
+        + "communicate with non-legacy systems, then the StandardRestrictedSSLContextService is recommended as it only "
+        + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
     public static final String STORE_TYPE_JKS = "JKS";
@@ -108,16 +105,17 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
+            .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
-            .allowableValues(buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this SSL context")
+            .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
+            .description("The algorithm to use for this TLS/SSL context")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
 
     private static final List<PropertyDescriptor> properties;
-    private ConfigurationContext configContext;
+    protected ConfigurationContext configContext;
     private boolean isValidated;
 
     // TODO: This can be made configurable if necessary
@@ -178,19 +176,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             // allow expression language
             @Override
             public ValidationResult validate(String subject, String input, ValidationContext context) {
-                final String substituted;
-                try {
-                    substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(false)
-                            .explanation("Not a valid Expression Language value: " + e.getMessage())
-                            .build();
-                }
-
-                final File file = new File(substituted);
+                final File file = new File(input);
                 final boolean valid = file.exists() && file.canRead();
                 final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
                 return new ValidationResult.Builder()
@@ -264,8 +250,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return VALIDATION_CACHE_EXPIRATION;
     }
 
+    protected String getSSLProtocolForValidation(final ValidationContext validationContext) {
+        return validationContext.getProperty(SSL_ALGORITHM).getValue();
+    }
+
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
-        final String protocol = validationContext.getProperty(SSL_ALGORITHM).getValue();
+        final String protocol = getSSLProtocolForValidation(validationContext);
         try {
             final PropertyValue keyPasswdProp = validationContext.getProperty(KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
@@ -307,7 +297,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        final String protocol = configContext.getProperty(SSL_ALGORITHM).getValue();
+        final String protocol = getSslAlgorithm();
         try {
             final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
@@ -468,36 +458,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public enum KeystoreValidationGroup {
 
         KEYSTORE, TRUSTSTORE
-    }
-
-    private static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
-
-        /*
-         * Prepopulate protocols with generic instance types commonly used
-         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
-         */
-        supportedProtocols.add("SSL");
-        supportedProtocols.add("TLS");
-
-        // Determine those provided by the JVM on the system
-        try {
-            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
-        } catch (NoSuchAlgorithmException e) {
-            // ignored as default is used
-        }
-
-        final int numProtocols = supportedProtocols.size();
-
-        // Sort for consistent presentation in configuration views
-        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
-        Collections.sort(supportedProtocolList);
-
-        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
-        for (final String protocol : supportedProtocolList) {
-            protocolAllowableValues.add(new AllowableValue(protocol));
-        }
-        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
     }
 
     @Override
