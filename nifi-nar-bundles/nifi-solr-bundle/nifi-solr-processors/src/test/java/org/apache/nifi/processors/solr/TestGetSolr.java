@@ -37,7 +37,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class TestGetSolr {
 
@@ -215,6 +218,74 @@ public class TestGetSolr {
         runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
     }
 
+    @Test
+    public void testInitialDateFilter() throws IOException, SolrServerException {
+        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        final Date dateToFilter = new Date();
+
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.DATE_FILTER, df.format(dateToFilter));
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        SolrInputDocument doc10 = new SolrInputDocument();
+        doc10.addField("id", "doc10");
+        doc10.addField("created", new Date());
+        SolrInputDocument doc11 = new SolrInputDocument();
+        doc11.addField("id", "doc11");
+        doc11.addField("created", new Date());
+
+        solrClient.add(doc10);
+        solrClient.add(doc11);
+        solrClient.commit();
+
+        runner.run(1,true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 2);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
+    }
+
+    @Test
+    public void testPropertyModified() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // Change property contained in propertyNamesForActivatingClearState
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created,string_multi");
+        runner.run(1, false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // Change property not contained in propertyNamesForActivatingClearState
+        runner.setProperty(GetSolr.BATCH_SIZE, "2");
+        runner.run(1, true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
+        runner.clearTransferState();
+    }
+
 
     @Test
     public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
@@ -243,6 +314,7 @@ public class TestGetSolr {
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 5);
         runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
     }
+
 
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends GetSolr {

@@ -84,7 +84,7 @@ import org.apache.solr.common.params.CursorMarkParams;
 @Tags({"Apache", "Solr", "Get", "Pull", "Records"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Queries Solr and outputs the results as a FlowFile in the format of XML or using a Record Writer")
-@Stateful(scopes = {Scope.LOCAL}, description = "Stores latest date of Date Field so that the same data will not be fetched multiple times.")
+@Stateful(scopes = {Scope.CLUSTER}, description = "Stores latest date of Date Field so that the same data will not be fetched multiple times.")
 public class GetSolr extends SolrProcessor {
 
     public static final String STATE_MANAGER_FILTER = "stateManager_filter";
@@ -123,6 +123,14 @@ public class GetSolr extends SolrProcessor {
             .displayName("Date Field")
             .description("The name of a date field in Solr used to filter results")
             .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor DATE_FILTER = new PropertyDescriptor
+            .Builder().name("Initial Date Filter")
+            .displayName("Initial Date Filter")
+            .description("Date value to filter results. Documents with an earlier date will not be fetched. The format has to correspond to the date pattern of Solr 'YYYY-MM-DDThh:mm:ssZ'")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -172,6 +180,7 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(RECORD_WRITER);
         descriptors.add(SOLR_QUERY);
         descriptors.add(DATE_FIELD);
+        descriptors.add(DATE_FILTER);
         descriptors.add(RETURN_FIELDS);
         descriptors.add(BATCH_SIZE);
         descriptors.add(JAAS_CLIENT_APP_NAME);
@@ -201,28 +210,44 @@ public class GetSolr extends SolrProcessor {
         return this.descriptors;
     }
 
+    final static Set<String> propertyNamesForActivatingClearState = new HashSet<String>();
+    static {
+        propertyNamesForActivatingClearState.add(SOLR_TYPE.getName());
+        propertyNamesForActivatingClearState.add(SOLR_LOCATION.getName());
+        propertyNamesForActivatingClearState.add(COLLECTION.getName());
+        propertyNamesForActivatingClearState.add(SOLR_QUERY.getName());
+        propertyNamesForActivatingClearState.add(DATE_FIELD.getName());
+        propertyNamesForActivatingClearState.add(RETURN_FIELDS.getName());
+    }
+
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        clearState.set(true);
+        if (propertyNamesForActivatingClearState.contains(descriptor.getName()))
+            clearState.set(true);
     }
 
     @OnScheduled
-    public void onScheduled2(final ProcessContext context) throws IOException {
+    public void clearState(final ProcessContext context) throws IOException {
         if (clearState.getAndSet(false)) {
-            context.getStateManager().clear(Scope.LOCAL);
+            context.getStateManager().clear(Scope.CLUSTER);
             final Map<String,String> newStateMap = new HashMap<String,String>();
 
             newStateMap.put(STATE_MANAGER_CURSOR_MARK, "*");
-            newStateMap.put(STATE_MANAGER_FILTER, "*");
 
-            context.getStateManager().setState(newStateMap, Scope.LOCAL);
+            final String initialDate = context.getProperty(DATE_FILTER).getValue();
+            if (StringUtils.isBlank(initialDate))
+                newStateMap.put(STATE_MANAGER_FILTER, "*");
+            else
+                newStateMap.put(STATE_MANAGER_FILTER, initialDate);
+
+            context.getStateManager().setState(newStateMap, Scope.CLUSTER);
 
             id_field = null;
         }
     }
 
     @Override
-    protected final Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected final Collection<ValidationResult> additionalCustomValidation(ValidationContext context) {
         final Collection<ValidationResult> problems = new ArrayList<>();
 
         if (context.getProperty(RETURN_TYPE).evaluateAttributeExpressions().getValue().equals(MODE_REC.getValue())
@@ -233,7 +258,6 @@ public class GetSolr extends SolrProcessor {
                     .subject("Record writer check")
                     .build());
         }
-        problems.addAll(super.customValidate(context));
         return problems;
     }
 
@@ -275,7 +299,7 @@ public class GetSolr extends SolrProcessor {
             final StringBuilder automatedFilterQuery = (new StringBuilder())
                     .append(dateField)
                     .append(":[")
-                    .append(context.getStateManager().getState(Scope.LOCAL).get(STATE_MANAGER_FILTER))
+                    .append(context.getStateManager().getState(Scope.CLUSTER).get(STATE_MANAGER_FILTER))
                     .append(" TO *]");
             solrQuery.addFilterQuery(automatedFilterQuery.toString());
 
@@ -292,7 +316,7 @@ public class GetSolr extends SolrProcessor {
                 }
             }
 
-            solrQuery.setParam(CursorMarkParams.CURSOR_MARK_PARAM, context.getStateManager().getState(Scope.LOCAL).get(STATE_MANAGER_CURSOR_MARK));
+            solrQuery.setParam(CursorMarkParams.CURSOR_MARK_PARAM, context.getStateManager().getState(Scope.CLUSTER).get(STATE_MANAGER_CURSOR_MARK));
             solrQuery.setRows(context.getProperty(BATCH_SIZE).asInteger());
 
             final StringBuilder sortClause = (new StringBuilder())
@@ -318,10 +342,10 @@ public class GetSolr extends SolrProcessor {
 
                     solrQuery.setParam(CursorMarkParams.CURSOR_MARK_PARAM, response.getNextCursorMark());
                     final Map<String,String> updateStateManager = new HashMap<String,String>();
-                    updateStateManager.putAll(context.getStateManager().getState(Scope.LOCAL).toMap());
+                    updateStateManager.putAll(context.getStateManager().getState(Scope.CLUSTER).toMap());
                     updateStateManager.put(STATE_MANAGER_CURSOR_MARK, response.getNextCursorMark());
                     updateStateManager.put(STATE_MANAGER_FILTER, latestDateValue);
-                    context.getStateManager().setState(updateStateManager, Scope.LOCAL);
+                    context.getStateManager().setState(updateStateManager, Scope.CLUSTER);
 
                     FlowFile flowFile = session.create();
                     flowFile = session.putAttribute(flowFile, "solrQuery", solrQuery.toString());
