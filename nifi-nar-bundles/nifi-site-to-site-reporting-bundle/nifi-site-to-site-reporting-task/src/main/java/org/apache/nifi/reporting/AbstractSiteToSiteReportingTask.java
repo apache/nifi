@@ -36,7 +36,6 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -219,46 +218,21 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final String value = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-            String[] urls = value.split(",");
-
-            if(urls.length == 0) {
+            try {
+                SiteToSiteRestApiClient.parseClusterUrls(value);
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(true)
+                        .build();
+            } catch (IllegalArgumentException ex) {
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
                         .valid(false)
-                        .explanation("Not a valid URL")
+                        .explanation(ex.getLocalizedMessage())
                         .build();
             }
-
-            for (String string : urls) {
-                URL url;
-
-                try {
-                    url = new URL(string);
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder()
-                            .input(input)
-                            .subject(subject)
-                            .valid(false)
-                            .explanation("Not a valid URL")
-                            .build();
-                }
-
-                if (url != null && !url.getPath().equals(DESTINATION_URL_PATH)) {
-                    return new ValidationResult.Builder()
-                            .input(input)
-                            .subject(subject)
-                            .valid(false)
-                            .explanation("URL path must be " + DESTINATION_URL_PATH)
-                            .build();
-                }
-            }
-
-            return new ValidationResult.Builder()
-                    .input(input)
-                    .subject(subject)
-                    .valid(true)
-                    .build();
         }
     }
 }

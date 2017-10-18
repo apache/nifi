@@ -67,13 +67,14 @@ public class TestSiteToSiteBulletinReportingTask {
         });
 
         assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi", context).isValid());
-        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080", context).isValid());
         assertFalse(new NiFiUrlValidator().validate("url", "", context).isValid());
         assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi", context).isValid());
         assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi,https://localhost:8080/nifi", context).isValid());
         assertTrue(new NiFiUrlValidator().validate("url", "https://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
+        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi, https://localhost:8080/nifi", context).isValid());
         assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080/nifi", context).isValid());
-        assertFalse(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
+        assertTrue(new NiFiUrlValidator().validate("url", "http://localhost:8080/nifi,http://localhost:8080", context).isValid());
     }
 
     @Test
