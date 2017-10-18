@@ -71,6 +71,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PRETTY_PRINT_JSON);
+        properties.add(SUPPRESS_NULLS);
         return properties;
     }
 
