@@ -23,9 +23,10 @@
                 'd3',
                 'nf.Common',
                 'nf.Client',
+                'nf.ClusterSummary',
                 'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
+            function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
+                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Processor =
@@ -33,15 +34,17 @@
                 require('d3'),
                 require('nf.Common'),
                 require('nf.Client'),
+                require('nf.ClusterSummary'),
                 require('nf.CanvasUtils')));
     } else {
         nf.Processor = factory(root.$,
             root.d3,
             root.nf.Common,
             root.nf.Client,
+            root.nf.ClusterSummary,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
     'use strict';
 
     var nfConnectable;
@@ -180,6 +183,27 @@
                 'class': 'restricted'
             })
             .text('\uf132');
+
+        // is primary icon background
+        processor.append('circle')
+            .attr({
+                'r': 9,
+                'cx': 38,
+                'cy': 36,
+                'class': 'is-primary-background'
+            });
+
+        // is primary icon
+        processor.append('text')
+            .attr({
+                'x': 34.75,
+                'y': 40,
+                'class': 'is-primary'
+            })
+            .text('P')
+            .append('title').text(function (d) {
+                return 'This component is only scheduled to execute on the Primary Node';
+            });
 
         // make processors selectable
         processor.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
@@ -686,11 +710,15 @@
             // restricted component indicator
             processor.select('circle.restricted-background').style('visibility', showRestricted);
             processor.select('text.restricted').style('visibility', showRestricted);
+
+            // is primary component indicator
+            processor.select('circle.is-primary-background').style('visibility', showIsPrimary);
+            processor.select('text.is-primary').style('visibility', showIsPrimary);
         });
     };
 
     /**
-     * Returns whether the resticted indicator should be shown for a given
+     * Returns whether the resticted indicator should be shown for a given component
      * @param d
      * @returns {*}
      */
@@ -700,7 +728,16 @@
         }
 
         return d.component.restricted ? 'visible' : 'hidden';
-    }
+    };
+
+    /**
+     * Returns whether the is primary indicator should be shown for a given component
+     * @param d
+     * @returns {*}
+     */
+    var showIsPrimary = function (d) {
+        return nfClusterSummary.isClustered() && d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
+    };
 
     /**
      * Updates the stats for the processors in the specified selection.

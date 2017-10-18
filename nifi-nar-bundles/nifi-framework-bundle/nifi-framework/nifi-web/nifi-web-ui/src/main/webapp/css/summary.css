@@ -103,6 +103,23 @@ input.search-nodes {
     color: #888;
 }
 
+div.is-primary-icon {
+    color: #000;
+    font-family: Roboto;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 14px;
+    width: 14px;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #aaa;
+    border-radius: 7px;
+    margin-right: 3px;
+    margin-top: 3px;
+    float: left;
+    text-align: center;
+}
+
 /* system diagnostics dialog */
 
 #system-diagnostics-refresh-container{

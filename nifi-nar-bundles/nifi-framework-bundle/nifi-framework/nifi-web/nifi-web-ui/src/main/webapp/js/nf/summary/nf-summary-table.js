@@ -276,6 +276,19 @@
             return markup;
         };
 
+        // formatter for name
+        var nameFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (isClustered && dataContext.executionNode === 'PRIMARY') {
+                markup += '<div class="is-primary-icon" title="This component is only scheduled to execute on the Primary Node">P</div>';
+            }
+
+            markup += nfCommon.escapeHtml(value);
+
+            return markup;
+        };
+
         // formatter for io
         var ioFormatter = function (row, cell, value, columnDef, dataContext) {
             return nfCommon.escapeHtml(dataContext.read) + ' / ' + nfCommon.escapeHtml(dataContext.written);
@@ -326,9 +339,9 @@
             id: 'name',
             field: 'name',
             name: 'Name',
+            formatter: nameFormatter,
             sortable: true,
-            resizable: true,
-            formatter: nfCommon.genericValueFormatter
+            resizable: true
         };
         var runStatusColumn = {
             id: 'runStatus',

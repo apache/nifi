@@ -31,6 +31,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private String name;
     private String type;
     private String runStatus;
+    private String executionNode;
 
     private Long bytesRead = 0L;
     private Long bytesWritten = 0L;
@@ -101,6 +102,18 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
 
     public void setRunStatus(String runStatus) {
         this.runStatus = runStatus;
+    }
+
+    @ApiModelProperty(
+            value = "Indicates the node where the process will execute.",
+            allowableValues = "ALL, PRIMARY"
+    )
+    public String getExecutionNode() {
+        return executionNode;
+    }
+
+    public void setExecutionNode(String executionNode) {
+        this.executionNode = executionNode;
     }
 
     /**
@@ -280,6 +293,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setType(getType());
 
         other.setRunStatus(getRunStatus());
+        other.setExecutionNode(getExecutionNode());
         other.setBytesRead(getBytesRead());
         other.setBytesWritten(getBytesWritten());
         other.setFlowFilesIn(getFlowFilesIn());
