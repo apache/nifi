@@ -704,7 +704,9 @@
 
             // whether or not a group item should be included
             var includeGroupItem = function (groupItem) {
-                if (groupItem.menuItem) {
+                if (groupItem.separator) {
+                    return true;
+                } else if (groupItem.menuItem) {
                     return groupItem.condition(selection);
                 } else {
                     var descendantItems = [];
@@ -754,7 +756,12 @@
                             applicableGroupItems.push(groupItem);
                         }
                     });
-                    included = applicableGroupItems.length > 0;
+
+                    // ensure the included menu items includes more than just separators
+                    var includedMenuItems = $.grep(applicableGroupItems, function (gi) {
+                        return nfCommon.isUndefinedOrNull(gi.separator);
+                    });
+                    included = includedMenuItems.length > 0;
                     if (included) {
                         addGroupItem(menu, i.id, i.groupMenuItem, applicableGroupItems);
                     }
