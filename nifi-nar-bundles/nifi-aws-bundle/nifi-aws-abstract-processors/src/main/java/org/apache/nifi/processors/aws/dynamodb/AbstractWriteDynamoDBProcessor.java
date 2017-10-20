@@ -61,9 +61,6 @@ public abstract class AbstractWriteDynamoDBProcessor extends AbstractDynamoDBPro
      * Get the request item key and attribute value
      * @param writeRequest write request
      * @return Map of keys and values
-     *
-     * @see PutDynamoDB#getRequestItem(WriteRequest)
-     * @see DeleteDynamoDB#getRequestItem(WriteRequest)
      */
     protected abstract Map<String, AttributeValue> getRequestItem(WriteRequest writeRequest);
 }

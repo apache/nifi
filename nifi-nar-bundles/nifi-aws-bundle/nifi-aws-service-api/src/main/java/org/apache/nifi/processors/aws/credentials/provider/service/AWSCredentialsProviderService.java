@@ -40,5 +40,5 @@ public interface AWSCredentialsProviderService extends ControllerService {
      *
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
-    public AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
+    AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
 }

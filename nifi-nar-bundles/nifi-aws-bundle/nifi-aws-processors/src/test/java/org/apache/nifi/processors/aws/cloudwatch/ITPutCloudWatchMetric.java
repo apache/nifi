@@ -26,7 +26,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 /**
- * Provides integration level testing with actual AWS Cloudwatcch resources for {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
+ * Provides integration level testing with actual AWS CloudWatch resources for {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
  */
 public class ITPutCloudWatchMetric {
 

@@ -18,35 +18,28 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <artifactId>nifi-aws-bundle</artifactId>
+        <version>1.4.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-aws-bundle</artifactId>
-    <packaging>pom</packaging>
-
+    <artifactId>nifi-aws-service-api-nar</artifactId>
+    <packaging>nar</packaging>
     <properties>
-        <aws-java-sdk-version>1.11.68</aws-java-sdk-version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bom</artifactId>
-                <version>${aws-java-sdk-version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <modules>
-        <module>nifi-aws-processors</module>
-        <module>nifi-aws-nar</module>
-        <module>nifi-aws-service-api</module>
-        <module>nifi-aws-service-api-nar</module>
-        <module>nifi-aws-abstract-processors</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-aws-service-api</artifactId>
+            <version>1.4.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 </project>
