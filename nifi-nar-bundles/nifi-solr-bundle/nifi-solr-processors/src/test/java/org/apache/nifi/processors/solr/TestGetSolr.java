@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.processors.solr;
 
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -286,6 +287,39 @@ public class TestGetSolr {
         runner.clearTransferState();
     }
 
+    @Test
+    public void testStateCleared() throws IOException, SolrServerException {
+        final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "1");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(GetSolr.COLLECTION, "testCollection");
+
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+        // run without clearing statemanager
+        runner.run(1,false, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        // run with cleared statemanager
+        runner.getStateManager().clear(Scope.CLUSTER);
+        runner.run(1, true, true);
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 10);
+        runner.clearTransferState();
+
+
+    }
 
     @Test
     public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
@@ -314,7 +348,6 @@ public class TestGetSolr {
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 5);
         runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
     }
-
 
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends GetSolr {
