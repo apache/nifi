@@ -83,7 +83,7 @@ public class PriorityAttributePrioritizerTest {
         assertEquals(-1, prioritizer.compare(ffNoPriority, null));
         assertEquals(1, prioritizer.compare(null, ffNoPriority));
 
-        assertEquals(-1, prioritizer.compare(ffNoPriority, ffNoPriority));
+        assertEquals(0, prioritizer.compare(ffNoPriority, ffNoPriority));
         assertEquals(-1, prioritizer.compare(ffPri1, ffNoPriority));
         assertEquals(1, prioritizer.compare(ffNoPriority, ffPri1));
 
