@@ -49,7 +49,7 @@ public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
         String o1Priority = o1.getAttribute(CoreAttributes.PRIORITY.key());
         String o2Priority = o2.getAttribute(CoreAttributes.PRIORITY.key());
         if (o1Priority == null && o2Priority == null) {
-            return -1; // this is not 0 to match FirstInFirstOut
+            return 0;
         } else if (o2Priority == null) {
             return -1;
         } else if (o1Priority == null) {
