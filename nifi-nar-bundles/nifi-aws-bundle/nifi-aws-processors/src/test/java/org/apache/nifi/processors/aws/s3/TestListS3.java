@@ -194,7 +194,7 @@ public class TestListS3 {
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 15, pd.size());
+        assertEquals("size should be eq", 17, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -210,5 +210,9 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.DELIMITER));
         assertTrue(pd.contains(ListS3.PREFIX));
         assertTrue(pd.contains(ListS3.USE_VERSIONS));
+        assertTrue(pd.contains(ListS3.PROXY_HOST));
+        assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
+        assertTrue(pd.contains(ListS3.PROXY_USERNAME));
+        assertTrue(pd.contains(ListS3.PROXY_PASSWORD));
     }
 }

@@ -150,7 +150,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
+        assertEquals("size should be eq", 30, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -172,6 +172,10 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
+        assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
+        assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
     }
 
 }
