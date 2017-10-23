@@ -115,6 +115,14 @@ public class ConsumeKafkaTest {
 
         runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "src/test/resources/server.properties");
         runner.assertValid();
+
+        runner.setVariable("keytab", "src/test/resources/server.properties");
+        runner.setVariable("principal", "nifi@APACHE.COM");
+        runner.setVariable("service", "kafka");
+        runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
+        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
+        runner.setProperty(KafkaProcessorUtils.KERBEROS_PRINCIPLE, "${service}");
+        runner.assertValid();
     }
 
 }
