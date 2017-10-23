@@ -17,7 +17,26 @@
 package org.apache.nifi.expression;
 
 /**
- * Indicates the scope of expression language on a property descriptor
+ * Indicates the scope of expression language on a property descriptor.
+ *
+ * Scope of the expression language is hierarchical.
+ *      NONE -> VARIABLE_REGISTRY -> FLOWFILE_ATTRIBUTES
+ *
+ * When scope is set to FlowFiles attributes, variables are evaluated
+ * against attributes of each incoming flow file. If no matching attribute
+ * is found, variable registry will be checked.
+ *
+ * NONE - expression language is not supported
+ *
+ * VARIABLE_REGISTRY is hierarchically constructed as below:
+ *  |---- Variables defined at process group level and then, recursively, up
+ *  |     to the higher process group until the root process group.
+ *  |--- Variables defines in custom properties files through the
+ *  |    nifi.variable.registry.properties property in nifi.properties file
+ *  |-- Environment variables defined at JVM level and system properties
+ *
+ * FLOWFILE_ATTRIBUTES - will check attributes of each individual flow file
+ *
  */
 public enum ExpressionLanguageScope {
 
@@ -29,7 +48,7 @@ public enum ExpressionLanguageScope {
     /**
      * Expression language is evaluated against variables in registry
      */
-    VARIABLE_REGISTRY_ONLY,
+    VARIABLE_REGISTRY,
 
     /**
      * Expression language is evaluated per flow file using attributes

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.sns;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
@@ -37,7 +38,7 @@ public abstract class AbstractSNSProcessor extends AbstractAWSCredentialsProvide
     public static final PropertyDescriptor ARN = new PropertyDescriptor.Builder()
             .name("Amazon Resource Name (ARN)")
             .description("The name of the resource to which notifications should be published")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -45,7 +46,7 @@ public abstract class AbstractSNSProcessor extends AbstractAWSCredentialsProvide
     public static final PropertyDescriptor ARN_TYPE = new PropertyDescriptor.Builder()
             .name("ARN Type")
             .description("The type of Amazon Resource Name that is being used.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(ARN_TYPE_TOPIC, ARN_TYPE_TARGET)
             .defaultValue(ARN_TYPE_TOPIC.getValue())

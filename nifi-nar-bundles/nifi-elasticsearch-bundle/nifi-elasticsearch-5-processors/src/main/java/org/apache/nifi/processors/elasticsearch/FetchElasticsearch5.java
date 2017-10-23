@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -88,7 +89,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Document Identifier")
             .description("The identifier for the document to be fetched")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -97,7 +98,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Index")
             .description("The name of the index to read from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -106,7 +107,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .displayName("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

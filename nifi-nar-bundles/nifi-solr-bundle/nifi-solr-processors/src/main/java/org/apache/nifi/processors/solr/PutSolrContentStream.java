@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -84,7 +85,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("The path in Solr to post the ContentStream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("/update/json/docs")
             .build();
 
@@ -93,7 +94,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("Content-Type being sent to Solr")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("application/json")
             .build();
 
@@ -102,7 +103,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("The number of milliseconds before the given update is committed")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("5000")
             .build();
 

@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -60,39 +61,61 @@ import java.util.Set;
 @DeprecationNotice(alternatives = {FullyDocumentedProcessor.class, FullyDocumentedReportingTask.class})
 public class DeprecatedProcessor extends AbstractProcessor {
 
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
-            .description("The input directory from which to pull files").required(true)
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Input Directory")
+            .description("The input directory from which to pull files")
+            .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-            .expressionLanguageSupported(true).build();
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
-    public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder().name("Recurse Subdirectories")
-            .description("Indicates whether or not to pull files from subdirectories").required(true)
+    public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
+            .name("Recurse Subdirectories")
+            .description("Indicates whether or not to pull files from subdirectories")
+            .required(true)
             .allowableValues(
                     new AllowableValue("true", "true", "Should pull from sub directories"),
                     new AllowableValue("false", "false", "Should not pull from sub directories")
-            ).defaultValue("true").build();
+            )
+            .defaultValue("true")
+            .build();
 
-    public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder().name("Polling Interval")
-            .description("Indicates how long to wait before performing a directory listing").required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).defaultValue("0 sec").build();
+    public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Polling Interval")
+            .description("Indicates how long to wait before performing a directory listing")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
 
     public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
-            .name("Optional Property").description("This is a property you can use or not").required(false).build();
+            .name("Optional Property")
+            .description("This is a property you can use or not")
+            .required(false)
+            .build();
 
     public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
             .name("Type")
             .description("This is the type of something that you can choose.  It has several possible values")
             .allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name")
-            .required(true).build();
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor SERVICE_PROPERTY = new PropertyDescriptor.Builder()
-            .name("Controller Service").description("This is the controller service to use to do things")
-            .identifiesControllerService(SampleService.class).required(true).build();
+            .name("Controller Service")
+            .description("This is the controller service to use to do things")
+            .identifiesControllerService(SampleService.class)
+            .required(true)
+            .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("Successful files").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Failing files").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Successful files")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Failing files")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;

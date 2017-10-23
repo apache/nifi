@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
@@ -40,7 +41,7 @@ public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProvide
             .name("Queue URL")
             .description("The URL of the queue to act upon")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 

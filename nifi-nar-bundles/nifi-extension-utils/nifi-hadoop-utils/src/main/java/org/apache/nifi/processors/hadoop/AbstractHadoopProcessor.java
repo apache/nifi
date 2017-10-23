@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -78,7 +79,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
             .required(false)
             .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -86,7 +87,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("The HDFS directory from which files should be read")
             .required(true)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
@@ -103,7 +104,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .defaultValue("4 hours")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()

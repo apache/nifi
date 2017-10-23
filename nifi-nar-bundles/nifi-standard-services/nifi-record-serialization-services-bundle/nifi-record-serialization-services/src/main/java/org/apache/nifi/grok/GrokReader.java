@@ -35,6 +35,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
@@ -86,7 +87,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             + "will be used. If specified, all patterns in the given pattern file will override the default patterns. See the Controller Service's "
             + "Additional Details for a list of pre-defined patterns.")
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
 

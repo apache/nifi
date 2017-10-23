@@ -72,6 +72,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKines
      *
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
+    @Deprecated
     @Override
     protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials");

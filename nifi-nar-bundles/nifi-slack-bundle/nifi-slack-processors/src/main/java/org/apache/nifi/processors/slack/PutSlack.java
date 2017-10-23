@@ -26,6 +26,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -82,7 +83,7 @@ public class PutSlack extends AbstractProcessor {
             .displayName("Webhook Text")
             .description("The text sent in the webhook message")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -93,7 +94,7 @@ public class PutSlack extends AbstractProcessor {
             .description("A public channel using #channel or direct message using @username. If not specified, " +
                     "the default webhook channel as specified in Slack's Incoming Webhooks web interface is used.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -103,7 +104,7 @@ public class PutSlack extends AbstractProcessor {
             .displayName("Username")
             .description("The displayed Slack username")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -113,7 +114,7 @@ public class PutSlack extends AbstractProcessor {
             .displayName("Icon URL")
             .description("Icon URL to be used for the message")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -123,7 +124,7 @@ public class PutSlack extends AbstractProcessor {
             .displayName("Icon Emoji")
             .description("Icon Emoji to be used for the message. Must begin and end with a colon, e.g. :ghost:")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(new EmojiValidator())
             .build();
@@ -163,7 +164,7 @@ public class PutSlack extends AbstractProcessor {
                 .required(false)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

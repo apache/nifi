@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -150,7 +151,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .description(BUCKET_DESC)
             .required(true)
             .defaultValue("${" + BUCKET_ATTR + "}")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -160,7 +161,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${filename}")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -170,7 +171,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                       .description("Content Type for the file, i.e. text/plain")
                       .defaultValue("${mime.type}")
                       .required(false)
-                      .expressionLanguageSupported(true)
+                      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                       .build();
 
@@ -179,7 +180,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("MD5 Hash")
             .description("MD5 Hash (encoded in Base64) of the file for server-side validation.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -189,7 +190,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("CRC32C Checksum")
             .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

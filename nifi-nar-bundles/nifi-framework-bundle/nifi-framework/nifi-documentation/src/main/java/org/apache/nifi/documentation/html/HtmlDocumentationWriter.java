@@ -536,7 +536,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                                 text += perFF;
                             }
                             break;
-                        case VARIABLE_REGISTRY_ONLY:
+                        case VARIABLE_REGISTRY:
                             text += registry;
                             break;
                         case NONE:

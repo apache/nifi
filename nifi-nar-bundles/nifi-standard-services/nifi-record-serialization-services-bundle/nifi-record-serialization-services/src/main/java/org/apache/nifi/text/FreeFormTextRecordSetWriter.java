@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.InheritSchemaFromRecord;
@@ -47,7 +48,7 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
         .name("Text")
         .description("The text to use when writing the results. This property will evaluate the Expression Language using any of the fields available in a Record.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
@@ -55,7 +56,7 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
         .description("The Character set to use when writing the data to the FlowFile")
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
         .defaultValue("UTF-8")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
 

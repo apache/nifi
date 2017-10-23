@@ -31,6 +31,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -95,7 +96,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 "the flowfile's body. If this field is left blank and a timer is enabled instead of an incoming connection, " +
                 "that will result in a full collection fetch using a \"{}\" query.")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();
 

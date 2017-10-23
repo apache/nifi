@@ -29,6 +29,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -67,7 +68,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
     protected static final PropertyDescriptor ROW_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("Row Identifier Field Name")
             .description("Specifies the name of a JSON element whose value should be used as the row id for the given JSON document.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -84,7 +85,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
     protected static final PropertyDescriptor COMPLEX_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("Complex Field Strategy")
             .description("Indicates how to handle complex fields, i.e. fields that do not have a single text value.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(COMPLEX_FIELD_FAIL, COMPLEX_FIELD_WARN, COMPLEX_FIELD_IGNORE, COMPLEX_FIELD_TEXT)
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())

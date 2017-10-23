@@ -48,6 +48,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -84,7 +85,7 @@ public class PutWebSocket extends AbstractProcessor {
                     "sent to all connected WebSocket peers for the WebSocket controller service endpoint.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + ATTR_WS_SESSION_ID + "}")
             .build();
 
@@ -94,7 +95,7 @@ public class PutWebSocket extends AbstractProcessor {
             .description("A NiFi Expression to retrieve the id of a WebSocket ControllerService.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + ATTR_WS_CS_ID + "}")
             .build();
 
@@ -104,7 +105,7 @@ public class PutWebSocket extends AbstractProcessor {
             .description("A NiFi Expression to retrieve the endpoint id of a WebSocket ControllerService.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + ATTR_WS_ENDPOINT_ID + "}")
             .build();
 
@@ -115,7 +116,7 @@ public class PutWebSocket extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(WebSocketMessage.Type.TEXT.toString())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

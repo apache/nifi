@@ -84,6 +84,24 @@ public class MockPropertyValue implements PropertyValue {
         }
     }
 
+    private void validateExpressionScope(boolean attributesAvailable) {
+        if(expressionLanguageScope != null
+                && (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+        }
+
+        if(expressionLanguageScope != null
+                && (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+        }
+    }
+
     @Override
     public String getValue() {
         ensureExpressionsEvaluated();
@@ -189,21 +207,7 @@ public class MockPropertyValue implements PropertyValue {
             return this;
         }
 
-        if(expressionLanguageScope != null
-                && (flowFile != null && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
-            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
-                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
-                    + " proper scope should be set in the property descriptor using"
-                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
-        }
-
-        if(expressionLanguageScope != null
-                && (flowFile == null && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
-            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
-                    + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
-                    + " proper scope should be set in the property descriptor using"
-                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
-        }
+        validateExpressionScope(flowFile != null || additionalAttributes != null);
 
         final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator, stateValues);
         return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, variableRegistry);
