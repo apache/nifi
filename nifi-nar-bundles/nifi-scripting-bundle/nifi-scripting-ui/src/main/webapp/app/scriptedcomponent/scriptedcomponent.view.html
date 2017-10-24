@@ -1,0 +1,59 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<div layout="column">
+    <div layout="column" layout>
+
+        <div class="md-toolbar-tools large-label">
+            <span>Script Engine</span>
+            <span flex></span>
+        </div>
+
+        <div class="md-toolbar-tools large-label">
+            <md-select flex="30" ng-model="scriptEngine" ng-change="toggleScriptEngine(editor, scriptEngine)" class="md-no-underline"
+                aria-label="Select Script Engine">
+                <md-option ng-repeat="option in scriptEngineOptions | orderBy: 'label'" ng-value="option.value" ng-disabled="!editable">{{option.label}}</md-option>
+            </md-select>
+            <span flex></span>
+        </div>
+
+        <div class="md-toolbar-tools large-label">
+            <span>Script Body</span>
+            <span flex></span>
+            <span class="info">
+                &nbsp;&nbsp;
+                <button class="small-button" ng-click="formatEditor(editor)" ng-disabled="!scriptBody || !editable" title="Format" aria-label="Format">
+                    <i class="fa fa-align-left" aria-hidden="true"></i>
+                </button>
+            </span>
+        </div>
+
+        <div id="editor" ui-refresh="true" ng-model="scriptBody" ui-codemirror="editorProperties" class="code-mirror-editor {{disableCSS}}">
+        </div>
+    </div>
+</div>
+
+<div layout="column">
+    <div layout="row">
+        <div flex></div>
+        <div>
+            <br/>
+            <span ng-show="error" class="info">{{error}}</span>
+            <span ng-show="saveStatus && !error" class="info">{{saveStatus}}</span>
+            <span>
+                <button class="primary-button" ng-click="saveScript(scriptEngine, scriptBody, processorId, clientId, revisionId)" ng-disabled="!editable">Save</button>
+            </span>
+        </div>
+    </div>
+</div>

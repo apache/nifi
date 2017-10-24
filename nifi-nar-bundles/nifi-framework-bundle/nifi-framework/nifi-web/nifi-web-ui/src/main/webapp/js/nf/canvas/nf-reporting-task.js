@@ -582,7 +582,7 @@
                                     nfCustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the reporting task
                                         nfReportingTask.reload(reportingTaskEntity.id).done(function (response) {
-                                            nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.reportingTask);
+                                            nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
                                         });
 
                                         // show the settings

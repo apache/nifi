@@ -42,11 +42,33 @@
 }(this, function ($, nfCommon, nfShell, nfDialog, nfClient) {
     'use strict';
 
+    /**
+     * Gets UI entity type based on its URI.
+     *
+     * @argument {object} entity            The component
+     */
+    var getEntityType = function(entity) {
+        var uri = entity.uri;
+
+        // the part after /nifi-api/
+        var namePart = uri.match(/nifi-api\/(.+)/)[1];
+        var entityType = namePart.substring(0, namePart.indexOf('/'));
+
+        var typeMap = {
+            'controller-services': 'controllerService',
+            'processors': 'processor',
+            'reporting-tasks': 'reportingTask'
+        };
+
+        return typeMap[entityType];
+    }
+
     return {
+
         /**
          * Shows the custom ui.
          *
-         * @argument {object} entity            The component id
+         * @argument {object} entity            The component
          * @arugment {string} uri               The custom ui uri
          * @argument {boolean} editable         Whether the custom ui should support editing
          */
@@ -63,7 +85,8 @@
                         'id': entity.id,
                         'revision': revision.version,
                         'clientId': revision.clientId,
-                        'editable': editable
+                        'editable': editable,
+                        'entityType': getEntityType(entity)
                     };
 
                     // conditionally include the ui extension token

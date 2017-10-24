@@ -306,6 +306,42 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
          * @return details
          */
         ComponentDetails updateComponent(NiFiWebConfigurationRequestContext requestContext, String annotationData, Map<String, String> properties);
+
+        /**
+         *
+         * Creates the mapping of component descriptors.
+         *
+         * @param descriptors descriptors
+         * @return The mapping of component descriptors.
+         */
+        static Map<String, ComponentDescriptor> buildComponentDescriptorMap(Map<String, PropertyDescriptorDTO> descriptors){
+
+            final Map<String, ComponentDescriptor> descriptorsMap = new HashMap<>();
+
+            for(String key : descriptors.keySet()){
+                final PropertyDescriptorDTO descriptor = descriptors.get(key);
+                final List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
+                final Map<String,String> allowableValues = new HashMap<>();
+
+                if(allowableValuesEntity != null) {
+                    for (AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
+                        final AllowableValueDTO allowableValueDTO = allowableValueEntity.getAllowableValue();
+                        allowableValues.put(allowableValueDTO.getValue(), allowableValueDTO.getDisplayName());
+                    }
+                }
+
+                final ComponentDescriptor componentDescriptor = new ComponentDescriptor.Builder()
+                        .name(descriptor.getName())
+                        .displayName(descriptor.getDisplayName())
+                        .defaultValue(descriptor.getDefaultValue())
+                        .allowableValues(allowableValues)
+                        .build();
+
+                descriptorsMap.put(key, componentDescriptor);
+            }
+
+            return descriptorsMap;
+        }
     }
 
     /**
@@ -447,6 +483,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         private ComponentDetails getComponentConfiguration(final ProcessorDTO processor) {
             final ProcessorConfigDTO processorConfig = processor.getConfig();
+            final Map<String, PropertyDescriptorDTO> descriptors = processorConfig.getDescriptors();
+
             return new ComponentDetails.Builder()
                     .id(processor.getId())
                     .name(processor.getName())
@@ -454,41 +492,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .state(processor.getState())
                     .annotationData(processorConfig.getAnnotationData())
                     .properties(processorConfig.getProperties())
-                    .descriptors(buildComponentDescriptorMap(processorConfig))
+                    .descriptors(ComponentFacade.buildComponentDescriptorMap(descriptors))
                     .validateErrors(processor.getValidationErrors()).build();
         }
-
-        private Map<String,ComponentDescriptor> buildComponentDescriptorMap(final ProcessorConfigDTO processorConfig){
-
-            final Map<String, ComponentDescriptor> descriptors = new HashMap<>();
-
-            for(String key : processorConfig.getDescriptors().keySet()){
-
-                PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
-                List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
-                Map<String,String> allowableValues = new HashMap<>();
-
-                if(allowableValuesEntity != null) {
-                    for (AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
-                        final AllowableValueDTO allowableValueDTO = allowableValueEntity.getAllowableValue();
-                        allowableValues.put(allowableValueDTO.getValue(), allowableValueDTO.getDisplayName());
-                    }
-                }
-
-                ComponentDescriptor componentDescriptor = new ComponentDescriptor.Builder()
-                        .name(descriptor.getName())
-                        .displayName(descriptor.getDisplayName())
-                        .defaultValue(descriptor.getDefaultValue())
-                        .allowableValues(allowableValues)
-                        .build();
-
-
-                descriptors.put(key,componentDescriptor);
-            }
-
-            return descriptors;
-        }
-
     }
 
     /**
@@ -645,6 +651,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         private ComponentDetails getComponentConfiguration(final ControllerServiceDTO controllerService) {
+            final Map<String, PropertyDescriptorDTO> descriptors = controllerService.getDescriptors();
+
             return new ComponentDetails.Builder()
                     .id(controllerService.getId())
                     .name(controllerService.getName())
@@ -652,6 +660,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .state(controllerService.getState())
                     .annotationData(controllerService.getAnnotationData())
                     .properties(controllerService.getProperties())
+                    .descriptors(ComponentFacade.buildComponentDescriptorMap(descriptors))
                     .validateErrors(controllerService.getValidationErrors()).build();
         }
     }
@@ -811,6 +820,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         private ComponentDetails getComponentConfiguration(final ReportingTaskDTO reportingTask) {
+            final Map<String, PropertyDescriptorDTO> descriptors = reportingTask.getDescriptors();
+
             return new ComponentDetails.Builder()
                     .id(reportingTask.getId())
                     .name(reportingTask.getName())
@@ -818,6 +829,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .state(reportingTask.getState())
                     .annotationData(reportingTask.getAnnotationData())
                     .properties(reportingTask.getProperties())
+                    .descriptors(ComponentFacade.buildComponentDescriptorMap(descriptors))
                     .validateErrors(reportingTask.getValidationErrors()).build();
         }
     }
