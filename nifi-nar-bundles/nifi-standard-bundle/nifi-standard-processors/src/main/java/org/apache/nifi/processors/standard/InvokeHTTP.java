@@ -50,6 +50,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -376,10 +377,20 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_USE_ETAG = new PropertyDescriptor.Builder()
             .name("use-etag")
+            .description("Enable HTTP entity tag (ETag) support for HTTP requests.")
             .displayName("Use HTTP ETag")
             .required(true)
             .defaultValue("false")
             .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor PROP_ETAG_MAX_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("etag-max-cache-size")
+            .description("The maximum size that the ETag cache should be allowed to grow to. The default size is 10MB.")
+            .displayName("Maximum ETag Cache Size")
+            .required(true)
+            .defaultValue("10MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -407,7 +418,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY,
-            PROP_USE_ETAG));
+            PROP_USE_ETAG,
+            PROP_ETAG_MAX_CACHE_SIZE));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -451,12 +463,6 @@ public final class InvokeHTTP extends AbstractProcessor {
      */
     private static final String RFC_1123 = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(RFC_1123).withLocale(Locale.US).withZoneUTC();
-
-    /**
-     * The maximum size, in bytes, that the ETag cache should grow if it is enabled.
-     * The size here is chosen arbitrarily, as the documentation doesn't suggest a recommended value.
-     */
-    private static final int MAX_ETAG_CACHE_SIZE_BYTES = 1024 * 1024 * 10; // 10MiB
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
@@ -546,8 +552,9 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // configure ETag cache if enabled
         final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(etagEnabled) {
-            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), MAX_ETAG_CACHE_SIZE_BYTES));
+        if(etagEnabled && getLogger().isDebugEnabled()) {
+            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
+            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
         // Set timeouts
