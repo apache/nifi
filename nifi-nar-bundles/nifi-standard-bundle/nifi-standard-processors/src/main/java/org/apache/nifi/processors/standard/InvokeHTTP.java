@@ -552,7 +552,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // configure ETag cache if enabled
         final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(etagEnabled && getLogger().isDebugEnabled()) {
+        if(etagEnabled) {
             final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
@@ -703,7 +703,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // log ETag cache metrics
         final boolean eTagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(eTagEnabled) {
+        if(eTagEnabled && logger.isDebugEnabled()) {
             final Cache cache = okHttpClient.cache();
             logger.debug("OkHttp ETag cache metrics :: Request Count: {} | Network Count: {} | Hit Count: {}",
                     new Object[] {cache.requestCount(), cache.networkCount(), cache.hitCount()});
