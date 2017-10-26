@@ -71,6 +71,8 @@
 }(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
     'use strict';
 
+    var lastSelectedId = null;
+
     // text editor
     var textEditor = function (args) {
         var scope = this;
@@ -568,9 +570,15 @@
                     var variableIndex = args.rows[0];
                     var variable = variablesGrid.getDataItem(variableIndex);
 
-                    // update the details for this variable
-                    $('#affected-components-context').removeClass('unset').text(variable.name);
-                    populateAffectedComponents(variable.affectedComponents);
+                    // only populate affected components if this variable is different than the last selected
+                    if (lastSelectedId === null || lastSelectedId !== variable.id) {
+                        // update the details for this variable
+                        $('#affected-components-context').removeClass('unset').text(variable.name);
+                        populateAffectedComponents(variable.affectedComponents);
+
+                        // update the last selected id
+                        lastSelectedId = variable.id;
+                    }
                 }
             }
         });
