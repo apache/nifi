@@ -864,8 +864,7 @@
                     dataType: 'json'
                 });
 
-                $.when(bulletins, service).done(function (bulletinResult, serviceResult) {
-                    var bulletinResponse = bulletinResult[0];
+                $.when(bulletins, service).done(function (bulletinResponse, serviceResult) {
                     var serviceResponse = serviceResult[0];
                     conditionMet(serviceResponse.component, bulletinResponse.bulletinBoard.bulletins);
                 }).fail(function (xhr, status, error) {
