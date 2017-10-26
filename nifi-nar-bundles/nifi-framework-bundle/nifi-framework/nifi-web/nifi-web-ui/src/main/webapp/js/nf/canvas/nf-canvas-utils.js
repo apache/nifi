@@ -284,7 +284,13 @@
 
             if (queries.length === 1) {
                 // if there was only one query, return it
-                return queries[0].fail(nfErrorHandler.handleAjaxError);
+                return $.Deferred(function (deferred) {
+                    queries[0].done(function (response) {
+                        deferred.resolve(response);
+                    }).fail(function () {
+                        deferred.reject();
+                    }).fail(nfErrorHandler.handleAjaxError);
+                }).promise();
             } else {
                 // if there were multiple queries, wait for each to complete
                 return $.Deferred(function (deferred) {
