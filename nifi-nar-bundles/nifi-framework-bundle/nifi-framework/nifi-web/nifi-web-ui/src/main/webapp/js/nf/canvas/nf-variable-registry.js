@@ -1536,6 +1536,9 @@
         affectedControllerServicesContainer.empty();
 
         $('#variable-registry-affected-unauthorized-components').empty();
+
+        // reset the last selected variable
+        lastSelectedId = null;
     };
 
     return {
