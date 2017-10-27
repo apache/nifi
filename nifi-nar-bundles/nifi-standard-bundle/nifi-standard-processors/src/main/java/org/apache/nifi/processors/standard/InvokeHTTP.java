@@ -222,6 +222,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The fully qualified hostname or IP address of the proxy server")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PORT = new PropertyDescriptor.Builder()
@@ -229,6 +230,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The port of the proxy server")
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_USER = new PropertyDescriptor.Builder()
@@ -237,6 +239,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Username to set when authenticating against proxy")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
@@ -246,6 +249,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
@@ -518,8 +522,8 @@ public final class InvokeHTTP extends AbstractProcessor {
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROP_PROXY_HOST).getValue();
-        final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).asInteger();
+        final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
+        final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
             okHttpClientBuilder.proxy(proxy);
@@ -609,7 +613,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
-        final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).getValue());
+        final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).evaluateAttributeExpressions().getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
@@ -625,7 +629,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
 
             if(!proxyUsername.isEmpty()) {
-                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
+                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
                 ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyUsername, proxyPassword);
 
                 okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
@@ -636,7 +640,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         } else {
             // Add proxy authentication only
             if(!proxyUsername.isEmpty()) {
-                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
+                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
                 ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyUsername, proxyPassword);
 
                 okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
