@@ -50,7 +50,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
     private String[] fieldNames;
 
     public WriteCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter, final OutputStream out,
-        final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine) throws IOException {
+        final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine, final String charSet) throws IOException {
 
         super(out);
         this.recordSchema = recordSchema;
@@ -61,7 +61,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         this.includeHeaderLine = includeHeaderLine;
 
         final CSVFormat formatWithHeader = csvFormat.withSkipHeaderRecord(true);
-        final OutputStreamWriter streamWriter = new OutputStreamWriter(out);
+        final OutputStreamWriter streamWriter = new OutputStreamWriter(out, charSet);
         printer = new CSVPrinter(streamWriter, formatWithHeader);
 
         fieldValues = new Object[recordSchema.getFieldCount()];

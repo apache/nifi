@@ -76,10 +76,10 @@ public class TestWriteCSVResult {
         final long now = System.currentTimeMillis();
 
         try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
 
             final Map<String, Object> valueMap = new HashMap<>();
-            valueMap.put("string", "string");
+            valueMap.put("string", "a孟bc李12儒3");
             valueMap.put("boolean", true);
             valueMap.put("byte", (byte) 1);
             valueMap.put("char", 'c');
@@ -113,7 +113,7 @@ public class TestWriteCSVResult {
 
         final String values = splits[1];
         final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"string\",\"true\",\"1\",\"c\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",");
+        expectedBuilder.append("\"a孟bc李12儒3\",\"true\",\"1\",\"c\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",");
 
         final String dateValue = getDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
         final String timeValue = getDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
@@ -143,7 +143,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.write(record);
@@ -170,7 +170,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.writeRawRecord(record);
@@ -197,7 +197,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.writeRecord(record);
@@ -224,7 +224,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.writeRawRecord(record);
@@ -253,7 +253,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.writeRecord(record);
@@ -281,7 +281,7 @@ public class TestWriteCSVResult {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final String output;
         try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true)) {
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
 
             writer.beginRecordSet();
             writer.writeRawRecord(record);

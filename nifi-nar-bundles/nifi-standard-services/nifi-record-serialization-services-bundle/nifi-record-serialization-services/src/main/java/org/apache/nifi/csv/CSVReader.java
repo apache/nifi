@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -60,7 +61,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     private volatile String timestampFormat;
     private volatile boolean firstLineIsHeader;
     private volatile boolean ignoreHeader;
-
+    private volatile String charSet;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -77,6 +78,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.COMMENT_MARKER);
         properties.add(CSVUtils.NULL_STRING);
         properties.add(CSVUtils.TRIM_FIELDS);
+        properties.add(CSVUtils.CHARSET);
         return properties;
     }
 
@@ -88,6 +90,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
         this.firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).asBoolean();
         this.ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).asBoolean();
+        this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
 
         // Ensure that if we are deriving schema from header that we always treat the first line as a header,
         // regardless of the 'First Line is Header' property
@@ -106,7 +109,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(bufferedIn), null);
         bufferedIn.reset();
 
-        return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
+        return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
     }
 
     @Override
