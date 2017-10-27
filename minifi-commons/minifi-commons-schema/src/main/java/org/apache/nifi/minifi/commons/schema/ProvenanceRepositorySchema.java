@@ -25,11 +25,15 @@ import java.util.Map;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
 
 public class ProvenanceRepositorySchema extends BaseSchema implements WritableSchema {
-    public static final String PROVENANCE_REPO_ROLLOVER_TIME_KEY = "provenance rollover time";
 
+    public static final String PROVENANCE_REPO_ROLLOVER_TIME_KEY = "provenance rollover time";
     public static final String DEFAULT_PROVENANCE_ROLLOVER_TIME = "1 min";
 
+    public static final String PROVENANCE_REPOSITORY_KEY = "implementation";
+    public static final String DEFAULT_PROVENANCE_REPOSITORY = "org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository";
+
     private String provenanceRepoRolloverTime = DEFAULT_PROVENANCE_ROLLOVER_TIME;
+    private String provenanceRepository = DEFAULT_PROVENANCE_REPOSITORY;
 
     public ProvenanceRepositorySchema(){
     }
@@ -37,13 +41,20 @@ public class ProvenanceRepositorySchema extends BaseSchema implements WritableSc
     public ProvenanceRepositorySchema(Map map) {
         provenanceRepoRolloverTime = getOptionalKeyAsType(map, PROVENANCE_REPO_ROLLOVER_TIME_KEY, String.class,
                 PROVENANCE_REPO_KEY, DEFAULT_PROVENANCE_ROLLOVER_TIME);
+        provenanceRepository = getOptionalKeyAsType(map, PROVENANCE_REPOSITORY_KEY, String.class,
+                PROVENANCE_REPO_KEY, DEFAULT_PROVENANCE_REPOSITORY);
     }
 
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = mapSupplier.get();
         result.put(PROVENANCE_REPO_ROLLOVER_TIME_KEY, provenanceRepoRolloverTime);
+        result.put(PROVENANCE_REPOSITORY_KEY, provenanceRepository);
         return result;
+    }
+
+    public String getProvenanceRepository() {
+        return provenanceRepository;
     }
 
     public String getProvenanceRepoRolloverTimeKey() {

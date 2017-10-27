@@ -428,6 +428,7 @@ always sync                       | If set to _true_, any change to the reposito
 *Property*                        | *Description*
 --------------------------------  | -------------
 provenance rollover time          | The amount of time to wait before rolling over the latest data provenance information so that it is available to be accessed by components. The default value is 1 min.
+implementation                    | The implementation of `ProvenanceRepository` to use. The default value is `org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository`.
 
 ## Component Status Repository
 

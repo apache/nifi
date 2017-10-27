@@ -40,6 +40,7 @@ Content Repository:
   always sync: false
 Provenance Repository:
   provenance rollover time: 1 min
+  implementation: org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository
 Component Status Repository:
   buffer size: 1440
   snapshot frequency: 1 min
