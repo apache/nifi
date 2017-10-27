@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -43,6 +44,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
     private volatile CSVFormat csvFormat;
     private volatile boolean includeHeader;
+    private volatile String charSet;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -58,6 +60,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         properties.add(CSVUtils.QUOTE_MODE);
         properties.add(CSVUtils.RECORD_SEPARATOR);
         properties.add(CSVUtils.TRAILING_DELIMITER);
+        properties.add(CSVUtils.CHARSET);
         return properties;
     }
 
@@ -65,11 +68,12 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     public void storeCsvFormat(final ConfigurationContext context) {
         this.csvFormat = CSVUtils.createCSVFormat(context);
         this.includeHeader = context.getProperty(CSVUtils.INCLUDE_HEADER_LINE).asBoolean();
+        this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
         return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema), out,
-            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader);
+            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
     }
 }
