@@ -60,7 +60,26 @@ public class TestCSVRecordReader {
 
     private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat());
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    }
+
+    @Test
+    public void testUTF8() throws IOException, MalformedRecordException {
+        final String text = "name\n黃凱揚";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord();
+            final String name = (String)record.getValue("name");
+
+            assertEquals("黃凱揚", name);
+        }
     }
 
     @Test
@@ -72,8 +91,8 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
-            final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             final java.sql.Date date = (Date) record.getValue("date");
@@ -268,7 +287,7 @@ public class TestCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, true,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
