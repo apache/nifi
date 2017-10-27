@@ -56,7 +56,7 @@ public class CSVRecordReader implements RecordReader {
     private List<String> rawFieldNames;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+        final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
 
         this.schema = schema;
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
@@ -67,7 +67,7 @@ public class CSVRecordReader implements RecordReader {
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in));
+        final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
         CSVFormat withHeader;
         if (hasHeader) {

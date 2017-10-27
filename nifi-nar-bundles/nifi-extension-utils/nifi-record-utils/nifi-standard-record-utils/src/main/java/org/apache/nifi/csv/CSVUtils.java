@@ -117,6 +117,15 @@ public class CSVUtils {
         .defaultValue("true")
         .required(true)
         .build();
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+        .name("csvutils-character-set")
+        .displayName("Character Set")
+        .description("The Character Encoding that is used to encode/decode the CSV file")
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+        .defaultValue("UTF-8")
+        .required(true)
+        .build();
 
     // CSV Format fields for writers only
     public static final AllowableValue QUOTE_ALL = new AllowableValue("ALL", "Quote All Values", "All values will be quoted using the configured quote character.");
