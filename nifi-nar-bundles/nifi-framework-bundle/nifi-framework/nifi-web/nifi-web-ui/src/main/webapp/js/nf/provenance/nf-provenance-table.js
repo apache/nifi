@@ -1351,6 +1351,11 @@
                         formatEventDetail('Transit Uri', event.transitUri);
                     }
 
+                    // conditionally show REMOTE_INVOCATION details
+                    if (event.eventType === 'REMOTE_INVOCATION') {
+                        formatEventDetail('Transit Uri', event.transitUri);
+                    }
+
                     // conditionally show ADDINFO details
                     if (event.eventType === 'ADDINFO') {
                         formatEventDetail('Alternate Identifier Uri', event.alternateIdentifierUri);

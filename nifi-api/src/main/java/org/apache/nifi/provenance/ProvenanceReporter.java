@@ -317,6 +317,32 @@ public interface ProvenanceReporter {
     void send(FlowFile flowFile, String transitUri, String details, long transmissionMillis, boolean force);
 
     /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}
+     * that indicates a remote invocation is requested to an external endpoint using
+     * the given FlowFile. The external endpoint may exist in a remote or a local system,
+     * but is external to NiFi.
+     * @param flowFile the FlowFile that was used to make the remote invocation
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the invocation occurred. The intent of this
+     * field is to identify they type and target resource or object of the invocation.
+     */
+    void invokeRemoteProcess(FlowFile flowFile, String transitUri);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}
+     * that indicates a remote invocation is requested to an external endpoint using
+     * the given FlowFile. The external endpoint may exist in a remote or a local system,
+     * but is external to NiFi.
+     * @param flowFile the FlowFile that was used to make the remote invocation
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the invocation occurred. The intent of this
+     * field is to identify they type and target resource or object of the invocation.
+     * @param details additional details related to the REMOTE_INVOCATION event, such as an
+     * explanation of the invoked process.
+     */
+    void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details);
+
+    /**
      * Emits a Provenance Event of type
      * {@link ProvenanceEventType#ADDINFO ADDINFO} that provides a linkage
      * between the given FlowFile and alternate identifier. This information can
