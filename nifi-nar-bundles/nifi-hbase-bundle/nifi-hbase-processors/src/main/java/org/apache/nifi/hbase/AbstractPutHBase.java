@@ -201,7 +201,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     }
 
     protected String getTransitUri(PutFlowFile putFlowFile) {
-        return "hbase://" + putFlowFile.getTableName() + "/" + new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+        return clientService.toTransitUri(putFlowFile.getTableName(), new String(putFlowFile.getRow(), StandardCharsets.UTF_8));
     }
 
     protected byte[] getRow(final String row, final String encoding) {
