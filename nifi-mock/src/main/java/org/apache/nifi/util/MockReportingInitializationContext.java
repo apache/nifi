@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -71,6 +72,11 @@ public class MockReportingInitializationContext extends MockControllerServiceLoo
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return null;
     }
 
     @Override

@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -38,11 +39,13 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     private final ControllerServiceProvider serviceProvider;
     private final ComponentLog logger;
     private final NiFiProperties nifiProperties;
+    private final NodeTypeProvider nodeTypeProvider;
 
     public StandardReportingInitializationContext(
             final String id, final String name, final SchedulingStrategy schedulingStrategy,
             final String schedulingPeriod, final ComponentLog logger,
-            final ControllerServiceProvider serviceProvider, final NiFiProperties nifiProperties) {
+            final ControllerServiceProvider serviceProvider, final NiFiProperties nifiProperties,
+            final NodeTypeProvider nodeTypeProvider) {
         this.id = id;
         this.name = name;
         this.schedulingPeriod = schedulingPeriod;
@@ -50,6 +53,7 @@ public class StandardReportingInitializationContext implements ReportingInitiali
         this.schedulingStrategy = schedulingStrategy;
         this.logger = logger;
         this.nifiProperties = nifiProperties;
+        this.nodeTypeProvider = nodeTypeProvider;
     }
 
     @Override
@@ -133,5 +137,10 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     @Override
     public File getKerberosConfigurationFile() {
         return nifiProperties.getKerberosConfigurationFile();
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 }
