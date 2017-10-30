@@ -244,12 +244,6 @@ public class PutHBaseRecord extends AbstractPutHBase {
     }
 
     @Override
-    protected String getTransitUri(PutFlowFile putFlowFile) {
-        return "hbase://" + putFlowFile.getTableName();
-    }
-
-
-    @Override
     protected PutFlowFile createPut(ProcessSession session, ProcessContext context, FlowFile flowFile) {
         return null;
     }

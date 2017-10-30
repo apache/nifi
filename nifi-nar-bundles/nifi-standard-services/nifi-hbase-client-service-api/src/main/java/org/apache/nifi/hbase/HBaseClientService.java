@@ -196,4 +196,15 @@ public interface HBaseClientService extends ControllerService {
      */
     byte[] toBytesBinary(String s);
 
+    /**
+     * Create a transit URI from the current configuration and the specified table name.
+     * The default implementation just prepend "hbase://" to the table name and row key, i.e. "hbase://tableName/rowKey".
+     * @param tableName The name of a HBase table
+     * @param rowKey The target HBase row key, this can be null or empty string if the operation is not targeted to a specific row
+     * @return a qualified transit URI which can identify a HBase table row in a HBase cluster
+     */
+    default String toTransitUri(String tableName, String rowKey) {
+        return "hbase://" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+    }
+
 }
