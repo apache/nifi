@@ -3150,7 +3150,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         if (firstTimeAdded) {
             final ReportingInitializationContext config = new StandardReportingInitializationContext(id, taskNode.getName(),
-                    SchedulingStrategy.TIMER_DRIVEN, "1 min", taskNode.getLogger(), this, nifiProperties);
+                    SchedulingStrategy.TIMER_DRIVEN, "1 min", taskNode.getLogger(), this, nifiProperties, this);
 
             try {
                 taskNode.getReportingTask().initialize(config);

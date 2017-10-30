@@ -116,7 +116,7 @@ public class TestStandardProcessScheduler {
 
         reportingTask = new TestReportingTask();
         final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "Test", SchedulingStrategy.TIMER_DRIVEN, "5 secs",
-                Mockito.mock(ComponentLog.class), null, nifiProperties);
+                Mockito.mock(ComponentLog.class), null, nifiProperties, null);
         reportingTask.initialize(config);
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
