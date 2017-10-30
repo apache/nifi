@@ -29,13 +29,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +50,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .name("Destination URL")
             .displayName("Destination URL")
             .description("The URL of the destination NiFi instance to send data to, " +
-                    "should be in the format http(s)://host:port/nifi.")
+                    "should be a comma-separated list of address in the format of http(s)://host:port/nifi.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(new NiFiUrlValidator())
@@ -190,7 +190,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                 context.getProperty(HTTP_PROXY_USERNAME).getValue(), context.getProperty(HTTP_PROXY_PASSWORD).getValue());
 
         siteToSiteClient = new SiteToSiteClient.Builder()
-                .url(destinationUrl)
+                .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
                 .portName(context.getProperty(PORT_NAME).getValue())
                 .useCompression(context.getProperty(COMPRESS).asBoolean())
                 .eventReporter(eventReporter)
@@ -218,33 +218,21 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final String value = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-
-            URL url;
             try {
-                url = new URL(value);
-            } catch (final Exception e) {
+                SiteToSiteRestApiClient.parseClusterUrls(value);
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(true)
+                        .build();
+            } catch (IllegalArgumentException ex) {
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
                         .valid(false)
-                        .explanation("Not a valid URL")
+                        .explanation(ex.getLocalizedMessage())
                         .build();
             }
-
-            if (url != null && !url.getPath().equals(DESTINATION_URL_PATH)) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation("URL path must be " + DESTINATION_URL_PATH)
-                        .build();
-            }
-
-            return new ValidationResult.Builder()
-                    .input(input)
-                    .subject(subject)
-                    .valid(true)
-                    .build();
         }
     }
 }
