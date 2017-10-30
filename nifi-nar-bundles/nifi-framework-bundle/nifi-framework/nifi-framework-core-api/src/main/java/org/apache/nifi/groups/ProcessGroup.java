@@ -783,8 +783,9 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If this value is <code>true</code>,
      *            and the Process Group has been modified since it was last synchronized with the Flow Registry, then this method will
      *            throw an IllegalStateException
+     * @param updateSettings whether or not to update the process group's name and positions
      */
-    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty);
+    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings);
 
     /**
      * Verifies a template with the specified name can be created.

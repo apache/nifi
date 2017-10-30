@@ -39,6 +39,8 @@ import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
@@ -74,7 +76,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class StandardFlowSerializer implements FlowSerializer {
 
-    private static final String MAX_ENCODING_VERSION = "1.2";
+    private static final String MAX_ENCODING_VERSION = "1.3";
 
     private final StringEncryptor encryptor;
 
@@ -98,6 +100,11 @@ public class StandardFlowSerializer implements FlowSerializer {
             doc.appendChild(rootNode);
             addTextElement(rootNode, "maxTimerDrivenThreadCount", controller.getMaxTimerDrivenThreadCount());
             addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
+
+            final Element registriesElement = doc.createElement("registries");
+            rootNode.appendChild(registriesElement);
+
+            addFlowRegistries(registriesElement, controller.getFlowRegistryClient());
             addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup", scheduledStateLookup);
 
             // Add root-level controller services
@@ -128,6 +135,26 @@ public class StandardFlowSerializer implements FlowSerializer {
         } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException | TransformerException e) {
             throw new FlowSerializationException(e);
         }
+    }
+
+    private void addFlowRegistries(final Element parentElement, final FlowRegistryClient registryClient) {
+        for (final String registryId : registryClient.getRegistryIdentifiers()) {
+            final FlowRegistry flowRegistry = registryClient.getFlowRegistry(registryId);
+
+            final Element registryElement = parentElement.getOwnerDocument().createElement("flowRegistry");
+            parentElement.appendChild(registryElement);
+
+            addStringElement(registryElement, "id", flowRegistry.getIdentifier());
+            addStringElement(registryElement, "name", flowRegistry.getName());
+            addStringElement(registryElement, "url", flowRegistry.getURL());
+            addStringElement(registryElement, "description", flowRegistry.getDescription());
+        }
+    }
+
+    private void addStringElement(final Element parentElement, final String elementName, final String value) {
+        final Element childElement = parentElement.getOwnerDocument().createElement(elementName);
+        childElement.setTextContent(value);
+        parentElement.appendChild(childElement);
     }
 
     private void addSize(final Element parentElement, final Size size) {

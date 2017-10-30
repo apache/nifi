@@ -16,12 +16,57 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -42,6 +87,8 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -64,6 +111,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
@@ -104,55 +152,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -826,7 +831,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -983,7 +988,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -1513,9 +1518,10 @@ public class ProcessGroupResource extends ApplicationResource {
      * Adds the specified process group.
      *
      * @param httpServletRequest request
-     * @param groupId            The group id
+     * @param groupId The group id
      * @param requestProcessGroupEntity A processGroupEntity
      * @return A processGroupEntity
+     * @throws IOException if the request indicates that the Process Group should be imported from a Flow Registry and NiFi is unable to communicate with the Flow Registry
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -1547,7 +1553,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiParam(
                     value = "The process group configuration details.",
                     required = true
-            ) final ProcessGroupEntity requestProcessGroupEntity) {
+        ) final ProcessGroupEntity requestProcessGroupEntity) throws IOException {
 
         if (requestProcessGroupEntity == null || requestProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
@@ -1574,6 +1580,28 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         requestProcessGroupEntity.getComponent().setParentGroupId(groupId);
 
+        // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
+        // Step 2: Retrieve flow from Flow Registry
+        // Step 3: Resolve Bundle info
+        // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+        // Step 5: If any of the components is a Restricted Component, then we must authorize the user
+        //         for write access to the RestrictedComponents resource
+        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
+
+        final VersionControlInformationDTO versionControlInfo = requestProcessGroupEntity.getComponent().getVersionControlInformation();
+        if (versionControlInfo != null) {
+            // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
+            // Step 2: Retrieve flow from Flow Registry
+            final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo);
+
+            // Step 3: Resolve Bundle info
+            BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+
+            // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+            requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
+        }
+
+        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessGroupEntity);
         }
@@ -1584,8 +1612,23 @@ public class ProcessGroupResource extends ApplicationResource {
                 lookup -> {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // Step 5: If any of the components is a Restricted Component, then we must authorize the user
+                    // for write access to the RestrictedComponents resource
+                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (versionedFlowSnapshot != null) {
+                        final boolean containsRestrictedComponent = FlowRegistryUtils.containsRestrictedComponent(versionedFlowSnapshot.getFlowContents());
+                        if (containsRestrictedComponent) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        }
+                    }
                 },
-                null,
+                () -> {
+                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (versionedFlowSnapshot != null) {
+                        serviceFacade.verifyComponentTypes(versionedFlowSnapshot.getFlowContents());
+                    }
+                },
                 processGroupGroupEntity -> {
                     // set the processor id as appropriate
                     processGroupGroupEntity.getComponent().setId(generateUuid());
@@ -1593,6 +1636,16 @@ public class ProcessGroupResource extends ApplicationResource {
                     // create the process group contents
                     final Revision revision = getRevision(processGroupGroupEntity, processGroupGroupEntity.getComponent().getId());
                     final ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroupGroupEntity.getComponent());
+
+                    final VersionedFlowSnapshot flowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (flowSnapshot != null) {
+                        final RevisionDTO revisionDto = entity.getRevision();
+                        final String newGroupId = entity.getComponent().getId();
+                        final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
+                        serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
+                            versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, false);
+                    }
+
                     populateRemainingProcessGroupEntityContent(entity);
 
                     // generate a 201 created response

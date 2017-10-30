@@ -113,10 +113,11 @@ public interface ProcessGroupDAO {
      * @param proposedSnapshot Flow the new version of the flow
      * @param versionControlInformation the new Version Control Information
      * @param componentIdSeed the seed value to use for generating ID's for new components
+     * @param updateSettings whether or not to update the process group's name and position
      * @return the process group
      */
     ProcessGroup updateProcessGroupFlow(String groupId, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
-        boolean verifyNotModified);
+        boolean verifyNotModified, boolean updateSettings);
 
     /**
      * Applies the given Version Control Information to the Process Group

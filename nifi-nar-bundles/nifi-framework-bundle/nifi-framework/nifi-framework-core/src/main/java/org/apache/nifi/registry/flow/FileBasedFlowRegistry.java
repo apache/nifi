@@ -17,22 +17,13 @@
 
 package org.apache.nifi.registry.flow;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.registry.bucket.Bucket;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
+import java.net.URI;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,22 +35,44 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.registry.bucket.Bucket;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * A simple file-based implementation of a Flow Registry Client. Rather than interacting
  * with an actual Flow Registry, this implementation simply reads flows from disk and writes
  * them to disk. It is not meant for any production use but is available for testing purposes.
  */
-public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegistry {
+public class FileBasedFlowRegistry implements FlowRegistry {
     private final File directory;
     private final Map<String, Set<String>> flowNamesByBucket = new HashMap<>();
     private final JsonFactory jsonFactory = new JsonFactory();
+    private final String id;
+    private volatile String name = "Local Registry";
+    private volatile String url = "file:" + (new File("..").getAbsolutePath());
+    private volatile String description = "Default file-based Flow Registry";
 
-    public FileBasedFlowRegistryClient(final File directory) throws IOException {
+    public FileBasedFlowRegistry(final String id, final String url) throws IOException {
+        final URI uri = URI.create(url);
+        if (!uri.getScheme().equalsIgnoreCase("file")) {
+            throw new IllegalArgumentException("Cannot create a File Based Flow Registry with a URL of " + url + "; URL scheme must be 'file'");
+        }
+
+        this.directory = new File(URI.create(url).getPath());
+
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("Could not access or create directory " + directory.getAbsolutePath() + " for Flow Registry");
         }
 
-        this.directory = directory;
+        this.id = id;
+        this.url = url;
         recoverBuckets();
     }
 
@@ -102,22 +115,13 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
     }
 
     @Override
-    public FlowRegistry getFlowRegistry(final String registryId) {
-        if (!"default".equals(registryId)) {
-            return null;
-        }
-
-        return this;
-    }
-
-    @Override
     public String getURL() {
-        return directory.toURI().toString();
+        return url;
     }
 
     @Override
     public String getName() {
-        return "Local Registry";
+        return name;
     }
 
     @Override
@@ -138,11 +142,28 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
             bucket.setName("Bucket '" + bucketIdentifier + "'");
             bucket.setCreatedTimestamp(creation);
 
+            final Set<VersionedFlow> versionedFlows = new HashSet<>();
+            final File[] flowDirs = bucketDirectory.listFiles();
+            if (flowDirs != null) {
+                for (final File flowDir : flowDirs) {
+                    final String flowIdentifier = flowDir.getName();
+                    try {
+                        final VersionedFlow versionedFlow = getVersionedFlow(bucketIdentifier, flowIdentifier);
+                        versionedFlows.add(versionedFlow);
+                    } catch (UnknownResourceException e) {
+                        continue;
+                    }
+                }
+            }
+
+            bucket.setVersionedFlows(versionedFlows);
+
             buckets.add(bucket);
         }
 
         return buckets;
     }
+
 
     @Override
     public synchronized VersionedFlow registerVersionedFlow(final VersionedFlow flow) throws IOException, UnknownResourceException {
@@ -241,7 +262,7 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
         final File contentsFile = new File(snapshotDir, "flow.xml");
 
         try (final OutputStream out = new FileOutputStream(contentsFile);
-            final JsonGenerator generator = jsonFactory.createJsonGenerator(out)) {
+            final JsonGenerator generator = jsonFactory.createGenerator(out)) {
             generator.setCodec(new ObjectMapper());
             generator.setPrettyPrinter(new DefaultPrettyPrinter());
             generator.writeObject(snapshot);
@@ -267,11 +288,6 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
         response.setSnapshotMetadata(snapshotMetadata);
         response.setFlowContents(snapshot);
         return response;
-    }
-
-    @Override
-    public Set<String> getRegistryIdentifiers() {
-        return Collections.singleton("default");
     }
 
     @Override
@@ -400,6 +416,8 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
         flow.setSnapshotMetadata(snapshotMetadataSet);
 
         final File[] versionDirs = flowDir.listFiles();
+        flow.setVersionCount(versionDirs.length);
+
         for (final File file : versionDirs) {
             if (!file.isDirectory()) {
                 continue;
@@ -431,5 +449,30 @@ public class FileBasedFlowRegistryClient implements FlowRegistryClient, FlowRegi
         }
 
         return flow;
+    }
+
+    @Override
+    public String getIdentifier() {
+        return id;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public void setURL(String url) {
+        this.url = url;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
     }
 }

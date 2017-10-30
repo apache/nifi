@@ -125,6 +125,9 @@
         <property name="flowController" ref="flowController"/>
         <property name="snippetUtils" ref="snippetUtils"/>
     </bean>
+    <bean id="flowRegistryDAO" class="org.apache.nifi.web.dao.impl.FlowRegistryDAO">
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
+    </bean>
     <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
         <constructor-arg ref="authorizer"/>
     </bean>
@@ -182,6 +185,7 @@
         <property name="bulletinRepository" ref="bulletinRepository"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryClient" ref="flowRegistryClient" />
+        <property name="registryDAO" ref="flowRegistryDAO" />
     </bean>
     
     <!-- component ui extension configuration context -->

@@ -113,6 +113,7 @@ import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
@@ -3711,6 +3712,15 @@ public final class DtoFactory {
         nodeDto.setEvents(nodeEventDtos);
 
         return nodeDto;
+    }
+
+    public RegistryDTO createRegistryDto(FlowRegistry registry) {
+        final RegistryDTO dto = new RegistryDTO();
+        dto.setDescription(registry.getDescription());
+        dto.setId(registry.getIdentifier());
+        dto.setName(registry.getName());
+        dto.setUri(registry.getURL());
+        return dto;
     }
 
 

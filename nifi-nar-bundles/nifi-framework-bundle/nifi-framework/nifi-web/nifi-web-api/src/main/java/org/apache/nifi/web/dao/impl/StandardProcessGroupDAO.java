@@ -246,6 +246,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         return group;
     }
 
+    @Override
     public ProcessGroup disconnectVersionControl(final String groupId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.disconnectVersionControl();
@@ -254,9 +255,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
-        final String componentIdSeed, final boolean verifyNotModified) {
+        final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified);
+        group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings);
 
         final StandardVersionControlInformation svci = new StandardVersionControlInformation(
             versionControlInformation.getRegistryId(),

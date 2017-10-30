@@ -407,6 +407,13 @@ public interface NiFiServiceFacade {
     void verifyComponentTypes(FlowSnippetDTO snippet);
 
     /**
+     * Verifies the types of components in a versioned process group
+     *
+     * @param versionedGroup the proposed process group
+     */
+    void verifyComponentTypes(VersionedProcessGroup versionedGroup);
+
+    /**
      * Creates a new Template based off the specified snippet.
      *
      * @param name name
@@ -1385,10 +1392,11 @@ public interface NiFiServiceFacade {
      * @param versionControlInfo the Version Control information
      * @param snapshot the new snapshot
      * @param componentIdSeed the seed to use for generating new component ID's
+     * @param updateSettings whether or not the process group's name and position should be updated
      * @return the Process Group
      */
-    ProcessGroupEntity updateProcessGroup(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
-        boolean verifyNotModified);
+    ProcessGroupEntity updateProcessGroupContents(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
+        boolean verifyNotModified, boolean updateSettings);
 
     // ----------------------------------------
     // Component state methods

@@ -32,6 +32,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import java.util.Optional;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
@@ -208,9 +210,11 @@ public class FingerprintFactoryTest {
         when(component.getProxyPort()).thenReturn(null);
         when(component.getProxyUser()).thenReturn(null);
         when(component.getProxyPassword()).thenReturn(null);
+        when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Assert fingerprints with expected one.
         final String expected = "id" +
+                "NO_VALUE" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
                 "eth0" +
                 "10 sec" +
@@ -245,9 +249,11 @@ public class FingerprintFactoryTest {
         when(component.getProxyPort()).thenReturn(3128);
         when(component.getProxyUser()).thenReturn("proxy-user");
         when(component.getProxyPassword()).thenReturn("proxy-pass");
+        when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Assert fingerprints with expected one.
         final String expected = "id" +
+                "NO_VALUE" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
                 "NO_VALUE" +
                 "10 sec" +
@@ -273,6 +279,7 @@ public class FingerprintFactoryTest {
         when(groupComponent.getPosition()).thenReturn(new Position(10.5, 20.3));
         when(groupComponent.getTargetUri()).thenReturn("http://node1:8080/nifi");
         when(groupComponent.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.RAW);
+        when(groupComponent.getVersionedComponentId()).thenReturn(Optional.empty());
 
         final RemoteGroupPort portComponent = mock(RemoteGroupPort.class);
         when(groupComponent.getInputPorts()).thenReturn(Collections.singleton(portComponent));
@@ -288,6 +295,7 @@ public class FingerprintFactoryTest {
         when(portComponent.getBatchDuration()).thenReturn("10sec");
         // Serializer doesn't serialize if a port doesn't have any connection.
         when(portComponent.hasIncomingConnection()).thenReturn(true);
+        when(portComponent.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Assert fingerprints with expected one.
         final String expected = "portId" +
