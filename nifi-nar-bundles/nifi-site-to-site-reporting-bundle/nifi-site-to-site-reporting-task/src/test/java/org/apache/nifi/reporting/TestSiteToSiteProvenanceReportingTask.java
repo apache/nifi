@@ -336,6 +336,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.initialize(initContext);
 
         // execute the reporting task and should not produce any data b/c max id same as previous id
+        task.onScheduled(confContext);
         task.onTrigger(context);
         assertEquals(0, task.dataSent.size());
     }
