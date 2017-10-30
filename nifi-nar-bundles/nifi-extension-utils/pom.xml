@@ -30,6 +30,7 @@
         <module>nifi-record-utils</module>
         <module>nifi-hadoop-utils</module>
         <module>nifi-processor-utils</module>
+        <module>nifi-reporting-utils</module>
     </modules>
 
 </project>

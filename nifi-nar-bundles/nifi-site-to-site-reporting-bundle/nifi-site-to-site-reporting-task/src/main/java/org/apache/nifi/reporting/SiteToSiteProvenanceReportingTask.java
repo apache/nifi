@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -39,6 +38,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -62,7 +62,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 @Tags({"provenance", "lineage", "tracking", "site", "site to site", "restricted"})
 @CapabilityDescription("Publishes Provenance events using the Site To Site protocol.")
@@ -125,52 +124,43 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         .required(true)
         .build();
 
-    private volatile long firstEventId = -1L;
-    private volatile boolean isFilteringEnabled = false;
-    private volatile Pattern componentTypeRegex;
-    private volatile List<ProvenanceEventType> eventTypes = new ArrayList<ProvenanceEventType>();
-    private volatile List<String> componentIds = new ArrayList<String>();
-    private volatile boolean scheduled = false;
+    private volatile ProvenanceEventConsumer consumer;
 
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) throws IOException {
-        // initialize component type filtering
-        componentTypeRegex = StringUtils.isBlank(context.getProperty(FILTER_COMPONENT_TYPE).getValue()) ? null : Pattern.compile(context.getProperty(FILTER_COMPONENT_TYPE).getValue());
+        consumer = new ProvenanceEventConsumer();
+        consumer.setStartPositionValue(context.getProperty(START_POSITION).getValue());
+        consumer.setBatchSize(context.getProperty(BATCH_SIZE).asInteger());
+        consumer.setLogger(getLogger());
 
-        final String[] eventList = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).getValue(), ','));
-        if(eventList != null) {
-            for(String type : eventList) {
+        // initialize component type filtering
+        consumer.setComponentTypeRegex(context.getProperty(FILTER_COMPONENT_TYPE).getValue());
+
+        final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).getValue(), ','));
+        if(targetEventTypes != null) {
+            for(String type : targetEventTypes) {
                 try {
-                    eventTypes.add(ProvenanceEventType.valueOf(type));
+                    consumer.addTargetEventType(ProvenanceEventType.valueOf(type));
                 } catch (Exception e) {
                     getLogger().warn(type + " is not a correct event type, removed from the filtering.");
                 }
             }
-        } else {
-            eventTypes.clear();
         }
 
         // initialize component ID filtering
-        final String[] componentIdList = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).getValue(), ','));
-        if(componentIdList != null) {
-            componentIds.addAll(Arrays.asList(componentIdList));
-        } else {
-            componentIds.clear();
+        final String[] targetComponentIds = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).getValue(), ','));
+        if(targetComponentIds != null) {
+            consumer.addTargetComponentId(targetComponentIds);
         }
 
-        // set a boolean whether filtering will be applied or not
-        isFilteringEnabled = componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty();
-
-        scheduled = true;
+        consumer.setScheduled(true);
     }
 
     @OnUnscheduled
     public void onUnscheduled() {
-        scheduled = false;
-    }
-
-    public boolean isScheduled() {
-        return scheduled;
+        if (consumer != null) {
+            consumer.setScheduled(false);
+        }
     }
 
     @Override
@@ -228,65 +218,6 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
         final Map<String,String> componentMap = createComponentMap(procGroupStatus);
 
-        Long currMaxId = context.getEventAccess().getProvenanceRepository().getMaxEventId();
-
-        if(currMaxId == null) {
-            getLogger().debug("No events to send because no events have been created yet.");
-            return;
-        }
-
-        if (firstEventId < 0) {
-            Map<String, String> state;
-            try {
-                state = context.getStateManager().getState(Scope.LOCAL).toMap();
-            } catch (IOException e) {
-                getLogger().error("Failed to get state at start up due to:" + e.getMessage(), e);
-                return;
-            }
-
-            final String startPositionValue = context.getProperty(START_POSITION).getValue();
-
-            if (state.containsKey(LAST_EVENT_ID_KEY)) {
-                firstEventId = Long.parseLong(state.get(LAST_EVENT_ID_KEY)) + 1;
-            } else {
-                if (END_OF_STREAM.getValue().equals(startPositionValue)) {
-                    firstEventId = currMaxId;
-                }
-            }
-
-            if (currMaxId < (firstEventId - 1)) {
-                if (BEGINNING_OF_STREAM.getValue().equals(startPositionValue)) {
-                    getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
-                        "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
-                    firstEventId = -1;
-                } else {
-                    getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
-                        "ids. Restarting querying from the latest event in the Provenance Repository.", new Object[] {currMaxId, firstEventId});
-                    firstEventId = currMaxId;
-                }
-            }
-        }
-
-        if (currMaxId == (firstEventId - 1)) {
-            getLogger().debug("No events to send due to the current max id being equal to the last id that was queried.");
-            return;
-        }
-
-        List<ProvenanceEventRecord> rawEvents;
-        List<ProvenanceEventRecord> filteredEvents;
-        try {
-            rawEvents = context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger());
-            filteredEvents = filterEvents(rawEvents);
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
-            return;
-        }
-
-        if (rawEvents == null || rawEvents.isEmpty()) {
-            getLogger().debug("No events to send due to 'events' being null or empty.");
-            return;
-        }
-
         final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
@@ -306,103 +237,44 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
         df.setTimeZone(TimeZone.getTimeZone("Z"));
 
-        while (rawEvents != null && !rawEvents.isEmpty() && isScheduled()) {
+        consumer.consumeEvents(context.getEventAccess(), context.getStateManager(), events -> {
             final long start = System.nanoTime();
-
-            if (!filteredEvents.isEmpty()) {
-                // Create a JSON array of all the events in the current batch
-                final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
-                for (final ProvenanceEventRecord event : filteredEvents) {
-                    final String componentName = componentMap.get(event.getComponentId());
-                    arrayBuilder.add(serialize(factory, builder, event, df, componentName, hostname, url, rootGroupName, platform, nodeId));
-                }
-                final JsonArray jsonArray = arrayBuilder.build();
-
-                // Send the JSON document for the current batch
-                try {
-                    final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
-                    if (transaction == null) {
-                        getLogger().debug("All destination nodes are penalized; will attempt to send data later");
-                        return;
-                    }
-
-                    final Map<String, String> attributes = new HashMap<>();
-                    final String transactionId = UUID.randomUUID().toString();
-                    attributes.put("reporting.task.transaction.id", transactionId);
-                    attributes.put("mime.type", "application/json");
-
-                    final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-                    transaction.send(data, attributes);
-                    transaction.confirm();
-                    transaction.complete();
-
-                    final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-                    getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
-                        new Object[] {filteredEvents.size(), transferMillis, transactionId, rawEvents.get(0).getEventId()});
-                } catch (final IOException e) {
-                    throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
-                }
+            // Create a JSON array of all the events in the current batch
+            final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
+            for (final ProvenanceEventRecord event : events) {
+                final String componentName = componentMap.get(event.getComponentId());
+                arrayBuilder.add(serialize(factory, builder, event, df, componentName, hostname, url, rootGroupName, platform, nodeId));
             }
+            final JsonArray jsonArray = arrayBuilder.build();
 
-            firstEventId = updateLastEventId(rawEvents, context.getStateManager());
-
-            // Retrieve the next batch
+            // Send the JSON document for the current batch
             try {
-                rawEvents = context.getEventAccess().getProvenanceEvents(firstEventId, context.getProperty(BATCH_SIZE).asInteger());
-                filteredEvents = filterEvents(rawEvents);
-            } catch (final IOException ioe) {
-                getLogger().error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
-                return;
+                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                if (transaction == null) {
+                    getLogger().debug("All destination nodes are penalized; will attempt to send data later");
+                    return;
+                }
+
+                final Map<String, String> attributes = new HashMap<>();
+                final String transactionId = UUID.randomUUID().toString();
+                attributes.put("reporting.task.transaction.id", transactionId);
+                attributes.put("mime.type", "application/json");
+
+                final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
+                transaction.send(data, attributes);
+                transaction.confirm();
+                transaction.complete();
+
+                final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
+                        new Object[] {events.size(), transferMillis, transactionId, events.get(0).getEventId()});
+            } catch (final IOException e) {
+                throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
             }
-        }
+        });
+
     }
 
-    private long updateLastEventId(final List<ProvenanceEventRecord> events, final StateManager stateManager) {
-        if (events == null || events.isEmpty()) {
-            return firstEventId;
-        }
-
-        // Store the id of the last event so we know where we left off
-        final ProvenanceEventRecord lastEvent = events.get(events.size() - 1);
-        final String lastEventId = String.valueOf(lastEvent.getEventId());
-        try {
-            Map<String, String> newMapOfState = new HashMap<>();
-            newMapOfState.put(LAST_EVENT_ID_KEY, lastEventId);
-            stateManager.setState(newMapOfState, Scope.LOCAL);
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart. The message of {} was: {}",
-                new Object[] {lastEventId, ioe, ioe, ioe.getMessage()}, ioe);
-        }
-
-        return lastEvent.getEventId() + 1;
-    }
-
-    private List<ProvenanceEventRecord> filterEvents(final List<ProvenanceEventRecord> provenanceEvents) {
-        if (provenanceEvents == null || provenanceEvents.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        if(isFilteringEnabled) {
-            List<ProvenanceEventRecord> filteredEvents = new ArrayList<ProvenanceEventRecord>();
-
-            for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
-                if(!componentIds.isEmpty() && !componentIds.contains(provenanceEventRecord.getComponentId())) {
-                    continue;
-                }
-                if(!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
-                    continue;
-                }
-                if(componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
-                    continue;
-                }
-                filteredEvents.add(provenanceEventRecord);
-            }
-
-            return filteredEvents;
-        } else {
-            return provenanceEvents;
-        }
-    }
 
     static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
         final String componentName, final String hostname, final URL nifiUrl, final String applicationName, final String platform, final String nodeIdentifier) {
