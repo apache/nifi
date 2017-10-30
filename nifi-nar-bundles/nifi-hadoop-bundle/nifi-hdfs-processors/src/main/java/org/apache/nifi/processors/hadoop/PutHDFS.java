@@ -357,13 +357,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                             new Object[]{putFlowFile, copyFile, millis, dataRate});
 
-                    final String outputPath = copyFile.toString();
                     final String newFilename = copyFile.getName();
                     final String hdfsPath = copyFile.getParent().toString();
                     putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
                     putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
-                    final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
-                    session.getProvenanceReporter().send(putFlowFile, transitUri);
+                    final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
+                    session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
 
                     session.transfer(putFlowFile, REL_SUCCESS);
 
