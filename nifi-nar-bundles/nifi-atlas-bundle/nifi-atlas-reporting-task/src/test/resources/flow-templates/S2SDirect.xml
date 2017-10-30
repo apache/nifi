@@ -1,0 +1,133 @@
+<?xml version="1.0" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<template encoding-version="1.1">
+  <description></description>
+  <groupId>27b7b6b8-015f-1000-0d31-197ae42bab34</groupId>
+  <name>S2SDirect</name>
+  <snippet>
+    <processGroups>
+      <id>b497792c-a93f-3e43-0000-000000000000</id>
+      <parentGroupId>c81f8a46-4aa3-313e-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>0.0</y>
+      </position>
+      <comments></comments>
+      <contents>
+        <connections>
+          <id>1a83b948-b7c4-362d-0000-000000000000</id>
+          <parentGroupId>b497792c-a93f-3e43-0000-000000000000</parentGroupId>
+          <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+          <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+          <destination>
+            <groupId>5f6971b4-9209-3005-0000-000000000000</groupId>
+            <id>a4f14247-89aa-4e6c-0000-000000000000</id>
+            <type>REMOTE_INPUT_PORT</type>
+          </destination>
+          <flowFileExpiration>0 sec</flowFileExpiration>
+          <labelIndex>1</labelIndex>
+          <name></name>
+          <source>
+            <groupId>b7c5498a-de8b-38e5-0000-000000000000</groupId>
+            <id>d73d9115-b987-4ffc-0000-000000000000</id>
+            <type>REMOTE_OUTPUT_PORT</type>
+          </source>
+          <zIndex>0</zIndex>
+        </connections>
+        <remoteProcessGroups>
+          <id>b7c5498a-de8b-38e5-0000-000000000000</id>
+          <parentGroupId>b497792c-a93f-3e43-0000-000000000000</parentGroupId>
+          <position>
+            <x>334.9999869194452</x>
+            <y>181.99999943536397</y>
+          </position>
+          <communicationsTimeout>30 sec</communicationsTimeout>
+          <contents>
+            <inputPorts>
+              <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+              <connected>false</connected>
+              <exists>true</exists>
+              <id>6909277f-e8e6-497b-0000-000000000000</id>
+              <targetId>015f101e-dcd7-17bd-8899-1a723733521a</targetId>
+              <name>input</name>
+              <targetRunning>true</targetRunning>
+              <transmitting>false</transmitting>
+              <useCompression>false</useCompression>
+            </inputPorts>
+            <outputPorts>
+              <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+              <connected>true</connected>
+              <exists>true</exists>
+              <id>d73d9115-b987-4ffc-0000-000000000000</id>
+              <targetId>015f1040-dcd7-17bd-5c1f-e31afe0a09a4</targetId>
+              <name>output</name>
+              <targetRunning>true</targetRunning>
+              <transmitting>true</transmitting>
+              <useCompression>false</useCompression>
+            </outputPorts>
+          </contents>
+          <proxyHost></proxyHost>
+          <proxyUser></proxyUser>
+          <targetUri>http://localhost:8080/nifi</targetUri>
+          <targetUris>http://localhost:8080/nifi</targetUris>
+          <transportProtocol>HTTP</transportProtocol>
+          <yieldDuration>10 sec</yieldDuration>
+        </remoteProcessGroups>
+        <remoteProcessGroups>
+          <id>5f6971b4-9209-3005-0000-000000000000</id>
+          <parentGroupId>b497792c-a93f-3e43-0000-000000000000</parentGroupId>
+          <position>
+            <x>339.0000174370233</x>
+            <y>458.999999435364</y>
+          </position>
+          <communicationsTimeout>30 sec</communicationsTimeout>
+          <contents>
+            <inputPorts>
+              <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+              <connected>true</connected>
+              <exists>true</exists>
+              <id>a4f14247-89aa-4e6c-0000-000000000000</id>
+              <targetId>015f101e-dcd7-17bd-8899-1a723733521a</targetId>
+              <name>input</name>
+              <targetRunning>true</targetRunning>
+              <transmitting>true</transmitting>
+              <useCompression>false</useCompression>
+            </inputPorts>
+            <outputPorts>
+              <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+              <connected>false</connected>
+              <exists>true</exists>
+              <id>1ed6d4f5-b91e-4d46-0000-000000000000</id>
+              <targetId>015f1040-dcd7-17bd-5c1f-e31afe0a09a4</targetId>
+              <name>output</name>
+              <targetRunning>true</targetRunning>
+              <transmitting>false</transmitting>
+              <useCompression>false</useCompression>
+            </outputPorts>
+          </contents>
+          <proxyHost></proxyHost>
+          <proxyUser></proxyUser>
+          <targetUri>http://localhost:8080/nifi</targetUri>
+          <targetUris>http://localhost:8080/nifi</targetUris>
+          <transportProtocol>HTTP</transportProtocol>
+          <yieldDuration>10 sec</yieldDuration>
+        </remoteProcessGroups>
+      </contents>
+      <name>S2SDirect</name>
+    </processGroups>
+  </snippet>
+  <timestamp>10/23/2017 15:06:47 JST</timestamp>
+</template>
