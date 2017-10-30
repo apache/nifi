@@ -165,6 +165,8 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionedConnection;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -2128,6 +2130,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    private void verifyBundleInVersionedFlow(final org.apache.nifi.registry.flow.Bundle requiredBundle, final Set<BundleCoordinate> supportedBundles) {
+        final BundleCoordinate requiredCoordinate = new BundleCoordinate(requiredBundle.getGroup(), requiredBundle.getArtifact(), requiredBundle.getVersion());
+        if (!supportedBundles.contains(requiredCoordinate)) {
+            throw new IllegalStateException("Unsupported bundle: " + requiredCoordinate);
+        }
+    }
+
     private void verifyProcessorsInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
         if (templateContents.getProcessors() != null) {
             templateContents.getProcessors().forEach(processor -> {
@@ -2150,6 +2159,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    private void verifyProcessorsInVersionedFlow(final VersionedProcessGroup versionedFlow, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (versionedFlow.getProcessors() != null) {
+            versionedFlow.getProcessors().forEach(processor -> {
+                if (processor.getBundle() == null) {
+                    throw new IllegalArgumentException("Processor bundle must be specified.");
+                }
+
+                if (supportedTypes.containsKey(processor.getType())) {
+                    verifyBundleInVersionedFlow(processor.getBundle(), supportedTypes.get(processor.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
+                }
+            });
+        }
+
+        if (versionedFlow.getProcessGroups() != null) {
+            versionedFlow.getProcessGroups().forEach(processGroup -> {
+                verifyProcessorsInVersionedFlow(processGroup, supportedTypes);
+            });
+        }
+    }
+
     private void verifyControllerServicesInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
         if (templateContents.getControllerServices() != null) {
             templateContents.getControllerServices().forEach(controllerService -> {
@@ -2168,6 +2199,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (templateContents.getProcessGroups() != null) {
             templateContents.getProcessGroups().forEach(processGroup -> {
                 verifyControllerServicesInSnippet(processGroup.getContents(), supportedTypes);
+            });
+        }
+    }
+
+    private void verifyControllerServicesInVersionedFlow(final VersionedProcessGroup versionedFlow, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (versionedFlow.getControllerServices() != null) {
+            versionedFlow.getControllerServices().forEach(controllerService -> {
+                if (supportedTypes.containsKey(controllerService.getType())) {
+                    if (controllerService.getBundle() == null) {
+                        throw new IllegalArgumentException("Controller Service bundle must be specified.");
+                    }
+
+                    verifyBundleInVersionedFlow(controllerService.getBundle(), supportedTypes.get(controllerService.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Controller Service Type: " + controllerService.getType());
+                }
+            });
+        }
+
+        if (versionedFlow.getProcessGroups() != null) {
+            versionedFlow.getProcessGroups().forEach(processGroup -> {
+                verifyControllerServicesInVersionedFlow(processGroup, supportedTypes);
             });
         }
     }
@@ -2199,6 +2252,44 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         for (final ConnectionDTO conn : allConns) {
+            final List<String> prioritizers = conn.getPrioritizers();
+            if (prioritizers != null) {
+                for (final String prioritizer : prioritizers) {
+                    if (!prioritizerClasses.contains(prioritizer)) {
+                        throw new IllegalStateException("Invalid FlowFile Prioritizer Type: " + prioritizer);
+                    }
+                }
+            }
+        }
+    }
+
+    public void verifyComponentTypesInSnippet(final VersionedProcessGroup versionedFlow) {
+        final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
+            final String name = c.getName();
+            processorClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyProcessorsInVersionedFlow(versionedFlow, processorClasses);
+
+        final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+            final String name = c.getName();
+            controllerServiceClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyControllerServicesInVersionedFlow(versionedFlow, controllerServiceClasses);
+
+        final Set<String> prioritizerClasses = new HashSet<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
+            prioritizerClasses.add(c.getName());
+        }
+
+        final Set<VersionedConnection> allConns = new HashSet<>();
+        allConns.addAll(versionedFlow.getConnections());
+        for (final VersionedProcessGroup childGroup : versionedFlow.getProcessGroups()) {
+            allConns.addAll(findAllConnections(childGroup));
+        }
+
+        for (final VersionedConnection conn : allConns) {
             final List<String> prioritizers = conn.getPrioritizers();
             if (prioritizers != null) {
                 for (final String prioritizer : prioritizers) {
@@ -2265,6 +2356,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
+            conns.addAll(findAllConnections(childGroup));
+        }
+        return conns;
+    }
+
+    private Set<VersionedConnection> findAllConnections(final VersionedProcessGroup group) {
+        final Set<VersionedConnection> conns = new HashSet<>();
+        for (final VersionedConnection connection : group.getConnections()) {
+            conns.add(connection);
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
             conns.addAll(findAllConnections(childGroup));
         }
         return conns;

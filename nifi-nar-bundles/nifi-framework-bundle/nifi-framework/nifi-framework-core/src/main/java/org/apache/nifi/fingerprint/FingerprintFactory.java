@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -198,6 +199,21 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addFlowControllerFingerprint(final StringBuilder builder, final Element flowControllerElem, final FlowController controller) {
+        // registries
+        final Element registriesElement = DomUtils.getChild(flowControllerElem, "registries");
+        if (registriesElement == null) {
+            builder.append("NO_VALUE");
+        } else {
+            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+            if (flowRegistryElems.isEmpty()) {
+                builder.append("NO_VALUE");
+            } else {
+                for (final Element flowRegistryElement : flowRegistryElems) {
+                    addFlowRegistryFingerprint(builder, flowRegistryElement);
+                }
+            }
+        }
+
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
         addProcessGroupFingerprint(builder, rootGroupElem, controller);
@@ -262,6 +278,11 @@ public class FingerprintFactory {
             }
         }
 
+        return builder;
+    }
+
+    private StringBuilder addFlowRegistryFingerprint(final StringBuilder builder, final Element flowRegistryElement) {
+        Stream.of("id", "name", "url", "description").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(flowRegistryElement, elementName)));
         return builder;
     }
 

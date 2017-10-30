@@ -72,7 +72,7 @@ import org.apache.nifi.registry.flow.Bundle;
 import org.apache.nifi.registry.flow.ConnectableComponent;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.RemoteFlowCoordinates;
+import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.UnknownResourceException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -2835,11 +2835,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    @Override
     public void disconnectVersionControl() {
         writeLock.lock();
         try {
-            // TODO remove version component ids from each component (until another versioned PG is encountered)
             this.versionControlInfo.set(null);
+
+            // remove version component ids from each component (until another versioned PG is encountered)
+            applyVersionedComponentIds(this, id -> null);
         } finally {
             writeLock.unlock();
         }
@@ -2850,36 +2853,41 @@ public final class StandardProcessGroup implements ProcessGroup {
             return;
         }
 
-        processGroup.setVersionedComponentId(versionedComponentIds.get(processGroup.getIdentifier()));
+        applyVersionedComponentIds(processGroup, versionedComponentIds::get);
+    }
+
+    private void applyVersionedComponentIds(final ProcessGroup processGroup, final Function<String, String> lookup) {
+        processGroup.setVersionedComponentId(lookup.apply(processGroup.getIdentifier()));
 
         processGroup.getConnections().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getProcessors().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getInputPorts().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getOutputPorts().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getLabels().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getFunnels().stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
         processGroup.getControllerServices(false).stream()
-            .forEach(component -> component.setVersionedComponentId(versionedComponentIds.get(component.getIdentifier())));
+            .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
 
         processGroup.getRemoteProcessGroups().stream()
             .forEach(rpg -> {
-                rpg.setVersionedComponentId(versionedComponentIds.get(rpg.getIdentifier()));
+                rpg.setVersionedComponentId(lookup.apply(rpg.getIdentifier()));
 
                 rpg.getInputPorts().stream()
-                    .forEach(port -> port.setVersionedComponentId(versionedComponentIds.get(port.getIdentifier())));
+                    .forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
 
                 rpg.getOutputPorts().stream()
-                    .forEach(port -> port.setVersionedComponentId(versionedComponentIds.get(port.getIdentifier())));
+                    .forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
             });
 
         processGroup.getProcessGroups().stream()
-            .forEach(childGroup -> updateVersionedComponentIds(childGroup, versionedComponentIds));
+            .filter(childGroup -> childGroup.getVersionControlInformation() != null)
+            .forEach(childGroup -> applyVersionedComponentIds(childGroup, lookup));
     }
 
 
@@ -2931,10 +2939,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
 
     @Override
-    public void updateFlow(final VersionedFlowSnapshot proposedSnapshot, final String componentIdSeed, final boolean verifyNotDirty) {
+    public void updateFlow(final VersionedFlowSnapshot proposedSnapshot, final String componentIdSeed, final boolean verifyNotDirty, final boolean updateSettings) {
         writeLock.lock();
         try {
-            verifyCanUpdate(proposedSnapshot, true, verifyNotDirty); // TODO: Should perform more verification... verifyCanDelete, verifyCanUpdate, etc. Recursively if child is under VC also
+            verifyCanUpdate(proposedSnapshot, true, verifyNotDirty);
 
             final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
             final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient());
@@ -2950,15 +2958,15 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .map(diff -> diff.getComponentA() == null ? diff.getComponentB().getIdentifier() : diff.getComponentA().getIdentifier())
                 .collect(Collectors.toSet());
 
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Updating {} to {}; there are {} differences to take into account: {}", this, proposedSnapshot, flowComparison.getDifferences().size(), flowComparison.getDifferences());
-            } else {
-                // TODO: Remove the actual differences from the info level log. It can be extremely verbose. Is here only for testing purposes becuase it's much more convenient
-                // than having to remember to enable DEBUG level logging every time a full build is done.
-                LOG.info("Updating {} to {}; there are {} differences to take into account: {}", this, proposedSnapshot, flowComparison.getDifferences().size(), flowComparison.getDifferences());
+            if (LOG.isInfoEnabled()) {
+                final String differencesByLine = flowComparison.getDifferences().stream()
+                    .map(FlowDifference::toString)
+                    .collect(Collectors.joining("\n"));
+
+                LOG.info("Updating {} to {}; there are {} differences to take into account:\n{}", this, proposedSnapshot, flowComparison.getDifferences().size(), differencesByLine);
             }
 
-            updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false);
+            updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings);
         } catch (final ProcessorInstantiationException pie) {
             throw new RuntimeException(pie);
         } finally {
@@ -2968,10 +2976,14 @@ public final class StandardProcessGroup implements ProcessGroup {
 
 
     private void updateProcessGroup(final ProcessGroup group, final VersionedProcessGroup proposed, final String componentIdSeed,
-        final Set<String> updatedVersionedComponentIds, final boolean updatePosition) throws ProcessorInstantiationException {
+        final Set<String> updatedVersionedComponentIds, final boolean updatePosition, final boolean updateName) throws ProcessorInstantiationException {
 
         group.setComments(proposed.getComments());
-        group.setName(proposed.getName());
+
+        if (updateName) {
+            group.setName(proposed.getName());
+        }
+
         if (updatePosition && proposed.getPosition() != null) {
             group.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         }
@@ -2998,7 +3010,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         group.setVariables(updatedVariableMap);
 
-        final RemoteFlowCoordinates remoteCoordinates = proposed.getRemoteFlowCoordinates();
+        final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates != null) {
             final String registryId = flowController.getFlowRegistryClient().getFlowRegistryId(remoteCoordinates.getRegistryUrl());
             final String bucketId = remoteCoordinates.getBucketId();
@@ -3022,7 +3034,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final ProcessGroup added = addProcessGroup(proposedChildGroup, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else {
-                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true);
+                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, updateName);
                 LOG.info("Updated {}", childGroup);
             }
 
@@ -3136,14 +3148,29 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Map<String, ProcessorNode> processorsByVersionedId = group.getProcessors().stream()
             .collect(Collectors.toMap(component -> component.getVersionedComponentId().orElse(component.getIdentifier()), Function.identity()));
         final Set<String> processorsRemoved = new HashSet<>(processorsByVersionedId.keySet());
+        final Map<ProcessorNode, Set<Relationship>> autoTerminatedRelationships = new HashMap<>();
 
         for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
             final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
             if (processor == null) {
                 final ProcessorNode added = addProcessor(proposedProcessor, componentIdSeed);
+
+                final Set<Relationship> proposedAutoTerminated = proposedProcessor.getAutoTerminatedRelationships().stream()
+                    .map(relName -> added.getRelationship(relName))
+                    .collect(Collectors.toSet());
+                autoTerminatedRelationships.put(added, proposedAutoTerminated);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
                 updateProcessor(processor, proposedProcessor);
+
+                final Set<Relationship> proposedAutoTerminated = proposedProcessor.getAutoTerminatedRelationships().stream()
+                    .map(relName -> processor.getRelationship(relName))
+                    .collect(Collectors.toSet());
+
+                if (!processor.getAutoTerminatedRelationships().equals(proposedAutoTerminated)) {
+                    autoTerminatedRelationships.put(processor, proposedAutoTerminated);
+                }
+
                 LOG.info("Updated {}", processor);
             } else {
                 processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
@@ -3205,6 +3232,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.removeConnection(connection);
         }
 
+        // Once the appropriate connections have been removed, we may now update Processors' auto-terminated relationships.
+        // We cannot do this above, in the 'updateProcessor' call because if a connection is removed and changed to auto-terminated,
+        // then updating this in the updateProcessor call above would attempt to set the Relationship to being auto-terminated while a
+        // Connection for that relationship exists. This will throw an Exception.
+        autoTerminatedRelationships.forEach((proc, rels) -> proc.setAutoTerminatedRelationships(rels));
+
+        // Remove all controller services no longer in use
         for (final String removedVersionedId : controllerServicesRemoved) {
             final ControllerServiceNode service = servicesByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", service, group);
@@ -3276,7 +3310,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ProcessGroup group = flowController.createProcessGroup(generateUuid(componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         addProcessGroup(group);
-        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true);
+        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true);
         return group;
     }
 
@@ -3535,10 +3569,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setYieldPeriod(proposed.getYieldDuration());
         processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
 
-        processor.setAutoTerminatedRelationships(proposed.getAutoTerminatedRelationships().stream()
-            .map(relName -> processor.getRelationship(relName))
-            .collect(Collectors.toSet()));
-
         if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
             final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
             final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
@@ -3546,6 +3576,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             flowController.reload(processor, proposed.getType(), newBundleCoordinate, additionalUrls);
         }
     }
+
 
     private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties) {
         final Map<String, String> fullPropertyMap = new HashMap<>();
@@ -3646,7 +3677,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             @Override
             public String getName() {
-                return "Flow Under Version Control";
+                return "Versioned Flow";
             }
         };
 
@@ -3659,7 +3690,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             .findAny()
             .isPresent();
 
-        LOG.debug("There are {} differences between this flow and the versioned snapshot of this flow: {}", differences.size(), differences);
+        LOG.debug("There are {} differences between this Local FLow and the Versioned Flow: {}", differences.size(), differences);
         return Optional.of(modified);
     }
 
@@ -3669,27 +3700,24 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             final VersionControlInformation versionControlInfo = getVersionControlInformation();
-            if (versionControlInfo == null) {
-                throw new IllegalStateException("Cannot update the Version of the flow for " + this
-                    + " because the Process Group is not currently under Version Control");
-            }
-
-            if (!versionControlInfo.getFlowIdentifier().equals(updatedFlow.getSnapshotMetadata().getFlowIdentifier())) {
-                throw new IllegalStateException(this + " is under version control but the given flow does not match the flow that this Process Group is synchronized with");
-            }
-
-            if (verifyNotDirty) {
-                final Optional<Boolean> modifiedOption = versionControlInfo.getModified();
-                if (!modifiedOption.isPresent()) {
-                    throw new IllegalStateException(this + " cannot be updated to a different version of the flow because the local flow "
-                        + "has not yet been synchronized with the Flow Registry. The Process Group must be"
-                        + " synched with the Flow Registry before continuing. This will happen periodically in the background, so please try the request again later");
+            if (versionControlInfo != null) {
+                if (!versionControlInfo.getFlowIdentifier().equals(updatedFlow.getSnapshotMetadata().getFlowIdentifier())) {
+                    throw new IllegalStateException(this + " is under version control but the given flow does not match the flow that this Process Group is synchronized with");
                 }
 
-                if (Boolean.TRUE.equals(modifiedOption.get())) {
-                    throw new IllegalStateException("Cannot change the Version of the flow for " + this
-                        + " because the Process Group has been modified since it was last synchronized with the Flow Registry. The Process Group must be"
-                        + " restored to its original form before changing the version");
+                if (verifyNotDirty) {
+                    final Optional<Boolean> modifiedOption = versionControlInfo.getModified();
+                    if (!modifiedOption.isPresent()) {
+                        throw new IllegalStateException(this + " cannot be updated to a different version of the flow because the local flow "
+                            + "has not yet been synchronized with the Flow Registry. The Process Group must be"
+                            + " synched with the Flow Registry before continuing. This will happen periodically in the background, so please try the request again later");
+                    }
+
+                    if (Boolean.TRUE.equals(modifiedOption.get())) {
+                        throw new IllegalStateException("Cannot change the Version of the flow for " + this
+                            + " because the Process Group has been modified since it was last synchronized with the Flow Registry. The Process Group must be"
+                            + " restored to its original form before changing the version");
+                    }
                 }
             }
 

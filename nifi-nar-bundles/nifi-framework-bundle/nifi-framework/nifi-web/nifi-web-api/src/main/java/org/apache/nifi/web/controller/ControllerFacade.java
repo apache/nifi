@@ -82,6 +82,7 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.ReportingTask;
@@ -1643,6 +1644,9 @@ public class ControllerFacade implements Authorizable {
         return dto;
     }
 
+    public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
+        flowController.verifyComponentTypesInSnippet(versionedFlow);
+    }
 
 
     private ComponentSearchResultDTO search(final String searchStr, final ProcessorNode procNode) {

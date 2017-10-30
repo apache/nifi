@@ -85,6 +85,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -184,7 +185,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         try {
             if (flowAlreadySynchronized) {
                 existingFlow = toBytes(controller);
-                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty() && controller.getAllReportingTasks().isEmpty() && controller.getAllControllerServices().isEmpty();
+                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty()
+                    && controller.getAllReportingTasks().isEmpty()
+                    && controller.getAllControllerServices().isEmpty()
+                    && controller.getFlowRegistryClient().getRegistryIdentifiers().isEmpty();
             } else {
                 existingFlow = readFlowFromDisk();
                 if (existingFlow == null || existingFlow.length == 0) {
@@ -220,10 +224,22 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         unrootedControllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
                     }
 
+                    final boolean registriesPresent;
+                    final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                    if (registriesElement == null) {
+                        registriesPresent = false;
+                    } else {
+                        final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                        registriesPresent = !flowRegistryElems.isEmpty();
+                    }
+
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
                     final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
-                    existingFlowEmpty = taskElements.isEmpty() && unrootedControllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
+                    existingFlowEmpty = taskElements.isEmpty()
+                        && unrootedControllerServiceElements.isEmpty()
+                        && isEmpty(rootGroupDto)
+                        && registriesPresent;
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -317,6 +333,22 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
                     // get the root group XML element
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+
+                    if (!flowAlreadySynchronized || existingFlowEmpty) {
+                        final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                        if (registriesElement != null) {
+                            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                            for (final Element flowRegistryElement : flowRegistryElems) {
+                                final String registryId = getString(flowRegistryElement, "id");
+                                final String registryName = getString(flowRegistryElement, "name");
+                                final String registryUrl = getString(flowRegistryElement, "url");
+                                final String description = getString(flowRegistryElement, "description");
+
+                                final FlowRegistryClient client = controller.getFlowRegistryClient();
+                                client.addFlowRegistry(registryId, registryName, registryUrl, description);
+                            }
+                        }
+                    }
 
                     // if this controller isn't initialized or its empty, add the root group, otherwise update
                     final ProcessGroup rootGroup;

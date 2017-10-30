@@ -26,6 +26,8 @@
                 </xs:sequence>
             </xs:choice>
 
+            <xs:element name="registries" type="RegistriesType" minOccurs="0" maxOccurs="1" />
+
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
             
@@ -38,6 +40,21 @@
         <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
 	
+    <xs:complexType name="RegistriesType">
+        <xs:sequence>
+            <xs:element name="flowRegistry" type="FlowRegistryType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="FlowRegistryType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="url" type="NonEmptyStringType" />
+            <xs:element name="description" type="NonEmptyStringType" />
+        </xs:sequence>
+    </xs:complexType>
+    
     <!-- the processor "id" is a key that should be valid within each flowController-->
     <xs:complexType name="ProcessorType">
         <xs:sequence>

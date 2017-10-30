@@ -15,29 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.web.dao;
 
 import java.util.Set;
 
-public interface FlowRegistryClient {
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.web.api.dto.RegistryDTO;
+
+public interface RegistryDAO {
+
+    FlowRegistry createFlowRegistry(RegistryDTO registryDto);
+
     FlowRegistry getFlowRegistry(String registryId);
 
-    default String getFlowRegistryId(String registryUrl) {
-        for (final String registryClientId : getRegistryIdentifiers()) {
-            final FlowRegistry registry = getFlowRegistry(registryClientId);
-            if (registry.getURL().equals(registryUrl)) {
-                return registryClientId;
-            }
-        }
-
-        return null;
-    }
-
-    Set<String> getRegistryIdentifiers();
-
-    void addFlowRegistry(FlowRegistry registry);
-
-    FlowRegistry addFlowRegistry(String registryId, String registryName, String registryUrl, String description);
+    Set<FlowRegistry> getFlowRegistries();
 
     FlowRegistry removeFlowRegistry(String registryId);
+
 }

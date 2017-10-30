@@ -17,12 +17,39 @@
 
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
@@ -30,12 +57,11 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.registry.flow.Bundle;
 import org.apache.nifi.registry.flow.ComponentType;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
@@ -48,7 +74,6 @@ import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.RequestManager;
 import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
-import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -71,36 +96,12 @@ import org.apache.nifi.web.util.Pause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 
 @Path("/versions")
 @Api(value = "/versions", description = "Endpoint for managing version control for a flow")
@@ -163,7 +164,7 @@ public class VersionsResource extends ApplicationResource {
 
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("start-requests")
     @ApiOperation(
@@ -402,10 +403,10 @@ public class VersionsResource extends ApplicationResource {
                 final NodeResponse clusterResponse;
                 try {
                     if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                        clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, null, Collections.emptyMap()).awaitMergedResponse();
+                        clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
                     } else {
                         clusterResponse = getRequestReplicator().forwardToCoordinator(
-                            getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, null, Collections.emptyMap()).awaitMergedResponse();
+                            getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
                     }
                 } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -466,10 +467,10 @@ public class VersionsResource extends ApplicationResource {
                 final NodeResponse clusterResponse;
                 try {
                     if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                        clusterResponse = getRequestReplicator().replicate(HttpMethod.DELETE, requestUri, null, Collections.emptyMap()).awaitMergedResponse();
+                        clusterResponse = getRequestReplicator().replicate(HttpMethod.DELETE, requestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
                     } else {
                         clusterResponse = getRequestReplicator().forwardToCoordinator(
-                            getClusterCoordinatorNode(), HttpMethod.DELETE, requestUri, null, Collections.emptyMap()).awaitMergedResponse();
+                            getClusterCoordinatorNode(), HttpMethod.DELETE, requestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
                     }
                 } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -942,7 +943,7 @@ public class VersionsResource extends ApplicationResource {
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
-        discoverCompatibleBundles(flowSnapshot.getFlowContents());
+        BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot, user);
@@ -956,6 +957,12 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component affected.
                 authorizeAffectedComponents(lookup, affectedComponents);
+
+                final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
+                final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
+                if (containsRestrictedComponents) {
+                    lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                }
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1070,7 +1077,7 @@ public class VersionsResource extends ApplicationResource {
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
-        discoverCompatibleBundles(flowSnapshot.getFlowContents());
+        BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot, user);
@@ -1084,6 +1091,12 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component affected.
                 authorizeAffectedComponents(lookup, affectedComponents);
+
+                final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
+                final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
+                if (containsRestrictedComponents) {
+                    lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                }
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1258,7 +1271,7 @@ public class VersionsResource extends ApplicationResource {
             final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
             final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), groupId);
             final VersionControlInformationDTO vci = requestEntity.getVersionControlInformation();
-            serviceFacade.updateProcessGroup(user, revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified);
+            serviceFacade.updateProcessGroupContents(user, revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified, false);
         }
 
         asyncRequest.setLastUpdated(new Date());
@@ -1384,50 +1397,6 @@ public class VersionsResource extends ApplicationResource {
         this.dtoFactory = dtoFactory;
     }
 
-    private BundleDTO createBundleDto(final Bundle bundle) {
-        final BundleDTO dto = new BundleDTO();
-        dto.setArtifact(bundle.getArtifact());
-        dto.setGroup(dto.getGroup());
-        dto.setVersion(dto.getVersion());
-        return dto;
-    }
-
-    /**
-     * Discovers the compatible bundle details for the components in the specified snippet.
-     *
-     * @param versionedGroup the versioned group
-     */
-    private void discoverCompatibleBundles(final VersionedProcessGroup versionedGroup) {
-        if (versionedGroup.getProcessors() != null) {
-            versionedGroup.getProcessors().forEach(processor -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(processor.getType(), createBundleDto(processor.getBundle()));
-
-                final Bundle bundle = new Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                processor.setBundle(bundle);
-            });
-        }
-
-        if (versionedGroup.getControllerServices() != null) {
-            versionedGroup.getControllerServices().forEach(controllerService -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerService.getType(), createBundleDto(controllerService.getBundle()));
-
-                final Bundle bundle = new Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                controllerService.setBundle(bundle);
-            });
-        }
-
-        if (versionedGroup.getProcessGroups() != null) {
-            versionedGroup.getProcessGroups().forEach(processGroup -> {
-                discoverCompatibleBundles(processGroup);
-            });
-        }
-    }
 
     private static class ActiveRequest {
         private static final long MAX_REQUEST_LOCK_NANOS = TimeUnit.MINUTES.toNanos(1L);

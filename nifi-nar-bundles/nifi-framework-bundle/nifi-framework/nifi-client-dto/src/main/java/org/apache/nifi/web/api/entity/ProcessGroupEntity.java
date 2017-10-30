@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
@@ -30,6 +32,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private ProcessGroupDTO component;
     private ProcessGroupStatusDTO status;
+    private VersionedFlowSnapshot versionedFlowSnapshot;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -46,10 +49,12 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      *
      * @return The ProcessGroupDTO object
      */
+    @Override
     public ProcessGroupDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ProcessGroupDTO component) {
         this.component = component;
     }
@@ -180,4 +185,12 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
+    @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", readOnly = true)
+    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+        return versionedFlowSnapshot;
+    }
+
+    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+        this.versionedFlowSnapshot = versionedFlowSnapshot;
+    }
 }

@@ -24,6 +24,22 @@ import java.io.IOException;
 import java.util.Set;
 
 public interface FlowRegistry {
+    /**
+     * @return the ID of the Flow Registry
+     */
+    String getIdentifier();
+
+    /**
+     * @return the description of the Flow Registry
+     */
+    String getDescription();
+
+    /**
+     * Updates the Flow Registry's description
+     *
+     * @param description the description of the Flow Registry
+     */
+    void setDescription(String description);
 
     /**
      * @return the URL of the Flow Registry
@@ -31,9 +47,23 @@ public interface FlowRegistry {
     String getURL();
 
     /**
+     * Updates the Flow Registry's URL
+     *
+     * @param url the URL of the Flow Registry
+     */
+    void setURL(String url);
+
+    /**
      * @return the name of the Flow Registry
      */
     String getName();
+
+    /**
+     * Updates the name of the Flow Registry
+     *
+     * @param name the name of the Flow Registry
+     */
+    void setName(String name);
 
     /**
      * Gets the buckets for the specified user.
