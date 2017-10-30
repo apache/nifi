@@ -36,6 +36,7 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -336,6 +337,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.initialize(initContext);
 
         // execute the reporting task and should not produce any data b/c max id same as previous id
+        task.onScheduled(confContext);
         task.onTrigger(context);
         assertEquals(0, task.dataSent.size());
     }
