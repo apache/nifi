@@ -300,6 +300,7 @@ public class TestSelectHiveQL {
         }
         assertEquals(nrOfRows - 10, recordsFromStream);
         assertEquals(recordsFromStream, Integer.parseInt(flowFile.getAttribute(SelectHiveQL.RESULT_ROW_COUNT)));
+        flowFile.assertAttributeEquals(AbstractHiveQLProcessor.ATTR_INPUT_TABLES, "persons");
     }
 
     @Test

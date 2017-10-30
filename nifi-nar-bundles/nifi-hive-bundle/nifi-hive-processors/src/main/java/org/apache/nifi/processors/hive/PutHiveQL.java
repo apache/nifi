@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -68,6 +70,12 @@ import java.util.regex.Pattern;
                 + "that represents the JDBC Type of the parameter."),
         @ReadsAttribute(attribute = "hiveql.args.N.value", description = "Incoming FlowFiles are expected to be parametrized HiveQL statements. The value of the Parameters are specified as "
                 + "hiveql.args.1.value, hiveql.args.2.value, hiveql.args.3.value, and so on. The type of the hiveql.args.1.value Parameter is specified by the hiveql.args.1.type attribute.")
+})
+@WritesAttributes({
+        @WritesAttribute(attribute = "query.input.tables", description = "This attribute is written on the flow files routed to the 'success' relationships, "
+                + "and contains input table names (if any) in comma delimited 'databaseName.tableName' format."),
+        @WritesAttribute(attribute = "query.output.tables", description = "This attribute is written on the flow files routed to the 'success' relationships, "
+                + "and contains the target table names in 'databaseName.tableName' format.")
 })
 public class PutHiveQL extends AbstractHiveQLProcessor {
 
@@ -196,13 +204,15 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
 
         String[] hiveQLs = script.split(regex);
 
+        final Set<TableName> tableNames = new HashSet<>();
         exceptionHandler.execute(fc, flowFile, input -> {
             int loc = 1;
-            for (String hiveQL: hiveQLs) {
-                getLogger().debug("HiveQL: {}", new Object[]{hiveQL});
+            for (String hiveQLStr: hiveQLs) {
+                getLogger().debug("HiveQL: {}", new Object[]{hiveQLStr});
 
-                if (!StringUtils.isEmpty(hiveQL.trim())) {
-                    final PreparedStatement stmt = conn.prepareStatement(hiveQL.trim());
+                final String hiveQL = hiveQLStr.trim();
+                if (!StringUtils.isEmpty(hiveQL)) {
+                    final PreparedStatement stmt = conn.prepareStatement(hiveQL);
 
                     // Get ParameterMetadata
                     // Hive JDBC Doesn't support this yet:
@@ -214,6 +224,14 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
                         loc = setParameters(loc, stmt, paramCount, flowFile.getAttributes());
                     }
 
+                    // Parse hiveQL and extract input/output tables
+                    try {
+                        tableNames.addAll(findTableNames(hiveQL));
+                    } catch (Exception e) {
+                        // If failed to parse the query, just log a warning message, but continue.
+                        getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
+                    }
+
                     // Execute the statement
                     stmt.execute();
                     fc.proceed();
@@ -223,7 +241,8 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             // Emit a Provenance SEND event
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - fc.startNanos);
 
-            session.getProvenanceReporter().send(flowFile, fc.connectionUrl, transmissionMillis, true);
+            final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, toQueryTableAttributes(tableNames));
+            session.getProvenanceReporter().send(updatedFlowFile, fc.connectionUrl, transmissionMillis, true);
             result.routeTo(flowFile, REL_SUCCESS);
 
         }, onFlowFileError(context, session, result));

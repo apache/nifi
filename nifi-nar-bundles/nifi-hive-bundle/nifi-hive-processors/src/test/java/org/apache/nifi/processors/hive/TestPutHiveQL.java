@@ -128,6 +128,8 @@ public class TestPutHiveQL {
 
         runner.assertTransferCount(PutHiveQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
     }
 
     @Test
@@ -375,6 +377,7 @@ public class TestPutHiveQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS).get(0).assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS");
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -493,6 +496,8 @@ public class TestPutHiveQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
 
         // Now we can check that the values were inserted by the multi-statement script.
         try (final Connection conn = service.getConnection()) {
