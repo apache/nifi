@@ -109,6 +109,7 @@
         <storm.version>1.1.1</storm.version>
         <hwx.registry.version>0.3.0</hwx.registry.version>
         <jackson.version>2.9.1</jackson.version>
+        <atlas.version>0.8.1</atlas.version>
     </properties>
 
     <repositories>
@@ -1435,6 +1436,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-parquet-nar</artifactId>
+                <version>1.5.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-atlas-nar</artifactId>
                 <version>1.5.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
