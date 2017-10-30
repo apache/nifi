@@ -46,7 +46,6 @@ import org.apache.nifi.util.StopWatch;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -128,7 +127,6 @@ public class FetchHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final URI uri = path.toUri();
         final StopWatch stopWatch = new StopWatch(true);
         final FlowFile finalFlowFile = flowFile;
 
@@ -149,6 +147,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                 }
 
                 FlowFile flowFile = finalFlowFile;
+                final Path qualifiedPath = path.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                 try {
                     final String outputFilename;
                     final String originalFilename = path.getName();
@@ -166,16 +165,16 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                     stopWatch.stop();
-                    getLogger().info("Successfully received content from {} for {} in {}", new Object[] {uri, flowFile, stopWatch.getDuration()});
-                    session.getProvenanceReporter().fetch(flowFile, uri.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                    getLogger().info("Successfully received content from {} for {} in {}", new Object[] {qualifiedPath, flowFile, stopWatch.getDuration()});
+                    session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
                 } catch (final FileNotFoundException | AccessControlException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {uri, flowFile, e});
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {qualifiedPath, flowFile, e});
                     flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
                 } catch (final IOException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {uri, flowFile, e});
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {qualifiedPath, flowFile, e});
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_COMMS_FAILURE);
                 } finally {

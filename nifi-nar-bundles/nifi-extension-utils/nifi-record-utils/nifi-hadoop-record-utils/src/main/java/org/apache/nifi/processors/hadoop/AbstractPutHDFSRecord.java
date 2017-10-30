@@ -349,7 +349,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                 putFlowFile = postProcess(context, session, putFlowFile, destFile);
 
-                final String outputPath = destFile.toString();
                 final String newFilename = destFile.getName();
                 final String hdfsPath = destFile.getParent().toString();
 
@@ -361,8 +360,8 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 putFlowFile = session.putAllAttributes(putFlowFile, attributes);
 
                 // Send a provenance event and transfer to success
-                final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
-                session.getProvenanceReporter().send(putFlowFile, transitUri);
+                final Path qualifiedPath = destFile.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
                 session.transfer(putFlowFile, REL_SUCCESS);
 
             } catch (IOException | FlowFileAccessException e) {

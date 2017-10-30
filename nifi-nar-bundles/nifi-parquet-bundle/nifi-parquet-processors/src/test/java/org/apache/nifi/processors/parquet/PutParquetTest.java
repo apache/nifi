@@ -143,7 +143,8 @@ public class PutParquetTest {
         // verify it was a SEND event with the correct URI
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
-        Assert.assertEquals("hdfs://" + avroParquetFile.toString(), provEvent.getTransitUri());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        Assert.assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
 
         // verify the content of the parquet file by reading it back in
         verifyAvroParquetUsers(avroParquetFile, 100);
