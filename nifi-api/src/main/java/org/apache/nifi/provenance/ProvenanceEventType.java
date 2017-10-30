@@ -47,6 +47,13 @@ public enum ProvenanceEventType {
     SEND,
 
     /**
+     * Indicates a provenance event for sending remote invocation request to an external process.
+     * This event type is used to represent other operations than transferring data (RECEIVE, FETCH or SEND),
+     * for example, deleting object from an external process or storage.
+     */
+    REMOTE_INVOCATION,
+
+    /**
      * Indicates that the contents of a FlowFile were downloaded by a user or external entity.
      */
     DOWNLOAD,
