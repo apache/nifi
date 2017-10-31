@@ -17,22 +17,22 @@
 
 package org.apache.nifi.processors.mqtt;
 
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
-import org.apache.nifi.processors.mqtt.common.MqttTestClient;
-import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
-import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.After;
-import org.junit.Before;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
+import org.apache.nifi.util.TestRunners;
+import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.junit.After;
+import org.junit.Before;
 
 
 public class TestPublishMQTT extends TestPublishMqttCommon {
@@ -56,7 +56,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        public IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+		public IMqttAsyncClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
             mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }

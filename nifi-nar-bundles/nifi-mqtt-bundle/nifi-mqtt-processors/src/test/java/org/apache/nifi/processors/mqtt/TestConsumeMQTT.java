@@ -17,19 +17,10 @@
 
 package org.apache.nifi.processors.mqtt;
 
-import io.moquette.proto.messages.PublishMessage;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
-import org.apache.nifi.processors.mqtt.common.MqttTestClient;
-import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
-import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -38,10 +29,20 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.BlockingQueue;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
+import org.apache.nifi.util.TestRunners;
+import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.moquette.proto.messages.PublishMessage;
 
 
 public class TestConsumeMQTT extends TestConsumeMqttCommon {
@@ -54,7 +55,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
 
         @Override
-        public IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+		public IMqttAsyncClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
             mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Subscriber);
             return mqttTestClient;
         }
