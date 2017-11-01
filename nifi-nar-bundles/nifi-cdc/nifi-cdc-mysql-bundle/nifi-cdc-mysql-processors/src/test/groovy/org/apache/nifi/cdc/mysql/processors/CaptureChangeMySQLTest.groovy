@@ -963,6 +963,10 @@ class CaptureChangeMySQLTest {
         }
 
         @Override
+        protected void registerDriver(String locationString, String drvName) throws InitializationException {
+        }
+
+        @Override
         protected Connection getJdbcConnection(String locationString, String drvName, InetSocketAddress host, String username, String password, Map<String, String> customProperties)
                 throws InitializationException, SQLException {
             Connection mockConnection = mock(Connection)
