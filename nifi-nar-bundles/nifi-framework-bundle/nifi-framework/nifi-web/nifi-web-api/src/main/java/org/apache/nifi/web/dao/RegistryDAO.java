@@ -17,10 +17,14 @@
 
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.web.api.dto.RegistryDTO;
+
+import java.util.Set;
 
 public interface RegistryDAO {
 
@@ -29,6 +33,14 @@ public interface RegistryDAO {
     FlowRegistry getFlowRegistry(String registryId);
 
     Set<FlowRegistry> getFlowRegistries();
+
+    Set<FlowRegistry> getFlowRegistriesForUser(NiFiUser user);
+
+    Set<Bucket> getBucketsForUser(String registry, NiFiUser user);
+
+    Set<VersionedFlow> getFlowsForUser(String registryId, String bucketId, NiFiUser user);
+
+    Set<VersionedFlowSnapshotMetadata> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user);
 
     FlowRegistry removeFlowRegistry(String registryId);
 

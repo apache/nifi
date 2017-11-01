@@ -375,11 +375,17 @@
      * @param selection
      */
     var supportsFlowVersioning = function (selection) {
-        if (nfCanvasUtils.supportsFlowVersioning() === false) {
+        if (nfCommon.canVersionFlows() === false) {
             return false;
         }
 
         if (selection.empty()) {
+            // prevent versioning of the root group
+            if (nfCanvasUtils.getParentGroupId() === null) {
+                return false;
+            }
+
+            // if not root group, ensure adequate permissions
             return nfCanvasUtils.canReadCurrentGroup() && nfCanvasUtils.canWriteCurrentGroup();
         }
 
@@ -632,13 +638,13 @@
         {id: 'variable-registry-menu-item', condition: hasVariables, menuItem: {clazz: 'fa', text: 'Variables', action: 'openVariableRegistry'}},
         {separator: true},
         {id: 'version-menu-item', groupMenuItem: {clazz: 'fa', text: 'Version'}, menuItems: [
-            {id: 'start-version-control-menu-item', condition: supportsStartFlowVersioning, menuItem: {clazz: 'fa fa-floppy-o', text: 'Start version control', action: 'saveFlowVersion'}},
+            {id: 'start-version-control-menu-item', condition: supportsStartFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Start version control', action: 'saveFlowVersion'}},
             {separator: true},
-            {id: 'commit-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa fa-floppy-o', text: 'Commit local changes', action: 'saveFlowVersion'}},
-            {id: 'revert-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Revert local changes', action: 'revertFlowChanges'}},
+            {id: 'commit-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'saveFlowVersion'}},
+            {id: 'revert-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa fa-undo', text: 'Revert local changes', action: 'revertLocalChanges'}},
             {id: 'change-version-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Change version', action: 'changeFlowVersion'}},
             {separator: true},
-            {id: 'stop-version-control-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Stop version control', action: 'disconnectFlowVersioning'}}
+            {id: 'stop-version-control-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Stop version control', action: 'stopVersionControl'}}
         ]},
         {separator: true},
         {id: 'enter-group-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},

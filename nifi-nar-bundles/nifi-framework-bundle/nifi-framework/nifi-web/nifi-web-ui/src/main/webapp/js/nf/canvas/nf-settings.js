@@ -82,8 +82,7 @@
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
             reportingTasks: '../nifi-api/flow/reporting-tasks',
-            createRegistry: '../nifi-api/controller/registries',
-            registries: '../nifi-api/flow/registries'
+            registries: '../nifi-api/controller/registry-clients'
         }
     };
 
@@ -486,7 +485,7 @@
         // add the new registry
         var addRegistry = $.ajax({
             type: 'POST',
-            url: config.urls.createRegistry,
+            url: config.urls.registries,
             data: JSON.stringify(registryEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -877,7 +876,6 @@
         // initialize the registry configuration dialog
         $('#registry-configuration-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Add Registry',
             handler: {
                 close: function () {
                     $('#registry-id').text('');
@@ -1351,7 +1349,7 @@
         $('#registry-description').val(registryEntity.component.description);
 
         // show the dialog
-        $('#registry-configuration-dialog').modal('setButtonModel', [{
+        $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
             buttonText: 'Update',
             color: {
                 base: '#728E9B',
@@ -1597,7 +1595,7 @@
                     name: 'Reporting Tasks',
                     tabContentId: 'reporting-tasks-tab-content'
                 }, {
-                    name: 'Registries',
+                    name: 'Registry Clients',
                     tabContentId: 'registries-tab-content'
                 }],
                 select: function () {
@@ -1625,9 +1623,9 @@
                                 } else if (tab === 'Reporting Tasks') {
                                     $('#settings-save').hide();
                                     return 'Create a new reporting task';
-                                } else if (tab === 'Registries') {
+                                } else if (tab === 'Registry Clients') {
                                     $('#settings-save').hide();
-                                    return 'Register a new registry';
+                                    return 'Register a new registry client';
                                 }
                             });
                         } else {
@@ -1637,7 +1635,7 @@
 
                         if (tab === 'Reporting Task Controller Services') {
                             $('#controller-cs-availability').show();
-                        } else if (tab === 'Reporting Tasks' || tab === 'Registries') {
+                        } else if (tab === 'Reporting Tasks' || tab === 'Registry Clients') {
                             $('#controller-cs-availability').hide();
                         }
 
@@ -1676,8 +1674,8 @@
 
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
-                } else if (selectedTab === 'Registries') {
-                    $('#registry-configuration-dialog').modal('setButtonModel', [{
+                } else if (selectedTab === 'Registry Clients') {
+                    $('#registry-configuration-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
                         buttonText: 'Add',
                         color: {
                             base: '#728E9B',
@@ -1702,6 +1700,9 @@
                             }
                         }
                     }]).modal('show');
+
+                    // set the initial focus
+                    $('#registry-name').focus();
                 }
             });
 

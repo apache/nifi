@@ -27,6 +27,7 @@ public class VersionControlInformationDTO {
     private String registryId;
     private String bucketId;
     private String flowId;
+    private String flowName;
     private Integer version;
     private Boolean modified;
     private Boolean current;
@@ -65,6 +66,15 @@ public class VersionControlInformationDTO {
 
     public void setFlowId(final String flowId) {
         this.flowId = flowId;
+    }
+
+    @ApiModelProperty("The name of the flow")
+    public String getFlowName() {
+        return flowName;
+    }
+
+    public void setFlowName(String flowName) {
+        this.flowName = flowName;
     }
 
     @ApiModelProperty("The version of the flow")

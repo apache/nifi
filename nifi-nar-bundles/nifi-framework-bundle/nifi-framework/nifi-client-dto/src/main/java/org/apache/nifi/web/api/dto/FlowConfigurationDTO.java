@@ -32,7 +32,6 @@ public class FlowConfigurationDTO {
     private Boolean supportsManagedAuthorizer;
     private Boolean supportsConfigurableAuthorizer;
     private Boolean supportsConfigurableUsersAndGroups;
-    private Boolean supportsFlowVersioning;
     private Long autoRefreshIntervalSeconds;
 
     private Date currentTime;
@@ -129,17 +128,4 @@ public class FlowConfigurationDTO {
         this.timeOffset = timeOffset;
     }
 
-    /**
-     * @return whether this NiFi is configured for support flow versioning
-     */
-    @ApiModelProperty(
-            value = "Whether this NiFi supports flow versioning."
-    )
-    public Boolean getSupportsFlowVersioning() {
-        return supportsFlowVersioning;
-    }
-
-    public void setSupportsFlowVersioning(Boolean supportsFlowVersioning) {
-        this.supportsFlowVersioning = supportsFlowVersioning;
-    }
 }

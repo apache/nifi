@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VersionedFlowDTO;
-
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Set;
 
-@XmlRootElement(name = "versionedFlow")
-public class VersionedFlowEntity extends Entity {
-    private VersionedFlowDTO versionedFlow;
+@XmlRootElement(name = "versionedFlowsEntity")
+public class VersionedFlowsEntity extends Entity {
 
-    @ApiModelProperty("The versioned flow")
-    public VersionedFlowDTO getVersionedFlow() {
-        return versionedFlow;
+    private Set<VersionedFlowEntity> versionedFlows;
+
+    /**
+     * @return collection of VersionedEntity's that are being serialized
+     */
+    public Set<VersionedFlowEntity> getVersionedFlows() {
+        return versionedFlows;
     }
 
-    public void setVersionedFlow(VersionedFlowDTO versionedFLow) {
-        this.versionedFlow = versionedFLow;
+    public void setVersionedFlows(Set<VersionedFlowEntity> versionedFlows) {
+        this.versionedFlows = versionedFlows;
     }
+
 }

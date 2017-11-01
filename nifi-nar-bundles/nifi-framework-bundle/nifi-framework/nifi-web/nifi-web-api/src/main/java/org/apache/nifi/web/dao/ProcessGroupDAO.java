@@ -159,6 +159,13 @@ public interface ProcessGroupDAO {
     void verifyDelete(String groupId);
 
     /**
+     * Verifies the specified registry can be removed.
+     *
+     * @param registryId registry id
+     */
+    void verifyDeleteFlowRegistry(String registryId);
+
+    /**
      * Deletes the specified process group.
      *
      * @param groupId The process group id

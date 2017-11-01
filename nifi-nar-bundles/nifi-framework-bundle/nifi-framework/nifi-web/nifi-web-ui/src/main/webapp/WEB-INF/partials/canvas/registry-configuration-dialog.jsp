@@ -25,9 +25,9 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Location</div>
+            <div class="setting-name">URL</div>
             <div class="setting-field">
-                <input type="text" id="registry-location" class="setting-input"/>
+                <input type="text" id="registry-location" class="setting-input" placeholder="https://remotehost:8443"/>
             </div>
         </div>
         <div class="setting">

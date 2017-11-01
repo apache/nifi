@@ -39,18 +39,13 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
-import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
-import org.apache.nifi.web.api.dto.BucketDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
@@ -102,6 +97,10 @@ import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
@@ -121,7 +120,6 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
@@ -158,10 +156,7 @@ public class FlowResource extends ApplicationResource {
     private TemplateResource templateResource;
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
-    private ControllerResource controllerResource;
     private ReportingTaskResource reportingTaskResource;
-
-    private FlowRegistryClient flowRegistryClient;
 
     public FlowResource() {
         super();
@@ -1351,12 +1346,7 @@ public class FlowResource extends ApplicationResource {
     public Response getRegistries() {
         authorizeFlow();
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
-        final Set<RegistryEntity> registries = serviceFacade.getRegistries();
-        registries.forEach(registry -> controllerResource.populateRemainingRegistryEntityContent(registry));
+        final Set<RegistryEntity> registries = serviceFacade.getRegistriesForUser(NiFiUserUtils.getNiFiUser());
 
         final RegistriesEntity registryEntities = new RegistriesEntity();
         registryEntities.setRegistries(registries);
@@ -1387,39 +1377,89 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        try {
-            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(id);
-            if (flowRegistry == null) {
-                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
-            }
+        final Set<BucketEntity> buckets = serviceFacade.getBucketsForUser(id, NiFiUserUtils.getNiFiUser());
 
-            final Set<Bucket> userBuckets = flowRegistry.getBuckets(NiFiUserUtils.getNiFiUser());
+        final BucketsEntity bucketsEntity = new BucketsEntity();
+        bucketsEntity.setBuckets(buckets);
 
-            final BucketsEntity bucketsEntity = new BucketsEntity();
+        return generateOkResponse(bucketsEntity).build();
+    }
 
-            if (userBuckets != null) {
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{registry-id}/buckets/{bucket-id}/flows")
+    @ApiOperation(value = "Gets the flows from the specified registry and bucket for the current user", response = BucketsEntity.class, authorizations = {
+            @Authorization(value = "Read - /flow")
+    })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getFlows(
+            @ApiParam(
+                value = "The registry id.",
+                required = true
+            )
+            @PathParam("registry-id") String registryId,
+            @ApiParam(
+                    value = "The bucket id.",
+                    required = true
+            )
+            @PathParam("bucket-id") String bucketId) {
 
-                final Set<BucketEntity> bucketSet = new HashSet<>();
-                for (final Bucket userBucket : userBuckets) {
-                    final BucketDTO bucket = new BucketDTO();
-                    bucket.setId(userBucket.getIdentifier());
-                    bucket.setName(userBucket.getName());
-                    bucket.setDescription(userBucket.getDescription());
-                    bucket.setCreated(userBucket.getCreatedTimestamp());
+        authorizeFlow();
 
-                    final BucketEntity bucketEntity = new BucketEntity();
-                    bucketEntity.setBucket(bucket);
+        final Set<VersionedFlowEntity> versionedFlows = serviceFacade.getFlowsForUser(registryId, bucketId, NiFiUserUtils.getNiFiUser());
 
-                    bucketSet.add(bucketEntity);
-                }
+        final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
+        versionedFlowsEntity.setVersionedFlows(versionedFlows);
 
-                bucketsEntity.setBuckets(bucketSet);
-            }
+        return generateOkResponse(versionedFlowsEntity).build();
+    }
 
-            return generateOkResponse(bucketsEntity).build();
-        } catch (final IOException ioe) {
-            throw new NiFiCoreException("Unable to obtain bucket listing: " + ioe.getMessage(), ioe);
-        }
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
+    @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user", response = BucketsEntity.class, authorizations = {
+            @Authorization(value = "Read - /flow")
+    })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getVersions(
+            @ApiParam(
+                    value = "The registry id.",
+                    required = true
+            )
+            @PathParam("registry-id") String registryId,
+            @ApiParam(
+                    value = "The bucket id.",
+                    required = true
+            )
+            @PathParam("bucket-id") String bucketId,
+            @ApiParam(
+                    value = "The flow id.",
+                    required = true
+            )
+            @PathParam("flow-id") String flowId) {
+
+        authorizeFlow();
+
+        final Set<VersionedFlowSnapshotMetadataEntity> versionedFlowSnapshotMetadataSet = serviceFacade.getFlowVersionsForUser(registryId, bucketId, flowId, NiFiUserUtils.getNiFiUser());
+
+        final VersionedFlowSnapshotMetadataSetEntity versionedFlowSnapshotMetadataSetEntity = new VersionedFlowSnapshotMetadataSetEntity();
+        versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(versionedFlowSnapshotMetadataSet);
+
+        return generateOkResponse(versionedFlowSnapshotMetadataSetEntity).build();
     }
 
     // --------------
@@ -2629,10 +2669,6 @@ public class FlowResource extends ApplicationResource {
         this.processGroupResource = processGroupResource;
     }
 
-    public void setControllerResource(ControllerResource controllerResource) {
-        this.controllerResource = controllerResource;
-    }
-
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
@@ -2643,9 +2679,5 @@ public class FlowResource extends ApplicationResource {
 
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
-    }
-
-    public void setFlowRegistryClient(FlowRegistryClient flowRegistryClient) {
-        this.flowRegistryClient = flowRegistryClient;
     }
 }

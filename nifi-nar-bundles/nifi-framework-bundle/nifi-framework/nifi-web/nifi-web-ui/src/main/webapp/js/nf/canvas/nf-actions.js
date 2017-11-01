@@ -1254,14 +1254,14 @@
         },
 
         /**
-         * Reverts outstanding changes.
+         * Reverts local changes.
          */
-        revertFlowChanges: function (selection) {
+        revertLocalChanges: function (selection) {
             if (selection.empty()) {
-                nfFlowVersion.revertFlowChanges(nfCanvasUtils.getGroupId());
+                nfFlowVersion.revertLocalChanges(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                nfFlowVersion.revertFlowChanges(selectionData.id);
+                nfFlowVersion.revertLocalChanges(selectionData.id);
             }
         },
 
@@ -1269,18 +1269,25 @@
          * Changes the flow version.
          */
         changeFlowVersion: function (selection) {
-
+            if (selection.empty()) {
+                nfFlowVersion.showChangeFlowVersionDialog(nfCanvasUtils.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    nfFlowVersion.showChangeFlowVersionDialog(selectionData.id);
+                }
+            }
         },
 
         /**
          * Disconnects a Process Group from flow versioning.
          */
-        disconnectFlowVersioning: function (selection) {
+        stopVersionControl: function (selection) {
             if (selection.empty()) {
-                nfFlowVersion.disconnectFlowVersioning(nfCanvasUtils.getGroupId());
+                nfFlowVersion.stopVersionControl(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                nfFlowVersion.disconnectFlowVersioning(selectionData.id);
+                nfFlowVersion.stopVersionControl(selectionData.id);
             }
         },
 

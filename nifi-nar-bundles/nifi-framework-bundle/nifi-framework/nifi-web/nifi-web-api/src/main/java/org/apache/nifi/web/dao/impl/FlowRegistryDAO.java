@@ -17,14 +17,20 @@
 
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.dao.RegistryDAO;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class FlowRegistryDAO implements RegistryDAO {
     private FlowRegistryClient flowRegistryClient;
@@ -49,6 +55,53 @@ public class FlowRegistryDAO implements RegistryDAO {
         return flowRegistryClient.getRegistryIdentifiers().stream()
             .map(flowRegistryClient::getFlowRegistry)
             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<FlowRegistry> getFlowRegistriesForUser(final NiFiUser user) {
+        // TODO - implement to be user specific
+        return getFlowRegistries();
+    }
+
+    @Override
+    public Set<Bucket> getBucketsForUser(final String registryId, final NiFiUser user) {
+        try {
+            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
+
+            return flowRegistry.getBuckets(user);
+        } catch (final IOException ioe) {
+            throw new NiFiCoreException("Unable to obtain bucket listing: " + ioe.getMessage(), ioe);
+        }
+    }
+
+
+    @Override
+    public Set<VersionedFlow> getFlowsForUser(String registryId, String bucketId, NiFiUser user) {
+        final Set<Bucket> bucketsForUser = getBucketsForUser(registryId, user);
+
+        // TODO - implement getBucket(bucketId, user)
+        final Bucket bucket = bucketsForUser.stream().filter(b -> b.getIdentifier().equals(bucketId)).findFirst().orElse(null);
+        if (bucket == null) {
+            throw new IllegalArgumentException("The specified bucket is not available.");
+        }
+
+        return bucket.getVersionedFlows();
+    }
+
+    @Override
+    public Set<VersionedFlowSnapshotMetadata> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user) {
+        final Set<VersionedFlow> flowsForUser = getFlowsForUser(registryId, bucketId, user);
+
+        // TODO - implement getFlow(bucketId, flowId, user)
+        final VersionedFlow versionedFlow = flowsForUser.stream().filter(vf -> vf.getIdentifier().equals(flowId)).findFirst().orElse(null);
+        if (versionedFlow == null) {
+            throw new IllegalArgumentException("The specified flow is not available.");
+        }
+
+        return versionedFlow.getSnapshotMetadata();
     }
 
     @Override
