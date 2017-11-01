@@ -59,14 +59,14 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             "The CSV parser implementation from the Apache Commons CSV library.");
 
     public static final AllowableValue JACKSON_CSV = new AllowableValue("jackson-csv", "Jackson CSV",
-            "The CSV parser implementation from the Jackson Dataformats library");
+            "The CSV parser implementation from the Jackson Dataformats library.");
 
 
     public static final PropertyDescriptor CSV_PARSER = new PropertyDescriptor.Builder()
             .name("csv-reader-csv-parser")
             .displayName("CSV Parser")
-            .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality, "
-                    + "and/or exhibit different levels of performance.")
+            .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality "
+                    + "and may also exhibit different levels of performance.")
             .expressionLanguageSupported(false)
             .allowableValues(APACHE_COMMONS_CSV, JACKSON_CSV)
             .defaultValue(APACHE_COMMONS_CSV.getValue())
