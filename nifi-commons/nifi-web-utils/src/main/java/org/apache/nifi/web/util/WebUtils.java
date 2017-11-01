@@ -16,34 +16,40 @@
  */
 package org.apache.nifi.web.util;
 
+import java.net.URI;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 /**
  * Common utilities related to web development.
- *
  */
 public final class WebUtils {
 
     private static Logger logger = LoggerFactory.getLogger(WebUtils.class);
 
     final static ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    private static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
+    private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
 
     private WebUtils() {
     }
@@ -54,7 +60,6 @@ public final class WebUtils {
      * automatically configured for JSON serialization/deserialization.
      *
      * @param config client configuration
-     *
      * @return a Client instance
      */
     public static Client createClient(final ClientConfig config) {
@@ -67,8 +72,7 @@ public final class WebUtils {
      * will be automatically configured for JSON serialization/deserialization.
      *
      * @param config client configuration
-     * @param ctx security context
-     *
+     * @param ctx    security context
      * @return a Client instance
      */
     public static Client createClient(final ClientConfig config, final SSLContext ctx) {
@@ -81,9 +85,8 @@ public final class WebUtils {
      * will be automatically configured for JSON serialization/deserialization.
      *
      * @param config client configuration
-     * @param ctx security context, which may be null for non-secure client
-     * creation
-     *
+     * @param ctx    security context, which may be null for non-secure client
+     *               creation
      * @return a Client instance
      */
     private static Client createClientHelper(final ClientConfig config, final SSLContext ctx) {
@@ -126,6 +129,121 @@ public final class WebUtils {
 
         return clientBuilder.build();
 
+    }
+
+    /**
+     * This method will check the provided context path headers against a whitelist (provided in nifi.properties) and throw an exception if the requested context path is not registered.
+     *
+     * @param uri                     the request URI
+     * @param request                 the HTTP request
+     * @param whitelistedContextPaths comma-separated list of valid context paths
+     * @return the resource path
+     * @throws UriBuilderException if the requested context path is not registered (header poisoning)
+     */
+    public static String getResourcePath(URI uri, HttpServletRequest request, String whitelistedContextPaths) throws UriBuilderException {
+        String resourcePath = uri.getPath();
+
+        // Determine and normalize the context path
+        String determinedContextPath = determineContextPath(request);
+        determinedContextPath = normalizeContextPath(determinedContextPath);
+
+        // If present, check it and prepend to the resource path
+        if (StringUtils.isNotBlank(determinedContextPath)) {
+            verifyContextPath(whitelistedContextPaths, determinedContextPath);
+
+            // Determine the complete resource path
+            resourcePath = determinedContextPath + resourcePath;
+        }
+
+        return resourcePath;
+    }
+
+    /**
+     * Throws an exception if the provided context path is not in the whitelisted context paths list.
+     *
+     * @param whitelistedContextPaths a comma-delimited list of valid context paths
+     * @param determinedContextPath   the normalized context path from a header
+     * @throws UriBuilderException if the context path is not safe
+     */
+    public static void verifyContextPath(String whitelistedContextPaths, String determinedContextPath) throws UriBuilderException {
+        // If blank, ignore
+        if (StringUtils.isBlank(determinedContextPath)) {
+            return;
+        }
+
+        // Check it against the whitelist
+        List<String> individualContextPaths = Arrays.asList(StringUtils.split(whitelistedContextPaths, ","));
+        if (!individualContextPaths.contains(determinedContextPath)) {
+            final String msg = "The provided context path [" + determinedContextPath + "] was not whitelisted [" + whitelistedContextPaths + "]";
+            logger.error(msg);
+            throw new UriBuilderException(msg);
+        }
+    }
+
+    /**
+     * Returns a normalized context path (leading /, no trailing /). If the parameter is blank, an empty string will be returned.
+     *
+     * @param determinedContextPath the raw context path
+     * @return the normalized context path
+     */
+    public static String normalizeContextPath(String determinedContextPath) {
+        if (StringUtils.isNotBlank(determinedContextPath)) {
+            // normalize context path
+            if (!determinedContextPath.startsWith("/")) {
+                determinedContextPath = "/" + determinedContextPath;
+            }
+
+            if (determinedContextPath.endsWith("/")) {
+                determinedContextPath = determinedContextPath.substring(0, determinedContextPath.length() - 1);
+            }
+
+            return determinedContextPath;
+        } else {
+            return "";
+        }
+    }
+
+    /**
+     * Determines the context path if populated in {@code X-ProxyContextPath} or {@code X-ForwardContext} headers. If not populated, returns an empty string.
+     *
+     * @param request the HTTP request
+     * @return the provided context path or an empty string
+     */
+    public static String determineContextPath(HttpServletRequest request) {
+        String contextPath = request.getContextPath();
+        String proxyContextPath = request.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
+        String forwardedContext = request.getHeader(FORWARDED_CONTEXT_HTTP_HEADER);
+
+        logger.debug("Context path: " + contextPath);
+        String determinedContextPath = "";
+
+        // If either header is set, log both
+        if (anyNotBlank(proxyContextPath, forwardedContext)) {
+            logger.debug(String.format("On the request, the following context paths were parsed" +
+                            " from headers:\n\t X-ProxyContextPath: %s\n\tX-Forwarded-Context: %s",
+                    proxyContextPath, forwardedContext));
+
+            // Implementing preferred order here: PCP, FCP
+            determinedContextPath = StringUtils.isNotBlank(proxyContextPath) ? proxyContextPath : forwardedContext;
+        }
+
+        logger.debug("Determined context path: " + determinedContextPath);
+        return determinedContextPath;
+    }
+
+    /**
+     * Returns true if any of the provided arguments are not blank.
+     *
+     * @param strings a variable number of strings
+     * @return true if any string has content (not empty or all whitespace)
+     */
+    private static boolean anyNotBlank(String... strings) {
+        for (String s : strings) {
+            if (StringUtils.isNotBlank(s)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

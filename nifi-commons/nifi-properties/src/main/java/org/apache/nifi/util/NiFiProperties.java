@@ -177,6 +177,7 @@ public abstract class NiFiProperties {
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
+    public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -256,8 +257,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
     public static final String DEFAULT_ZOOKEEPER_AUTH_TYPE = "default";
-    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL  = "true";
-    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL  = "true";
+    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "true";
+    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "true";
     public static final String DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL = "30 secs";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_ENABLED = "true";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "30 days";
@@ -1084,7 +1085,7 @@ public abstract class NiFiProperties {
      * Returns the number of claims to keep open for writing. Ideally, this will be at
      * least as large as the number of threads that will be updating the repository simultaneously but we don't want
      * to get too large because it will hold open up to this many FileOutputStreams.
-     *
+     * <p>
      * Default is {@link #DEFAULT_MAX_FLOWFILES_PER_CLAIM}
      *
      * @return the maximum number of flow files per claim
@@ -1100,7 +1101,7 @@ public abstract class NiFiProperties {
     /**
      * Returns the maximum size, in bytes, that claims should grow before writing a new file. This means that we won't continually write to one
      * file that keeps growing but gives us a chance to bunch together many small files.
-     *
+     * <p>
      * Default is {@link #DEFAULT_MAX_APPENDABLE_CLAIM_SIZE}
      *
      * @return the maximum appendable claim size
@@ -1283,6 +1284,42 @@ public abstract class NiFiProperties {
             }
         }
         return keys;
+    }
+
+    /**
+     * Returns the whitelisted proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
+     *
+     * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_CONTEXT_PATH)} will not normalize the paths.
+     *
+     * @return the path(s)
+     */
+    public String getWhitelistedContextPaths() {
+        return StringUtils.join(getWhitelistedContextPathsAsList(), ",");
+    }
+
+    /**
+     * Returns the whitelisted proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
+     *
+     * @return the path(s)
+     */
+    public List<String> getWhitelistedContextPathsAsList() {
+        String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
+        List<String> contextPaths = Arrays.asList(rawProperty.split(","));
+        return contextPaths.stream()
+                .map(this::normalizeContextPath).collect(Collectors.toList());
+    }
+
+    private String normalizeContextPath(String cp) {
+        if (cp == null || cp.equalsIgnoreCase("")) {
+            return "";
+        } else {
+            String trimmedCP = cp.trim();
+            // Ensure it starts with a leading slash and does not end in a trailing slash
+            // There's a potential for the path to be something like bad/path/// but this is semi-trusted data from an admin-accessible file and there are way worse possibilities here
+            trimmedCP = trimmedCP.startsWith("/") ? trimmedCP : "/" + trimmedCP;
+            trimmedCP = trimmedCP.endsWith("/") ? trimmedCP.substring(0, trimmedCP.length() - 1) : trimmedCP;
+            return trimmedCP;
+        }
     }
 
     private List<String> getProvenanceRepositoryEncryptionKeyProperties() {
