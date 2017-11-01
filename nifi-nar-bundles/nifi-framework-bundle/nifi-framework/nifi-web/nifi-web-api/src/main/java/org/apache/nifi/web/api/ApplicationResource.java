@@ -16,8 +16,40 @@
  */
 package org.apache.nifi.web.api;
 
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -54,41 +86,9 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 /**
  * Base class for controllers.
@@ -115,10 +115,10 @@ public abstract class ApplicationResource {
     public static final String NODEWISE = "false";
 
     @Context
-    private HttpServletRequest httpServletRequest;
+    protected HttpServletRequest httpServletRequest;
 
     @Context
-    private UriInfo uriInfo;
+    protected UriInfo uriInfo;
 
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
@@ -141,26 +141,14 @@ public abstract class ApplicationResource {
         try {
 
             // check for proxy settings
+
             final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
             final String host = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
             final String port = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
-            String baseContextPath = getFirstHeaderValue(PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER);
 
-            // if necessary, prepend the context path
-            String resourcePath = uri.getPath();
-            if (baseContextPath != null) {
-                // normalize context path
-                if (!baseContextPath.startsWith("/")) {
-                    baseContextPath = "/" + baseContextPath;
-                }
-
-                if (baseContextPath.endsWith("/")) {
-                    baseContextPath = StringUtils.substringBeforeLast(baseContextPath, "/");
-                }
-
-                // determine the complete resource path
-                resourcePath = baseContextPath + resourcePath;
-            }
+            // Catch header poisoning
+            String whitelistedContextPaths = properties.getWhitelistedContextPaths();
+            String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, whitelistedContextPaths);
 
             // determine the port uri
             int uriPort = uri.getPort();
@@ -462,13 +450,13 @@ public abstract class ApplicationResource {
     /**
      * Authorizes the specified process group.
      *
-     * @param processGroupAuthorizable      process group
-     * @param authorizer                    authorizer
-     * @param lookup                        lookup
-     * @param action                        action
-     * @param authorizeReferencedServices   whether to authorize referenced services
-     * @param authorizeTemplates            whether to authorize templates
-     * @param authorizeControllerServices   whether to authorize controller services
+     * @param processGroupAuthorizable    process group
+     * @param authorizer                  authorizer
+     * @param lookup                      lookup
+     * @param action                      action
+     * @param authorizeReferencedServices whether to authorize referenced services
+     * @param authorizeTemplates          whether to authorize templates
+     * @param authorizeControllerServices whether to authorize controller services
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices, final boolean authorizeTemplates,
@@ -857,8 +845,8 @@ public abstract class ApplicationResource {
     /**
      * Replicates the request to the given node
      *
-     * @param method the HTTP method
-     * @param entity the Entity to replicate
+     * @param method   the HTTP method
+     * @param entity   the Entity to replicate
      * @param nodeUuid the UUID of the node to replicate the request to
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
@@ -963,7 +951,7 @@ public abstract class ApplicationResource {
      * @throws InterruptedException if interrupted while replicating the request
      */
     protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
-        return replicateNodeResponse(method, getRequestParameters(), (Map<String, String>) null);
+        return replicateNodeResponse(method, getRequestParameters(), null);
     }
 
     /**
@@ -1084,8 +1072,8 @@ public abstract class ApplicationResource {
         return properties;
     }
 
-    public static enum ReplicationTarget {
-        CLUSTER_NODES, CLUSTER_COORDINATOR;
+    public enum ReplicationTarget {
+        CLUSTER_NODES, CLUSTER_COORDINATOR
     }
 
     // -----------------
