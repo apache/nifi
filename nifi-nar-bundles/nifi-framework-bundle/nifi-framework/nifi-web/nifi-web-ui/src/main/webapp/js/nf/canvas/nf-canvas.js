@@ -85,7 +85,6 @@
     var permissions = null;
     var parentGroupId = null;
     var managedAuthorizer = false;
-    var supportsFlowVersioning = false;
     var configurableAuthorizer = false;
     var configurableUsersAndGroups = false;
     var svg = null;
@@ -907,23 +906,6 @@
          */
         isManagedAuthorizer: function () {
             return managedAuthorizer;
-        },
-
-        /**
-         * Set whether this NiFi supports flow versioning.
-         *
-         * @param bool Whether this NiFi supports flow versioning
-         */
-        setSupportsFlowVersioning: function (bool) {
-            supportsFlowVersioning = bool;
-        },
-
-        /**
-         *
-         * @returns {boolean}
-         */
-        supportsFlowVersioning: function () {
-            return supportsFlowVersioning;
         },
 
         /**

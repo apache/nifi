@@ -15,16 +15,30 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-process-group-dialog" class="hidden small-dialog">
+<div id="import-flow-version-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name">Process group name</div>
+            <div class="setting-name">Registry</div>
             <div class="setting-field">
-                <input id="new-process-group-name" type="text"/>
+                <div id="import-flow-version-registry-combo"></div>
+                <div id="import-flow-version-registry" class="hidden"></div>
             </div>
         </div>
         <div class="setting">
-            <span id="import-process-group-link" class="link"><i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>Import version...</span>
+            <div class="setting-name">Location</div>
+            <div class="setting-field">
+                <div id="import-flow-version-bucket-combo"></div>
+                <div id="import-flow-version-bucket" class="hidden"></div>
+            </div>
         </div>
+        <div class="setting">
+            <div class="setting-name">Name</div>
+            <div class="setting-field">
+                <span id="import-flow-version-process-group-id" class="hidden"></span>
+                <div id="import-flow-version-name-combo"></div>
+                <div id="import-flow-version-name" class="hidden"></div>
+            </div>
+        </div>
+        <div id="import-flow-version-table"></div>
     </div>
 </div>

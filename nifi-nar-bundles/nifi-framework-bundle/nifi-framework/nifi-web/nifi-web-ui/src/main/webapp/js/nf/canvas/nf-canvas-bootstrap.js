@@ -337,7 +337,6 @@
                     nfCanvas.setManagedAuthorizer(configDetails.supportsManagedAuthorizer);
                     nfCanvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
                     nfCanvas.setConfigurableUsersAndGroups(configDetails.supportsConfigurableUsersAndGroups);
-                    nfCanvas.setSupportsFlowVersioning(configDetails.supportsFlowVersioning);
 
                     // init nfStorage
                     nfStorage.init();
@@ -356,7 +355,7 @@
                     nfQueueListing.init();
                     nfVariableRegistry.init();
                     nfComponentState.init();
-                    nfFlowVersion.init();
+                    nfFlowVersion.init(configDetails.timeOffset);
                     nfComponentVersion.init(nfSettings);
 
                     // initialize the component behaviors

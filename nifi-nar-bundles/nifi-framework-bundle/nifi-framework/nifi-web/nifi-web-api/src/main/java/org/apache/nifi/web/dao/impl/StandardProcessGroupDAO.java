@@ -39,9 +39,11 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
 
@@ -292,6 +294,26 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public void verifyDelete(String groupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.verifyCanDelete();
+    }
+
+    @Override
+    public void verifyDeleteFlowRegistry(String registryId) {
+        final ProcessGroup rootGroup = flowController.getRootGroup();
+
+        final VersionControlInformation versionControlInformation = rootGroup.getVersionControlInformation();
+        if (versionControlInformation != null && versionControlInformation.getRegistryIdentifier().equals(registryId)) {
+            throw new IllegalStateException("The Registry cannot be removed because a Process Group currently under version control is tracking to it.");
+        }
+
+        final Set<VersionControlInformation> trackedVersionControlInformation = rootGroup.findAllProcessGroups().stream()
+                .map(group -> group.getVersionControlInformation())
+                .filter(Objects::nonNull)
+                .filter(vci -> vci.getRegistryIdentifier().equals(registryId))
+                .collect(Collectors.toSet());
+
+        if (!trackedVersionControlInformation.isEmpty()) {
+            throw new IllegalStateException("The Registry cannot be removed because a Process Group currently under version control is tracking to it.");
+        }
     }
 
     @Override

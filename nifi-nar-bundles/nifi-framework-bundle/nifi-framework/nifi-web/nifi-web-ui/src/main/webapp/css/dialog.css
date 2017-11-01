@@ -213,11 +213,25 @@ div.progress-label {
 }
 
 /*
-    Flow Version
+    Save Flow Version
  */
 
-#flow-version-description, #flow-version-change-comments {
+#save-flow-version-description-field, #save-flow-version-change-comments {
     height: 85px;
+}
+
+/*
+    Import Flow Version
+ */
+
+#import-flow-version-table {
+    overflow: hidden;
+    position: absolute;
+    top: 202px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 225px;
 }
 
 /*

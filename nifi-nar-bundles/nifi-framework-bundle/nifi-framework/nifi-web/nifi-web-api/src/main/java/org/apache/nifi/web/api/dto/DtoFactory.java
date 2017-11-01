@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -245,7 +244,6 @@ public final class DtoFactory {
         dto.setSupportsManagedAuthorizer(AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer));
         dto.setSupportsConfigurableUsersAndGroups(AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer));
         dto.setSupportsConfigurableAuthorizer(AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer));
-        dto.setSupportsFlowVersioning(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
 
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
@@ -2191,6 +2189,8 @@ public final class DtoFactory {
         dto.setRegistryId(versionControlInfo.getRegistryIdentifier());
         dto.setBucketId(versionControlInfo.getBucketIdentifier());
         dto.setFlowId(versionControlInfo.getFlowIdentifier());
+        // TODO - need to get flow name here
+        dto.setFlowName(group.getName());
         dto.setVersion(versionControlInfo.getVersion());
         dto.setCurrent(versionControlInfo.getCurrent().orElse(null));
         dto.setModified(versionControlInfo.getModified().orElse(null));
@@ -3409,6 +3409,7 @@ public final class DtoFactory {
         copy.setRegistryId(original.getRegistryId());
         copy.setBucketId(original.getBucketId());
         copy.setFlowId(original.getFlowId());
+        copy.setFlowName(original.getFlowName());
         copy.setVersion(original.getVersion());
         copy.setCurrent(original.getCurrent());
         copy.setModified(original.getModified());

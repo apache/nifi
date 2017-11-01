@@ -18,13 +18,15 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlow")
-public class VersionedFlowEntity extends Entity {
+public class StartVersionControlRequestEntity extends Entity {
     private VersionedFlowDTO versionedFlow;
+    private RevisionDTO processGroupRevision;
 
     @ApiModelProperty("The versioned flow")
     public VersionedFlowDTO getVersionedFlow() {
@@ -33,5 +35,14 @@ public class VersionedFlowEntity extends Entity {
 
     public void setVersionedFlow(VersionedFlowDTO versionedFLow) {
         this.versionedFlow = versionedFLow;
+    }
+
+    @ApiModelProperty("The Revision of the Process Group under Version Control")
+    public RevisionDTO getProcessGroupRevision() {
+        return processGroupRevision;
+    }
+
+    public void setProcessGroupRevision(final RevisionDTO revision) {
+        this.processGroupRevision = revision;
     }
 }

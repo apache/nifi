@@ -1820,13 +1820,6 @@
         },
 
         /**
-         * Returns whether this NiFi supports flow versioning.
-         */
-        supportsFlowVersioning: function () {
-            return nfCanvas.supportsFlowVersioning();
-        },
-
-        /**
          * Returns whether the authorizer is managed.
          */
         isManagedAuthorizer: function () {

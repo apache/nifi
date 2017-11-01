@@ -16,32 +16,8 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -111,15 +87,17 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.UnknownResourceException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -144,6 +122,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
+import org.apache.nifi.web.api.dto.BucketDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -215,6 +194,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -253,7 +233,9 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -282,7 +264,30 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -2268,7 +2273,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
 
     @Override
-    public RegistryEntity createRegistry(Revision revision, RegistryDTO registryDTO) {
+    public RegistryEntity createRegistryClient(Revision revision, RegistryDTO registryDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // read lock on the containing group
@@ -2292,7 +2297,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public RegistryEntity getRegistry(final String registryId) {
+    public RegistryEntity getRegistryClient(final String registryId) {
         final FlowRegistry registry = registryDAO.getFlowRegistry(registryId);
         return createRegistryEntity(registry);
     }
@@ -2319,15 +2324,90 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entity;
     }
 
+    private BucketEntity createBucketEntity(final Bucket bucket) {
+        if (bucket == null) {
+            return null;
+        }
+
+        final BucketDTO dto = new BucketDTO();
+        dto.setId(bucket.getIdentifier());
+        dto.setName(bucket.getName());
+        dto.setDescription(bucket.getDescription());
+        dto.setCreated(bucket.getCreatedTimestamp());
+
+        final BucketEntity entity = new BucketEntity();
+        entity.setBucket(dto);
+
+        return entity;
+    }
+
+    private VersionedFlowEntity createVersionedFlowEntity(final String registryId, final VersionedFlow versionedFlow) {
+        if (versionedFlow == null) {
+            return null;
+        }
+
+        final VersionedFlowDTO dto = new VersionedFlowDTO();
+        dto.setRegistryId(registryId);
+        dto.setBucketId(versionedFlow.getBucketIdentifier());
+        dto.setFlowId(versionedFlow.getIdentifier());
+        dto.setFlowName(versionedFlow.getName());
+        dto.setDescription(versionedFlow.getDescription());
+
+        final VersionedFlowEntity entity = new VersionedFlowEntity();
+        entity.setVersionedFlow(dto);
+
+        return entity;
+    }
+
+    private VersionedFlowSnapshotMetadataEntity createVersionedFlowSnapshotMetadataEntity(final String registryId, final VersionedFlowSnapshotMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
+
+        final VersionedFlowSnapshotMetadataEntity entity = new VersionedFlowSnapshotMetadataEntity();
+        entity.setRegistryId(registryId);
+        entity.setVersionedFlowMetadata(metadata);
+
+        return entity;
+    }
+
     @Override
-    public Set<RegistryEntity> getRegistries() {
+    public Set<RegistryEntity> getRegistryClients() {
         return registryDAO.getFlowRegistries().stream()
             .map(this::createRegistryEntity)
             .collect(Collectors.toSet());
     }
 
     @Override
-    public RegistryEntity updateRegistry(Revision revision, RegistryDTO registryDTO) {
+    public Set<RegistryEntity> getRegistriesForUser(final NiFiUser user) {
+        return registryDAO.getFlowRegistriesForUser(user).stream()
+                .map(this::createRegistryEntity)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<BucketEntity> getBucketsForUser(final String registryId, final NiFiUser user) {
+        return registryDAO.getBucketsForUser(registryId, user).stream()
+                .map(this::createBucketEntity)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<VersionedFlowEntity> getFlowsForUser(String registryId, String bucketId, NiFiUser user) {
+        return registryDAO.getFlowsForUser(registryId, bucketId, user).stream()
+                .map(vf -> createVersionedFlowEntity(registryId, vf))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user) {
+        return registryDAO.getFlowVersionsForUser(registryId, bucketId, flowId, user).stream()
+                .map(md -> createVersionedFlowSnapshotMetadataEntity(registryId, md))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public RegistryEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO) {
         final RevisionClaim revisionClaim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -2350,7 +2430,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public RegistryEntity deleteRegistry(final Revision revision, final String registryId) {
+    public void verifyDeleteRegistry(String registryId) {
+        processGroupDAO.verifyDeleteFlowRegistry(registryId);
+    }
+
+    @Override
+    public RegistryEntity deleteRegistryClient(final Revision revision, final String registryId) {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -3340,6 +3425,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setPoliciesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPolicies()));
         entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
         entity.setRestrictedComponentsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getRestrictedComponents()));
+
+        // TODO - update to be user specific
+        entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
+
         return entity;
     }
 
@@ -3538,7 +3627,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionControlComponentMappingEntity registerFlowWithFlowRegistry(final String groupId, final VersionedFlowEntity requestEntity) {
+    public VersionControlComponentMappingEntity registerFlowWithFlowRegistry(final String groupId, final StartVersionControlRequestEntity requestEntity) {
         // Create a VersionedProcessGroup snapshot of the flow as it is currently.
         final InstantiatedVersionedProcessGroup versionedProcessGroup = createFlowSnapshot(groupId);
 
@@ -3584,6 +3673,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         vci.setBucketId(registeredFlow.getBucketIdentifier());
         vci.setCurrent(true);
         vci.setFlowId(registeredFlow.getIdentifier());
+        vci.setFlowName(registeredFlow.getName());
         vci.setGroupId(groupId);
         vci.setModified(false);
         vci.setRegistryId(registryId);

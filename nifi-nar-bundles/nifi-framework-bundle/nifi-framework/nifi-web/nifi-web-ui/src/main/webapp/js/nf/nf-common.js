@@ -557,6 +557,17 @@
         },
 
         /**
+         * Determines whether the current user can version flows.
+         */
+        canVersionFlows: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.canVersionFlows === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Determines whether the current user can access provenance.
          *
          * @returns {boolean}

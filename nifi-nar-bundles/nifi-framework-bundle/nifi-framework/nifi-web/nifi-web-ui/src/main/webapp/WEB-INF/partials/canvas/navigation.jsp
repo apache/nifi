@@ -128,13 +128,13 @@
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-template" class="action-button" title="Create Template">
                         <button ng-click="appCtrl.nf.Actions['template'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!(appCtrl.nf.CanvasUtils.canWrite() && (appCtrl.nf.CanvasUtils.getSelection().empty() || appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection())));">
+                                ng-disabled="!(appCtrl.nf.CanvasUtils.canWriteCurrentGroup() && (appCtrl.nf.CanvasUtils.getSelection().empty() || appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection())));">
                             <div class="graph-control-action-icon icon icon-template-save"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-template-upload" class="action-button" title="Upload Template">
                         <button ng-click="appCtrl.nf.Actions['uploadTemplate']();"
-                                ng-disabled="!(appCtrl.nf.CanvasUtils.canWrite() && appCtrl.nf.CanvasUtils.getSelection().empty());">
+                                ng-disabled="!(appCtrl.nf.CanvasUtils.canWriteCurrentGroup() && appCtrl.nf.CanvasUtils.getSelection().empty());">
                             <div class="graph-control-action-icon icon icon-template-import"></div></button>
                     </div>
                     <div class="clear"></div>

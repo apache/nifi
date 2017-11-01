@@ -213,7 +213,6 @@
         <property name="remoteProcessGroupResource" ref="remoteProcessGroupResource"/>
         <property name="connectionResource" ref="connectionResource"/>
         <property name="templateResource" ref="templateResource"/>
-        <property name="controllerResource" ref="controllerResource"/>
         <property name="controllerServiceResource" ref="controllerServiceResource"/>
         <property name="reportingTaskResource" ref="reportingTaskResource"/>
         <property name="processGroupResource" ref="processGroupResource"/>
@@ -221,7 +220,6 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
-        <property name="flowRegistryClient" ref="flowRegistryClient" />
     </bean>
     <bean id="resourceResource" class="org.apache.nifi.web.api.ResourceResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

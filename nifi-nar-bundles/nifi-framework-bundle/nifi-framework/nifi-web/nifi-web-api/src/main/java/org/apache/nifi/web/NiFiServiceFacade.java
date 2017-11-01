@@ -77,6 +77,7 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -103,6 +104,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
@@ -111,6 +113,7 @@ import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 
 import java.io.IOException;
 import java.util.Date;
@@ -1300,7 +1303,7 @@ public interface NiFiServiceFacade {
      * @return a VersionControlComponentMappingEntity that contains the information needed to notify a Process Group where it is tracking to and map
      *         component ID's to their Versioned Component ID's
      */
-    VersionControlComponentMappingEntity registerFlowWithFlowRegistry(String groupId, VersionedFlowEntity requestEntity);
+    VersionControlComponentMappingEntity registerFlowWithFlowRegistry(String groupId, StartVersionControlRequestEntity requestEntity);
 
     /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id
@@ -1854,7 +1857,7 @@ public interface NiFiServiceFacade {
      * @param registryDTO The registry DTO
      * @return The reporting task DTO
      */
-    RegistryEntity createRegistry(Revision revision, RegistryDTO registryDTO);
+    RegistryEntity createRegistryClient(Revision revision, RegistryDTO registryDTO);
 
     /**
      * Gets a registry with the specified id.
@@ -1862,14 +1865,52 @@ public interface NiFiServiceFacade {
      * @param registryId id
      * @return entity
      */
-    RegistryEntity getRegistry(String registryId);
+    RegistryEntity getRegistryClient(String registryId);
 
     /**
-     * Gets all registries.
+     * Returns all registry clients.
      *
+     * @return registry clients
+     */
+    Set<RegistryEntity> getRegistryClients();
+
+    /**
+     * Gets all registries for the current user.
+     *
+     * @param user current user
      * @return registries
      */
-    Set<RegistryEntity> getRegistries();
+    Set<RegistryEntity> getRegistriesForUser(NiFiUser user);
+
+    /**
+     * Gets all buckets for a given registry.
+     *
+     * @param registryId registry id
+     * @param user current user
+     * @return the buckets
+     */
+    Set<BucketEntity> getBucketsForUser(String registryId, NiFiUser user);
+
+    /**
+     * Gets the flows for the current user for the specified registry and bucket.
+     *
+     * @param registryId registry id
+     * @param bucketId bucket id
+     * @param user current user
+     * @return the flows
+     */
+    Set<VersionedFlowEntity> getFlowsForUser(String registryId, String bucketId, NiFiUser user);
+
+    /**
+     * Gets the versions of the specified registry, bucket, and flow for the current user.
+     *
+     * @param registryId registry id
+     * @param bucketId bucket id
+     * @param flowId flow id
+     * @param user current user
+     * @return the versions of the flow
+     */
+    Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user);
 
     /**
      * Updates the specified registry using the specified revision.
@@ -1878,7 +1919,7 @@ public interface NiFiServiceFacade {
      * @param registryDTO the registry dto
      * @return the updated registry registry entity
      */
-    RegistryEntity updateRegistry(Revision revision, RegistryDTO registryDTO);
+    RegistryEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO);
 
     /**
      * Deletes the specified registry using the specified revision.
@@ -1887,7 +1928,14 @@ public interface NiFiServiceFacade {
      * @param registryId id
      * @return the deleted registry entity
      */
-    RegistryEntity deleteRegistry(Revision revision, String registryId);
+    RegistryEntity deleteRegistryClient(Revision revision, String registryId);
+
+    /**
+     * Verifies the specified registry can be removed.
+     *
+     * @param registryId the registry id
+     */
+    void verifyDeleteRegistry(String registryId);
 
     // ----------------------------------------
     // History methods
