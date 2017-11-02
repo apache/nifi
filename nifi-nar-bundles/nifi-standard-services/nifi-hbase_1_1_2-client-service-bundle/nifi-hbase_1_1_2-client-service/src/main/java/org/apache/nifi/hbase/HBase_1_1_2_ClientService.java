@@ -57,6 +57,8 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,6 +82,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
         description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HBase_1_1_2_ClientService.class);
 
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
@@ -534,5 +538,19 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public byte[] toBytesBinary(String s) {
         return Bytes.toBytesBinary(s);
+    }
+
+    @Override
+    public String toTransitUri(String tableName, String rowKey) {
+        if (connection == null) {
+            logger.warn("Connection has not been established, could not create a transit URI. Returning null.");
+            return null;
+        }
+        try {
+            final String masterAddress = connection.getAdmin().getClusterStatus().getMaster().getHostAndPort();
+            return "hbase://" + masterAddress + "/" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to get HBase Admin interface, due to " + e, e);
+        }
     }
 }

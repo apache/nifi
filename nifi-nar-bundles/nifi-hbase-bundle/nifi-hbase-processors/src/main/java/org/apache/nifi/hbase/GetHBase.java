@@ -365,7 +365,7 @@ public class GetHBase extends AbstractProcessor {
                     attributes.put("mime.type", "application/json");
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
-                    session.getProvenanceReporter().receive(flowFile, "hbase://" + tableName + "/" + rowKeyString);
+                    session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
                     session.transfer(flowFile, REL_SUCCESS);
                     getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
 
