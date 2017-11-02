@@ -181,6 +181,30 @@ public class TestSelectHiveQL {
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
     }
 
+    @Test
+    public void testWithBadSQL() throws SQLException {
+        final String BAD_SQL = "create table TEST_NO_ROWS (id integer)";
+
+        // Test with incoming flow file (it should be routed to failure intact, i.e. same content and no parent)
+        runner.setIncomingConnection(true);
+        // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
+        runner.enqueue(BAD_SQL);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SelectHiveQL.REL_FAILURE).get(0);
+        flowFile.assertContentEquals(BAD_SQL);
+        flowFile.assertAttributeEquals("parentIds", null);
+        runner.clearTransferState();
+
+        // Test with no incoming flow file (an empty flow file is transferred)
+        runner.setIncomingConnection(false);
+        // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
+        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, BAD_SQL);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+        flowFile = runner.getFlowFilesForRelationship(SelectHiveQL.REL_FAILURE).get(0);
+        flowFile.assertContentEquals("");
+    }
 
     @Test
     public void invokeOnTriggerWithCsv()
