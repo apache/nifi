@@ -99,29 +99,6 @@ public class TestExecuteStreamCommand {
         MockFlowFile flowFile = flowFiles.get(0);
         assertEquals(0, flowFile.getSize());
         assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
-        assertFalse(flowFile.isPenalized());
-    }
-
-    @Test
-    public void testExecuteJarWithBadPathAndPenalize() throws Exception {
-        File exJar = new File("src/test/resources/ExecuteCommand/noSuchFile.jar");
-        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        String jarPath = exJar.getAbsolutePath();
-        exJar.setExecutable(true);
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
-        controller.enqueue(dummy.toPath());
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
-        controller.setProperty(ExecuteStreamCommand.PENALIZE_NONZERO_STATUS, "true");
-        controller.run(1);
-        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
-        controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertEquals(0, flowFile.getSize());
-        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
         assertTrue(flowFile.isPenalized());
     }
 

@@ -151,7 +151,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
     public static final Relationship NONZERO_STATUS_RELATIONSHIP = new Relationship.Builder()
             .name("nonzero status")
-            .description("The destination path for the flow file created from the command's output, if the returned status code is non-zero.")
+            .description("The destination path for the flow file created from the command's output, if the returned status code is non-zero. "
+                    + "All flow files routed to this relationship will be penalized.")
             .build();
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
@@ -231,17 +232,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .defaultValue(";")
             .build();
 
-    static final PropertyDescriptor PENALIZE_NONZERO_STATUS = new PropertyDescriptor.Builder()
-            .name("esc-penalize-nonzero-status")
-            .displayName("Penalize Non-zero Status")
-            .description("Whether to penalize FlowFiles sent to the '" + NONZERO_STATUS_RELATIONSHIP.getName() + "' relationship. Note that if Output Destination Attribute is set, "
-                    + "this property is ignored, as all FlowFiles will be routed to the 'original' relationship, and will not be penalized.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
-
-
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
@@ -253,7 +243,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         props.add(ARG_DELIMITER);
         props.add(PUT_OUTPUT_IN_ATTRIBUTE);
         props.add(PUT_ATTRIBUTE_MAX_LENGTH);
-        props.add(PENALIZE_NONZERO_STATUS);
         PROPERTIES = Collections.unmodifiableList(props);
 
 
@@ -330,7 +319,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             }
         }
         final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(inputFlowFile).getValue();
-        final boolean penalizeNonZeroStatus = context.getProperty(PENALIZE_NONZERO_STATUS).asBoolean();
 
         final ProcessBuilder builder = new ProcessBuilder();
 
@@ -409,10 +397,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             attributes.put("execution.command.args", commandArguments);
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
 
-            if (NONZERO_STATUS_RELATIONSHIP.equals(outputFlowFileRelationship) && penalizeNonZeroStatus) {
+            if (NONZERO_STATUS_RELATIONSHIP.equals(outputFlowFileRelationship)) {
                 outputFlowFile = session.penalize(outputFlowFile);
             }
-            // This transfer will transfer the FlowFile that received the stream out put to it's destined relationship.
+            // This will transfer the FlowFile that received the stream output to its destined relationship.
             // In the event the stream is put to the an attribute of the original, it will be transferred here.
             session.transfer(outputFlowFile, outputFlowFileRelationship);
 
