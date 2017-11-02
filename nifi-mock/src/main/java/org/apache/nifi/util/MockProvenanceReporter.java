@@ -233,8 +233,14 @@ public class MockProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri) {
+        invokeRemoteProcess(flowFile, transitUri, null);
+    }
+
+    @Override
+    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION).setTransitUri(transitUri).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
+                    .setTransitUri(transitUri).setDetails(details).build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
