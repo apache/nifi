@@ -66,6 +66,7 @@ import static org.apache.nifi.provenance.TestUtil.createFlowFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.Mockito.mock;
 
 public class MiNiFiPersistentProvenanceRepositoryTest {
@@ -558,6 +559,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
 
     @Test
     public void testMergeJournalsBadFirstRecord() throws IOException, InterruptedException {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -604,6 +606,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
 
     @Test
     public void testMergeJournalsBadRecordAfterFirst() throws IOException, InterruptedException {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -650,6 +653,7 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
 
     @Test
     public void testMergeJournalsEmptyJournal() throws IOException, InterruptedException {
+        assumeFalse(isWindowsEnvironment());//skip if on windows
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestableMiNiFiPersistentProvenanceRepository testRepo = new TestableMiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1008,6 +1012,10 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             e.printStackTrace();
         }
         return configuration;
+    }
+
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
     }
 
 }
