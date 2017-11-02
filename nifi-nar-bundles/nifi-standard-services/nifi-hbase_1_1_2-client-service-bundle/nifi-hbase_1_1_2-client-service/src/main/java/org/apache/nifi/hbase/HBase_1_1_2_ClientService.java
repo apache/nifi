@@ -546,9 +546,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             logger.warn("Connection has not been established, could not create a transit URI. Returning null.");
             return null;
         }
-        final Configuration configuration = connection.getConfiguration();
-        // Remove white spaces.
-        final String zkQuorum = configuration.get(HBASE_CONF_ZK_QUORUM).replaceAll("\\s", "");
-        return "hbase://" + zkQuorum + "/" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+        try {
+            final String masterAddress = connection.getAdmin().getClusterStatus().getMaster().getHostAndPort();
+            return "hbase://" + masterAddress + "/" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to get HBase Admin interface, due to " + e, e);
+        }
     }
 }
