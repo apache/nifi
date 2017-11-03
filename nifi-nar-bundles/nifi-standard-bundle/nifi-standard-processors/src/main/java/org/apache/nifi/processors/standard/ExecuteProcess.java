@@ -162,6 +162,7 @@ public class ExecuteProcess extends AbstractProcessor {
         properties.add(COMMAND_ARGUMENTS);
         properties.add(BATCH_DURATION);
         properties.add(REDIRECT_ERROR_STREAM);
+        properties.add(WORKING_DIR);
         properties.add(ARG_DELIMITER);
         return properties;
     }
