@@ -257,7 +257,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     }
 
     private void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final FlowFile fileToProcess = (context.hasIncomingConnection() ? session.get() : null);
+        FlowFile fileToProcess = (context.hasIncomingConnection() ? session.get() : null);
         FlowFile flowfile = null;
 
         // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
@@ -338,8 +338,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 try {
                     resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(selectQuery));
                 } catch (SQLException se) {
-                    // If an error occurs during the query, a flowfile is expected to be routed to failure, so create one here (the original will be removed)
-                    flowfile = session.create(fileToProcess);
+                    // If an error occurs during the query, a flowfile is expected to be routed to failure, so ensure one here
+                    flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
+                    fileToProcess = null;
                     throw se;
                 }
 
