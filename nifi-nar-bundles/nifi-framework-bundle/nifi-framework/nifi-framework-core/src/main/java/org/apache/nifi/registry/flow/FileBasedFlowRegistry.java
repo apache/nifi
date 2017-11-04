@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ import java.util.UUID;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -150,7 +152,7 @@ public class FileBasedFlowRegistry implements FlowRegistry {
                     try {
                         final VersionedFlow versionedFlow = getVersionedFlow(bucketIdentifier, flowIdentifier);
                         versionedFlows.add(versionedFlow);
-                    } catch (UnknownResourceException e) {
+                    } catch (NiFiRegistryException e) {
                         continue;
                     }
                 }
@@ -164,9 +166,38 @@ public class FileBasedFlowRegistry implements FlowRegistry {
         return buckets;
     }
 
+    @Override
+    public Bucket getBucket(String bucketId) throws IOException, NiFiRegistryException {
+        return getBucket(bucketId, null);
+    }
 
     @Override
-    public synchronized VersionedFlow registerVersionedFlow(final VersionedFlow flow) throws IOException, UnknownResourceException {
+    public Bucket getBucket(String bucketId, NiFiUser user) throws IOException, NiFiRegistryException {
+        return getBuckets(user).stream().filter(b -> b.getIdentifier().equals(bucketId)).findFirst().orElse(null);
+    }
+
+    @Override
+    public Set<VersionedFlow> getFlows(final String bucketId, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final Bucket bucket = getBuckets(user).stream().filter(b -> bucketId.equals(b.getIdentifier())).findFirst().orElse(null);
+        if (bucket == null) {
+            return Collections.emptySet();
+        }
+
+        return bucket.getVersionedFlows();
+    }
+
+    @Override
+    public Set<VersionedFlowSnapshotMetadata> getFlowVersions(final String bucketId, final String flowId, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final VersionedFlow flow = getFlows(bucketId, user).stream().filter(f -> flowId.equals(f.getIdentifier())).findFirst().orElse(null);
+        if (flow == null) {
+            return Collections.emptySet();
+        }
+
+        return flow.getSnapshotMetadata();
+    }
+
+    @Override
+    public synchronized VersionedFlow registerVersionedFlow(final VersionedFlow flow) throws IOException, NiFiRegistryException {
         Objects.requireNonNull(flow);
         Objects.requireNonNull(flow.getBucketIdentifier());
         Objects.requireNonNull(flow.getName());
@@ -174,7 +205,7 @@ public class FileBasedFlowRegistry implements FlowRegistry {
         // Verify that bucket exists
         final File bucketDir = new File(directory, flow.getBucketIdentifier());
         if (!bucketDir.exists()) {
-            throw new UnknownResourceException("No bucket exists with ID " + flow.getBucketIdentifier());
+            throw new NiFiRegistryException("No bucket exists with ID " + flow.getBucketIdentifier());
         }
 
         // Verify that there is no flow with the same name in that bucket
@@ -213,8 +244,8 @@ public class FileBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public synchronized VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot, final String comments)
-            throws IOException, UnknownResourceException {
+    public synchronized VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot, final String comments, final int expectedVersion)
+        throws IOException, NiFiRegistryException {
         Objects.requireNonNull(flow);
         Objects.requireNonNull(flow.getBucketIdentifier());
         Objects.requireNonNull(flow.getName());
@@ -223,13 +254,13 @@ public class FileBasedFlowRegistry implements FlowRegistry {
         // Verify that the bucket exists
         final File bucketDir = new File(directory, flow.getBucketIdentifier());
         if (!bucketDir.exists()) {
-            throw new UnknownResourceException("No bucket exists with ID " + flow.getBucketIdentifier());
+            throw new NiFiRegistryException("No bucket exists with ID " + flow.getBucketIdentifier());
         }
 
         // Verify that the flow exists
         final File flowDir = new File(bucketDir, flow.getIdentifier());
         if (!flowDir.exists()) {
-            throw new UnknownResourceException("No Flow with ID " + flow.getIdentifier() + " exists for Bucket with ID " + flow.getBucketIdentifier());
+            throw new NiFiRegistryException("No Flow with ID " + flow.getIdentifier() + " exists for Bucket with ID " + flow.getBucketIdentifier());
         }
 
         final File[] versionDirs = flowDir.listFiles();
@@ -291,17 +322,17 @@ public class FileBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public int getLatestVersion(final String bucketId, final String flowId) throws IOException, UnknownResourceException {
+    public int getLatestVersion(final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
         // Verify that the bucket exists
         final File bucketDir = new File(directory, bucketId);
         if (!bucketDir.exists()) {
-            throw new UnknownResourceException("No bucket exists with ID " + bucketId);
+            throw new NiFiRegistryException("No bucket exists with ID " + bucketId);
         }
 
         // Verify that the flow exists
         final File flowDir = new File(bucketDir, flowId);
         if (!flowDir.exists()) {
-            throw new UnknownResourceException("No Flow with ID " + flowId + " exists for Bucket with ID " + bucketId);
+            throw new NiFiRegistryException("No Flow with ID " + flowId + " exists for Bucket with ID " + bucketId);
         }
 
         final File[] versionDirs = flowDir.listFiles();
@@ -329,22 +360,22 @@ public class FileBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, int version) throws IOException, UnknownResourceException {
+    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, int version) throws IOException, NiFiRegistryException {
         // Verify that the bucket exists
         final File bucketDir = new File(directory, bucketId);
         if (!bucketDir.exists()) {
-            throw new UnknownResourceException("No bucket exists with ID " + bucketId);
+            throw new NiFiRegistryException("No bucket exists with ID " + bucketId);
         }
 
         // Verify that the flow exists
         final File flowDir = new File(bucketDir, flowId);
         if (!flowDir.exists()) {
-            throw new UnknownResourceException("No Flow with ID " + flowId + " exists for Bucket with ID " + flowId);
+            throw new NiFiRegistryException("No Flow with ID " + flowId + " exists for Bucket with ID " + flowId);
         }
 
         final File versionDir = new File(flowDir, String.valueOf(version));
         if (!versionDir.exists()) {
-            throw new UnknownResourceException("Flow with ID " + flowId + " in Bucket with ID " + bucketId + " does not contain a snapshot with version " + version);
+            throw new NiFiRegistryException("Flow with ID " + flowId + " in Bucket with ID " + bucketId + " does not contain a snapshot with version " + version);
         }
 
         final File contentsFile = new File(versionDir, "flow.xml");
@@ -383,17 +414,17 @@ public class FileBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public VersionedFlow getVersionedFlow(final String bucketId, final String flowId) throws IOException, UnknownResourceException {
+    public VersionedFlow getVersionedFlow(final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
         // Verify that the bucket exists
         final File bucketDir = new File(directory, bucketId);
         if (!bucketDir.exists()) {
-            throw new UnknownResourceException("No bucket exists with ID " + bucketId);
+            throw new NiFiRegistryException("No bucket exists with ID " + bucketId);
         }
 
         // Verify that the flow exists
         final File flowDir = new File(bucketDir, flowId);
         if (!flowDir.exists()) {
-            throw new UnknownResourceException("No Flow with ID " + flowId + " exists for Bucket with ID " + flowId);
+            throw new NiFiRegistryException("No Flow with ID " + flowId + " exists for Bucket with ID " + flowId);
         }
 
         final File flowPropsFile = new File(flowDir, "flow.properties");

@@ -24,9 +24,10 @@ public class CancellableTimedPause implements Pause {
     private final long pauseNanos;
     private volatile boolean cancelled = false;
 
-    public CancellableTimedPause(final long pauseTime, final long expirationTime, final TimeUnit timeUnit) {
-        final long expirationNanos = TimeUnit.NANOSECONDS.convert(expirationTime, timeUnit);
-        expirationNanoTime = System.nanoTime() + expirationNanos;
+    public CancellableTimedPause(final long pauseTime, final long expirationPeriod, final TimeUnit timeUnit) {
+        final long expirationNanos = TimeUnit.NANOSECONDS.convert(expirationPeriod, timeUnit);
+        final long expirationTime = System.nanoTime() + expirationNanos;
+        expirationNanoTime = expirationTime < 0 ? Long.MAX_VALUE : expirationTime;
         pauseNanos = Math.max(1L, TimeUnit.NANOSECONDS.convert(pauseTime, timeUnit));
     }
 
@@ -44,7 +45,7 @@ public class CancellableTimedPause implements Pause {
         final long maxWaitTime = System.nanoTime() + pauseNanos;
         while (sysTime < maxWaitTime) {
             try {
-                TimeUnit.NANOSECONDS.wait(pauseNanos);
+                TimeUnit.NANOSECONDS.sleep(pauseNanos);
             } catch (final InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 return false;

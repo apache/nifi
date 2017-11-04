@@ -110,7 +110,6 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
                 } catch (final Exception e) {
                     logger.error("Failed to perform asynchronous task", e);
                     request.setFailureReason("Encountered unexpected error when performing asynchronous task: " + e);
-                    request.setLastUpdated(new Date());
                 }
             }
         });

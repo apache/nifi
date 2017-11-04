@@ -17,15 +17,40 @@
 
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -34,7 +59,6 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.registry.flow.ComponentType;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
@@ -55,9 +79,9 @@ import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
-import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -70,37 +94,12 @@ import org.apache.nifi.web.util.Pause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 
 @Path("/versions")
 @Api(value = "/versions", description = "Endpoint for managing version control for a flow")
@@ -356,7 +355,10 @@ public class VersionsResource extends ApplicationResource {
             response = VersionControlInformationEntity.class,
             notes = NON_GUARANTEED_ENDPOINT,
             authorizations = {
-                @Authorization(value = "Read - /process-groups/{uuid}")
+                @Authorization(value = "Read - /process-groups/{uuid}"),
+                @Authorization(value = "Write - /process-groups/{uuid}"),
+                @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                @Authorization(value = "Read - any referenced Controller Services by any encapsulated components - /controller-services/{uuid}")
             })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -500,9 +502,11 @@ public class VersionsResource extends ApplicationResource {
             requestEntity,
             groupRevision,
             lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
             },
             () -> {
                 final VersionControlInformationEntity entity = serviceFacade.getVersionControlInformation(groupId);
@@ -663,14 +667,10 @@ public class VersionsResource extends ApplicationResource {
             throw new IllegalArgumentException("The Flow ID must be supplied.");
         }
 
-
         // Perform the request
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestEntity);
         }
-
-        // Determine which components will be affected by updating the version
-        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot, NiFiUserUtils.getNiFiUser());
 
         final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(
@@ -678,7 +678,10 @@ public class VersionsResource extends ApplicationResource {
             requestEntity,
             requestRevision,
             lookup -> {
-                authorizeAffectedComponents(lookup, affectedComponents);
+                final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
+                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> {
                 // We do not enforce that the Process Group is 'not dirty' because at this point,
@@ -691,13 +694,16 @@ public class VersionsResource extends ApplicationResource {
                 // Update the Process Group to match the proposed flow snapshot
                 final VersionControlInformationDTO versionControlInfoDto = new VersionControlInformationDTO();
                 versionControlInfoDto.setBucketId(snapshotMetadata.getBucketIdentifier());
+                versionControlInfoDto.setBucketName(snapshotMetadata.getBucketName());
                 versionControlInfoDto.setCurrent(true);
                 versionControlInfoDto.setFlowId(snapshotMetadata.getFlowIdentifier());
                 versionControlInfoDto.setFlowName(snapshotMetadata.getFlowName());
+                versionControlInfoDto.setFlowDescription(snapshotMetadata.getFlowDescription());
                 versionControlInfoDto.setGroupId(groupId);
                 versionControlInfoDto.setModified(false);
                 versionControlInfoDto.setVersion(snapshotMetadata.getVersion());
                 versionControlInfoDto.setRegistryId(requestEntity.getRegistryId());
+                versionControlInfoDto.setRegistryName(serviceFacade.getFlowRegistryName(requestEntity.getRegistryId()));
 
                 final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroup(rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false);
                 final VersionControlInformationDTO updatedVci = updatedGroup.getComponent().getVersionControlInformation();
@@ -769,6 +775,13 @@ public class VersionsResource extends ApplicationResource {
         updateRequestDto.setProcessGroupId(asyncRequest.getProcessGroupId());
         updateRequestDto.setRequestId(requestId);
         updateRequestDto.setUri(generateResourceUri("versions", requestType, requestId));
+        updateRequestDto.setState(asyncRequest.getState());
+        updateRequestDto.setPercentComplete(asyncRequest.getPercentComplete());
+
+        if (updateRequestDto.isComplete()) {
+            final VersionControlInformationEntity vciEntity = serviceFacade.getVersionControlInformation(asyncRequest.getProcessGroupId());
+            updateRequestDto.setVersionControlInformation(vciEntity == null ? null : vciEntity.getVersionControlInformation());
+        }
 
         final RevisionDTO groupRevision = serviceFacade.getProcessGroup(asyncRequest.getProcessGroupId()).getRevision();
 
@@ -830,6 +843,13 @@ public class VersionsResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest = requestManager.removeRequest(requestType, requestId, user);
+        if (asyncRequest == null) {
+            throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
+        }
+
+        if (!asyncRequest.isComplete()) {
+            asyncRequest.cancel();
+        }
 
         final VersionedFlowUpdateRequestDTO updateRequestDto = new VersionedFlowUpdateRequestDTO();
         updateRequestDto.setComplete(asyncRequest.isComplete());
@@ -838,6 +858,13 @@ public class VersionsResource extends ApplicationResource {
         updateRequestDto.setProcessGroupId(asyncRequest.getProcessGroupId());
         updateRequestDto.setRequestId(requestId);
         updateRequestDto.setUri(generateResourceUri("versions", requestType, requestId));
+        updateRequestDto.setPercentComplete(asyncRequest.getPercentComplete());
+        updateRequestDto.setState(asyncRequest.getState());
+
+        if (updateRequestDto.isComplete()) {
+            final VersionControlInformationEntity vciEntity = serviceFacade.getVersionControlInformation(asyncRequest.getProcessGroupId());
+            updateRequestDto.setVersionControlInformation(vciEntity == null ? null : vciEntity.getVersionControlInformation());
+        }
 
         final RevisionDTO groupRevision = serviceFacade.getProcessGroup(asyncRequest.getProcessGroupId()).getRevision();
 
@@ -861,7 +888,10 @@ public class VersionsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             authorizations = {
                 @Authorization(value = "Read - /process-groups/{uuid}"),
-                @Authorization(value = "Write - /process-groups/{uuid}")
+                @Authorization(value = "Write - /process-groups/{uuid}"),
+                @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components")
             })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -924,7 +954,7 @@ public class VersionsResource extends ApplicationResource {
         //    a. Component itself is modified in some way, other than position changing.
         //    b. Source and Destination of any Connection that is modified.
         //    c. Any Processor or Controller Service that references a Controller Service that is modified.
-        // 2. Verify READ and WRITE permissions for user, for every component affected.
+        // 2. Verify READ and WRITE permissions for user, for every component.
         // 3. Verify that all components in the snapshot exist on all nodes (i.e., the NAR exists)?
         // 4. Verify that Process Group is already under version control. If not, must start Version Control instead of updateFlow
         // 5. Verify that Process Group is not 'dirty'.
@@ -961,8 +991,13 @@ public class VersionsResource extends ApplicationResource {
             requestEntity,
             requestRevision,
             lookup -> {
-                // Step 2: Verify READ and WRITE permissions for user, for every component affected.
-                authorizeAffectedComponents(lookup, affectedComponents);
+                // Step 2: Verify READ and WRITE permissions for user, for every component.
+                final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
+                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
@@ -980,7 +1015,7 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user);
+                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Processors");
 
                 // Submit the request to be performed in the background
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
@@ -1005,6 +1040,8 @@ public class VersionsResource extends ApplicationResource {
                 updateRequestDto.setProcessGroupId(groupId);
                 updateRequestDto.setRequestId(requestId);
                 updateRequestDto.setUri(generateResourceUri("versions", "update-requests", requestId));
+                updateRequestDto.setPercentComplete(request.getPercentComplete());
+                updateRequestDto.setState(request.getState());
 
                 final VersionedFlowUpdateRequestEntity updateRequestEntity = new VersionedFlowUpdateRequestEntity();
                 final RevisionDTO groupRevision = dtoFactory.createRevisionDTO(revision);
@@ -1029,7 +1066,10 @@ public class VersionsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             authorizations = {
                 @Authorization(value = "Read - /process-groups/{uuid}"),
-                @Authorization(value = "Write - /process-groups/{uuid}")
+                @Authorization(value = "Write - /process-groups/{uuid}"),
+                @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components")
             })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -1095,8 +1135,13 @@ public class VersionsResource extends ApplicationResource {
             requestEntity,
             requestRevision,
             lookup -> {
-                // Step 2: Verify READ and WRITE permissions for user, for every component affected.
-                authorizeAffectedComponents(lookup, affectedComponents);
+                // Step 2: Verify READ and WRITE permissions for user, for every component.
+                final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
+                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
@@ -1134,7 +1179,7 @@ public class VersionsResource extends ApplicationResource {
                 // If the information passed in is correct, but there have been no changes, there is nothing to do - just register the request, mark it complete, and return.
                 if (currentVersion.getModified() == Boolean.FALSE) {
                     final String requestId = UUID.randomUUID().toString();
-                    final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user);
+                    final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Complete");
                     requestManager.submitRequest("revert-requests", requestId, request, task -> {
                     });
 
@@ -1145,7 +1190,10 @@ public class VersionsResource extends ApplicationResource {
                     updateRequestDto.setLastUpdated(new Date());
                     updateRequestDto.setProcessGroupId(groupId);
                     updateRequestDto.setRequestId(requestId);
+                    updateRequestDto.setVersionControlInformation(currentVersion);
                     updateRequestDto.setUri(generateResourceUri("versions", "revert-requests", requestId));
+                    updateRequestDto.setPercentComplete(100);
+                    updateRequestDto.setState(request.getState());
 
                     final VersionedFlowUpdateRequestEntity updateRequestEntity = new VersionedFlowUpdateRequestEntity();
                     updateRequestEntity.setProcessGroupRevision(revisionDto);
@@ -1159,19 +1207,18 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user);
+                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Processors");
 
                 // Submit the request to be performed in the background
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
-                        // TODO: change the URI to the new endpoint for 'revert' instead of 'change version'
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, componentLifecycle, exampleUri,
                             affectedComponents, user, replicateRequest, requestEntity, flowSnapshot, request, idGenerationSeed, false);
 
                         vcur.markComplete(updatedVersionControlEntity);
                     } catch (final LifecycleManagementException e) {
                         logger.error("Failed to update flow to new version", e);
-                        vcur.setFailureReason("Failed to update flow to new version due to " + e);
+                        vcur.setFailureReason("Failed to update flow to new version due to " + e.getMessage());
                     }
                 };
 
@@ -1201,7 +1248,6 @@ public class VersionsResource extends ApplicationResource {
         final boolean verifyNotModified) throws LifecycleManagementException {
 
         // Steps 6-7: Determine which components must be stopped and stop them.
-        // Do we need to stop other types? Input Ports, Output Ports, Funnels, RPGs, etc.
         final Set<String> stoppableReferenceTypes = new HashSet<>();
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT);
@@ -1215,7 +1261,11 @@ public class VersionsResource extends ApplicationResource {
         logger.info("Stopping {} Processors", runningComponents.size());
         final Pause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         componentLifecycle.scheduleComponents(exampleUri, user, groupId, runningComponents, ScheduledState.STOPPED, stopComponentsPause);
-        asyncRequest.setLastUpdated(new Date());
+
+        if (asyncRequest.isCancelled()) {
+            return null;
+        }
+        asyncRequest.update(new Date(), "Disabling Affected Controller Services", 20);
 
         // Steps 8-9. Disable enabled controller services that are affected
         final Set<AffectedComponentEntity> enabledServices = affectedComponents.stream()
@@ -1226,7 +1276,11 @@ public class VersionsResource extends ApplicationResource {
         logger.info("Disabling {} Controller Services", enabledServices.size());
         final Pause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         componentLifecycle.activateControllerServices(exampleUri, user, groupId, enabledServices, ControllerServiceState.DISABLED, disableServicesPause);
-        asyncRequest.setLastUpdated(new Date());
+
+        if (asyncRequest.isCancelled()) {
+            return null;
+        }
+        asyncRequest.update(new Date(), "Updating Flow", 40);
 
         logger.info("Updating Process Group with ID {} to version {} of the Versioned Flow", groupId, flowSnapshot.getSnapshotMetadata().getVersion());
         // If replicating request, steps 10-12 are performed on each node individually, and this is accomplished
@@ -1281,21 +1335,32 @@ public class VersionsResource extends ApplicationResource {
             serviceFacade.updateProcessGroupContents(user, revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified, false);
         }
 
-        asyncRequest.setLastUpdated(new Date());
+        if (asyncRequest.isCancelled()) {
+            return null;
+        }
+        asyncRequest.update(new Date(), "Re-Enabling Controller Services", 60);
 
         // Step 13. Re-enable all disabled controller services
         final Pause enableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(enabledServices, user);
         logger.info("Successfully updated flow; re-enabling {} Controller Services", servicesToEnable.size());
         componentLifecycle.activateControllerServices(exampleUri, user, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause);
-        asyncRequest.setLastUpdated(new Date());
+
+        if (asyncRequest.isCancelled()) {
+            return null;
+        }
+        asyncRequest.update(new Date(), "Restarting Processors", 80);
 
         // Step 14. Restart all components
         final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(runningComponents, user);
         final Pause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         logger.info("Restarting {} Processors", componentsToStart.size());
         componentLifecycle.scheduleComponents(exampleUri, user, groupId, componentsToStart, ScheduledState.RUNNING, startComponentsPause);
-        asyncRequest.setLastUpdated(new Date());
+
+        if (asyncRequest.isCancelled()) {
+            return null;
+        }
+        asyncRequest.update(new Date(), "Complete", 100);
 
         return serviceFacade.getVersionControlInformation(groupId);
     }
@@ -1318,42 +1383,6 @@ public class VersionsResource extends ApplicationResource {
     }
 
 
-    private void authorizeAffectedComponents(final AuthorizableLookup lookup, final Set<AffectedComponentEntity> affectedComponents) {
-        final Map<String, List<AffectedComponentEntity>> componentsByType = affectedComponents.stream()
-            .collect(Collectors.groupingBy(entity -> entity.getComponent().getReferenceType()));
-
-        authorize(componentsByType.get(ComponentType.PROCESSOR.name()), id -> lookup.getProcessor(id).getAuthorizable());
-        authorize(componentsByType.get(ComponentType.CONTROLLER_SERVICE.name()), id -> lookup.getControllerService(id).getAuthorizable());
-
-        authorize(componentsByType.get(ComponentType.CONNECTION.name()), id -> lookup.getConnection(id).getAuthorizable());
-        authorize(componentsByType.get(ComponentType.FUNNEL.name()), id -> lookup.getFunnel(id));
-        authorize(componentsByType.get(ComponentType.INPUT_PORT.name()), id -> lookup.getInputPort(id));
-        authorize(componentsByType.get(ComponentType.OUTPUT_PORT.name()), id -> lookup.getOutputPort(id));
-        authorize(componentsByType.get(ComponentType.LABEL.name()), id -> lookup.getLabel(id));
-
-        authorize(componentsByType.get(ComponentType.PROCESS_GROUP.name()), id -> lookup.getProcessGroup(id).getAuthorizable());
-        authorize(componentsByType.get(ComponentType.REMOTE_PROCESS_GROUP.name()), id -> lookup.getRemoteProcessGroup(id));
-
-
-        // Remote Input Ports and Remote Output Ports are not authorized independently but rather at the Remote Process Group level,
-        // so we have to treat these a little differently.
-        componentsByType.getOrDefault(ComponentType.REMOTE_INPUT_PORT.name(), Collections.emptyList()).stream()
-            .forEach(affectedPort -> {
-                final String rpgId = affectedPort.getComponent().getProcessGroupId();
-                final Authorizable rpg = lookup.getRemoteProcessGroup(rpgId);
-                rpg.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                rpg.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-
-        componentsByType.getOrDefault(ComponentType.REMOTE_OUTPUT_PORT.name(), Collections.emptyList()).stream()
-            .forEach(affectedPort -> {
-                final String rpgId = affectedPort.getComponent().getProcessGroupId();
-                final Authorizable rpg = lookup.getRemoteProcessGroup(rpgId);
-                rpg.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                rpg.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-    }
-
     private Set<AffectedComponentEntity> getUpdatedEntities(final Set<AffectedComponentEntity> originalEntities, final NiFiUser user) {
         final Set<AffectedComponentEntity> entities = new LinkedHashSet<>();
 
@@ -1370,17 +1399,6 @@ public class VersionsResource extends ApplicationResource {
         }
 
         return entities;
-    }
-
-
-    private void authorize(final List<AffectedComponentEntity> componentDtos, final Function<String, Authorizable> authFunction) {
-        if (componentDtos != null) {
-            for (final AffectedComponentEntity entity : componentDtos) {
-                final Authorizable authorizable = authFunction.apply(entity.getComponent().getId());
-                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            }
-        }
     }
 
 

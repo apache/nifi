@@ -1641,6 +1641,12 @@
                 <version>${nifi.registry.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.nifi.registry</groupId>
+                <artifactId>nifi-registry-client</artifactId>
+                <version>${nifi.registry.version}</version>
+            </dependency>
+            
+            <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
                 <version>2.0.0</version>

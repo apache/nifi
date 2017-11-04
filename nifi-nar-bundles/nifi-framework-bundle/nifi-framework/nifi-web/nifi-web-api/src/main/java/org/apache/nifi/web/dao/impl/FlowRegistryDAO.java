@@ -17,8 +17,14 @@
 
 package org.apache.nifi.web.dao.impl;
 
+import java.io.IOException;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -71,37 +77,48 @@ public class FlowRegistryDAO implements RegistryDAO {
                 throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
             }
 
-            return flowRegistry.getBuckets(user);
-        } catch (final IOException ioe) {
-            throw new NiFiCoreException("Unable to obtain bucket listing: " + ioe.getMessage(), ioe);
+            final Set<Bucket> buckets = flowRegistry.getBuckets(user);
+            final Set<Bucket> sortedBuckets = new TreeSet<>((b1, b2) -> b1.getName().compareTo(b2.getName()));
+            sortedBuckets.addAll(buckets);
+            return sortedBuckets;
+        } catch (final IOException | NiFiRegistryException ioe) {
+            throw new NiFiCoreException("Unable to obtain listing of buckets: " + ioe, ioe);
         }
     }
 
 
     @Override
     public Set<VersionedFlow> getFlowsForUser(String registryId, String bucketId, NiFiUser user) {
-        final Set<Bucket> bucketsForUser = getBucketsForUser(registryId, user);
+        try {
+            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
 
-        // TODO - implement getBucket(bucketId, user)
-        final Bucket bucket = bucketsForUser.stream().filter(b -> b.getIdentifier().equals(bucketId)).findFirst().orElse(null);
-        if (bucket == null) {
-            throw new IllegalArgumentException("The specified bucket is not available.");
+            final Set<VersionedFlow> flows = flowRegistry.getFlows(bucketId, user);
+            final Set<VersionedFlow> sortedFlows = new TreeSet<>((f1, f2) -> f1.getName().compareTo(f2.getName()));
+            sortedFlows.addAll(flows);
+            return sortedFlows;
+        } catch (final IOException | NiFiRegistryException ioe) {
+            throw new NiFiCoreException("Unable to obtain listing of flows for bucket with ID " + bucketId + ": " + ioe, ioe);
         }
-
-        return bucket.getVersionedFlows();
     }
 
     @Override
     public Set<VersionedFlowSnapshotMetadata> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user) {
-        final Set<VersionedFlow> flowsForUser = getFlowsForUser(registryId, bucketId, user);
+        try {
+            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
 
-        // TODO - implement getFlow(bucketId, flowId, user)
-        final VersionedFlow versionedFlow = flowsForUser.stream().filter(vf -> vf.getIdentifier().equals(flowId)).findFirst().orElse(null);
-        if (versionedFlow == null) {
-            throw new IllegalArgumentException("The specified flow is not available.");
+            final Set<VersionedFlowSnapshotMetadata> flowVersions = flowRegistry.getFlowVersions(bucketId, flowId, user);
+            final Set<VersionedFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>((f1, f2) -> Integer.compare(f1.getVersion(), f2.getVersion()));
+            sortedFlowVersions.addAll(flowVersions);
+            return sortedFlowVersions;
+        } catch (final IOException | NiFiRegistryException ioe) {
+            throw new NiFiCoreException("Unable to obtain listing of versions for bucket with ID " + bucketId + " and flow with ID " + flowId + ": " + ioe, ioe);
         }
-
-        return versionedFlow.getSnapshotMetadata();
     }
 
     @Override

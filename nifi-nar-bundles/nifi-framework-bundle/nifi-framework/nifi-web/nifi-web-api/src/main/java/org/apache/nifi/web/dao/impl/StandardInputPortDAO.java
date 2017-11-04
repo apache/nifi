@@ -38,7 +38,11 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
 
     private Port locatePort(final String portId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Port port = rootGroup.findInputPort(portId);
+        Port port = rootGroup.findInputPort(portId);
+
+        if (port == null) {
+            port = rootGroup.findOutputPort(portId);
+        }
 
         if (port == null) {
             throw new ResourceNotFoundException(String.format("Unable to find port with id '%s'.", portId));
@@ -50,7 +54,7 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
     @Override
     public boolean hasPort(String portId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        return rootGroup.findInputPort(portId) != null;
+        return rootGroup.findInputPort(portId) != null || rootGroup.findOutputPort(portId) != null;
     }
 
     @Override

@@ -36,7 +36,9 @@
     </bean>
 
     <!-- flow registry -->
-    <bean id="flowRegistryClient" class="org.apache.nifi.registry.flow.StandardFlowRegistryClient" />
+    <bean id="flowRegistryClient" class="org.apache.nifi.registry.flow.StandardFlowRegistryClient">
+        <property name="properties" ref="nifiProperties" />
+    </bean>
 
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">

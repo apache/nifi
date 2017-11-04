@@ -16,6 +16,30 @@
  */
 package org.apache.nifi.groups;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -68,16 +92,17 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.Bundle;
 import org.apache.nifi.registry.flow.ConnectableComponent;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
-import org.apache.nifi.registry.flow.UnknownResourceException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
@@ -88,11 +113,13 @@ import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -108,30 +135,6 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -2812,7 +2815,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void setVersionControlInformation(final VersionControlInformation versionControlInformation, final Map<String, String> versionedComponentIds) {
-        final StandardVersionControlInformation svci = new StandardVersionControlInformation(versionControlInformation.getRegistryIdentifier(),
+        final StandardVersionControlInformation svci = new StandardVersionControlInformation(
+            versionControlInformation.getRegistryIdentifier(),
+            versionControlInformation.getRegistryName(),
             versionControlInformation.getBucketIdentifier(),
             versionControlInformation.getFlowIdentifier(),
             versionControlInformation.getVersion(),
@@ -2822,9 +2827,18 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             @Override
             public Optional<Boolean> getModified() {
-                return StandardProcessGroup.this.isModified();
+                final Set<FlowDifference> differences = StandardProcessGroup.this.getModifications();
+                if (differences == null) {
+                    return Optional.ofNullable(null);
+                }
+
+                return Optional.of(!differences.isEmpty());
             }
         };
+
+        svci.setBucketName(versionControlInformation.getBucketName());
+        svci.setFlowName(versionControlInformation.getFlowName());
+        svci.setFlowDescription(versionControlInformation.getFlowDescription());
 
         writeLock.lock();
         try {
@@ -2906,8 +2920,29 @@ public final class StandardProcessGroup implements ProcessGroup {
             return;
         }
 
+        final VersionedProcessGroup snapshot = vci.getFlowSnapshot();
+        if (snapshot == null) {
+            // We have not yet obtained the snapshot from the Flow Registry, so we need to request the snapshot of our local version of the flow from the Flow Registry.
+            // This allows us to know whether or not the flow has been modified since it was last synced with the Flow Registry.
+            try {
+                final VersionedFlowSnapshot registrySnapshot = flowRegistry.getFlowContents(vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion());
+                final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
+                vci.setFlowSnapshot(registryFlow);
+            } catch (final IOException | NiFiRegistryException e) {
+                LOG.error("Failed to synchronize {} with Flow Registry because could not retrieve version {} of flow with identifier {} in bucket {}",
+                    new Object[] {this, vci.getVersion(), vci.getFlowIdentifier(), vci.getBucketIdentifier()}, e);
+                return;
+            }
+        }
+
         try {
-            final int latestVersion = flowRegistry.getLatestVersion(vci.getBucketIdentifier(), vci.getFlowIdentifier());
+            final VersionedFlow versionedFlow = flowRegistry.getVersionedFlow(vci.getBucketIdentifier(), vci.getFlowIdentifier());
+            final int latestVersion = (int) versionedFlow.getVersionCount();
+
+            vci.setBucketName(versionedFlow.getBucketName());
+            vci.setFlowName(versionedFlow.getName());
+            vci.setFlowDescription(versionedFlow.getDescription());
+            vci.setRegistryName(flowRegistry.getName());
 
             if (latestVersion == vci.getVersion()) {
                 LOG.debug("{} is currently at the most recent version ({}) of the flow that is under Version Control", this, latestVersion);
@@ -2917,23 +2952,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.info("{} is not the most recent version of the flow that is under Version Control; current version is {}; most recent version is {}",
                     new Object[] {this, vci.getVersion(), latestVersion});
             }
-        } catch (final IOException | UnknownResourceException e) {
+        } catch (final IOException | NiFiRegistryException e) {
             LOG.error("Failed to synchronize {} with Flow Registry because could not determine the most recent version of the Flow in the Flow Registry", this, e);
-        }
-
-        final VersionedProcessGroup snapshot = vci.getFlowSnapshot();
-        if (snapshot == null) {
-            // We have not yet obtained the snapshot from the Flow Registry, so we need to request the snapshot of our local version of the flow from the Flow Registry.
-            // This allows us to know whether or not the flow has been modified since it was last synced with the Flow Registry.
-            try {
-                final VersionedFlowSnapshot registrySnapshot = flowRegistry.getFlowContents(vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion());
-                final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
-                vci.setFlowSnapshot(registryFlow);
-            } catch (final IOException | UnknownResourceException e) {
-                LOG.error("Failed to synchronize {} with Flow Registry because could not retrieve version {} of flow with identifier {} in bucket {}",
-                    new Object[] {this, vci.getVersion(), vci.getFlowIdentifier(), vci.getBucketIdentifier()}, e);
-                return;
-            }
         }
     }
 
@@ -2945,12 +2965,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             verifyCanUpdate(proposedSnapshot, true, verifyNotDirty);
 
             final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-            final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient());
+            final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient(), true);
 
             final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
             final ComparableDataFlow remoteFlow = new StandardComparableDataFlow("Remote Flow", proposedSnapshot.getFlowContents());
 
-            final FlowComparator flowComparator = new StandardFlowComparator(localFlow, remoteFlow);
+            final FlowComparator flowComparator = new StandardFlowComparator(localFlow, remoteFlow, new StaticDifferenceDescriptor());
             final FlowComparison flowComparison = flowComparator.compare();
 
             final Set<String> updatedVersionedComponentIds = flowComparison.getDifferences().stream()
@@ -2997,7 +3017,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             .collect(Collectors.toSet());
 
         final Set<String> variablesRemoved = new HashSet<>(existingVariableNames);
-        variablesRemoved.removeAll(proposed.getVariables().keySet());
+
+        if (proposed.getVariables() != null) {
+            variablesRemoved.removeAll(proposed.getVariables().keySet());
+        }
+
         final Map<String, String> updatedVariableMap = new HashMap<>();
         variablesRemoved.forEach(var -> updatedVariableMap.put(var, null));
 
@@ -3017,12 +3041,25 @@ public final class StandardProcessGroup implements ProcessGroup {
             final String flowId = remoteCoordinates.getFlowId();
             final int version = remoteCoordinates.getVersion();
 
-            final VersionControlInformation vci = new StandardVersionControlInformation(registryId, bucketId, flowId, version, proposed, false, true);
+            final FlowRegistry flowRegistry = flowController.getFlowRegistryClient().getFlowRegistry(registryId);
+            final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
+
+            final VersionControlInformation vci = new StandardVersionControlInformation.Builder()
+                .registryId(registryId)
+                .registryName(registryName)
+                .bucketId(bucketId)
+                .bucketName(bucketId) // bucket name not yet known
+                .flowId(flowId)
+                .flowName(flowId) // flow id not yet known
+                .version(version)
+                .modified(false)
+                .current(true)
+                .build();
+
             group.setVersionControlInformation(vci, Collections.emptyMap());
         }
 
         // Child groups
-        // TODO: Need to take into account if child group is under version control pointing to a different Versioned Flow and if so need to handle it differently.
         final Map<String, ProcessGroup> childGroupsByVersionedId = group.getProcessGroups().stream()
             .collect(Collectors.toMap(component -> component.getVersionedComponentId().orElse(component.getIdentifier()), Function.identity()));
         final Set<String> childGroupsRemoved = new HashSet<>(childGroupsByVersionedId.keySet());
@@ -3031,7 +3068,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(proposedChildGroup, componentIdSeed);
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else {
                 updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, updateName);
@@ -3050,7 +3087,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedControllerService proposedService : proposed.getControllerServices()) {
             final ControllerServiceNode service = servicesByVersionedId.get(proposedService.getIdentifier());
             if (service == null) {
-                final ControllerServiceNode added = addControllerService(proposedService, componentIdSeed);
+                final ControllerServiceNode added = addControllerService(group, proposedService, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedService.getIdentifier())) {
                 updateControllerService(service, proposedService);
@@ -3069,7 +3106,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedFunnel proposedFunnel : proposed.getFunnels()) {
             final Funnel funnel = funnelsByVersionedId.get(proposedFunnel.getIdentifier());
             if (funnel == null) {
-                final Funnel added = addFunnel(proposedFunnel, componentIdSeed);
+                final Funnel added = addFunnel(group, proposedFunnel, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedFunnel.getIdentifier())) {
                 updateFunnel(funnel, proposedFunnel);
@@ -3090,7 +3127,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedPort proposedPort : proposed.getInputPorts()) {
             final Port port = inputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
-                final Port added = addInputPort(proposedPort, componentIdSeed);
+                final Port added = addInputPort(group, proposedPort, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3110,7 +3147,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedPort proposedPort : proposed.getOutputPorts()) {
             final Port port = outputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
-                final Port added = addOutputPort(proposedPort, componentIdSeed);
+                final Port added = addOutputPort(group, proposedPort, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3131,7 +3168,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedLabel proposedLabel : proposed.getLabels()) {
             final Label label = labelsByVersionedId.get(proposedLabel.getIdentifier());
             if (label == null) {
-                final Label added = addLabel(proposedLabel, componentIdSeed);
+                final Label added = addLabel(group, proposedLabel, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedLabel.getIdentifier())) {
                 updateLabel(label, proposedLabel);
@@ -3153,19 +3190,21 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
             final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
             if (processor == null) {
-                final ProcessorNode added = addProcessor(proposedProcessor, componentIdSeed);
+                final ProcessorNode added = addProcessor(group, proposedProcessor, componentIdSeed);
 
-                final Set<Relationship> proposedAutoTerminated = proposedProcessor.getAutoTerminatedRelationships().stream()
-                    .map(relName -> added.getRelationship(relName))
-                    .collect(Collectors.toSet());
+                final Set<Relationship> proposedAutoTerminated =
+                    proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
+                        .map(relName -> added.getRelationship(relName))
+                        .collect(Collectors.toSet());
                 autoTerminatedRelationships.put(added, proposedAutoTerminated);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
                 updateProcessor(processor, proposedProcessor);
 
-                final Set<Relationship> proposedAutoTerminated = proposedProcessor.getAutoTerminatedRelationships().stream()
-                    .map(relName -> processor.getRelationship(relName))
-                    .collect(Collectors.toSet());
+                final Set<Relationship> proposedAutoTerminated =
+                    proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
+                        .map(relName -> processor.getRelationship(relName))
+                        .collect(Collectors.toSet());
 
                 if (!processor.getAutoTerminatedRelationships().equals(proposedAutoTerminated)) {
                     autoTerminatedRelationships.put(processor, proposedAutoTerminated);
@@ -3188,7 +3227,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedRemoteProcessGroup proposedRpg : proposed.getRemoteProcessGroups()) {
             final RemoteProcessGroup rpg = rpgsByVersionedId.get(proposedRpg.getIdentifier());
             if (rpg == null) {
-                final RemoteProcessGroup added = addRemoteProcessGroup(proposedRpg, componentIdSeed);
+                final RemoteProcessGroup added = addRemoteProcessGroup(group, proposedRpg, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedRpg.getIdentifier())) {
                 updateRemoteProcessGroup(rpg, proposedRpg);
@@ -3209,7 +3248,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
             final Connection connection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
             if (connection == null) {
-                final Connection added = addConnection(proposedConnection, componentIdSeed);
+                final Connection added = addConnection(group, proposedConnection, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (!connection.getSource().isRunning() && !connection.getDestination().isRunning()) {
                 // If the connection needs to be updated, then the source and destination will already have
@@ -3306,20 +3345,22 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private ProcessGroup addProcessGroup(final VersionedProcessGroup proposed, final String componentIdSeed) throws ProcessorInstantiationException {
+    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed) throws ProcessorInstantiationException {
         final ProcessGroup group = flowController.createProcessGroup(generateUuid(componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
-        addProcessGroup(group);
+        group.setParent(destination);
         updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true);
+        destination.addProcessGroup(group);
         return group;
     }
 
     private void updateConnection(final Connection connection, final VersionedConnection proposed) {
-        connection.setBendPoints(proposed.getBends().stream()
-            .map(pos -> new Position(pos.getX(), pos.getY()))
-            .collect(Collectors.toList()));
+        connection.setBendPoints(proposed.getBends() == null ? Collections.emptyList() :
+            proposed.getBends().stream()
+                .map(pos -> new Position(pos.getX(), pos.getY()))
+                .collect(Collectors.toList()));
 
-        connection.setDestination(getConnectable(proposed.getDestination()));
+        connection.setDestination(getConnectable(connection.getProcessGroup(), proposed.getDestination()));
         connection.setLabelIndex(proposed.getLabelIndex());
         connection.setName(proposed.getName());
         connection.setRelationships(proposed.getSelectedRelationships().stream()
@@ -3332,7 +3373,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         queue.setBackPressureObjectThreshold(proposed.getBackPressureObjectThreshold());
         queue.setFlowFileExpiration(proposed.getFlowFileExpiration());
 
-        final List<FlowFilePrioritizer> prioritizers = proposed.getPrioritizers().stream()
+        final List<FlowFilePrioritizer> prioritizers = proposed.getPrioritizers() == null ? Collections.emptyList() : proposed.getPrioritizers().stream()
             .map(prioritizerName -> {
                 try {
                     return flowController.createPrioritizer(prioritizerName);
@@ -3345,14 +3386,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         queue.setPriorities(prioritizers);
     }
 
-    private Connection addConnection(final VersionedConnection proposed, final String componentIdSeed) {
-        final Connectable source = getConnectable(proposed.getSource());
+    private Connection addConnection(final ProcessGroup destinationGroup, final VersionedConnection proposed, final String componentIdSeed) {
+        final Connectable source = getConnectable(destinationGroup, proposed.getSource());
         if (source == null) {
             throw new IllegalArgumentException("Connection has a source with identifier " + proposed.getIdentifier()
                 + " but no component could be found in the Process Group with a corresponding identifier");
         }
 
-        final Connectable destination = getConnectable(proposed.getDestination());
+        final Connectable destination = getConnectable(destinationGroup, proposed.getDestination());
         if (destination == null) {
             throw new IllegalArgumentException("Connection has a destination with identifier " + proposed.getIdentifier()
                 + " but no component could be found in the Process Group with a corresponding identifier");
@@ -3360,43 +3401,65 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final Connection connection = flowController.createConnection(generateUuid(componentIdSeed), proposed.getName(), source, destination, proposed.getSelectedRelationships());
         connection.setVersionedComponentId(proposed.getIdentifier());
-        addConnection(connection);
+        destinationGroup.addConnection(connection);
         updateConnection(connection, proposed);
 
         return connection;
     }
 
-    private Connectable getConnectable(final ConnectableComponent connectableComponent) {
+    private Connectable getConnectable(final ProcessGroup group, final ConnectableComponent connectableComponent) {
         final String id = connectableComponent.getId();
 
         switch (connectableComponent.getType()) {
             case FUNNEL:
-                return getFunnels().stream()
+                return group.getFunnels().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny()
                     .orElse(null);
-            case INPUT_PORT:
-                return getInputPorts().stream()
+            case INPUT_PORT: {
+                final Optional<Port> port = group.getInputPorts().stream()
+                    .filter(component -> component.getVersionedComponentId().isPresent())
+                    .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (port.isPresent()) {
+                    return port.get();
+                }
+
+                return group.getProcessGroups().stream()
+                    .flatMap(gr -> gr.getInputPorts().stream())
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny()
                     .orElse(null);
-            case OUTPUT_PORT:
-                return getOutputPorts().stream()
+            }
+            case OUTPUT_PORT: {
+                final Optional<Port> port = group.getOutputPorts().stream()
+                    .filter(component -> component.getVersionedComponentId().isPresent())
+                    .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (port.isPresent()) {
+                    return port.get();
+                }
+
+                return group.getProcessGroups().stream()
+                    .flatMap(gr -> gr.getOutputPorts().stream())
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny()
                     .orElse(null);
+            }
             case PROCESSOR:
-                return getProcessors().stream()
+                return group.getProcessors().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny()
                     .orElse(null);
             case REMOTE_INPUT_PORT: {
                 final String rpgId = connectableComponent.getGroupId();
-                final Optional<RemoteProcessGroup> rpgOption = getRemoteProcessGroups().stream()
+                final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny();
@@ -3415,7 +3478,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
             case REMOTE_OUTPUT_PORT: {
                 final String rpgId = connectableComponent.getGroupId();
-                final Optional<RemoteProcessGroup> rpgOption = getRemoteProcessGroups().stream()
+                final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
                     .findAny();
@@ -3471,7 +3534,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
-    private ControllerServiceNode addControllerService(final VersionedControllerService proposed, final String componentIdSeed) {
+    private ControllerServiceNode addControllerService(final ProcessGroup destination, final VersionedControllerService proposed, final String componentIdSeed) {
         final String type = proposed.getType();
         final String id = generateUuid(componentIdSeed);
 
@@ -3483,7 +3546,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ControllerServiceNode newService = flowController.createControllerService(type, id, coordinate, additionalUrls, firstTimeAdded);
         newService.setVersionedComponentId(proposed.getIdentifier());
 
-        addControllerService(newService);
+        destination.addControllerService(newService);
         updateControllerService(newService, proposed);
 
         return newService;
@@ -3493,10 +3556,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         funnel.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
     }
 
-    private Funnel addFunnel(final VersionedFunnel proposed, final String componentIdSeed) {
+    private Funnel addFunnel(final ProcessGroup destination, final VersionedFunnel proposed, final String componentIdSeed) {
         final Funnel funnel = flowController.createFunnel(generateUuid(componentIdSeed));
         funnel.setVersionedComponentId(proposed.getIdentifier());
-        addFunnel(funnel);
+        destination.addFunnel(funnel);
         updateFunnel(funnel, proposed);
 
         return funnel;
@@ -3508,28 +3571,28 @@ public final class StandardProcessGroup implements ProcessGroup {
         port.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
     }
 
-    private Port addInputPort(final VersionedPort proposed, final String componentIdSeed) {
+    private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
         final Port port = flowController.createLocalInputPort(generateUuid(componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
-        addInputPort(port);
+        destination.addInputPort(port);
         updatePort(port, proposed);
 
         return port;
     }
 
-    private Port addOutputPort(final VersionedPort proposed, final String componentIdSeed) {
-        final Port port = flowController.createLocalInputPort(generateUuid(componentIdSeed), proposed.getName());
+    private Port addOutputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
+        final Port port = flowController.createLocalOutputPort(generateUuid(componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
-        addOutputPort(port);
+        destination.addOutputPort(port);
         updatePort(port, proposed);
 
         return port;
     }
 
-    private Label addLabel(final VersionedLabel proposed, final String componentIdSeed) {
+    private Label addLabel(final ProcessGroup destination, final VersionedLabel proposed, final String componentIdSeed) {
         final Label label = flowController.createLabel(generateUuid(componentIdSeed), proposed.getLabel());
         label.setVersionedComponentId(proposed.getIdentifier());
-        addLabel(label);
+        destination.addLabel(label);
         updateLabel(label, proposed);
 
         return label;
@@ -3542,12 +3605,12 @@ public final class StandardProcessGroup implements ProcessGroup {
         label.setValue(proposed.getLabel());
     }
 
-    private ProcessorNode addProcessor(final VersionedProcessor proposed, final String componentIdSeed) throws ProcessorInstantiationException {
+    private ProcessorNode addProcessor(final ProcessGroup destination, final VersionedProcessor proposed, final String componentIdSeed) throws ProcessorInstantiationException {
         final BundleCoordinate coordinate = toCoordinate(proposed.getBundle());
         final ProcessorNode procNode = flowController.createProcessor(proposed.getType(), generateUuid(componentIdSeed), coordinate, true);
         procNode.setVersionedComponentId(proposed.getIdentifier());
 
-        addProcessor(procNode);
+        destination.addProcessor(procNode);
         updateProcessor(procNode, proposed);
 
         return procNode;
@@ -3584,15 +3647,18 @@ public final class StandardProcessGroup implements ProcessGroup {
             fullPropertyMap.put(property.getName(), null);
         }
 
-        fullPropertyMap.putAll(proposedProperties);
+        if (proposedProperties != null) {
+            fullPropertyMap.putAll(proposedProperties);
+        }
+
         return fullPropertyMap;
     }
 
-    private RemoteProcessGroup addRemoteProcessGroup(final VersionedRemoteProcessGroup proposed, final String componentIdSeed) {
+    private RemoteProcessGroup addRemoteProcessGroup(final ProcessGroup destination, final VersionedRemoteProcessGroup proposed, final String componentIdSeed) {
         final RemoteProcessGroup rpg = flowController.createRemoteProcessGroup(generateUuid(componentIdSeed), proposed.getTargetUris());
         rpg.setVersionedComponentId(proposed.getIdentifier());
 
-        addRemoteProcessGroup(rpg);
+        destination.addRemoteProcessGroup(rpg);
         updateRemoteProcessGroup(rpg, proposed);
 
         return rpg;
@@ -3601,12 +3667,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void updateRemoteProcessGroup(final RemoteProcessGroup rpg, final VersionedRemoteProcessGroup proposed) {
         rpg.setComments(proposed.getComments());
         rpg.setCommunicationsTimeout(proposed.getCommunicationsTimeout());
-        rpg.setInputPorts(proposed.getInputPorts().stream()
+        rpg.setInputPorts(proposed.getInputPorts() == null ? Collections.emptySet() : proposed.getInputPorts().stream()
             .map(port -> createPortDescriptor(port))
             .collect(Collectors.toSet()));
         rpg.setName(proposed.getName());
         rpg.setNetworkInterface(proposed.getLocalNetworkInterface());
-        rpg.setOutputPorts(proposed.getOutputPorts().stream()
+        rpg.setOutputPorts(proposed.getOutputPorts() == null ? Collections.emptySet() : proposed.getOutputPorts().stream()
             .map(port -> createPortDescriptor(port))
             .collect(Collectors.toSet()));
         rpg.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
@@ -3633,7 +3699,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    public Optional<Boolean> isModified() {
+    private Set<FlowDifference> getModifications() {
         final StandardVersionControlInformation vci = versionControlInfo.get();
 
         // If this group is not under version control, then we need to notify the parent
@@ -3645,17 +3711,17 @@ public final class StandardProcessGroup implements ProcessGroup {
         // say that the flow is modified. There would be no way to ever go back to the flow not being modified.
         // So we have to perform a diff of the flows and see if they are the same.
         if (vci == null) {
-            return Optional.of(Boolean.FALSE);
+            return null;
         }
 
         if (vci.getFlowSnapshot() == null) {
             // we haven't retrieved the flow from the Flow Registry yet, so we don't know if it's been modified.
             // As a result, we will just return an empty optional
-            return Optional.empty();
+            return null;
         }
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient());
+        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient(), true);
 
         final ComparableDataFlow currentFlow = new ComparableDataFlow() {
             @Override
@@ -3681,17 +3747,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         };
 
-        final FlowComparator flowComparator = new StandardFlowComparator(currentFlow, snapshotFlow);
+        final FlowComparator flowComparator = new StandardFlowComparator(currentFlow, snapshotFlow, new EvolvingDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();
         final Set<FlowDifference> differences = comparison.getDifferences();
-        final boolean modified = differences.stream()
+        final Set<FlowDifference> functionalDifferences = differences.stream()
             .filter(diff -> diff.getDifferenceType() != DifferenceType.POSITION_CHANGED)
             .filter(diff -> diff.getDifferenceType() != DifferenceType.STYLE_CHANGED)
-            .findAny()
-            .isPresent();
+            .collect(Collectors.toSet());
 
-        LOG.debug("There are {} differences between this Local FLow and the Versioned Flow: {}", differences.size(), differences);
-        return Optional.of(modified);
+        LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
+        return functionalDifferences;
     }
 
 
@@ -3713,10 +3778,21 @@ public final class StandardProcessGroup implements ProcessGroup {
                             + " synched with the Flow Registry before continuing. This will happen periodically in the background, so please try the request again later");
                     }
 
+                    final Set<FlowDifference> modifications = getModifications();
+
                     if (Boolean.TRUE.equals(modifiedOption.get())) {
+                        final String changes = modifications.stream()
+                            .map(FlowDifference::toString)
+                            .collect(Collectors.joining("\n"));
+
+                        LOG.error("Cannot change the Version of the flow for {} because the Process Group has been modified ({} modifications) "
+                            + "since it was last synchronized with the Flow Registry. The following differences were found:\n{}",
+                            this, modifications.size(), changes);
+
                         throw new IllegalStateException("Cannot change the Version of the flow for " + this
-                            + " because the Process Group has been modified since it was last synchronized with the Flow Registry. The Process Group must be"
-                            + " restored to its original form before changing the version");
+                            + " because the Process Group has been modified (" + modifications.size()
+                            + " modifications) since it was last synchronized with the Flow Registry. The Process Group must be"
+                            + " reverted to its original form before changing the version. See logs for more information on what has changed.");
                     }
                 }
             }
@@ -3851,11 +3927,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(conn -> proposedConnections.remove(conn.getVersionedComponentId().get()));
 
             for (final VersionedConnection connectionToAdd : proposedConnections.values()) {
-                for (final String prioritizerType : connectionToAdd.getPrioritizers()) {
-                    try {
-                        flowController.createPrioritizer(prioritizerType);
-                    } catch (Exception e) {
-                        throw new IllegalArgumentException("Unable to create Prioritizer of type " + prioritizerType, e);
+                if (connectionToAdd.getPrioritizers() != null) {
+                    for (final String prioritizerType : connectionToAdd.getPrioritizers()) {
+                        try {
+                            flowController.createPrioritizer(prioritizerType);
+                        } catch (Exception e) {
+                            throw new IllegalArgumentException("Unable to create Prioritizer of type " + prioritizerType, e);
+                        }
                     }
                 }
             }
