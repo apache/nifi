@@ -1318,6 +1318,16 @@ public interface NiFiServiceFacade {
     VersionControlComponentMappingEntity registerFlowWithFlowRegistry(String groupId, StartVersionControlRequestEntity requestEntity);
 
     /**
+     * Deletes the specified Versioned Flow from the specified Flow Registry
+     *
+     * @param registryId the ID of the Flow Registry
+     * @param bucketId the ID of the bucket
+     * @param flowId the ID of the flow
+     * @return the VersionedFlow that was deleted
+     */
+    VersionedFlow deleteVersionedFlow(String registryId, String bucketId, String flowId) throws IOException, NiFiRegistryException;
+
+    /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id
      *
      * @param registryId the ID of the Flow Registry to persist the snapshot to

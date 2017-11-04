@@ -87,10 +87,11 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -1643,11 +1644,12 @@ public class ProcessGroupResource extends ApplicationResource {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
             // Step 2: Retrieve flow from Flow Registry
             final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo);
+            final Bucket bucket = flowSnapshot.getBucket();
+            final VersionedFlow flow = flowSnapshot.getFlow();
 
-            final VersionedFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
-            versionControlInfo.setBucketName(metadata.getBucketName());
-            versionControlInfo.setFlowName(metadata.getFlowName());
-            versionControlInfo.setFlowDescription(metadata.getFlowDescription());
+            versionControlInfo.setBucketName(bucket.getName());
+            versionControlInfo.setFlowName(flow.getName());
+            versionControlInfo.setFlowDescription(flow.getDescription());
 
             versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
 

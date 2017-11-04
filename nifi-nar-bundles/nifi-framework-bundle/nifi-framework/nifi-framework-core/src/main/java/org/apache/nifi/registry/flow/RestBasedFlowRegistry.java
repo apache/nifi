@@ -111,55 +111,59 @@ public class RestBasedFlowRegistry implements FlowRegistry {
         this.name = name;
     }
 
+    private String getIdentity(final NiFiUser user) {
+        return (user == null || user.isAnonymous()) ? null : user.getIdentity();
+    }
+
     @Override
     public Set<Bucket> getBuckets(final NiFiUser user) throws IOException, NiFiRegistryException {
-        final BucketClient bucketClient = getRegistryClient().getBucketClient(user.isAnonymous() ? null : user.getIdentity());
+        final BucketClient bucketClient = getRegistryClient().getBucketClient(getIdentity(user));
         return new HashSet<>(bucketClient.getAll());
     }
 
     @Override
-    public Bucket getBucket(final String bucketId) throws IOException, NiFiRegistryException {
-        final BucketClient bucketClient = getRegistryClient().getBucketClient();
-        return bucketClient.get(bucketId);
-    }
-
-    @Override
     public Bucket getBucket(final String bucketId, final NiFiUser user) throws IOException, NiFiRegistryException {
-        final BucketClient bucketClient = getRegistryClient().getBucketClient(user.isAnonymous() ? null : user.getIdentity());
+        final BucketClient bucketClient = getRegistryClient().getBucketClient(getIdentity(user));
         return bucketClient.get(bucketId);
     }
 
 
     @Override
     public Set<VersionedFlow> getFlows(final String bucketId, final NiFiUser user) throws IOException, NiFiRegistryException {
-        final FlowClient flowClient = getRegistryClient().getFlowClient(user.isAnonymous() ? null : user.getIdentity());
+        final FlowClient flowClient = getRegistryClient().getFlowClient(getIdentity(user));
         return new HashSet<>(flowClient.getByBucket(bucketId));
     }
 
     @Override
     public Set<VersionedFlowSnapshotMetadata> getFlowVersions(final String bucketId, final String flowId, final NiFiUser user) throws IOException, NiFiRegistryException {
-        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient(user.isAnonymous() ? null : user.getIdentity());
+        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient(getIdentity(user));
         return new HashSet<>(snapshotClient.getSnapshotMetadata(bucketId, flowId));
     }
 
     @Override
-    public VersionedFlow registerVersionedFlow(final VersionedFlow flow) throws IOException, NiFiRegistryException {
-        final FlowClient flowClient = getRegistryClient().getFlowClient();
+    public VersionedFlow registerVersionedFlow(final VersionedFlow flow, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final FlowClient flowClient = getRegistryClient().getFlowClient(getIdentity(user));
         return flowClient.create(flow);
     }
 
     @Override
-    public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot, final String comments, final int expectedVersion)
-            throws IOException, NiFiRegistryException {
+    public VersionedFlow deleteVersionedFlow(final String bucketId, final String flowId, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final FlowClient flowClient = getRegistryClient().getFlowClient(getIdentity(user));
+        return flowClient.delete(bucketId, flowId);
+    }
 
-        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient();
+    @Override
+    public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
+        final String comments, final int expectedVersion, final NiFiUser user) throws IOException, NiFiRegistryException {
+
+        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient(getIdentity(user));
         final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
         versionedFlowSnapshot.setFlowContents(snapshot);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setBucketIdentifier(flow.getBucketIdentifier());
         metadata.setFlowIdentifier(flow.getIdentifier());
-        metadata.setFlowName(flow.getName());
+        metadata.setAuthor(getIdentity(user));
         metadata.setTimestamp(System.currentTimeMillis());
         metadata.setVersion(expectedVersion);
         metadata.setComments(comments);
@@ -169,24 +173,29 @@ public class RestBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public int getLatestVersion(final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
-        return (int) getRegistryClient().getFlowClient().get(bucketId, flowId).getVersionCount();
+    public int getLatestVersion(final String bucketId, final String flowId, final NiFiUser user) throws IOException, NiFiRegistryException {
+        return (int) getRegistryClient().getFlowClient(getIdentity(user)).get(bucketId, flowId).getVersionCount();
     }
 
     @Override
-    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version) throws IOException, NiFiRegistryException {
-        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient();
+    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient(getIdentity(user));
         final VersionedFlowSnapshot flowSnapshot = snapshotClient.get(bucketId, flowId, version);
 
         final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
         for (final VersionedProcessGroup child : contents.getProcessGroups()) {
-            populateVersionedContentsRecursively(child);
+            populateVersionedContentsRecursively(child, user);
         }
 
         return flowSnapshot;
     }
 
-    private void populateVersionedContentsRecursively(final VersionedProcessGroup group) throws NiFiRegistryException, IOException {
+    @Override
+    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version) throws IOException, NiFiRegistryException {
+        return getFlowContents(bucketId, flowId, version, null);
+    }
+
+    private void populateVersionedContentsRecursively(final VersionedProcessGroup group, final NiFiUser user) throws NiFiRegistryException, IOException {
         if (group == null) {
             return;
         }
@@ -205,7 +214,7 @@ public class RestBasedFlowRegistry implements FlowRegistry {
             }
 
             final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
-            final VersionedFlowSnapshot snapshot = flowRegistry.getFlowContents(bucketId, flowId, version);
+            final VersionedFlowSnapshot snapshot = flowRegistry.getFlowContents(bucketId, flowId, version, user);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
             group.setComments(contents.getComments());
@@ -222,8 +231,14 @@ public class RestBasedFlowRegistry implements FlowRegistry {
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedContentsRecursively(child);
+            populateVersionedContentsRecursively(child, user);
         }
+    }
+
+    @Override
+    public VersionedFlow getVersionedFlow(final String bucketId, final String flowId, final NiFiUser user) throws IOException, NiFiRegistryException {
+        final FlowClient flowClient = getRegistryClient().getFlowClient(getIdentity(user));
+        return flowClient.get(bucketId, flowId);
     }
 
     @Override
@@ -231,5 +246,4 @@ public class RestBasedFlowRegistry implements FlowRegistry {
         final FlowClient flowClient = getRegistryClient().getFlowClient();
         return flowClient.get(bucketId, flowId);
     }
-
 }
