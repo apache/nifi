@@ -17,8 +17,6 @@
 
 package org.apache.nifi.registry.flow;
 
-import java.util.Optional;
-
 /**
  * <p>
  * Provides a mechanism for conveying which Flow Registry a flow is stored in, and
@@ -69,18 +67,14 @@ public interface VersionControlInformation {
 
     /**
      * @return <code>true</code> if the flow has been modified since the last time that it was updated from the Flow Registry or saved
-     *         to the Flow Registry; <code>false</code> if the flow is in sync with the Flow Registry. An empty optional will be returned
-     *         if it is not yet known whether or not the flow has been modified (for example, on startup, when the flow has not yet been
-     *         fetched from the Flow Registry)
+     *         to the Flow Registry; <code>false</code> if the flow is in sync with the Flow Registry.
      */
-    Optional<Boolean> getModified();
+    boolean isModified();
 
     /**
-     * @return <code>true</code> if this version of the flow is the most recent version of the flow available in the Flow Registry.
-     *         An empty optional will be returned if it is not yet known whether or not the flow has been modified (for example, on startup,
-     *         when the flow has not yet been fetched from the Flow Registry)
+     * @return <code>true</code> if this version of the flow is the most recent version of the flow available in the Flow Registry, <code>false</code> otherwise.
      */
-    Optional<Boolean> getCurrent();
+    boolean isCurrent();
 
     /**
      * @return the snapshot of the flow that was synchronized with the Flow Registry

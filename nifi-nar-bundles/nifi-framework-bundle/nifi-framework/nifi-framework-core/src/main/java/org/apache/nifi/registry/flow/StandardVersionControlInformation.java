@@ -18,7 +18,6 @@
 package org.apache.nifi.registry.flow;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
@@ -33,8 +32,8 @@ public class StandardVersionControlInformation implements VersionControlInformat
     private volatile String flowDescription;
     private final int version;
     private volatile VersionedProcessGroup flowSnapshot;
-    private volatile Boolean modified = null;
-    private volatile Boolean current = null;
+    private volatile boolean modified;
+    private volatile boolean current;
 
     public static class Builder {
         private String registryIdentifier;
@@ -89,12 +88,12 @@ public class StandardVersionControlInformation implements VersionControlInformat
             return this;
         }
 
-        public Builder modified(Boolean modified) {
+        public Builder modified(boolean modified) {
             this.modified = modified;
             return this;
         }
 
-        public Builder current(Boolean current) {
+        public Builder current(boolean current) {
             this.current = current;
             return this;
         }
@@ -113,8 +112,8 @@ public class StandardVersionControlInformation implements VersionControlInformat
                 .flowId(dto.getFlowId())
                 .flowName(dto.getFlowName())
                 .flowDescription(dto.getFlowDescription())
-                .current(dto.getCurrent())
-                .modified(dto.getModified())
+                .current(dto.getCurrent() == null ? true : dto.getCurrent())
+                .modified(dto.getModified() == null ? false : dto.getModified())
                 .version(dto.getVersion());
 
             return builder;
@@ -139,7 +138,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
 
     public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
-        final VersionedProcessGroup snapshot, final Boolean modified, final Boolean current) {
+        final VersionedProcessGroup snapshot, final boolean modified, final boolean current) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
         this.bucketIdentifier = bucketId;
@@ -208,13 +207,13 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
     @Override
-    public Optional<Boolean> getModified() {
-        return Optional.ofNullable(modified);
+    public boolean isModified() {
+        return modified;
     }
 
     @Override
-    public Optional<Boolean> getCurrent() {
-        return Optional.ofNullable(current);
+    public boolean isCurrent() {
+        return current;
     }
 
     @Override

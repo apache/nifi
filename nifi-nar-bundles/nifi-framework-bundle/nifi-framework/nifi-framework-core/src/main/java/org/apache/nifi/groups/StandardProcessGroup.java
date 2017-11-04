@@ -2822,17 +2822,17 @@ public final class StandardProcessGroup implements ProcessGroup {
             versionControlInformation.getFlowIdentifier(),
             versionControlInformation.getVersion(),
             versionControlInformation.getFlowSnapshot(),
-            versionControlInformation.getModified().orElse(null),
-            versionControlInformation.getCurrent().orElse(null)) {
+            versionControlInformation.isModified(),
+            versionControlInformation.isCurrent()) {
 
             @Override
-            public Optional<Boolean> getModified() {
+            public boolean isModified() {
                 final Set<FlowDifference> differences = StandardProcessGroup.this.getModifications();
                 if (differences == null) {
-                    return Optional.ofNullable(null);
+                    return false;
                 }
 
-                return Optional.of(!differences.isEmpty());
+                return !differences.isEmpty();
             }
         };
 
@@ -2938,7 +2938,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final VersionedFlow versionedFlow = flowRegistry.getVersionedFlow(vci.getBucketIdentifier(), vci.getFlowIdentifier());
             final int latestVersion = (int) versionedFlow.getVersionCount();
-
             vci.setBucketName(versionedFlow.getBucketName());
             vci.setFlowName(versionedFlow.getName());
             vci.setFlowDescription(versionedFlow.getDescription());
@@ -2986,7 +2985,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.info("Updating {} to {}; there are {} differences to take into account:\n{}", this, proposedSnapshot, flowComparison.getDifferences().size(), differencesByLine);
             }
 
-            updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings);
+            final Set<String> knownVariables = getKnownVariableNames();
+            updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, knownVariables);
         } catch (final ProcessorInstantiationException pie) {
             throw new RuntimeException(pie);
         } finally {
@@ -2994,9 +2994,26 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private Set<String> getKnownVariableNames() {
+        final Set<String> variableNames = new HashSet<>();
+        populateKnownVariableNames(this, variableNames);
+        return variableNames;
+    }
+
+    private void populateKnownVariableNames(final ProcessGroup group, final Set<String> knownVariables) {
+        group.getVariableRegistry().getVariableMap().keySet().stream()
+            .map(VariableDescriptor::getName)
+            .forEach(knownVariables::add);
+
+        final ProcessGroup parent = group.getParent();
+        if (parent != null) {
+            populateKnownVariableNames(parent, knownVariables);
+        }
+    }
+
 
     private void updateProcessGroup(final ProcessGroup group, final VersionedProcessGroup proposed, final String componentIdSeed,
-        final Set<String> updatedVersionedComponentIds, final boolean updatePosition, final boolean updateName) throws ProcessorInstantiationException {
+        final Set<String> updatedVersionedComponentIds, final boolean updatePosition, final boolean updateName, final Set<String> variablesToSkip) throws ProcessorInstantiationException {
 
         group.setComments(proposed.getComments());
 
@@ -3027,7 +3044,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         // If any new variables exist in the proposed flow, add those to the variable registry.
         for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
-            if (!existingVariableNames.contains(entry.getKey())) {
+            if (!existingVariableNames.contains(entry.getKey()) && !variablesToSkip.contains(entry.getKey())) {
                 updatedVariableMap.put(entry.getKey(), entry.getValue());
             }
         }
@@ -3068,10 +3085,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed);
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
                 LOG.info("Added {} to {}", added, this);
             } else {
-                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, updateName);
+                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, updateName, variablesToSkip);
                 LOG.info("Updated {}", childGroup);
             }
 
@@ -3345,11 +3362,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed) throws ProcessorInstantiationException {
+    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip)
+            throws ProcessorInstantiationException {
         final ProcessGroup group = flowController.createProcessGroup(generateUuid(componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
-        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true);
+        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, variablesToSkip);
         destination.addProcessGroup(group);
         return group;
     }
@@ -3771,16 +3789,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 if (verifyNotDirty) {
-                    final Optional<Boolean> modifiedOption = versionControlInfo.getModified();
-                    if (!modifiedOption.isPresent()) {
-                        throw new IllegalStateException(this + " cannot be updated to a different version of the flow because the local flow "
-                            + "has not yet been synchronized with the Flow Registry. The Process Group must be"
-                            + " synched with the Flow Registry before continuing. This will happen periodically in the background, so please try the request again later");
-                    }
+                    final boolean modified = versionControlInfo.isModified();
 
                     final Set<FlowDifference> modifications = getModifications();
 
-                    if (Boolean.TRUE.equals(modifiedOption.get())) {
+                    if (modified) {
                         final String changes = modifications.stream()
                             .map(FlowDifference::toString)
                             .collect(Collectors.joining("\n"));
