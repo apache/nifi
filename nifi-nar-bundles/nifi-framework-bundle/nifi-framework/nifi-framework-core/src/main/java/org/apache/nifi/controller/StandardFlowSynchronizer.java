@@ -85,9 +85,9 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
-import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -1110,14 +1110,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         final VersionControlInformationDTO versionControlInfoDto = processGroupDTO.getVersionControlInformation();
         if (versionControlInfoDto != null) {
-            final String registryId = versionControlInfoDto.getRegistryId();
-            final String bucketId = versionControlInfoDto.getBucketId();
-            final String flowId = versionControlInfoDto.getFlowId();
-            final int version = versionControlInfoDto.getVersion();
-            final boolean modified = false;
-            final boolean current = true;
+            final FlowRegistry flowRegistry = controller.getFlowRegistryClient().getFlowRegistry(versionControlInfoDto.getRegistryId());
+            final String registryName = flowRegistry == null ? versionControlInfoDto.getRegistryId() : flowRegistry.getName();
 
-            final VersionControlInformation versionControlInformation = new StandardVersionControlInformation(registryId, bucketId, flowId, version, null, modified, current);
+            final StandardVersionControlInformation versionControlInformation = StandardVersionControlInformation.Builder.fromDto(versionControlInfoDto)
+                .registryName(registryName)
+                .modified(false)
+                .current(true)
+                .build();
+
             // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components
             processGroup.setVersionControlInformation(versionControlInformation, Collections.emptyMap());
         }

@@ -90,7 +90,7 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.UnknownResourceException;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
@@ -101,11 +101,13 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -128,6 +130,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentDTO;
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
@@ -205,6 +208,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -3628,6 +3632,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public VersionControlComponentMappingEntity registerFlowWithFlowRegistry(final String groupId, final StartVersionControlRequestEntity requestEntity) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final VersionControlInformation currentVci = processGroup.getVersionControlInformation();
+        final int expectedVersion = currentVci == null ? 1 : currentVci.getVersion() + 1;
+
         // Create a VersionedProcessGroup snapshot of the flow as it is currently.
         final InstantiatedVersionedProcessGroup versionedProcessGroup = createFlowSnapshot(groupId);
 
@@ -3660,8 +3668,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // add first snapshot to the flow in the registry
             final String comments = versionedFlow.getDescription() == null ? "Initial version of flow" : versionedFlow.getDescription();
-            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, comments);
-        } catch (final UnknownResourceException e) {
+            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, comments, expectedVersion);
+        } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException(e);
         } catch (final IOException ioe) {
             // will result in a 500: Internal Server Error
@@ -3671,12 +3679,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Update the Process Group with the new VersionControlInformation. (Send this to all nodes).
         final VersionControlInformationDTO vci = new VersionControlInformationDTO();
         vci.setBucketId(registeredFlow.getBucketIdentifier());
+        vci.setBucketName(registeredFlow.getBucketName());
         vci.setCurrent(true);
         vci.setFlowId(registeredFlow.getIdentifier());
         vci.setFlowName(registeredFlow.getName());
+        vci.setFlowDescription(registeredFlow.getDescription());
         vci.setGroupId(groupId);
         vci.setModified(false);
         vci.setRegistryId(registryId);
+        vci.setRegistryName(getFlowRegistryName(registryId));
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
 
         final Map<String, String> mapping = dtoFactory.createVersionControlComponentMappingDto(versionedProcessGroup);
@@ -3707,12 +3718,67 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private InstantiatedVersionedProcessGroup createFlowSnapshot(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-        final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient);
+        final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient, false);
         return versionedGroup;
     }
 
     @Override
-    public VersionedFlow registerVersionedFlow(final String registryId, final VersionedFlow flow) throws IOException, UnknownResourceException {
+    public FlowComparisonEntity getLocalModifications(final String processGroupId) throws IOException, NiFiRegistryException {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(versionControlInfo.getRegistryIdentifier());
+        if (flowRegistry == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is tracking to a flow in Flow Registry with ID " + versionControlInfo.getRegistryIdentifier()
+                + " but cannot find a Flow Registry with that identifier");
+        }
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketIdentifier(),
+            versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion());
+
+
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient, true);
+        final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
+
+        final ComparableDataFlow localFlow = new ComparableDataFlow() {
+            @Override
+            public VersionedProcessGroup getContents() {
+                return localGroup;
+            }
+
+            @Override
+            public String getName() {
+                return "Local Flow";
+            }
+        };
+
+        final ComparableDataFlow registryFlow = new ComparableDataFlow() {
+            @Override
+            public VersionedProcessGroup getContents() {
+                return registryGroup;
+            }
+
+            @Override
+            public String getName() {
+                return "Versioned Flow";
+            }
+        };
+
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, new EvolvingDifferenceDescriptor());
+        final FlowComparison flowComparison = flowComparator.compare();
+
+        final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtos(flowComparison);
+        final FlowComparisonEntity entity = new FlowComparisonEntity();
+        entity.setComponentDifferences(differenceDtos);
+        return entity;
+    }
+
+    @Override
+    public VersionedFlow registerVersionedFlow(final String registryId, final VersionedFlow flow) throws IOException, NiFiRegistryException {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
@@ -3721,7 +3787,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return registry.registerVersionedFlow(flow);
     }
 
-    private VersionedFlow getVersionedFlow(final String registryId, final String bucketId, final String flowId) throws IOException, UnknownResourceException {
+    private VersionedFlow getVersionedFlow(final String registryId, final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
@@ -3732,13 +3798,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow,
-            final VersionedProcessGroup snapshot, final String comments) throws IOException, UnknownResourceException {
+        final VersionedProcessGroup snapshot, final String comments, final int expectedVersion) throws IOException, NiFiRegistryException {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
-        return registry.registerVersionedFlowSnapshot(flow, snapshot, comments);
+        return registry.registerVersionedFlowSnapshot(flow, snapshot, comments, expectedVersion);
     }
 
     @Override
@@ -3778,12 +3844,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, flowRegistryClient);
+        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, flowRegistryClient, true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localContents);
-        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", updatedSnapshot.getFlowContents());
+        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Versioned Flow", updatedSnapshot.getFlowContents());
 
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow);
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, new StaticDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();
 
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
@@ -3958,7 +4024,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final VersionedFlowSnapshot snapshot;
         try {
             snapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketId(), versionControlInfo.getFlowId(), versionControlInfo.getVersion());
-        } catch (final UnknownResourceException e) {
+        } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException("The Flow Registry with ID " + versionControlInfo.getRegistryId() + " reports that no Flow exists with Bucket "
                 + versionControlInfo.getBucketId() + ", Flow " + versionControlInfo.getFlowId() + ", Version " + versionControlInfo.getVersion());
         }
@@ -3967,6 +4033,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         populateVersionedChildFlows(snapshot);
 
         return snapshot;
+    }
+
+    @Override
+    public String getFlowRegistryName(final String flowRegistryId) {
+        final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(flowRegistryId);
+        return flowRegistry == null ? flowRegistryId : flowRegistry.getName();
     }
 
     private void populateVersionedChildFlows(final VersionedFlowSnapshot snapshot) throws IOException {
@@ -3993,7 +4065,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final VersionedFlowSnapshot childSnapshot;
             try {
                 childSnapshot = flowRegistry.getFlowContents(remoteCoordinates.getBucketId(), remoteCoordinates.getFlowId(), remoteCoordinates.getVersion());
-            } catch (final UnknownResourceException e) {
+            } catch (final NiFiRegistryException e) {
                 throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
                     + remoteCoordinates.getBucketId() + ", Flow " + remoteCoordinates.getFlowId() + ", Version " + remoteCoordinates.getVersion());
             }

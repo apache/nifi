@@ -39,11 +39,23 @@ public interface AsynchronousWebRequest<T> {
     Date getLastUpdated();
 
     /**
-     * Updates the Date at which the status of this request was last updated
-     *
-     * @param date the date at which the status of this request was last updated
+     * @return the current state of the request
      */
-    void setLastUpdated(Date date);
+    public String getState();
+
+    /**
+     * @return the current percent complete, between 0 and 100 (inclusive)
+     */
+    public int getPercentComplete();
+
+    /**
+     * Updates the request to indicate the new state and percent complete
+     *
+     * @param date the last updated time
+     * @param state the new state
+     * @param percentComplete The percentage complete, between 0 and 100 (inclusive)
+     */
+    void update(Date date, String state, int percentComplete);
 
     /**
      * @return the user who submitted the request
@@ -77,4 +89,14 @@ public interface AsynchronousWebRequest<T> {
      * @return the results of the request, if it completed successfully, or <code>null</code> if the request either has no completed or failed
      */
     T getResults();
+
+    /**
+     * Cancels the request so that no more steps can be completed
+     */
+    void cancel();
+
+    /**
+     * @return <code>true</code> if the request has been canceled, <code>false</code> otherwise
+     */
+    boolean isCancelled();
 }

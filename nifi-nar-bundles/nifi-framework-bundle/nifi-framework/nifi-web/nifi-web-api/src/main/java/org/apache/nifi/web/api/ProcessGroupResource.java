@@ -87,8 +87,10 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -123,6 +125,7 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
@@ -296,6 +299,53 @@ public class ProcessGroupResource extends ApplicationResource {
             entity.getComponent().setContents(null);
         }
 
+        return generateOkResponse(entity).build();
+    }
+
+
+    /**
+     * Retrieves a list of local modifications to the Process Group since it was last synchronized with the Flow Registry
+     *
+     * @param groupId The id of the process group.
+     * @return A processGroupEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/local-modifications")
+    @ApiOperation(
+            value = "Gets a list of local modifications to the Process Group since it was last synchronized with the Flow Registry",
+            response = FlowComparisonEntity.class,
+            authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}"),
+            @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getLocalModifications(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = false
+            )
+            @PathParam("id") final String groupId) throws IOException, NiFiRegistryException {
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = groupAuthorizable.getAuthorizable();
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, true, false);
+        });
+
+        final FlowComparisonEntity entity = serviceFacade.getLocalModifications(groupId);
         return generateOkResponse(entity).build();
     }
 
@@ -1594,6 +1644,13 @@ public class ProcessGroupResource extends ApplicationResource {
             // Step 2: Retrieve flow from Flow Registry
             final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo);
 
+            final VersionedFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
+            versionControlInfo.setBucketName(metadata.getBucketName());
+            versionControlInfo.setFlowName(metadata.getFlowName());
+            versionControlInfo.setFlowDescription(metadata.getFlowDescription());
+
+            versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
+
             // Step 3: Resolve Bundle info
             BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
@@ -1635,14 +1692,14 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // create the process group contents
                     final Revision revision = getRevision(processGroupGroupEntity, processGroupGroupEntity.getComponent().getId());
-                    final ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroupGroupEntity.getComponent());
+                    ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroupGroupEntity.getComponent());
 
                     final VersionedFlowSnapshot flowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (flowSnapshot != null) {
                         final RevisionDTO revisionDto = entity.getRevision();
                         final String newGroupId = entity.getComponent().getId();
                         final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
-                        serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
+                        entity = serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
                             versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, false);
                     }
 

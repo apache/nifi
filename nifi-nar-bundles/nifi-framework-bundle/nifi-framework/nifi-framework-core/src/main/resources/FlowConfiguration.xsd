@@ -51,7 +51,7 @@
             <xs:element name="id" type="NonEmptyStringType" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="url" type="NonEmptyStringType" />
-            <xs:element name="description" type="NonEmptyStringType" />
+            <xs:element name="description" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
     
@@ -180,7 +180,10 @@
         <xs:sequence>
             <xs:element name="registryId" type="NonEmptyStringType" />
             <xs:element name="bucketId" type="NonEmptyStringType" />
+            <xs:element name="bucketName" type="NonEmptyStringType" />
             <xs:element name="flowId" type="NonEmptyStringType" />
+            <xs:element name="flowName" type="NonEmptyStringType" />
+            <xs:element name="flowDescription" type="xs:string" />
             <xs:element name="version" type="NonEmptyStringType" />
         </xs:sequence>
     </xs:complexType>

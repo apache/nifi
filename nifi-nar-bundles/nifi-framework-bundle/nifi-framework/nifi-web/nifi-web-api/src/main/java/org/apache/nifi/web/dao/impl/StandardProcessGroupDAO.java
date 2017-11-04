@@ -25,6 +25,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -238,11 +239,15 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         final String registryId = versionControlInformation.getRegistryId();
-        final String bucketId = versionControlInformation.getBucketId();
-        final String flowId = versionControlInformation.getFlowId();
-        final int version = versionControlInformation.getVersion();
+        final FlowRegistry flowRegistry = flowController.getFlowRegistryClient().getFlowRegistry(registryId);
+        final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
-        final VersionControlInformation vci = new StandardVersionControlInformation(registryId, bucketId, flowId, version, null, false, true);
+        final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
+            .registryName(registryName)
+            .modified(false)
+            .current(true)
+            .build();
+
         group.setVersionControlInformation(vci, versionedComponentMapping);
 
         return group;
@@ -261,14 +266,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings);
 
-        final StandardVersionControlInformation svci = new StandardVersionControlInformation(
-            versionControlInformation.getRegistryId(),
-            versionControlInformation.getBucketId(),
-            versionControlInformation.getFlowId(),
-            versionControlInformation.getVersion(),
-            proposedSnapshot.getFlowContents(),
-            versionControlInformation.getModified(),
-            versionControlInformation.getCurrent());
+        final StandardVersionControlInformation svci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
+            .flowSnapshot(proposedSnapshot.getFlowContents())
+            .build();
 
         group.setVersionControlInformation(svci, Collections.emptyMap());
         return group;

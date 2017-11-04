@@ -25,9 +25,12 @@ import javax.xml.bind.annotation.XmlType;
 public class VersionControlInformationDTO {
     private String groupId;
     private String registryId;
+    private String registryName;
     private String bucketId;
+    private String bucketName;
     private String flowId;
     private String flowName;
+    private String flowDescription;
     private Integer version;
     private Boolean modified;
     private Boolean current;
@@ -50,6 +53,15 @@ public class VersionControlInformationDTO {
         this.registryId = registryId;
     }
 
+    @ApiModelProperty(value = "The name of the registry that the flow is stored in", readOnly = true)
+    public String getRegistryName() {
+        return registryName;
+    }
+
+    public void setRegistryName(final String registryName) {
+        this.registryName = registryName;
+    }
+
     @ApiModelProperty("The ID of the bucket that the flow is stored in")
     public String getBucketId() {
         return bucketId;
@@ -57,6 +69,15 @@ public class VersionControlInformationDTO {
 
     public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
+    }
+
+    @ApiModelProperty(value = "The name of the bucket that the flow is stored in", readOnly = true)
+    public String getBucketName() {
+        return bucketName;
+    }
+
+    public void setBucketName(String bucketName) {
+        this.bucketName = bucketName;
     }
 
     @ApiModelProperty("The ID of the flow")
@@ -75,6 +96,15 @@ public class VersionControlInformationDTO {
 
     public void setFlowName(String flowName) {
         this.flowName = flowName;
+    }
+
+    @ApiModelProperty("The description of the flow")
+    public String getFlowDescription() {
+        return flowDescription;
+    }
+
+    public void setFlowDescription(String flowDescription) {
+        this.flowDescription = flowDescription;
     }
 
     @ApiModelProperty("The version of the flow")

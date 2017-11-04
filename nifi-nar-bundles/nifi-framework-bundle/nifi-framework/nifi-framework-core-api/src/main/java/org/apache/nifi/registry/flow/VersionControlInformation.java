@@ -33,14 +33,34 @@ public interface VersionControlInformation {
     String getRegistryIdentifier();
 
     /**
+     * @return the name of the Flow Registry that this flow is tracking to
+     */
+    String getRegistryName();
+
+    /**
      * @return the unique identifier of the bucket that this flow belongs to
      */
     String getBucketIdentifier();
 
     /**
+     * @return the name of the bucket that this flow belongs to
+     */
+    String getBucketName();
+
+    /**
      * @return the unique identifier of this flow in the Flow Registry
      */
     String getFlowIdentifier();
+
+    /**
+     * @return the name of the flow
+     */
+    String getFlowName();
+
+    /**
+     * @return the description of the flow
+     */
+    String getFlowDescription();
 
     /**
      * @return the version of the flow in the Flow Registry that this flow is based on.

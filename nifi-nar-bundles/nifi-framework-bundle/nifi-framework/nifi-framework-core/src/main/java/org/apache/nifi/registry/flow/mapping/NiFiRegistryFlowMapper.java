@@ -80,14 +80,11 @@ public class NiFiRegistryFlowMapper {
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
-    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final FlowRegistryClient registryClient) {
+    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final FlowRegistryClient registryClient, final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
-        final InstantiatedVersionedProcessGroup mapped = mapGroup(group, registryClient, true);
+        final InstantiatedVersionedProcessGroup mapped = mapGroup(group, registryClient, true, mapDescendantVersionedFlows);
 
-        // TODO: Test that this works properly
         populateReferencedAncestorServices(group, mapped);
-
-        // TODO: Test that this works properly
         populateReferencedAncestorVariables(group, mapped);
 
         return mapped;
@@ -149,7 +146,10 @@ public class NiFiRegistryFlowMapper {
         if (!implicitlyDefinedVariables.isEmpty()) {
             // Merge the implicit variables with the explicitly defined variables for the Process Group
             // and set those as the Versioned Group's variables.
-            implicitlyDefinedVariables.putAll(versionedGroup.getVariables());
+            if (versionedGroup.getVariables() != null) {
+                implicitlyDefinedVariables.putAll(versionedGroup.getVariables());
+            }
+
             versionedGroup.setVariables(implicitlyDefinedVariables);
         }
     }
@@ -167,7 +167,7 @@ public class NiFiRegistryFlowMapper {
     }
 
 
-    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final FlowRegistryClient registryClient, final boolean topLevel) {
+    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final FlowRegistryClient registryClient, final boolean topLevel, final boolean mapDescendantVersionedFlows) {
         final InstantiatedVersionedProcessGroup versionedGroup = new InstantiatedVersionedProcessGroup(group.getIdentifier(), group.getProcessGroupIdentifier());
         versionedGroup.setIdentifier(getId(group.getVersionedComponentId(), group.getIdentifier()));
         versionedGroup.setGroupIdentifier(getGroupId(group.getProcessGroupIdentifier()));
@@ -192,10 +192,22 @@ public class NiFiRegistryFlowMapper {
                 coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
                 coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
                 coordinates.setVersion(versionControlInfo.getVersion());
+                versionedGroup.setVersionedFlowCoordinates(coordinates);
+
+                // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
+                // Otherwise, we will not be able to lookup the port when connecting to it.
+                for (final Port port : group.getInputPorts()) {
+                    getId(port.getVersionedComponentId(), port.getIdentifier());
+                }
+                for (final Port port : group.getOutputPorts()) {
+                    getId(port.getVersionedComponentId(), port.getIdentifier());
+                }
 
                 // If the Process Group itself is remotely versioned, then we don't want to include its contents
                 // because the contents are remotely managed and not part of the versioning of this Process Group
-                return versionedGroup;
+                if (!mapDescendantVersionedFlows) {
+                    return versionedGroup;
+                }
             }
         }
 
@@ -228,7 +240,7 @@ public class NiFiRegistryFlowMapper {
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setProcessGroups(group.getProcessGroups().stream()
-            .map(grp -> mapGroup(grp, registryClient, false))
+            .map(grp -> mapGroup(grp, registryClient, false, mapDescendantVersionedFlows))
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setConnections(group.getConnections().stream()

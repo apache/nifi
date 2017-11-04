@@ -32,6 +32,9 @@ public class VersionedFlowUpdateRequestDTO {
     private Date lastUpdated;
     private boolean complete = false;
     private String failureReason;
+    private int percentComplete;
+    private String state;
+    private VersionControlInformationDTO versionControlInformation;
 
     @ApiModelProperty("The unique ID of the Process Group that the variable registry belongs to")
     public String getProcessGroupId() {
@@ -86,5 +89,32 @@ public class VersionedFlowUpdateRequestDTO {
 
     public void setFailureReason(String reason) {
         this.failureReason = reason;
+    }
+
+    @ApiModelProperty(value = "The VersionControlInformation that describes where the Versioned Flow is located; this may not be populated until the request is completed.", readOnly = true)
+    public VersionControlInformationDTO getVersionControlInformation() {
+        return versionControlInformation;
+    }
+
+    public void setVersionControlInformation(VersionControlInformationDTO versionControlInformation) {
+        this.versionControlInformation = versionControlInformation;
+    }
+
+    @ApiModelProperty(value = "The state of the request", readOnly = true)
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    @ApiModelProperty(value = "The percentage complete for the request, between 0 and 100", readOnly = true)
+    public int getPercentComplete() {
+        return percentComplete;
+    }
+
+    public void setPercentComplete(int percentComplete) {
+        this.percentComplete = percentComplete;
     }
 }

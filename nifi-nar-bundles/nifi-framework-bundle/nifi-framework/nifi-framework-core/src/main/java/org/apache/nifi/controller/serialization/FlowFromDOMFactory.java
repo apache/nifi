@@ -230,7 +230,10 @@ public class FlowFromDOMFactory {
         final VersionControlInformationDTO dto = new VersionControlInformationDTO();
         dto.setRegistryId(getString(versionControlInfoElement, "registryId"));
         dto.setBucketId(getString(versionControlInfoElement, "bucketId"));
+        dto.setBucketName(getString(versionControlInfoElement, "bucketName"));
         dto.setFlowId(getString(versionControlInfoElement, "flowId"));
+        dto.setFlowName(getString(versionControlInfoElement, "flowName"));
+        dto.setFlowDescription(getString(versionControlInfoElement, "flowDescription"));
         dto.setVersion(getInt(versionControlInfoElement, "version"));
         return dto;
     }

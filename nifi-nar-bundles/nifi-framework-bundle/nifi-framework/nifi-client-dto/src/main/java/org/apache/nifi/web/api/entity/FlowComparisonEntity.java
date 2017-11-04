@@ -15,19 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.web.api.entity;
 
-public class UnknownResourceException extends Exception {
+import java.util.Set;
 
-    public UnknownResourceException(String message) {
-        super(message);
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
+
+import io.swagger.annotations.ApiModelProperty;
+
+@XmlRootElement(name = "flowComparisonEntity")
+public class FlowComparisonEntity extends Entity {
+    private Set<ComponentDifferenceDTO> componentDifferences;
+
+    @ApiModelProperty("The list of differences for each component in the flow that is not the same between the two flows")
+    public Set<ComponentDifferenceDTO> getComponentDifferences() {
+        return componentDifferences;
     }
 
-    public UnknownResourceException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public UnknownResourceException(Throwable cause) {
-        super(cause);
+    public void setComponentDifferences(Set<ComponentDifferenceDTO> componentDifferences) {
+        this.componentDifferences = componentDifferences;
     }
 }

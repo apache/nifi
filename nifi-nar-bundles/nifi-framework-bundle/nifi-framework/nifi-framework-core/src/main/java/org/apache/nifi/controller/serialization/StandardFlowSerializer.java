@@ -190,7 +190,10 @@ public class StandardFlowSerializer implements FlowSerializer {
             final Element versionControlInfoElement = doc.createElement("versionControlInformation");
             addTextElement(versionControlInfoElement, "registryId", versionControlInfo.getRegistryIdentifier());
             addTextElement(versionControlInfoElement, "bucketId", versionControlInfo.getBucketIdentifier());
+            addTextElement(versionControlInfoElement, "bucketName", versionControlInfo.getBucketName());
             addTextElement(versionControlInfoElement, "flowId", versionControlInfo.getFlowIdentifier());
+            addTextElement(versionControlInfoElement, "flowName", versionControlInfo.getFlowName());
+            addTextElement(versionControlInfoElement, "flowDescription", versionControlInfo.getFlowDescription());
             addTextElement(versionControlInfoElement, "version", versionControlInfo.getVersion());
             element.appendChild(versionControlInfoElement);
         }

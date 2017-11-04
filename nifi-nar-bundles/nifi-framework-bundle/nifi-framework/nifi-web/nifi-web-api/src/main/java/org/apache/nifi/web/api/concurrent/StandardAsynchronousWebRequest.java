@@ -29,13 +29,17 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
 
     private volatile boolean complete = false;
     private volatile Date lastUpdated = new Date();
+    private volatile String state;
+    private volatile int percentComplete;
     private volatile String failureReason;
+    private volatile boolean cancelled;
     private volatile T results;
 
-    public StandardAsynchronousWebRequest(final String requestId, final String processGroupId, final NiFiUser user) {
+    public StandardAsynchronousWebRequest(final String requestId, final String processGroupId, final NiFiUser user, final String state) {
         this.id = requestId;
         this.processGroupId = processGroupId;
         this.user = user;
+        this.state = state;
     }
 
     public String getRequestId() {
@@ -57,6 +61,8 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
         this.complete = true;
         this.results = results;
         this.lastUpdated = new Date();
+        this.percentComplete = 100;
+        this.state = "Complete";
     }
 
     @Override
@@ -65,8 +71,34 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     }
 
     @Override
-    public void setLastUpdated(final Date date) {
-        this.lastUpdated = lastUpdated;
+    public String getState() {
+        return state;
+    }
+
+    @Override
+    public int getPercentComplete() {
+        return percentComplete;
+    }
+
+    @Override
+    public void update(Date date, String state, int percentComplete) {
+        if (percentComplete < 0 || percentComplete > 100) {
+            throw new IllegalArgumentException("Cannot set percent complete to a value of " + percentComplete + "; it must be between 0 and 100.");
+        }
+
+        if (isCancelled()) {
+            throw new IllegalStateException("Cannot update state because request has already been cancelled by user");
+        }
+
+        if (isComplete()) {
+            final String failure = getFailureReason();
+            final String explanation = failure == null ? "successfully" : "with failure reason: " + failure;
+            throw new IllegalStateException("Cannot update state to '" + state + "' because request is already completed " + explanation);
+        }
+
+        this.lastUpdated = date;
+        this.state = state;
+        this.percentComplete = percentComplete;
     }
 
     @Override
@@ -79,6 +111,7 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
         this.failureReason = Objects.requireNonNull(explanation);
         this.complete = true;
         this.results = null;
+        this.lastUpdated = new Date();
     }
 
     @Override
@@ -89,5 +122,18 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     @Override
     public T getResults() {
         return results;
+    }
+
+    @Override
+    public void cancel() {
+        this.cancelled = true;
+        percentComplete = 100;
+        state = "Canceled by user";
+        setFailureReason("Request cancelled by user");
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
     }
 }

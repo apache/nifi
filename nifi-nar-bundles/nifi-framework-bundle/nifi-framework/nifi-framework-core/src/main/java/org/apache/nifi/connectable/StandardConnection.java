@@ -270,8 +270,10 @@ public final class StandardConnection implements Connection {
             return;
         }
 
-        if (getSource().isRunning()) {
-            throw new IllegalStateException("Cannot update the relationships for Connection because the source of the Connection is running");
+        try {
+            getSource().verifyCanUpdate();
+        } catch (final IllegalStateException ise) {
+            throw new IllegalStateException("Cannot update the relationships for Connection", ise);
         }
 
         try {

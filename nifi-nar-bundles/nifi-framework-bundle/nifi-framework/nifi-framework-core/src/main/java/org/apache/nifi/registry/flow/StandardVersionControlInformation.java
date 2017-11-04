@@ -17,21 +17,131 @@
 
 package org.apache.nifi.registry.flow;
 
+import java.util.Objects;
 import java.util.Optional;
+
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 public class StandardVersionControlInformation implements VersionControlInformation {
 
     private final String registryIdentifier;
+    private volatile String registryName;
     private final String bucketIdentifier;
+    private volatile String bucketName;
     private final String flowIdentifier;
+    private volatile String flowName;
+    private volatile String flowDescription;
     private final int version;
     private volatile VersionedProcessGroup flowSnapshot;
     private volatile Boolean modified = null;
     private volatile Boolean current = null;
 
-    public StandardVersionControlInformation(final String registryId, final String bucketId, final String flowId, final int version,
+    public static class Builder {
+        private String registryIdentifier;
+        private String registryName;
+        private String bucketIdentifier;
+        private String bucketName;
+        private String flowIdentifier;
+        private String flowName;
+        private String flowDescription;
+        private int version;
+        private VersionedProcessGroup flowSnapshot;
+        private Boolean modified = null;
+        private Boolean current = null;
+
+        public Builder registryId(String registryId) {
+            this.registryIdentifier = registryId;
+            return this;
+        }
+
+        public Builder registryName(String registryName) {
+            this.registryName = registryName;
+            return this;
+        }
+
+        public Builder bucketId(String bucketId) {
+            this.bucketIdentifier = bucketId;
+            return this;
+        }
+
+        public Builder bucketName(String bucketName) {
+            this.bucketName = bucketName;
+            return this;
+        }
+
+        public Builder flowId(String flowId) {
+            this.flowIdentifier = flowId;
+            return this;
+        }
+
+        public Builder flowName(String flowName) {
+            this.flowName = flowName;
+            return this;
+        }
+
+        public Builder flowDescription(String flowDescription) {
+            this.flowDescription = flowDescription;
+            return this;
+        }
+
+        public Builder version(int version) {
+            this.version = version;
+            return this;
+        }
+
+        public Builder modified(Boolean modified) {
+            this.modified = modified;
+            return this;
+        }
+
+        public Builder current(Boolean current) {
+            this.current = current;
+            return this;
+        }
+
+        public Builder flowSnapshot(VersionedProcessGroup snapshot) {
+            this.flowSnapshot = snapshot;
+            return this;
+        }
+
+        public static Builder fromDto(VersionControlInformationDTO dto) {
+            Builder builder = new Builder();
+            builder.registryId(dto.getRegistryId())
+                .registryName(dto.getRegistryName())
+                .bucketId(dto.getBucketId())
+                .bucketName(dto.getBucketName())
+                .flowId(dto.getFlowId())
+                .flowName(dto.getFlowName())
+                .flowDescription(dto.getFlowDescription())
+                .current(dto.getCurrent())
+                .modified(dto.getModified())
+                .version(dto.getVersion());
+
+            return builder;
+        }
+
+        public StandardVersionControlInformation build() {
+            Objects.requireNonNull(registryIdentifier, "Registry ID must be specified");
+            Objects.requireNonNull(bucketIdentifier, "Bucket ID must be specified");
+            Objects.requireNonNull(flowIdentifier, "Flow ID must be specified");
+            Objects.requireNonNull(version, "Version must be specified");
+
+            final StandardVersionControlInformation svci = new StandardVersionControlInformation(registryIdentifier, registryName,
+                bucketIdentifier, flowIdentifier, version, flowSnapshot, modified, current);
+
+            svci.setBucketName(bucketName);
+            svci.setFlowName(flowName);
+            svci.setFlowDescription(flowDescription);
+
+            return svci;
+        }
+    }
+
+
+    public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
         final VersionedProcessGroup snapshot, final Boolean modified, final Boolean current) {
         this.registryIdentifier = registryId;
+        this.registryName = registryName;
         this.bucketIdentifier = bucketId;
         this.flowIdentifier = flowId;
         this.version = version;
@@ -40,9 +150,19 @@ public class StandardVersionControlInformation implements VersionControlInformat
         this.current = current;
     }
 
+
     @Override
     public String getRegistryIdentifier() {
         return registryIdentifier;
+    }
+
+    @Override
+    public String getRegistryName() {
+        return registryName;
+    }
+
+    public void setRegistryName(final String registryName) {
+        this.registryName = registryName;
     }
 
     @Override
@@ -51,8 +171,35 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
     @Override
+    public String getBucketName() {
+        return bucketName;
+    }
+
+    public void setBucketName(final String bucketName) {
+        this.bucketName = bucketName;
+    }
+
+    @Override
     public String getFlowIdentifier() {
         return flowIdentifier;
+    }
+
+    public void setFlowName(String flowName) {
+        this.flowName = flowName;
+    }
+
+    @Override
+    public String getFlowName() {
+        return flowName;
+    }
+
+    public void setFlowDescription(String flowDescription) {
+        this.flowDescription = flowDescription;
+    }
+
+    @Override
+    public String getFlowDescription() {
+        return flowDescription;
     }
 
     @Override

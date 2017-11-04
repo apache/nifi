@@ -115,8 +115,12 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.registry.flow.diff.FlowComparison;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedFunnel;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedLabel;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -2174,6 +2178,38 @@ public final class DtoFactory {
         return dto;
     }
 
+
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
+        final Map<ComponentDifferenceDTO, List<String>> differencesByComponent = new HashMap<>();
+
+        for (final FlowDifference difference : comparison.getDifferences()) {
+            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+            final List<String> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+            differences.add(difference.getDescription());
+        }
+
+        for (final Map.Entry<ComponentDifferenceDTO, List<String>> entry : differencesByComponent.entrySet()) {
+            entry.getKey().setDifferences(entry.getValue());
+        }
+
+        return differencesByComponent.keySet();
+    }
+
+    private ComponentDifferenceDTO createComponentDifference(final FlowDifference difference) {
+        VersionedComponent component = difference.getComponentA();
+        if (component == null) {
+            component = difference.getComponentB();
+        }
+
+        final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
+        dto.setComponentId(component.getIdentifier());
+        dto.setComponentName(component.getName());
+        dto.setComponentType(component.getComponentType().name());
+        dto.setProcessGroupId(dto.getProcessGroupId());
+        return dto;
+    }
+
+
     public VersionControlInformationDTO createVersionControlInformationDto(final ProcessGroup group) {
         if (group == null) {
             return null;
@@ -2187,10 +2223,12 @@ public final class DtoFactory {
         final VersionControlInformationDTO dto = new VersionControlInformationDTO();
         dto.setGroupId(group.getIdentifier());
         dto.setRegistryId(versionControlInfo.getRegistryIdentifier());
+        dto.setRegistryName(versionControlInfo.getRegistryName());
         dto.setBucketId(versionControlInfo.getBucketIdentifier());
+        dto.setBucketName(versionControlInfo.getBucketName());
         dto.setFlowId(versionControlInfo.getFlowIdentifier());
-        // TODO - need to get flow name here
-        dto.setFlowName(group.getName());
+        dto.setFlowName(versionControlInfo.getFlowName());
+        dto.setFlowDescription(versionControlInfo.getFlowDescription());
         dto.setVersion(versionControlInfo.getVersion());
         dto.setCurrent(versionControlInfo.getCurrent().orElse(null));
         dto.setModified(versionControlInfo.getModified().orElse(null));
@@ -2204,6 +2242,9 @@ public final class DtoFactory {
         group.getProcessors().stream()
             .map(proc -> (InstantiatedVersionedProcessor) proc)
             .forEach(proc -> mapping.put(proc.getInstanceId(), proc.getIdentifier()));
+        group.getFunnels().stream()
+            .map(funnel -> (InstantiatedVersionedFunnel) funnel)
+            .forEach(funnel -> mapping.put(funnel.getInstanceId(), funnel.getIdentifier()));
         group.getInputPorts().stream()
             .map(port -> (InstantiatedVersionedPort) port)
             .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
@@ -2224,13 +2265,17 @@ public final class DtoFactory {
             .forEach(rpg -> {
                 mapping.put(rpg.getInstanceId(), rpg.getIdentifier());
 
-                rpg.getInputPorts().stream()
-                    .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                    .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                if (rpg.getInputPorts() != null) {
+                    rpg.getInputPorts().stream()
+                        .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
+                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                }
 
-                rpg.getOutputPorts().stream()
-                    .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                    .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                if (rpg.getOutputPorts() != null) {
+                    rpg.getOutputPorts().stream()
+                        .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
+                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                }
             });
 
         group.getProcessGroups().stream()
@@ -3407,9 +3452,12 @@ public final class DtoFactory {
 
         final VersionControlInformationDTO copy = new VersionControlInformationDTO();
         copy.setRegistryId(original.getRegistryId());
+        copy.setRegistryName(original.getRegistryName());
         copy.setBucketId(original.getBucketId());
+        copy.setBucketName(original.getBucketName());
         copy.setFlowId(original.getFlowId());
         copy.setFlowName(original.getFlowName());
+        copy.setFlowDescription(original.getFlowDescription());
         copy.setVersion(original.getVersion());
         copy.setCurrent(original.getCurrent());
         copy.setModified(original.getModified());

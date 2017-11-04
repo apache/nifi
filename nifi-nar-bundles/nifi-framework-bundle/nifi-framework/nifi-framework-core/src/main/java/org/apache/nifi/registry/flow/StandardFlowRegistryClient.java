@@ -23,7 +23,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.util.NiFiProperties;
+
 public class StandardFlowRegistryClient implements FlowRegistryClient {
+    private NiFiProperties nifiProperties;
     private ConcurrentMap<String, FlowRegistry> registryById = new ConcurrentHashMap<>();
 
     @Override
@@ -59,6 +65,16 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
 
             registry.setName(registryName);
             registry.setDescription(description);
+        } else if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
+            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
+            if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
+                throw new RuntimeException("Failed to create Flow Registry for URI " + registryUrl
+                    + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "
+                    + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
+            }
+
+            registry = new RestBasedFlowRegistry(this, registryId, registryUrl, sslContext, registryName);
+            registry.setDescription(description);
         } else {
             throw new IllegalArgumentException("Cannot create Flow Registry with URI of " + registryUrl
                 + " because there are no known implementations of Flow Registries that can handle URIs of scheme " + uriScheme);
@@ -71,5 +87,9 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
     @Override
     public FlowRegistry removeFlowRegistry(final String registryId) {
         return registryById.remove(registryId);
+    }
+
+    public void setProperties(final NiFiProperties nifiProperties) {
+        this.nifiProperties = nifiProperties;
     }
 }

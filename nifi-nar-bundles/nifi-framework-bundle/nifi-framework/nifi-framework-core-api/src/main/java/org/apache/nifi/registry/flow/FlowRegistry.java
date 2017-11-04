@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 
 import java.io.IOException;
 import java.util.Set;
@@ -71,7 +72,47 @@ public interface FlowRegistry {
      * @param user current user
      * @return buckets for this user
      */
-    Set<Bucket> getBuckets(NiFiUser user) throws IOException;
+    Set<Bucket> getBuckets(NiFiUser user) throws IOException, NiFiRegistryException;
+
+    /**
+     * Gets the bucket with the given ID
+     *
+     * @param bucketId the id of the bucket
+     * @param user user on whose behalf the request is being made
+     * @return the bucket with the given ID
+     */
+    Bucket getBucket(String bucketId, NiFiUser user) throws IOException, NiFiRegistryException;
+
+    /**
+     * Gets the bucket with the given ID
+     *
+     * @param bucketId the id of the bucket
+     * @return the bucket with the given ID
+     */
+    Bucket getBucket(String bucketId) throws IOException, NiFiRegistryException;
+
+    /**
+     * Retrieves the set of all Versioned Flows for the specified bucket
+     *
+     * @param bucketId the ID of the bucket
+     * @param user the user on whose behalf the request is being made
+     * @return the set of all Versioned Flows for the specified bucket
+     * @throws IOException if unable to communicate with the Flow Registry
+     * @throws NiFiRegistryException if unable to find the bucket with the given ID or the flow with the given ID
+     */
+    Set<VersionedFlow> getFlows(String bucketId, NiFiUser user) throws IOException, NiFiRegistryException;
+
+    /**
+     * Retrieves the set of all versions of the specified flow
+     *
+     * @param bucketId the ID of the bucket
+     * @param flowId the ID of the flow
+     * @param user the user on whose behalf the request is being made
+     * @return the set of all versions of the specified flow
+     * @throws IOException if unable to communicate with the Flow Registry
+     * @throws NiFiRegistryException if unable to find the bucket with the given ID or the flow with the given ID
+     */
+    Set<VersionedFlowSnapshotMetadata> getFlowVersions(String bucketId, String flowId, NiFiUser user) throws IOException, NiFiRegistryException;
 
     /**
      * Registers the given Versioned Flow with the Flow Registry
@@ -80,9 +121,9 @@ public interface FlowRegistry {
      * @return the fully populated VersionedFlow
      *
      * @throws NullPointerException if the VersionedFlow is null, or if its bucket identifier or name is null
-     * @throws UnknownResourceException if the bucket id does not exist
+     * @throws NiFiRegistryException if the bucket id does not exist
      */
-    VersionedFlow registerVersionedFlow(VersionedFlow flow) throws IOException, UnknownResourceException;
+    VersionedFlow registerVersionedFlow(VersionedFlow flow) throws IOException, NiFiRegistryException;
 
     /**
      * Adds the given snapshot to the Flow Registry for the given flow
@@ -90,13 +131,14 @@ public interface FlowRegistry {
      * @param flow the Versioned Flow
      * @param snapshot the snapshot of the flow
      * @param comments any comments for the snapshot
+     * @param expectedVersion the version of the flow that we expect to save this snapshot as
      * @return the versioned flow snapshot
      *
      * @throws IOException if unable to communicate with the registry
      * @throws NullPointerException if the VersionedFlow is null, or if its bucket identifier is null, or if the flow to snapshot is null
-     * @throws UnknownResourceException if the flow does not exist
+     * @throws NiFiRegistryException if the flow does not exist
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(VersionedFlow flow, VersionedProcessGroup snapshot, String comments) throws IOException, UnknownResourceException;
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(VersionedFlow flow, VersionedProcessGroup snapshot, String comments, int expectedVersion) throws IOException, NiFiRegistryException;
 
     /**
      * Returns the latest (most recent) version of the Flow in the Flow Registry for the given bucket and flow
@@ -106,9 +148,9 @@ public interface FlowRegistry {
      * @return the latest version of the Flow
      *
      * @throws IOException if unable to communicate with the Flow Registry
-     * @throws UnknownResourceException if unable to find the bucket with the given ID or the flow with the given ID
+     * @throws NiFiRegistryException if unable to find the bucket with the given ID or the flow with the given ID
      */
-    int getLatestVersion(String bucketId, String flowId) throws IOException, UnknownResourceException;
+    int getLatestVersion(String bucketId, String flowId) throws IOException, NiFiRegistryException;
 
     /**
      * Retrieves the contents of the Flow with the given Bucket ID, Flow ID, and version, from the Flow Registry
@@ -119,12 +161,13 @@ public interface FlowRegistry {
      * @return the contents of the Flow from the Flow Registry
      *
      * @throws IOException if unable to communicate with the Flow Registry
-     * @throws UnknownResourceException if unable to find the contents of the flow due to the bucket or flow not existing,
+     * @throws NiFiRegistryException if unable to find the contents of the flow due to the bucket or flow not existing,
      *             or the specified version of the flow not existing
      * @throws NullPointerException if any of the arguments is not specified
      * @throws IllegalArgumentException if the given version is less than 1
      */
-    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version) throws IOException, UnknownResourceException;
+    // TODO: Need to pass in user
+    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version) throws IOException, NiFiRegistryException;
 
     /**
      * Retrieves a VersionedFlow by bucket id and flow id
@@ -134,7 +177,8 @@ public interface FlowRegistry {
      * @return the VersionedFlow for the given bucket and flow ID's
      *
      * @throws IOException if unable to communicate with the Flow Registry
-     * @throws UnknownResourceException if unable to find a flow with the given bucket ID and flow ID
+     * @throws NiFiRegistryException if unable to find a flow with the given bucket ID and flow ID
      */
-    VersionedFlow getVersionedFlow(String bucketId, String flowId) throws IOException, UnknownResourceException;
+    // TODO: Need to pass in user
+    VersionedFlow getVersionedFlow(String bucketId, String flowId) throws IOException, NiFiRegistryException;
 }

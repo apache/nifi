@@ -39,6 +39,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -1373,7 +1374,7 @@ public class FlowResource extends ApplicationResource {
                     value = "The registry id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") String id) throws NiFiRegistryException {
 
         authorizeFlow();
 
