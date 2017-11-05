@@ -100,7 +100,26 @@ public final class NarClassLoaders {
      * @throws IllegalStateException already initialized with a given pair of
      * directories cannot reinitialize or use a different pair of directories.
      */
-    public void init(final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
+    public void init(File frameworkWorkingDir, File extensionsWorkingDir) throws IOException, ClassNotFoundException {
+        init(ClassLoader.getSystemClassLoader(), frameworkWorkingDir, extensionsWorkingDir);
+    }
+
+    /**
+     * Initializes and loads the NarClassLoaders. This method must be called
+     * before the rest of the methods to access the classloaders are called and
+     * it can be safely called any number of times provided the same framework
+     * and extension working dirs are used.
+     *
+     * @param rootClassloader the root classloader to use for booting Jetty
+     * @param frameworkWorkingDir where to find framework artifacts
+     * @param extensionsWorkingDir where to find extension artifacts
+     * @throws java.io.IOException if any issue occurs while exploding nar working directories.
+     * @throws java.lang.ClassNotFoundException if unable to load class definition
+     * @throws IllegalStateException already initialized with a given pair of
+     * directories cannot reinitialize or use a different pair of directories.
+     */
+    public void init(final ClassLoader rootClassloader,
+                     final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
         if (frameworkWorkingDir == null || extensionsWorkingDir == null) {
             throw new NullPointerException("cannot have empty arguments");
         }
@@ -109,7 +128,7 @@ public final class NarClassLoaders {
             synchronized (this) {
                 ic = initContext;
                 if (ic == null) {
-                    initContext = ic = load(frameworkWorkingDir, extensionsWorkingDir);
+                    initContext = ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir);
                 }
             }
         }
@@ -123,9 +142,9 @@ public final class NarClassLoaders {
     /**
      * Should be called at most once.
      */
-    private InitContext load(final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
-        // get the system classloader
-        final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+    private InitContext load(final ClassLoader rootClassloader,
+                             final File frameworkWorkingDir, final File extensionsWorkingDir)
+            throws IOException, ClassNotFoundException {
 
         // find all nar files and create class loaders for them.
         final Map<String, Bundle> narDirectoryBundleLookup = new LinkedHashMap<>();
@@ -181,7 +200,7 @@ public final class NarClassLoaders {
                 // look for the jetty nar
                 if (JETTY_NAR_ID.equals(narDetail.getCoordinate().getId())) {
                     // create the jetty classloader
-                    jettyClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), systemClassLoader);
+                    jettyClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), rootClassloader);
 
                     // remove the jetty nar since its already loaded
                     narDirectoryBundleLookup.put(narDetail.getWorkingDirectory().getCanonicalPath(), new Bundle(narDetail, jettyClassLoader));
