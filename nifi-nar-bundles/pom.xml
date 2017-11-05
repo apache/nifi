@@ -95,7 +95,7 @@
     <build>
         <plugins>
             <!-- Makes buildRevision and buildBranch available to the NAR Plugin so they can be populated in the MANIFEST -->
-            <!--plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <inherited>true</inherited>
@@ -116,7 +116,7 @@
                     <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
                     <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
                 </configuration>
-            </plugin-->
+            </plugin>
         </plugins>
     </build>
 
