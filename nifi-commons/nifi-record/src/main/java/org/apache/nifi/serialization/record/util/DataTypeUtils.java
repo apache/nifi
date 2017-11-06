@@ -534,6 +534,10 @@ public class DataTypeUtils {
             return null;
         }
 
+        if (value instanceof java.util.Date) {
+            return new Timestamp(((java.util.Date)value).getTime());
+        }
+
         if (value instanceof Timestamp) {
             return (Timestamp) value;
         }
