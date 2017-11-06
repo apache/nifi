@@ -79,6 +79,8 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
@@ -1753,6 +1755,16 @@ public class ControllerFacade implements Authorizable {
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
+
+        final ComponentVariableRegistry varRegistry = group.getVariableRegistry();
+        if (varRegistry != null) {
+            final Map<VariableDescriptor, String> variableMap = varRegistry.getVariableMap();
+            for (final Map.Entry<VariableDescriptor, String> entry : variableMap.entrySet()) {
+                addIfAppropriate(searchStr, entry.getKey().getName(), "Variable Name", matches);
+                addIfAppropriate(searchStr, entry.getValue(), "Variable Value", matches);
+            }
+        }
+
 
         if (matches.isEmpty()) {
             return null;
