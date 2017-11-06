@@ -285,6 +285,7 @@
         <xs:complexContent>
             <xs:extension base="PortType">
                 <xs:sequence>
+                    <xs:element name="targetId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
                     <xs:element name="maxConcurrentTasks" type="xs:positiveInteger"></xs:element>
                     <xs:element name="useCompression" type="xs:boolean"></xs:element>
                     <xs:element name="batchCount" type="xs:positiveInteger" minOccurs="0" maxOccurs="1" />

@@ -79,6 +79,7 @@ public class TestStandardRemoteProcessGroupDAO {
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setGroupId(remoteProcessGroupId);
         dto.setId(remoteProcessGroupInputPortId);
+        dto.setTargetId(remoteProcessGroupInputPortId);
         final BatchSettingsDTO batchSettings = new BatchSettingsDTO();
         dto.setBatchSettings(batchSettings);
 

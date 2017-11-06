@@ -366,6 +366,10 @@ public class FlowFromDOMFactory {
         }
 
         descriptor.setId(id);
+
+        final String targetId = getString(element, "targetId");
+        descriptor.setTargetId(targetId == null ? id : targetId);
+
         descriptor.setName(getString(element, "name"));
         descriptor.setComments(getString(element, "comments"));
         descriptor.setConcurrentlySchedulableTaskCount(getInt(element, "maxConcurrentTasks"));

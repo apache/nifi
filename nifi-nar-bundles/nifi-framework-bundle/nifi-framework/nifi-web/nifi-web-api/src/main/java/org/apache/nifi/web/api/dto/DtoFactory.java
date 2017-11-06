@@ -1502,6 +1502,7 @@ public final class DtoFactory {
 
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setId(port.getIdentifier());
+        dto.setTargetId(port.getTargetIdentifier());
         dto.setName(port.getName());
         dto.setComments(port.getComments());
         dto.setTransmitting(port.isRunning());
@@ -3168,6 +3169,7 @@ public final class DtoFactory {
     public RemoteProcessGroupPortDTO copy(final RemoteProcessGroupPortDTO original) {
         final RemoteProcessGroupPortDTO copy = new RemoteProcessGroupPortDTO();
         copy.setId(original.getId());
+        copy.setTargetId(original.getTargetId());
         copy.setGroupId(original.getGroupId());
         copy.setName(original.getName());
         copy.setComments(original.getComments());

@@ -415,6 +415,7 @@ public class TestRemoteProcessGroupAuditor {
         final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
         final String remoteProcessGroupId = "remote-process-group-id";
         inputRPGPortDTO.setId(remoteProcessGroupId);
+        inputRPGPortDTO.setTargetId(remoteProcessGroupId);
 
         final String targetUrl = "http://localhost:8080/nifi";
         when(existingRPG.getIdentifier()).thenReturn(remoteProcessGroupId);
