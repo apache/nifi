@@ -326,6 +326,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
         addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
+        addTextElement(element, "targetId", port.getTargetIdentifier());
         addTextElement(element, "maxConcurrentTasks", port.getMaxConcurrentTasks());
         addTextElement(element, "useCompression", String.valueOf(port.isUseCompression()));
         final Integer batchCount = port.getBatchCount();

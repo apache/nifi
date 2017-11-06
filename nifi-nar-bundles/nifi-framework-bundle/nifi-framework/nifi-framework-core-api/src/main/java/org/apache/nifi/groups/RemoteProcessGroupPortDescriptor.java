@@ -30,9 +30,14 @@ public interface RemoteProcessGroupPortDescriptor {
     Integer getConcurrentlySchedulableTaskCount();
 
     /**
-     * @return id of the target port
+     * @return id of the port
      */
     String getId();
+
+    /**
+     * @return the id of the target port
+     */
+    String getTargetId();
 
     /**
      * @return id of the remote process group that this port resides in

@@ -120,7 +120,7 @@ public class TestStandardRemoteGroupPort {
                 break;
         }
 
-        port = spy(new StandardRemoteGroupPort(ID, NAME,
+        port = spy(new StandardRemoteGroupPort(ID, ID, NAME,
                 processGroup, remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
 
         doReturn(true).when(remoteGroup).isTransmitting();
