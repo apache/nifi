@@ -127,6 +127,18 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .defaultValue("1000")
             .build();
 
+    protected static final AllowableValue NULL_FIELD_EMPTY = new AllowableValue("empty-string", "Empty String", "Use an empty string");
+    protected static final AllowableValue NULL_FIELD_SKIP  = new AllowableValue("skip-field", "Skip Field", "Skip the field (don't process it at all).");
+
+    protected static final PropertyDescriptor NULL_FIELD_STRATEGY = new PropertyDescriptor.Builder()
+            .name("hbase-record-null-field-strategy")
+            .displayName("Null Field Strategy")
+            .required(true)
+            .defaultValue("empty-string")
+            .description("Handle null field values as either an empty string or skip them altogether.")
+            .allowableValues(NULL_FIELD_EMPTY, NULL_FIELD_SKIP)
+            .build();
+
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -135,6 +147,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         properties.add(TABLE_NAME);
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
+        properties.add(NULL_FIELD_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(TIMESTAMP_FIELD_NAME);
         properties.add(BATCH_SIZE);
@@ -317,12 +330,15 @@ public class PutHBaseRecord extends AbstractPutHBase {
         }
     }
 
+    static final byte[] EMPTY = "".getBytes();
+
     protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile, String rowFieldName,
                                     String columnFamily, String timestampFieldName, String fieldEncodingStrategy, String rowEncodingStrategy,
                                     String complexFieldStrategy)
             throws PutCreationFailedInvokedException {
         PutFlowFile retVal = null;
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String nullStrategy = context.getProperty(NULL_FIELD_STRATEGY).getValue();
 
         boolean asString = STRING_ENCODING_VALUE.equals(fieldEncodingStrategy);
 
@@ -350,7 +366,17 @@ public class PutHBaseRecord extends AbstractPutHBase {
                     continue;
                 }
 
-                final byte[] fieldValueBytes = asBytes(name, schema.getField(name).get().getDataType().getFieldType(), record, asString, complexFieldStrategy);
+                Object val = record.getValue(name);
+                final byte[] fieldValueBytes;
+                if (val == null && nullStrategy.equals(NULL_FIELD_SKIP.getValue())) {
+                    continue;
+                } else if (val == null && nullStrategy.equals(NULL_FIELD_EMPTY.getValue())) {
+                    fieldValueBytes = EMPTY;
+                } else {
+                    fieldValueBytes = asBytes(name, schema.getField(name).get().getDataType().getFieldType(), record, asString, complexFieldStrategy);
+                }
+
+
                 if (fieldValueBytes != null) {
                     columns.add(new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp));
                 }
