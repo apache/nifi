@@ -41,11 +41,8 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
         assertEquals(2, tableNames.size());
-        assertTrue(tableNames.contains(new TableName("company", "emp")));
-        assertTrue(tableNames.contains(new TableName("default", "salary")));
-        for (TableName tableName : tableNames) {
-            assertTrue(tableName.isInput());
-        }
+        assertTrue(tableNames.contains(new TableName("company", "emp", true)));
+        assertTrue(tableNames.contains(new TableName("default", "salary", true)));
     }
 
     @Test
@@ -54,10 +51,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
         assertEquals(1, tableNames.size());
-        assertTrue(tableNames.contains(new TableName("company", "emp")));
-        for (TableName tableName : tableNames) {
-            assertTrue(tableName.isInput());
-        }
+        assertTrue(tableNames.contains(new TableName("company", "emp", true)));
     }
 
 
@@ -152,27 +146,40 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         assertEquals(6, tableNames.size());
         AtomicInteger cnt = new AtomicInteger(0);
         for (TableName tableName : tableNames) {
-            if (tableName.equals(new TableName(null, "store_sales"))) {
-                assertTrue(tableName.isInput());
+            if (tableName.equals(new TableName(null, "store_sales", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "store_returns"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "store_returns", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "catalog_sales"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "catalog_sales", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "date_dim"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "date_dim", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "store"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "store", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "item"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "item", true))) {
                 cnt.incrementAndGet();
             }
         }
         assertEquals(6, cnt.get());
+    }
+
+    @Test
+    public void parseSelectInsert() throws Exception {
+        String query = "insert into databaseA.tableA select key, max(value) from databaseA.tableA where category = 'x'";
+
+        // The same database.tableName can appear two times for input and output.
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(2, tableNames.size());
+        AtomicInteger cnt = new AtomicInteger(0);
+        tableNames.forEach(tableName -> {
+            if (tableName.equals(new TableName("databaseA", "tableA", false))) {
+                cnt.incrementAndGet();
+            } else if (tableName.equals(new TableName("databaseA", "tableA", true))) {
+                cnt.incrementAndGet();
+            }
+        });
+        assertEquals(2, cnt.get());
     }
 
     @Test
@@ -184,14 +191,11 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         assertEquals(3, tableNames.size());
         AtomicInteger cnt = new AtomicInteger(0);
         tableNames.forEach(tableName -> {
-            if (tableName.equals(new TableName("databaseB", "tableB1"))) {
-                assertTrue(!tableName.isInput());
+            if (tableName.equals(new TableName("databaseB", "tableB1", false))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "tableA1"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "tableA1", true))) {
                 cnt.incrementAndGet();
-            } else if (tableName.equals(new TableName(null, "tableA2"))) {
-                assertTrue(tableName.isInput());
+            } else if (tableName.equals(new TableName(null, "tableA2", true))) {
                 cnt.incrementAndGet();
             }
         });
@@ -205,8 +209,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
         assertEquals(1, tableNames.size());
-        assertTrue(tableNames.contains(new TableName(null, "table_a")));
-        assertTrue(!tableNames.iterator().next().isInput());
+        assertTrue(tableNames.contains(new TableName(null, "table_a", false)));
     }
 
     @Test
@@ -216,8 +219,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
         assertEquals(1, tableNames.size());
-        assertTrue(tableNames.contains(new TableName(null, "table_a")));
-        assertTrue(!tableNames.iterator().next().isInput());
+        assertTrue(tableNames.contains(new TableName(null, "table_a", false)));
     }
 
     @Test
@@ -232,8 +234,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
         assertEquals(1, tableNames.size());
-        assertTrue(tableNames.contains(new TableName(null, "EMPLOYEES")));
-        assertTrue(!tableNames.iterator().next().isInput());
+        assertTrue(tableNames.contains(new TableName(null, "EMPLOYEES", false)));
     }
 
 

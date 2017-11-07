@@ -228,15 +228,20 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
     protected static class TableName {
         private final String database;
         private final String table;
-        private boolean input = true;
+        private final boolean input;
 
-        public TableName(String database, String table) {
+        TableName(String database, String table, boolean input) {
             this.database = database;
             this.table = table;
+            this.input = input;
         }
 
-        public void setInput(boolean input) {
-            this.input = input;
+        public String getDatabase() {
+            return database;
+        }
+
+        public String getTable() {
+            return table;
         }
 
         public boolean isInput() {
@@ -255,6 +260,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
 
             TableName tableName = (TableName) o;
 
+            if (input != tableName.input) return false;
             if (database != null ? !database.equals(tableName.database) : tableName.database != null) return false;
             return table.equals(tableName.table);
         }
@@ -263,6 +269,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
         public int hashCode() {
             int result = database != null ? database.hashCode() : 0;
             result = 31 * result + table.hashCode();
+            result = 31 * result + (input ? 1 : 0);
             return result;
         }
     }
@@ -293,18 +300,18 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
         final int childCount = tree.getChildCount();
         if ("TOK_TABNAME".equals(tree.getText())) {
             final TableName tableName;
+            final boolean isInput = "TOK_TABREF".equals(tree.getParent().getText());
             switch (childCount) {
                 case 1 :
-                    tableName = new TableName(null, tree.getChild(0).getText());
+                    tableName = new TableName(null, tree.getChild(0).getText(), isInput);
                     break;
                 case 2:
-                    tableName = new TableName(tree.getChild(0).getText(), tree.getChild(1).getText());
+                    tableName = new TableName(tree.getChild(0).getText(), tree.getChild(1).getText(), isInput);
                     break;
                 default:
                     throw new IllegalStateException("TOK_TABNAME does not have expected children, childCount=" + childCount);
             }
             // If parent is TOK_TABREF, then it is an input table.
-            tableName.setInput("TOK_TABREF".equals(tree.getParent().getText()));
             tableNames.add(tableName);
             return;
         }
