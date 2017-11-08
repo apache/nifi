@@ -206,11 +206,7 @@
   The binary distribution of this product bundles source from 'Microsoft Azure IoT Device Libraries'.
   The source is available under an MIT LICENSE.
 
-	Copyright (c) Microsoft Corporation
-	
-	All rights reserved. 
-	
-	MIT License
+	Copyright (c) 2016 Microsoft Azure
 	
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
 	associated documentation files (the Software), to deal in the Software without restriction, including 
