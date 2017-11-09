@@ -56,7 +56,7 @@ public class MapCacheServer extends AbstractCacheServer {
      * for details of each version enhancements.
      */
     protected StandardVersionNegotiator getVersionNegotiator() {
-        return new StandardVersionNegotiator(2, 1);
+        return new StandardVersionNegotiator(3, 2, 1);
     }
 
     @Override
@@ -119,6 +119,23 @@ public class MapCacheServer extends AbstractCacheServer {
                     dos.write(byteArray);
                 }
 
+                break;
+            }
+            case "subMap": {
+                final int numKeys = dis.readInt();
+                for(int i=0;i<numKeys;i++) {
+                    final byte[] key = readValue(dis);
+                    final ByteBuffer existingValue = cache.get(ByteBuffer.wrap(key));
+                    if (existingValue == null) {
+                        // there was no existing value.
+                        dos.writeInt(0);
+                    } else {
+                        // a value already existed.
+                        final byte[] byteArray = existingValue.array();
+                        dos.writeInt(byteArray.length);
+                        dos.write(byteArray);
+                    }
+                }
                 break;
             }
             case "remove": {

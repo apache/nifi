@@ -111,6 +111,18 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
+    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException {
+        if (keys == null) {
+            return null;
+        }
+        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        for (ByteBuffer key : keys) {
+            results.put(key, wrapped.get(key));
+        }
+        return results;
+    }
+
+    @Override
     public MapCacheRecord fetch(ByteBuffer key) throws IOException {
         return wrapped.fetch(key);
     }
