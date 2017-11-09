@@ -426,7 +426,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + ' Processor" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '" style="margin-right: 3px;"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
