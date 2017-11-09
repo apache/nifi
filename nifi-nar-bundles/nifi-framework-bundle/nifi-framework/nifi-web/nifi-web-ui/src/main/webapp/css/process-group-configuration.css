@@ -85,6 +85,10 @@
     height: 100px;
 }
 
+#read-only-process-group-comments {
+    white-space: pre-wrap;
+}
+
 #process-group-controller-services-tab-content {
     top: 32px;
 }
