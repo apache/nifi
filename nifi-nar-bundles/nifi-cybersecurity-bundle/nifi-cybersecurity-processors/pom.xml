@@ -37,7 +37,7 @@
         <dependency>
             <groupId>info.debatty</groupId>
             <artifactId>java-spamsum</artifactId>
-            <version>RELEASE</version>
+            <version>0.2</version>
         </dependency>
         <dependency>
             <groupId>com.idealista</groupId>
