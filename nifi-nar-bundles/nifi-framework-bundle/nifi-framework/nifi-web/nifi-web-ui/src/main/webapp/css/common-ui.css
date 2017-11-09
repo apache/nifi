@@ -209,7 +209,7 @@ label {
     color: #728e9b;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password] {
     background-color: #eaeef0;
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
@@ -235,11 +235,22 @@ input:focus, textarea:focus {
 }
 
 textarea {
-    overflow: hidden;
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px !important;
     padding: 10px 10px;
     resize: vertical;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
     color: #262626;
-    font-size: 13px !important;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
 
 ul.property-info {
