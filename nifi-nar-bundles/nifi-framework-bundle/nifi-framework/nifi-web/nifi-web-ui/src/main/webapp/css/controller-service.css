@@ -150,6 +150,11 @@ div.controller-service-canceling {
     height: 100%;
 }
 
+#read-only-controller-service-comments {
+    height: 100%;
+    white-space: pre-wrap;
+}
+
 /*
     Disable dialog
 */
