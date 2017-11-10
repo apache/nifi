@@ -99,6 +99,15 @@
     };
 
     /**
+     * Determines whether the specified process group is under version control.
+     *
+     * @param d
+     */
+    var isUnderVersionControl = function (d) {
+        return nfCommon.isDefinedAndNotNull(d.component.versionControlInformation);
+    };
+
+    /**
      * Selects the process group elements against the current process group map.
      */
     var select = function () {
@@ -183,11 +192,10 @@
         // process group name
         processGroup.append('text')
             .attr({
-                'x': 3,
-                'y': 17,
+                'x': 10,
+                'y': 21,
                 'class': 'version-control'
-            })
-            .text('\uf00c');
+            });
 
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
@@ -848,6 +856,77 @@
                     });
 
                 if (processGroupData.permissions.canRead) {
+                    // update version control information
+                    var versionControl = processGroup.select('text.version-control')
+                        .style({
+                            'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
+                            'fill': function () {
+                                if (isUnderVersionControl(processGroupData)) {
+                                    var modified = processGroupData.component.versionControlInformation.modified;
+                                    var current = processGroupData.component.versionControlInformation.current;
+                                    if (modified === true && current === false) {
+                                        return '#BA554A';
+                                    } else if (current === false) {
+                                        return '#BA554A';
+                                    } else if (modified === true) {
+                                        return '#666666';
+                                    } else {
+                                        return '#1A9964';
+                                    }
+                                } else {
+                                    return '#000';
+                                }
+                            }
+                        })
+                        .text(function () {
+                            if (isUnderVersionControl(processGroupData)) {
+                                var modified = processGroupData.component.versionControlInformation.modified;
+                                var current = processGroupData.component.versionControlInformation.current;
+                                if (modified === true && current === false) {
+                                    return '\uf06a';
+                                } else if (current === false) {
+                                    return '\uf0aa';
+                                } else if (modified === true) {
+                                    return '\uf069';
+                                } else {
+                                    return '\uf00c';
+                                }
+                            } else {
+                                return '';
+                            }
+                        }).each(function () {
+                            // get the tip
+                            var tip = d3.select('#version-control-tip-' + processGroupData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (isUnderVersionControl(processGroupData)) {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#process-group-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'version-control-tip-' + processGroupData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.html(function () {
+                                    var vci = processGroupData.component.versionControlInformation;
+                                    var versionControlTip = $('<div></div>').text('Tracking to "' + vci.flowName + '" version ' + vci.version + ' in "' + vci.registryName + ' - ' + vci.bucketName + '"');
+                                    var versionControlStateTip = $('<div></div>').text(nfCommon.getVersionControlTooltip(vci));
+                                    return $('<div></div>').append(versionControlTip).append('<br/>').append(versionControlStateTip).html();
+                                });
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            } else {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            }
+                        });
+
                     // update the process group comments
                     details.select('text.process-group-comments')
                         .each(function (d) {
@@ -866,6 +945,25 @@
 
                     // update the process group name
                     processGroup.select('text.process-group-name')
+                        .attr({
+                            'x': function () {
+                                if (isUnderVersionControl(processGroupData)) {
+                                    var versionControlX = parseInt(versionControl.attr('x'), 10);
+                                    return versionControlX + Math.round(versionControl.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                                } else {
+                                    return 10;
+                                }
+                            },
+                            'width': function () {
+                                if (isUnderVersionControl(processGroupData)) {
+                                    var versionControlX = parseInt(versionControl.attr('x'), 10);
+                                    var processGroupNameX = parseInt(d3.select(this).attr('x'), 10);
+                                    return 316 - (processGroupNameX - versionControlX);
+                                } else {
+                                    return 316;
+                                }
+                            }
+                        })
                         .each(function (d) {
                             var processGroupName = d3.select(this);
 
@@ -874,21 +972,25 @@
 
                             // apply ellipsis to the process group name as necessary
                             nfCanvasUtils.ellipsis(processGroupName, d.component.name);
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
-
-                    // update version control information
-                    processGroup.select('text.version-control').style('visibility', nfCommon.isDefinedAndNotNull(processGroupData.component.versionControlInformation) ? 'visible' : 'hidden');
+                        })
+                        .append('title')
+                        .text(function (d) {
+                            return d.component.name;
+                        });
                 } else {
+                    // update version control information
+                    processGroup.select('text.version-control').style('visibility', false).text('');
+
                     // clear the process group comments
                     details.select('text.process-group-comments').text(null);
 
                     // clear the process group name
-                    processGroup.select('text.process-group-name').text(null);
-
-                    // update version control information
-                    processGroup.select('text.version-control').style('visibility', false);
+                    processGroup.select('text.process-group-name')
+                        .attr({
+                            'x': 10,
+                            'width': 316
+                        })
+                        .text(null);
                 }
 
                 // populate the stats
@@ -1033,6 +1135,7 @@
         removed.each(function (d) {
             // remove any associated tooltips
             $('#bulletin-tip-' + d.id).remove();
+            $('#version-control-tip-' + d.id).remove();
         });
     };
 

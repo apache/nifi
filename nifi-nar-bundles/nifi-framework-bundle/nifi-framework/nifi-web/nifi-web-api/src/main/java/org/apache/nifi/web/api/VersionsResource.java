@@ -17,37 +17,12 @@
 
 package org.apache.nifi.web.api;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -94,12 +69,35 @@ import org.apache.nifi.web.util.Pause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Path("/versions")
 @Api(value = "/versions", description = "Endpoint for managing version control for a flow")
@@ -776,7 +774,7 @@ public class VersionsResource extends ApplicationResource {
         updateRequestDto.setRequestId(requestId);
         updateRequestDto.setUri(generateResourceUri("versions", requestType, requestId));
         updateRequestDto.setState(asyncRequest.getState());
-        updateRequestDto.setPercentComplete(asyncRequest.getPercentComplete());
+        updateRequestDto.setPercentCompleted(asyncRequest.getPercentComplete());
 
         if (updateRequestDto.isComplete()) {
             final VersionControlInformationEntity vciEntity = serviceFacade.getVersionControlInformation(asyncRequest.getProcessGroupId());
@@ -858,7 +856,7 @@ public class VersionsResource extends ApplicationResource {
         updateRequestDto.setProcessGroupId(asyncRequest.getProcessGroupId());
         updateRequestDto.setRequestId(requestId);
         updateRequestDto.setUri(generateResourceUri("versions", requestType, requestId));
-        updateRequestDto.setPercentComplete(asyncRequest.getPercentComplete());
+        updateRequestDto.setPercentCompleted(asyncRequest.getPercentComplete());
         updateRequestDto.setState(asyncRequest.getState());
 
         if (updateRequestDto.isComplete()) {
@@ -1040,7 +1038,7 @@ public class VersionsResource extends ApplicationResource {
                 updateRequestDto.setProcessGroupId(groupId);
                 updateRequestDto.setRequestId(requestId);
                 updateRequestDto.setUri(generateResourceUri("versions", "update-requests", requestId));
-                updateRequestDto.setPercentComplete(request.getPercentComplete());
+                updateRequestDto.setPercentCompleted(request.getPercentComplete());
                 updateRequestDto.setState(request.getState());
 
                 final VersionedFlowUpdateRequestEntity updateRequestEntity = new VersionedFlowUpdateRequestEntity();
@@ -1192,7 +1190,7 @@ public class VersionsResource extends ApplicationResource {
                     updateRequestDto.setRequestId(requestId);
                     updateRequestDto.setVersionControlInformation(currentVersion);
                     updateRequestDto.setUri(generateResourceUri("versions", "revert-requests", requestId));
-                    updateRequestDto.setPercentComplete(100);
+                    updateRequestDto.setPercentCompleted(100);
                     updateRequestDto.setState(request.getState());
 
                     final VersionedFlowUpdateRequestEntity updateRequestEntity = new VersionedFlowUpdateRequestEntity();
@@ -1231,6 +1229,8 @@ public class VersionsResource extends ApplicationResource {
                 updateRequestDto.setLastUpdated(request.getLastUpdated());
                 updateRequestDto.setProcessGroupId(groupId);
                 updateRequestDto.setRequestId(requestId);
+                updateRequestDto.setState(request.getState());
+                updateRequestDto.setPercentCompleted(request.getPercentComplete());
                 updateRequestDto.setUri(generateResourceUri("versions", "revert-requests", requestId));
 
                 final VersionedFlowUpdateRequestEntity updateRequestEntity = new VersionedFlowUpdateRequestEntity();

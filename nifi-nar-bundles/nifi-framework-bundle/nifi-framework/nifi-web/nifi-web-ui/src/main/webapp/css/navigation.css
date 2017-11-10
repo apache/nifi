@@ -278,9 +278,16 @@ rect.birdseye-brush {
     top: 8px;
 }
 
-span.breadcrumb-version-control {
-    color: #0f0;
-    text-shadow: 0px 0px 1px #000;
+span.breadcrumb-version-control-green {
+    color: #1a9964;
+}
+
+span.breadcrumb-version-control-red {
+    color: #ba554a;
+}
+
+span.breadcrumb-version-control-gray {
+    color: #666666;
 }
 
 #breadcrumbs-left-border {

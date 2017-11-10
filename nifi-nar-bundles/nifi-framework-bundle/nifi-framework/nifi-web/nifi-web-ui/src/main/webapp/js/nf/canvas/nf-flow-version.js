@@ -81,6 +81,8 @@
         $('#save-flow-version-registry-combo').combo('destroy').hide();
         $('#save-flow-version-bucket-combo').combo('destroy').hide();
 
+        $('#save-flow-version-label').text('');
+
         $('#save-flow-version-registry').text('').hide();
         $('#save-flow-version-bucket').text('').hide();
 
@@ -98,6 +100,8 @@
      * Reset the import flow version dialog.
      */
     var resetImportFlowVersionDialog = function () {
+        $('#import-flow-version-dialog').removeData('pt');
+
         $('#import-flow-version-registry-combo').combo('destroy').hide();
         $('#import-flow-version-bucket-combo').combo('destroy').hide();
         $('#import-flow-version-name-combo').combo('destroy').hide();
@@ -108,11 +112,17 @@
 
         var importFlowVersionGrid = $('#import-flow-version-table').data('gridInstance');
         if (nfCommon.isDefinedAndNotNull(importFlowVersionGrid)) {
+            importFlowVersionGrid.setSelectedRows([]);
+            importFlowVersionGrid.resetActiveCell();
+
             var importFlowVersionData = importFlowVersionGrid.getData();
             importFlowVersionData.setItems([]);
         }
 
         $('#import-flow-version-process-group-id').removeData('versionControlInformation').removeData('revision').text('');
+
+        $('#import-flow-version-container').hide();
+        $('#import-flow-version-label').text('');
     };
 
     /**
@@ -392,9 +402,13 @@
             $('#import-flow-version-dialog').modal('refreshButtons');
         });
         importFlowVersionGrid.onDblClick.subscribe(function (e, args) {
-            changeFlowVersion().done(function () {
-                $('#import-flow-version-dialog').modal('hide');
-            });
+            if ($('#import-flow-version-label').is(':visible')) {
+                changeFlowVersion();
+            } else {
+                importFlowVersion().always(function () {
+                    $('#import-flow-version-dialog').modal('hide');
+                });
+            }
         });
 
         // wire up the dataview to the grid
@@ -417,19 +431,35 @@
      */
     var showImportFlowVersionDialog = function () {
         var pt = $('#new-process-group-dialog').data('pt');
+        $('#import-flow-version-dialog').data('pt', pt);
 
         // update the registry and bucket visibility
-        var registryCombo = $('#import-flow-version-registry-combo').show();
-        var bucketCombo = $('#import-flow-version-bucket-combo').show();
-        $('#import-flow-version-name-combo').show();
+        var registryCombo = $('#import-flow-version-registry-combo').combo('destroy').combo({
+            options: [{
+                text: 'Loading registries...',
+                value: null,
+                optionClass: 'unset',
+                disabled: true
+            }]
+        }).show();
+        var bucketCombo = $('#import-flow-version-bucket-combo').combo('destroy').combo({
+            options: [{
+                text: 'Loading buckets...',
+                value: null,
+                optionClass: 'unset',
+                disabled: true
+            }]
+        }).show();
+        $('#import-flow-version-name-combo').combo('destroy').combo({
+            options: [{
+                text: 'Loading flows...',
+                value: null,
+                optionClass: 'unset',
+                disabled: true
+            }]
+        }).show();
 
         loadRegistries($('#import-flow-version-dialog'), registryCombo, bucketCombo, selectBucketImportVersion).done(function () {
-            // reposition the version table
-            $('#import-flow-version-table').css({
-                'top': '202px',
-                'height': '225px'
-            });
-
             // show the import dialog
             $('#import-flow-version-dialog').modal('setHeaderText', 'Import Version').modal('setButtonModel', [{
                 buttonText: 'Import',
@@ -441,8 +471,7 @@
                 disabled: disableImportOrChangeButton,
                 handler: {
                     click: function () {
-                        importFlowVersion(pt).always(function (response) {
-                            // close the dialog
+                        importFlowVersion().always(function () {
                             $('#import-flow-version-dialog').modal('hide');
                         });
                     }
@@ -599,7 +628,9 @@
     /**
      * Imports the selected flow version.
      */
-    var importFlowVersion = function (pt) {
+    var importFlowVersion = function () {
+        var pt = $('#import-flow-version-dialog').data('pt');
+
         var selectedRegistry =  $('#import-flow-version-registry-combo').combo('getSelectedOption');
         var selectedBucket =  $('#import-flow-version-bucket-combo').combo('getSelectedOption');
         var selectedFlow =  $('#import-flow-version-name-combo').combo('getSelectedOption');
@@ -673,6 +704,8 @@
      */
     var changeFlowVersion = function () {
         var changeTimer = null;
+        var changeRequest = null;
+        var cancelled = false;
 
         var processGroupId = $('#import-flow-version-process-group-id').text();
         var processGroupRevision = $('#import-flow-version-process-group-id').data('revision');
@@ -682,7 +715,34 @@
         var selectedVersionIndex = importFlowVersionGrid.getSelectedRows();
         var selectedVersion = importFlowVersionGrid.getDataItem(selectedVersionIndex[0]);
 
-        // TODO - introduce dialog to show current state with option to cancel once available
+        // update the button model of the change version status dialog
+        $('#change-version-status-dialog').modal('setButtonModel', [{
+            buttonText: 'Stop',
+            color: {
+                base: '#728E9B',
+                hover: '#004849',
+                text: '#ffffff'
+            },
+            handler: {
+                click: function () {
+                    cancelled = true;
+
+                    $('#change-version-status-dialog').modal('setButtonModel', []);
+
+                    // we are waiting for the next poll attempt
+                    if (changeTimer !== null) {
+                        // cancel it
+                        clearTimeout(changeTimer);
+
+                        // cancel the change request
+                        completeChangeRequest();
+                    }
+                }
+            }
+        }]);
+
+        // hide the import dialog immediately
+        $('#import-flow-version-dialog').modal('hide');
 
         var submitChangeRequest = function () {
             var changeVersionRequest = {
@@ -706,69 +766,116 @@
                 url: '../nifi-api/versions/update-requests/process-groups/' + encodeURIComponent(processGroupId),
                 dataType: 'json',
                 contentType: 'application/json'
-            }).done(function (response) {
-                console.log(response);
+            }).done(function () {
+                // initialize the progress bar value
+                updateProgress(0);
+
+                // show the progress dialog
+                $('#change-version-status-dialog').modal('show');
             }).fail(nfErrorHandler.handleAjaxError);
         };
 
-        var pollChangeRequest = function (changeRequest) {
-            getChangeRequest(changeRequest).done(function (response) {
-                processChangeResponse(response);
-            })
+        var pollChangeRequest = function () {
+            getChangeRequest().done(processChangeResponse);
         };
 
-        var getChangeRequest = function (changeRequest) {
+        var getChangeRequest = function () {
             return $.ajax({
                 type: 'GET',
                 url: changeRequest.uri,
                 dataType: 'json'
-            }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(completeChangeRequest).fail(nfErrorHandler.handleAjaxError);
         };
 
-        var deleteChangeRequest = function (changeRequest) {
-            var deleteXhr = $.ajax({
-                type: 'DELETE',
-                url: changeRequest.uri,
-                dataType: 'json'
-            }).fail(nfErrorHandler.handleAjaxError);
+        var completeChangeRequest = function () {
+            if (cancelled === true) {
+                // update the message to indicate successful completion
+                $('#change-version-status-message').text('The change version request has been cancelled.');
 
-            updateProcessGroup(processGroupId);
+                // update the button model
+                $('#change-version-status-dialog').modal('setButtonModel', [{
+                    buttonText: 'Close',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
+                    }
+                }]);
+            }
 
-            nfDialog.showOkDialog({
-                headerText: 'Change Version',
-                dialogContent: 'This Process Group version has changed.'
-            });
+            if (nfCommon.isDefinedAndNotNull(changeRequest)) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: changeRequest.uri,
+                    dataType: 'json'
+                }).done(function (response) {
+                    changeRequest = response.request;
 
-            return deleteXhr;
+                    // update the component that was changing
+                    updateProcessGroup(processGroupId);
+
+                    if (nfCommon.isDefinedAndNotNull(changeRequest.failureReason)) {
+                        // hide the progress dialog
+                        $('#change-version-status-dialog').modal('hide');
+
+                        nfDialog.showOkDialog({
+                            headerText: 'Change Version',
+                            dialogContent: nfCommon.escapeHtml(changeRequest.failureReason)
+                        });
+                    } else {
+                        // update the percent complete
+                        updateProgress(changeRequest.percentCompleted);
+
+                        // update the message to indicate successful completion
+                        $('#change-version-status-message').text('This Process Group version has changed.');
+
+                        // update the button model
+                        $('#change-version-status-dialog').modal('setButtonModel', [{
+                            buttonText: 'Close',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
+                            handler: {
+                                click: function () {
+                                    $(this).modal('hide');
+                                }
+                            }
+                        }]);
+                    }
+                });
+            }
         };
 
         var processChangeResponse = function (response) {
-            var changeRequest = response.request;
+            changeRequest = response.request;
 
-            if (nfCommon.isDefinedAndNotNull(changeRequest.failureReason)) {
-                nfDialog.showOkDialog({
-                    headerText: 'Change Version',
-                    dialogContent: nfCommon.escapeHtml(changeRequest.failureReason)
-                });
-            }
-
-            if (changeRequest.complete === true) {
-                deleteChangeRequest(changeRequest);
+            if (changeRequest.complete === true || cancelled === true) {
+                completeChangeRequest();
             } else {
+                // update the percent complete
+                updateProgress(changeRequest.percentCompleted);
+
+                // update the status of the listing request
+                $('#change-version-status-message').text(changeRequest.state);
+
                 changeTimer = setTimeout(function () {
                     // clear the timer since we've been invoked
                     changeTimer = null;
 
                     // poll revert request
-                    pollChangeRequest(changeRequest);
+                    pollChangeRequest();
                 }, 2000);
             }
         };
 
-        submitChangeRequest().done(function (response) {
-            processChangeResponse(response);
-        });
-
+        submitChangeRequest().done(processChangeResponse);
     };
 
     /**
@@ -826,7 +933,7 @@
      */
     var updateProcessGroup = function (processGroupId) {
         if (nfCanvasUtils.getGroupId() === processGroupId) {
-            // if reverting current PG... reload/refresh this group/canvas
+            // if reverting/changing current PG... reload/refresh this group/canvas
 
             // TODO consider implementing this differently
             $.ajax({
@@ -840,6 +947,23 @@
             // if reverting selected PG... reload selected PG to update counts, etc
             nfProcessGroup.reload(processGroupId);
         }
+    };
+
+    /**
+     * Updates the progress bar to the specified percent complete.
+     *
+     * @param percentComplete
+     */
+    var updateProgress = function (percentComplete) {
+        // remove existing labels
+        var progressBar = $('#change-version-percent-complete');
+        progressBar.find('div.progress-label').remove();
+        progressBar.find('md-progress-linear').remove();
+
+        // update the progress
+        var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
+        (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
+        progressBar.append(label);
     };
 
     return {
@@ -913,6 +1037,18 @@
                 }
             });
 
+            // configure the drop request status dialog
+            $('#change-version-status-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                headerText: 'Change Flow Version',
+                handler: {
+                    close: function () {
+                        // clear the current button model
+                        $('#change-version-status-dialog').modal('setButtonModel', []);
+                    }
+                }
+            });
+
             // handle the click for the process group import
             $('#import-process-group-link').on('click', function() {
                 showImportFlowVersionDialog();
@@ -939,26 +1075,50 @@
                         var versionControlInformation = groupVersionControlInformation.versionControlInformation;
 
                         // update the registry and bucket visibility
-                        $('#save-flow-version-registry').text(versionControlInformation.registryId).show();
-                        $('#save-flow-version-bucket').text(versionControlInformation.bucketId).show();
+                        $('#save-flow-version-registry').text(versionControlInformation.registryName).show();
+                        $('#save-flow-version-bucket').text(versionControlInformation.bucketName).show();
+                        $('#save-flow-version-label').text(versionControlInformation.version + 1);
 
                         $('#save-flow-version-name').text(versionControlInformation.flowName).show();
-                        $('#save-flow-version-description').text('Flow description goes here').show();
+                        $('#save-flow-version-description').text(versionControlInformation.flowDescription).show();
 
                         // record the versionControlInformation
                         $('#save-flow-version-process-group-id').data('versionControlInformation', versionControlInformation);
+
+                        // reposition the version label
+                        $('#save-flow-version-label').css('margin-top', '-15px');
 
                         focusName = false;
                         deferred.resolve();
                     } else {
                         // update the registry and bucket visibility
-                        $('#save-flow-version-registry-combo').show();
-                        $('#save-flow-version-bucket-combo').show();
+                        var registryCombo = $('#save-flow-version-registry-combo').combo('destroy').combo({
+                            options: [{
+                                text: 'Loading registries...',
+                                value: null,
+                                optionClass: 'unset',
+                                disabled: true
+                            }]
+                        }).show();
+                        var bucketCombo = $('#save-flow-version-bucket-combo').combo('destroy').combo({
+                            options: [{
+                                text: 'Loading buckets...',
+                                value: null,
+                                optionClass: 'unset',
+                                disabled: true
+                            }]
+                        }).show();
+
+                        // set the initial version
+                        $('#save-flow-version-label').text(1);
 
                         $('#save-flow-version-name-field').show();
                         $('#save-flow-version-description-field').show();
 
-                        loadRegistries($('#save-flow-version-dialog'), $('#save-flow-version-registry-combo'), $('#save-flow-version-bucket-combo'), selectBucketSaveFlowVersion).done(function () {
+                        // reposition the version label
+                        $('#save-flow-version-label').css('margin-top', '0');
+
+                        loadRegistries($('#save-flow-version-dialog'), registryCombo, bucketCombo, selectBucketSaveFlowVersion).done(function () {
                             deferred.resolve();
                         }).fail(function () {
                             deferred.reject();
@@ -996,8 +1156,37 @@
                     getVersionControlInformation(processGroupId).done(function (response) {
                         if (nfCommon.isDefinedAndNotNull(response.versionControlInformation)) {
                             var revertTimer = null;
+                            var revertRequest = null;
+                            var cancelled = false;
 
-                            // TODO - introduce dialog to show current state once available
+                            // update the button model of the revert status dialog
+                            $('#change-version-status-dialog').modal('setButtonModel', [{
+                                buttonText: 'Stop',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                handler: {
+                                    click: function () {
+                                        cancelled = true;
+
+                                        $('#change-version-status-dialog').modal('setButtonModel', []);
+
+                                        // we are waiting for the next poll attempt
+                                        if (revertTimer !== null) {
+                                            // cancel it
+                                            clearTimeout(revertTimer);
+
+                                            // cancel the revert request
+                                            completeRevertRequest();
+                                        }
+                                    }
+                                }
+                            }]);
+
+                            // hide the import dialog immediately
+                            $('#import-flow-version-dialog').modal('hide');
 
                             var submitRevertRequest = function () {
                                 var revertFlowVersionRequest = {
@@ -1015,66 +1204,116 @@
                                     url: '../nifi-api/versions/revert-requests/process-groups/' + encodeURIComponent(processGroupId),
                                     dataType: 'json',
                                     contentType: 'application/json'
+                                }).done(function () {
+                                    // initialize the progress bar value
+                                    updateProgress(0);
+
+                                    // show the progress dialog
+                                    $('#change-version-status-dialog').modal('show');
                                 }).fail(nfErrorHandler.handleAjaxError);
                             };
 
-                            var pollRevertRequest = function (revertRequest) {
-                                getRevertRequest(revertRequest).done(function (response) {
-                                    processRevertResponse(response);
-                                })
+                            var pollRevertRequest = function () {
+                                getRevertRequest().done(processRevertResponse);
                             };
 
-                            var getRevertRequest = function (revertRequest) {
+                            var getRevertRequest = function () {
                                 return $.ajax({
                                     type: 'GET',
                                     url: revertRequest.uri,
                                     dataType: 'json'
-                                }).fail(nfErrorHandler.handleAjaxError);
+                                }).fail(completeRevertRequest).fail(nfErrorHandler.handleAjaxError);
                             };
 
-                            var deleteRevertRequest = function (revertRequest) {
-                                var deleteXhr = $.ajax({
-                                    type: 'DELETE',
-                                    url: revertRequest.uri,
-                                    dataType: 'json'
-                                }).fail(nfErrorHandler.handleAjaxError);
+                            var completeRevertRequest = function () {
+                                if (cancelled === true) {
+                                    // update the message to indicate successful completion
+                                    $('#change-version-status-message').text('The revert request has been cancelled.');
 
-                                updateProcessGroup(processGroupId);
+                                    // update the button model
+                                    $('#change-version-status-dialog').modal('setButtonModel', [{
+                                        buttonText: 'Close',
+                                        color: {
+                                            base: '#728E9B',
+                                            hover: '#004849',
+                                            text: '#ffffff'
+                                        },
+                                        handler: {
+                                            click: function () {
+                                                $(this).modal('hide');
+                                            }
+                                        }
+                                    }]);
+                                }
 
-                                nfDialog.showOkDialog({
-                                    headerText: 'Revert Changes',
-                                    dialogContent: 'This Process Group has been reverted.'
-                                });
+                                if (nfCommon.isDefinedAndNotNull(revertRequest)) {
+                                    $.ajax({
+                                        type: 'DELETE',
+                                        url: revertRequest.uri,
+                                        dataType: 'json'
+                                    }).done(function (response) {
+                                        revertRequest = response.request;
 
-                                return deleteXhr;
+                                        // update the component that was changing
+                                        updateProcessGroup(processGroupId);
+
+                                        if (nfCommon.isDefinedAndNotNull(revertRequest.failureReason)) {
+                                            // hide the progress dialog
+                                            $('#change-version-status-dialog').modal('hide');
+
+                                            nfDialog.showOkDialog({
+                                                headerText: 'Revert Local Changes',
+                                                dialogContent: nfCommon.escapeHtml(changeRequest.failureReason)
+                                            });
+                                        } else {
+                                            // update the percent complete
+                                            updateProgress(revertRequest.percentCompleted);
+
+                                            // update the message to indicate successful completion
+                                            $('#change-version-status-message').text('This Process Group version has changed.');
+
+                                            // update the button model
+                                            $('#change-version-status-dialog').modal('setButtonModel', [{
+                                                buttonText: 'Close',
+                                                color: {
+                                                    base: '#728E9B',
+                                                    hover: '#004849',
+                                                    text: '#ffffff'
+                                                },
+                                                handler: {
+                                                    click: function () {
+                                                        $(this).modal('hide');
+                                                    }
+                                                }
+                                            }]);
+                                        }
+                                    });
+                                }
                             };
 
                             var processRevertResponse = function (response) {
-                                var revertRequest = response.request;
+                                revertRequest = response.request;
 
-                                if (nfCommon.isDefinedAndNotNull(revertRequest.failureReason)) {
-                                    nfDialog.showOkDialog({
-                                        headerText: 'Revert Changes',
-                                        dialogContent: nfCommon.escapeHtml(revertRequest.failureReason)
-                                    });
-                                }
-
-                                if (revertRequest.complete === true) {
-                                    deleteRevertRequest(revertRequest);
+                                if (revertRequest.complete === true || cancelled === true) {
+                                    completeRevertRequest();
                                 } else {
+                                    // update the percent complete
+                                    updateProgress(revertRequest.percentCompleted);
+
+                                    // update the status of the revert request
+                                    $('#change-version-status-message').text(revertRequest.state);
+
                                     revertTimer = setTimeout(function () {
                                         // clear the timer since we've been invoked
                                         revertTimer = null;
 
                                         // poll revert request
-                                        pollRevertRequest(revertRequest);
+                                        pollRevertRequest();
                                     }, 2000);
                                 }
                             };
 
-                            submitRevertRequest().done(function (response) {
-                                processRevertResponse(response);
-                            });
+                            submitRevertRequest().done(processRevertResponse);
                         } else {
                             nfDialog.showOkDialog({
                                 headerText: 'Revert Changes',
@@ -1098,9 +1337,13 @@
                         var versionControlInformation = groupVersionControlInformation.versionControlInformation;
 
                         // update the registry and bucket visibility
-                        $('#import-flow-version-registry').text(versionControlInformation.registryId).show();
-                        $('#import-flow-version-bucket').text(versionControlInformation.bucketId).show();
-                        $('#import-flow-version-name').text(versionControlInformation.flowId).show();
+                        $('#import-flow-version-registry').text(versionControlInformation.registryName).show();
+                        $('#import-flow-version-bucket').text(versionControlInformation.bucketName).show();
+                        $('#import-flow-version-name').text(versionControlInformation.flowName).show();
+
+                        // show the current version information
+                        $('#import-flow-version-container').show();
+                        $('#import-flow-version-label').text(versionControlInformation.version);
 
                         // record the versionControlInformation
                         $('#import-flow-version-process-group-id').data('versionControlInformation', versionControlInformation).data('revision', groupVersionControlInformation.processGroupRevision).text(processGroupId);
@@ -1126,12 +1369,6 @@
                     }
                 }).fail(nfErrorHandler.handleAjaxError);
             }).done(function () {
-                // reposition the version table
-                $('#import-flow-version-table').css({
-                    'top': '150px',
-                    'height': '277px'
-                });
-
                 // show the dialog
                 $('#import-flow-version-dialog').modal('setHeaderText', 'Change Version').modal('setButtonModel', [{
                     buttonText: 'Change',
@@ -1143,9 +1380,7 @@
                     disabled: disableImportOrChangeButton,
                     handler: {
                         click: function () {
-                            changeFlowVersion().done(function () {
-                                $('#import-flow-version-dialog').modal('hide');
-                            });
+                            changeFlowVersion();
                         }
                     }
                 }, {

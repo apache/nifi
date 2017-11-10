@@ -19,9 +19,10 @@
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Registry</div>
-            <div class="setting-field">
+            <div id="save-flow-version-registry-container" class="setting-field">
                 <div id="save-flow-version-registry-combo" class="hidden"></div>
                 <div id="save-flow-version-registry" class="hidden"></div>
+                <div id="save-flow-version-label"></div>
             </div>
         </div>
         <div class="setting">

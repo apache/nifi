@@ -39,6 +39,24 @@
                 <div id="import-flow-version-name" class="hidden"></div>
             </div>
         </div>
+        <div id="import-flow-version-container" class="setting hidden">
+            <div class="setting-name">Current Version</div>
+            <div class="setting-field">
+                <div id="import-flow-version-label"></div>
+            </div>
+        </div>
         <div id="import-flow-version-table"></div>
+    </div>
+</div>
+<div id="change-version-status-dialog" layout="column" class="hidden small-dialog">
+    <div class="dialog-content">
+        <div class="setting">
+            <div class="setting-field">
+                <div id="change-version-status-message"></div>
+            </div>
+            <div class="setting-field">
+                <div id="change-version-percent-complete"></div>
+            </div>
+        </div>
     </div>
 </div>

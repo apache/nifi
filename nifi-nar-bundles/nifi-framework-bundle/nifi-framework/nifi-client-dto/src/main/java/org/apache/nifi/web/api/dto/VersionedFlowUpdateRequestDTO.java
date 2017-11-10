@@ -32,7 +32,7 @@ public class VersionedFlowUpdateRequestDTO {
     private Date lastUpdated;
     private boolean complete = false;
     private String failureReason;
-    private int percentComplete;
+    private int percentCompleted;
     private String state;
     private VersionControlInformationDTO versionControlInformation;
 
@@ -110,11 +110,11 @@ public class VersionedFlowUpdateRequestDTO {
     }
 
     @ApiModelProperty(value = "The percentage complete for the request, between 0 and 100", readOnly = true)
-    public int getPercentComplete() {
-        return percentComplete;
+    public int getPercentCompleted() {
+        return percentCompleted;
     }
 
-    public void setPercentComplete(int percentComplete) {
-        this.percentComplete = percentComplete;
+    public void setPercentCompleted(int percentCompleted) {
+        this.percentCompleted = percentCompleted;
     }
 }

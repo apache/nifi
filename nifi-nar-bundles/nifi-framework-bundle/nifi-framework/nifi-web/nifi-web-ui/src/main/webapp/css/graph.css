@@ -425,8 +425,7 @@ text.process-group-name {
 text.version-control {
     font-family: FontAwesome;
     font-size: 18px;
-    fill: rgba(0, 255, 0, 0.65);
-    stroke: rgba(0, 0, 0, 0.65);
+    text-shadow: 0 0 4px rgba(255,255,255,1);
     visibility: hidden;
 }
 

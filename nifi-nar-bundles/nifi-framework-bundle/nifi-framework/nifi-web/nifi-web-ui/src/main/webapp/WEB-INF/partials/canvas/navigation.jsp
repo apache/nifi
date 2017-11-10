@@ -19,7 +19,11 @@
         breadcrumbs="appCtrl.serviceProvider.breadcrumbsCtrl.getBreadcrumbs();"
         click-func="appCtrl.nf.CanvasUtils.getComponentByType('ProcessGroup').enterGroup"
         highlight-crumb-id="appCtrl.nf.CanvasUtils.getGroupId();"
-        separator-func="appCtrl.nf.Common.isDefinedAndNotNull">
+        separator-func="appCtrl.nf.Common.isDefinedAndNotNull"
+        is-tracking="appCtrl.serviceProvider.breadcrumbsCtrl.isTracking"
+        is-current="appCtrl.serviceProvider.breadcrumbsCtrl.isCurrent"
+        is-modified="appCtrl.serviceProvider.breadcrumbsCtrl.isModified"
+        get-version-control-tooltip="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlTooltip">
 </nf-breadcrumbs>
 <div id="graph-controls">
     <div id="navigation-control" class="graph-control">
