@@ -149,7 +149,7 @@
             <div id="system-tab-content"class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
-                        <div class="setting-name">Available Processors:</div>
+                        <div class="setting-name">Available Cores:</div>
                         <div class="setting-field">
                             <div id="available-processors"></div>
                         </div>

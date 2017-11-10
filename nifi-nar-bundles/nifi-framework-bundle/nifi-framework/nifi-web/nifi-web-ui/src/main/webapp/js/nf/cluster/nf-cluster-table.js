@@ -145,7 +145,7 @@
             {
                 id: 'processors',
                 field: 'processors',
-                name: 'Processors',
+                name: 'Cores',
                 sortable: true,
                 resizable: true,
                 cssClass: 'cell-right',
