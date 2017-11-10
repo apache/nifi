@@ -2230,8 +2230,8 @@ public final class DtoFactory {
         dto.setFlowName(versionControlInfo.getFlowName());
         dto.setFlowDescription(versionControlInfo.getFlowDescription());
         dto.setVersion(versionControlInfo.getVersion());
-        dto.setCurrent(versionControlInfo.getCurrent().orElse(null));
-        dto.setModified(versionControlInfo.getModified().orElse(null));
+        dto.setCurrent(versionControlInfo.getCurrent().orElse(true));
+        dto.setModified(versionControlInfo.getModified().orElse(false));
         return dto;
     }
 

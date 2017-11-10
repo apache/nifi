@@ -420,6 +420,25 @@
         },
 
         /**
+         * Gets the version control tooltip.
+         *
+         * @param versionControlInformation
+         */
+        getVersionControlTooltip: function (versionControlInformation) {
+            var modified = versionControlInformation.modified;
+            var current = versionControlInformation.current;
+            if (modified === true && current === false) {
+                return 'Local changes have been made and a newer version of this flow is available';
+            } else if (current === false) {
+                return 'A newer version of this flow is available';
+            } else if (modified === true) {
+                return 'Local changes have been made';
+            } else {
+                return 'Flow version is current';
+            }
+        },
+
+        /**
          * Formats the class name of this component.
          *
          * @param dataContext component datum

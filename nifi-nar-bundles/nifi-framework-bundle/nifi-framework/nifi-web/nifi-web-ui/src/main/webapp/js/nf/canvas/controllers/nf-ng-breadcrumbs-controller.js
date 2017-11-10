@@ -97,6 +97,57 @@
             },
 
             /**
+             * Whether this crumb is tracking.
+             *
+             * @param breadcrumbEntity
+             * @returns {*}
+             */
+            isTracking: function (breadcrumbEntity) {
+                return nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation);
+            },
+
+            /**
+             * Returns whether the specified version control information is current.
+             *
+             * @param breadcrumbEntity
+             * @returns {boolean}
+             */
+            isCurrent: function (breadcrumbEntity) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
+                    return breadcrumbEntity.breadcrumb.versionControlInformation.current === true;
+                }
+
+                return false;
+            },
+
+            /**
+             * Returns whether the specified version control information is current.
+             *
+             * @param versionControlInformation
+             * @returns {boolean}
+             */
+            isModified: function (breadcrumbEntity) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
+                    return breadcrumbEntity.breadcrumb.versionControlInformation.modified === true;
+                }
+
+                return false;
+            },
+
+            /**
+             * Gets the content for the version control tooltip for the specified breadcrumb.
+             *
+             * @param breadcrumbEntity
+             */
+            getVersionControlTooltip: function (breadcrumbEntity) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
+                    return nfCommon.getVersionControlTooltip(breadcrumbEntity.breadcrumb.versionControlInformation);
+                } else {
+                    return 'This Process Group is not under version control.'
+                }
+            },
+
+            /**
              * Get the breadcrumbs.
              */
             getBreadcrumbs: function () {

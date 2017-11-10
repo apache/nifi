@@ -40,7 +40,11 @@
                 'breadcrumbs': '=',
                 'clickFunc': '=',
                 'highlightCrumbId': '=',
-                'separatorFunc': '='
+                'separatorFunc': '=',
+                'isTracking': '=',
+                'isCurrent': '=',
+                'isModified': '=',
+                'getVersionControlTooltip': '='
             },
             link: function (scope, element, attrs) {
                 breadcrumbsCtrl.registerMouseWheelEvent(element);

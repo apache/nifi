@@ -216,8 +216,28 @@ div.progress-label {
     Save Flow Version
  */
 
+#save-flow-version-registry-container {
+    display: flex;
+}
+
 #save-flow-version-description-field, #save-flow-version-change-comments {
     height: 85px;
+}
+
+#save-flow-version-registry-combo, #save-flow-version-registry {
+    width: 100%;
+    margin-right: 10px;
+}
+
+#save-flow-version-label {
+    flex: 0 0 30px;
+    background-color: #728E9B;
+    color: #fff;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    padding: 0 1px;
 }
 
 /*
@@ -227,11 +247,20 @@ div.progress-label {
 #import-flow-version-table {
     overflow: hidden;
     position: absolute;
-    top: 202px;
+    top: 190px;
     left: 0px;
     right: 0px;
     bottom: 0px;
     height: 225px;
+}
+
+#change-version-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#change-version-percent-complete .ui-progressbar-value {
+    border-radius: 0;
 }
 
 /*
