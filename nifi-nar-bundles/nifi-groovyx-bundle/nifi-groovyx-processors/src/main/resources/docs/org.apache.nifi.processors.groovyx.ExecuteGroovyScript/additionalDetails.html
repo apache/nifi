@@ -53,30 +53,36 @@
 	<td>the failure relationship</td>
 </tr>
 <tr>
-	<td>flowFile</td>
-	<td>org.apache.nifi.flowfile.FlowFile</td>
-	<td>Binded only if the property `Require flow file`=true for the processor</td>
+	<td>CTL</td>
+	<td>java.util.HashMap&lt;String,<a href="https://github.com/apache/nifi/blob/master/nifi-api/src/main/java/org/apache/nifi/controller/ControllerService.java">ControllerService</a>&gt;</td>
+	<td>Map populated with controller services defined with `CTL.*` processor properties.
+	<br/>The `CTL.` prefixed properties could be linked to controller service and provides access to this service from a script without additional code.</td>
 </tr>
 <tr>
-	<td>CTL</td>
-	<td>java.util.HashMap</td>
-	<td>Map populated with controller services binded through `CTL.*` processor properties</td>
+	<td>SQL</td>
+	<td>java.util.HashMap&lt;String, <a href="http://docs.groovy-lang.org/latest/html/api/groovy/sql/Sql.html">groovy.sql.Sql</a>&gt;</td>
+	<td>Map populated with `groovy.sql.Sql` objects connected to corresponding database defined with `SQL.*` processor properties. 
+	<br/>The `SQL.` prefixed properties could be linked only to DBCPSercice.</td>
 </tr>
 <tr>
 	<td>Dynamic processor properties</td>
 	<td>org.apache.nifi.components.PropertyDescriptor</td>
-	<td>All processor properties not started with `CTL.` are binded to script variables</td>
+	<td>All processor properties not started with `CTL.` or `SQL.` are binded to script variables</td>
 </tr>
 </table>
 
-<h2>CTL map</h2>
+<h2>SQL map details</h2>
 <p>
-CTL.* objects accessible if corresponding processor property defined.<br/>
-<b>Example:</b> if you defined property <code>`CTL.cache`</code> to DistributedMapCacheClientService, then you can access it from code <code>CTL.cache</code><br/>
-If CTL property references to Database connection pool, then corresponding CTL entry will contain groovy.sql.Sql object connected to database with autocommit=false.</br>
-CTL - Database transactions automatically rolled back on script exception and committed on success. Script must not disconnect connection.<br/>
-<img src="CTL.gif"/><br/>
-<img src="CTL2.gif"/>
+<b>Example:</b> if you defined property <code>`SQL.mydb`</code> and linked it to any DBCPService, 
+then you can access it from code <code>SQL.mydb.rows('select * from mytable')</code><br/>
+
+<br/>The processor automatically takes connection from dbcp service before executing script and tries to handle transaction:
+<br/> database transactions automatically rolled back on script exception and committed on success.
+<br/>Or you can manage transaction manually.
+<br/>NOTE: Script must not disconnect connection.
+
+<br/><img src="SQL.gif"/>
+<br/><img src="SQL2.gif"/>
 </p>
 
 <h2>SessionFile - flow file extension</h2>
@@ -113,10 +119,10 @@ CTL - Database transactions automatically rolled back on script exception and co
     do something with java.io.Writer...
   }
   flowFile.write{outStream-> 
-    do something with out stream... 
+    do something with outpit stream... 
   }
   flowFile.write{inStream, outStream-> 
-    do something with in and out streams... 
+    do something with input and output streams... 
   }
 </pre>
 
@@ -139,13 +145,13 @@ CTL - Database transactions automatically rolled back on script exception and co
 <pre>
   import groovy.sql.Sql
 
-  //define property named `CTL.db` connected to a DBCPConnectionPool controller service
+  //define property named `SQL.db` connected to a DBCPConnectionPool controller service
   //for this case it's an H2 database example
   
   //read value from the database with prepared statement 
   //and assign into flowfile attribute `db.yesterday`
   def daysAdd = -1
-  def row = CTL.db.firstRow("select dateadd('DAY', ${daysAdd}, sysdate) as DB_DATE from dual")
+  def row = SQL.db.firstRow("select dateadd('DAY', ${daysAdd}, sysdate) as DB_DATE from dual")
   flowFile.'db.yesterday' = row.DB_DATE
 
   //to work with BLOBs and CLOBs in the database 
@@ -157,7 +163,7 @@ CTL - Database transactions automatically rolled back on script exception and co
       p_id   : flowFile.ID as Long, //get flow file attribute named `ID`
       p_data : Sql.BLOB( rawIn ),   //use input stream as BLOB sql parameter
     ]
-    CTL.db.executeUpdate(parms, "update mytable set data = :p_data where id = :p_id")
+    SQL.db.executeUpdate(parms, "update mytable set data = :p_data where id = :p_id")
   }
 </pre>
 
