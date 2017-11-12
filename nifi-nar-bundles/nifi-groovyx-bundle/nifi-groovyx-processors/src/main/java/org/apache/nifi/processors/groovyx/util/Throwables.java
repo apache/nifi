@@ -24,7 +24,7 @@ import java.io.PrintWriter;
  * Class with helper to return simplified human readable error message with one main `at` code position.
  */
 public class Throwables {
-
+	/** returns stacktrace as a String */
     public static String stringStackTrace(Throwable e) {
         StringWriter sw = new StringWriter(500);
         PrintWriter pw = new PrintWriter(sw);
@@ -34,15 +34,22 @@ public class Throwables {
         return sw.toString();
     }
 
-    /*================> User Input Format And Parse <==================*/
-
     /**
-     * returns error message with selected line from stacktrace:
+     * returns error message with one main line from stacktrace
      */
     public static String getMessage(Throwable e) {
         return getMessage(e, null, -1);
     }
 
+    /**
+     * returns human readable error message with only one element from stacktrace. 
+     * The parameter `priority` could identify the stacktrace element.
+     * To find stacktrace element tries to find `priority`, 
+     * then any non-standard java/groovy class.
+     * @param e throwable to convert to message
+     * @param priority package name, class, or object that could identify the stacktrace element
+     * @param maxlen the max length of returned string or -1 for unlimited
+     */
     public static String getMessage(Throwable e, Object priority, int maxlen) {
 
         if (e == null) {

@@ -31,7 +31,6 @@ public class Files {
 
     /**
      * Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name.
-     * Please avoid using this parameter because of deploy complexity :)
      *
      * @return file list defined by classpath parameter
      */
