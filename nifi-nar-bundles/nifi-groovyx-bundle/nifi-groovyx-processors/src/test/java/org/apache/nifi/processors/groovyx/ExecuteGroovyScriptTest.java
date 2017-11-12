@@ -225,6 +225,20 @@ public class ExecuteGroovyScriptTest {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
         runner.assertNotValid();
     }
+	//---------------------------------------------------------
+    @Test
+    public void test_ctl_01_access() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_ctl_01_access.groovy");
+        runner.setProperty("CTL.mydbcp", "dbcp"); //pass dbcp as a service to script
+        runner.assertValid();
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertContentEquals("OK", "UTF-8");
+    }
 
     @Test
     public void test_sql_01_select() throws Exception {
