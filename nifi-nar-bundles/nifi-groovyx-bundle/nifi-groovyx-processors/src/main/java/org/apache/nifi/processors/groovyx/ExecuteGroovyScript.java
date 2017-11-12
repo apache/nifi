@@ -305,67 +305,70 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     /**
-     * init controller services
+     * init SQL variables from DBCP services
      */
     @SuppressWarnings("unchecked")
-    private void onInitCTL(HashMap CTL) throws SQLException {
-        for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
-            if (e.getValue() instanceof DBCPService) {
-                DBCPService s = (DBCPService) e.getValue();
-                OSql sql = new OSql(s.getConnection());
-                sql.getConnection().setAutoCommit(false);
-                e.setValue(sql);
+    private void onInitSQL(HashMap SQL) throws SQLException {
+        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+            DBCPService s = (DBCPService) e.getValue();
+            OSql sql = new OSql(s.getConnection());
+            //try to set autocommit to false
+			try {
+	            if (sql.getConnection().getAutoCommit()) {
+					sql.getConnection().setAutoCommit(false);
+	            }
+			} catch (Throwable ei) {
+				getLogger().warn("Failed to set autocommit=false for `" + e.getKey() + "`", ei);
+			}
+            e.setValue(sql);
+        }
+    }
+
+    /**
+     * before commit SQL services
+     */
+    private void onCommitSQL(HashMap SQL) throws SQLException {
+        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+            OSql sql = (OSql) e.getValue();
+            if (!sql.getConnection().getAutoCommit()) {
+                sql.commit();
             }
         }
     }
 
     /**
-     * before commit controller services
+     * finalize SQL services. no exceptions should be thrown.
      */
-    private void onCommitCTL(HashMap CTL) throws SQLException {
-        for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
-            if (e.getValue() instanceof OSql) {
-                OSql sql = (OSql) e.getValue();
+    private void onFinitSQL(HashMap SQL) {
+        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+            OSql sql = (OSql) e.getValue();
+        	try {
+	            if (!sql.getConnection().getAutoCommit()) {
+    	        	sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+	            }
+        	} catch (Throwable ei) {
+        	    getLogger().warn("Failed to set autocommit=true for `" + e.getKey() + "`", ei);
+        	}
+            try {
+                sql.close();
+                sql = null;
+            } catch (Throwable ei) {
+            }
+        }
+    }
+
+    /**
+     * exception SQL services
+     */
+    private void onFailSQL(HashMap SQL) {
+        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+            OSql sql = (OSql) e.getValue();
+            try {
                 if (!sql.getConnection().getAutoCommit()) {
-                    sql.commit();
+                    sql.rollback();
                 }
-            }
-        }
-    }
-
-    /**
-     * finalize controller services
-     */
-    private void onFinitCTL(HashMap CTL) {
-        for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
-            if (e.getValue() instanceof OSql) {
-                OSql sql = (OSql) e.getValue();
-                try {
-                    sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
-                } catch (Throwable ei) {
-                }
-                try {
-                    sql.close();
-                    sql = null;
-                } catch (Throwable ei) {
-                }
-            }
-        }
-    }
-
-    /**
-     * exception controller services
-     */
-    private void onFailCTL(HashMap CTL) {
-        for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
-            if (e.getValue() instanceof OSql) {
-                OSql sql = (OSql) e.getValue();
-                try {
-                    if (!sql.getConnection().getAutoCommit()) {
-                        sql.rollback();
-                    }
-                } catch (Throwable ei) {
-                }
+            } catch (Throwable ei) {
+            	//the rollback error usually not important because it precessed with DML error that is really important
             }
         }
     }
@@ -379,6 +382,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
 
         HashMap CTL = new AccessMap("CTL");
+        HashMap SQL = new AccessMap("SQL");
 
         try {
             Script script = getGroovyScript(); //compilation must be moved to validation
@@ -393,6 +397,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                         //get controller service
                         ControllerService ctl = context.getProperty(property.getKey()).asControllerService(ControllerService.class);
                         CTL.put(property.getKey().getName().substring(4), ctl);
+                    } else if (property.getKey().getName().startsWith("SQL.")) {
+                        DBCPService dbcp = context.getProperty(property.getKey()).asControllerService(DBCPService.class);
+                        SQL.put(property.getKey().getName().substring(4), dbcp);
                     } else {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
@@ -401,7 +408,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     }
                 }
             }
-            onInitCTL(CTL);
+            onInitSQL(SQL);
 
             bindings.put("session", session);
             bindings.put("context", context);
@@ -409,15 +416,16 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             bindings.put("REL_SUCCESS", REL_SUCCESS);
             bindings.put("REL_FAILURE", REL_FAILURE);
             bindings.put("CTL", CTL);
+            bindings.put("SQL", SQL);
 
             script.run();
             bindings.clear();
 
-            onCommitCTL(CTL);
+            onCommitSQL(SQL);
             session.commit();
         } catch (Throwable t) {
             getLogger().error(t.toString(), t);
-            onFailCTL(CTL);
+            onFailSQL(SQL);
             if (toFailureOnError) {
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
                 session.revertReceivedTo(REL_FAILURE, StackTraceUtils.deepSanitize(t));
@@ -425,7 +433,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 session.rollback(true);
             }
         } finally {
-            onFinitCTL(CTL);
+            onFinitSQL(SQL);
         }
 
     }

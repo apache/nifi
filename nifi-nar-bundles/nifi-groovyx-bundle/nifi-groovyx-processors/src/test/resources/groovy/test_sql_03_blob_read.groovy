@@ -19,7 +19,7 @@ def flowFile = session.create()
 //read blob into flowFile content
 flowFile.write{out->
 	//get id from property with name ID
-	def row = CTL.sql.firstRow("select data from mytable where id = ${ ID.value as Long }")
+	def row = SQL.mydb.firstRow("select data from mytable where id = ${ ID.value as Long }")
 	assert row : "row with id=`${ID}` not found"
 	//write blob stream to flowFile output stream
 	out << row.data.getBinaryStream()

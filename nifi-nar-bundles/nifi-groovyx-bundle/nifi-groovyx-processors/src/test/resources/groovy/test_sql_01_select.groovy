@@ -24,8 +24,8 @@ and refactored and simplified for ExecuteGroovyScript
 def flowFile = session.create()
 
 flowFile.write("UTF-8"){wout -> 
-  //assume CTL.sql property is linked to desired database connection pool
-  CTL.sql.eachRow('select * from mytable'){ row->
+  //assume SQL.mydb property is linked to desired database connection pool
+  SQL.mydb.eachRow('select * from mytable'){ row->
     wout << row.name << '\n'
   }
 }

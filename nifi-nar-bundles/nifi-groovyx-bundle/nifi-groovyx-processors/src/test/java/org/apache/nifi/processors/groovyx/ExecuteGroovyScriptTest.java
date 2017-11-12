@@ -229,7 +229,7 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_sql_01_select() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_01_select.groovy");
-        runner.setProperty("CTL.sql", "dbcp");
+        runner.setProperty("SQL.mydb", "dbcp");
         runner.assertValid();
 
         runner.run();
@@ -244,7 +244,7 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_sql_02_blob_write() throws Exception {
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_02_blob_write.groovy");
-        runner.setProperty("CTL.sql", "dbcp");
+        runner.setProperty("SQL.mydb", "dbcp");
         //runner.setProperty("ID", "0");
         runner.assertValid();
 
@@ -263,7 +263,7 @@ public class ExecuteGroovyScriptTest {
     public void test_sql_03_blob_read() throws Exception {
         //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_03_blob_read.groovy");
-        runner.setProperty("CTL.sql", "dbcp");
+        runner.setProperty("SQL.mydb", "dbcp");
         runner.setProperty("ID", "0");
         runner.setValidateExpressionUsage(false);
         runner.assertValid();
@@ -280,7 +280,7 @@ public class ExecuteGroovyScriptTest {
     public void test_sql_04_insert_and_json() throws Exception {
         //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.groovy");
-        runner.setProperty("CTL.sql", "dbcp");
+        runner.setProperty("SQL.mydb", "dbcp");
         runner.setValidateExpressionUsage(false);
         runner.assertValid();
 

@@ -21,7 +21,6 @@ http://funnifi.blogspot.com/2016/04/sql-in-nifi-with-executescript.html
 and refactored for ExecuteGroovyScript 
 */ 
 
-//assume you defined CTL.conn property linked to desired database connection pool
 def flowFile = session.create()
 
 //flowfile.write defined here: org\apache\nifi\processors\groovyx\GroovyMethods.java 

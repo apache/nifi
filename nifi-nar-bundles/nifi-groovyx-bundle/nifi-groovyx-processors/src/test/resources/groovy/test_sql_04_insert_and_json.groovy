@@ -40,14 +40,14 @@ rows.each{row->
 	//at this point row is a map with keys corresponding to mytable column names.
 	//build query:  insert into mytable(a,b,c,...) values(:a, :b, :c, ...)
 	//and pass row-map as an argument to this query
-	CTL.sql.executeInsert(row, "insert into mytable( ${row.keySet().join(',')} ) values( :${row.keySet().join(', :')} )")
+	SQL.mydb.executeInsert(row, "insert into mytable( ${row.keySet().join(',')} ) values( :${row.keySet().join(', :')} )")
 	//create new flowfile based on original without copying content, 
 	//write new content and add into outFiles list
 	outFiles << flowFile.clone(false).write( "UTF-8", JsonOutput.toJson(row) )
 }
 
 //just easier to assert sql here
-assert 2+rows.size() == CTL.sql.firstRow("select count(*) cnt from mytable").cnt
+assert 2+rows.size() == SQL.mydb.firstRow("select count(*) cnt from mytable").cnt
 
 flowFile.remove()
 //transfer all new files to success relationship
