@@ -127,14 +127,16 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .defaultValue("1000")
             .build();
 
-    protected static final AllowableValue NULL_FIELD_EMPTY = new AllowableValue("empty-string", "Empty String", "Use an empty string");
+    protected static final AllowableValue NULL_FIELD_EMPTY = new AllowableValue("empty-bytes", "Empty Bytes",
+            "Use empty bytes. This can be used to overwrite existing fields or to put an empty placeholder value if you want" +
+                    " every field to be present even if it has a null value.");
     protected static final AllowableValue NULL_FIELD_SKIP  = new AllowableValue("skip-field", "Skip Field", "Skip the field (don't process it at all).");
 
     protected static final PropertyDescriptor NULL_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("hbase-record-null-field-strategy")
             .displayName("Null Field Strategy")
             .required(true)
-            .defaultValue("empty-string")
+            .defaultValue("skip-field")
             .description("Handle null field values as either an empty string or skip them altogether.")
             .allowableValues(NULL_FIELD_EMPTY, NULL_FIELD_SKIP)
             .build();
@@ -214,6 +216,9 @@ public class PutHBaseRecord extends AbstractPutHBase {
             while ((record = reader.nextRecord()) != null) {
                 PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), flowFile, rowFieldName, columnFamily,
                         timestampFieldName, fieldEncodingStrategy, rowEncodingStrategy, complexFieldStrategy);
+                if (putFlowFile.getColumns().size() == 0) {
+                    continue;
+                }
                 flowFiles.add(putFlowFile);
                 index++;
 
@@ -233,7 +238,9 @@ public class PutHBaseRecord extends AbstractPutHBase {
         }
 
         if (!failed) {
-            sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+            if (columns > 0) {
+                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+            }
             flowFile = session.removeAttribute(flowFile, "restart.index");
             session.transfer(flowFile, REL_SUCCESS);
         } else {
