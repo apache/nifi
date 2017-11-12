@@ -326,7 +326,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
                 OSql sql = (OSql) e.getValue();
-                sql.commit();
+                if (!sql.getConnection().getAutoCommit()) {
+                    sql.commit();
+                }
             }
         }
     }
@@ -339,8 +341,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             if (e.getValue() instanceof OSql) {
                 OSql sql = (OSql) e.getValue();
                 try {
-                    //sql.commit();
                     sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
+                } catch (Throwable ei) {
+                }
+                try {
                     sql.close();
                     sql = null;
                 } catch (Throwable ei) {
@@ -357,7 +361,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             if (e.getValue() instanceof OSql) {
                 OSql sql = (OSql) e.getValue();
                 try {
-                    sql.rollback();
+                    if (!sql.getConnection().getAutoCommit()) {
+                        sql.rollback();
+                    }
                 } catch (Throwable ei) {
                 }
             }
@@ -372,15 +378,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 
 
-        HashMap CTL = new HashMap() {
-            @Override
-            public Object get(Object key) {
-                if (!containsKey(key)) {
-                    throw new RuntimeException("The `CTL." + key + "` not defined in processor properties");
-                }
-                return super.get(key);
-            }
-        };
+        HashMap CTL = new AccessMap("CTL");
 
         try {
             Script script = getGroovyScript(); //compilation must be moved to validation
@@ -445,8 +443,27 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).description("Controller service accessible from code as `" + propertyDescriptorName + "`")
                     .dynamic(true).identifiesControllerService(ControllerService.class).build();
         }
+        if (propertyDescriptorName.startsWith("SQL.")) {
+            return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).description("The `groovy.sql.Sql` object created from DBCP Controller service and accessible from code as `" + propertyDescriptorName + "`")
+                    .dynamic(true).identifiesControllerService(DBCPService.class).build();
+        }
         return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).dynamic(true)
                 .build();
+    }
+    
+    /** simple HashMap with exception on access of non-existent key */
+    private class AccessMap extends HashMap {
+    	private String parentKey;
+    	AccessMap(String parentKey){
+    		this.parentKey=parentKey;
+    	}
+        @Override
+        public Object get(Object key) {
+            if (!containsKey(key)) {
+                throw new RuntimeException("The `" + parentKey + "." + key + "` not defined in processor properties");
+            }
+            return super.get(key);
+        }
     }
 
 }
