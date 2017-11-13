@@ -2964,6 +2964,9 @@ Remote Process Groups can choose transport protocol from RAW and HTTP. Propertie
 Whether a Site-to-Site client uses HTTP or HTTPS is determined by `nifi.remote.input.secure`. If it is set to `true`, then requests are sent as HTTPS to `nifi.web.https.port`. If set to `false`, HTTP requests are sent to `nifi.web.http.port`.
 |nifi.remote.input.http.transaction.ttl|Specifies how long a transaction can stay alive on the server.  By default, it is set to `30 secs`. +
 If a Site-to-Site client hasn’t proceeded to the next action after this period of time, the transaction is discarded from the remote NiFi instance. For example, when a client creates a transaction but doesn’t send or receive flow files, or when a client sends or receives flow files but doesn’t confirm that transaction.
+|nifi.remote.contents.cache.expiration|Specifies how long NiFi should cache information about a remote NiFi instance when communicating via Site-to-Site. By default, NiFi will cache the +
+responses from the remote system for `30 secs`. This allows NiFi to avoid constantly making HTTP requests to the remote system, which is particularly important when this instance of NiFi +
+has many instances of Remote Process Groups.
 |====
 
 === Web Properties

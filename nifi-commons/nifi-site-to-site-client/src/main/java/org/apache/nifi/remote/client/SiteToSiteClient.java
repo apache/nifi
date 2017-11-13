@@ -154,6 +154,7 @@ public interface SiteToSiteClient extends Closeable {
         private long timeoutNanos = TimeUnit.SECONDS.toNanos(30);
         private long penalizationNanos = TimeUnit.SECONDS.toNanos(3);
         private long idleExpirationNanos = TimeUnit.SECONDS.toNanos(30L);
+        private long contentsCacheExpirationMillis = TimeUnit.SECONDS.toMillis(30L);
         private SSLContext sslContext;
         private String keystoreFilename;
         private String keystorePass;
@@ -184,6 +185,7 @@ public interface SiteToSiteClient extends Closeable {
             this.timeoutNanos = config.getTimeout(TimeUnit.NANOSECONDS);
             this.penalizationNanos = config.getPenalizationPeriod(TimeUnit.NANOSECONDS);
             this.idleExpirationNanos = config.getIdleConnectionExpiration(TimeUnit.NANOSECONDS);
+            this.contentsCacheExpirationMillis = config.getCacheExpiration(TimeUnit.MILLISECONDS);
             this.sslContext = config.getSslContext();
             this.keystoreFilename = config.getKeystoreFilename();
             this.keystorePass = config.getKeystorePassword();
@@ -270,6 +272,19 @@ public interface SiteToSiteClient extends Closeable {
          */
         public Builder timeout(final long timeout, final TimeUnit unit) {
             this.timeoutNanos = unit.toNanos(timeout);
+            return this;
+        }
+
+        /**
+         * Specifies how long the contents of a remote NiFi instance should be cached before making
+         * another web request to the remote instance.
+         *
+         * @param expirationPeriod the amount of time that an entry in the cache should expire
+         * @param unit unit of time over which to interpret the given expirationPeriod
+         * @return the builder
+         */
+        public Builder cacheExpiration(final long expirationPeriod, final TimeUnit unit) {
+            this.contentsCacheExpirationMillis = unit.toMillis(expirationPeriod);
             return this;
         }
 
@@ -722,6 +737,7 @@ public interface SiteToSiteClient extends Closeable {
         private final long timeoutNanos;
         private final long penalizationNanos;
         private final long idleExpirationNanos;
+        private final long contentsCacheExpirationMillis;
         private final SSLContext sslContext;
         private final String keystoreFilename;
         private final String keystorePass;
@@ -746,6 +762,7 @@ public interface SiteToSiteClient extends Closeable {
             this.timeoutNanos = 0;
             this.penalizationNanos = 0;
             this.idleExpirationNanos = 0;
+            this.contentsCacheExpirationMillis = 30000L;
             this.sslContext = null;
             this.keystoreFilename = null;
             this.keystorePass = null;
@@ -773,6 +790,7 @@ public interface SiteToSiteClient extends Closeable {
             this.timeoutNanos = builder.timeoutNanos;
             this.penalizationNanos = builder.penalizationNanos;
             this.idleExpirationNanos = builder.idleExpirationNanos;
+            this.contentsCacheExpirationMillis = builder.contentsCacheExpirationMillis;
             this.sslContext = builder.sslContext;
             this.keystoreFilename = builder.keystoreFilename;
             this.keystorePass = builder.keystorePass;
@@ -814,6 +832,11 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public long getTimeout(final TimeUnit timeUnit) {
             return timeUnit.convert(timeoutNanos, TimeUnit.NANOSECONDS);
+        }
+
+        @Override
+        public long getCacheExpiration(final TimeUnit timeUnit) {
+            return timeUnit.convert(contentsCacheExpirationMillis, TimeUnit.MILLISECONDS);
         }
 
         @Override
