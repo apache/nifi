@@ -59,6 +59,7 @@ public class SiteInfoProvider {
     private SSLContext sslContext;
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
+    private long cachedContentExpirationMillis = TimeUnit.SECONDS.toMillis(30L);
 
     private ControllerDTO refreshRemoteInfo() throws IOException {
 
@@ -104,6 +105,7 @@ public class SiteInfoProvider {
         apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
         apiClient.setReadTimeoutMillis(readTimeoutMillis);
         apiClient.setLocalAddress(localAddress);
+        apiClient.setCacheExpirationMillis(cachedContentExpirationMillis);
         return apiClient;
     }
 
@@ -270,6 +272,10 @@ public class SiteInfoProvider {
 
     public void setReadTimeoutMillis(int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
+    }
+
+    public void setCachedContentsExpirationMillis(long expirationMillis) {
+        this.cachedContentExpirationMillis = expirationMillis;
     }
 
     public void setProxy(HttpProxy proxy) {
