@@ -73,6 +73,7 @@ public abstract class NiFiProperties {
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";
     public static final String SITE_TO_SITE_HTTP_ENABLED = "nifi.remote.input.http.enabled";
     public static final String SITE_TO_SITE_HTTP_TRANSACTION_TTL = "nifi.remote.input.http.transaction.ttl";
+    public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";

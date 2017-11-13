@@ -163,6 +163,17 @@ public interface SiteToSiteClientConfig extends Serializable {
     int getPreferredBatchCount();
 
     /**
+     * When the contents of a remote NiFi instance are fetched, that information is cached
+     * so that many calls that are made in a short period of time do not overwhelm the remote
+     * NiFi instance. This method will indicate the number of milliseconds that this information
+     * can be cached.
+     *
+     * @param unit the desired time unit
+     * @return the number of milliseconds that the contents of a remote NiFi instance will be cached
+     */
+    long getCacheExpiration(TimeUnit unit);
+
+    /**
      * @return the EventReporter that is to be used by clients to report events
      */
     EventReporter getEventReporter();

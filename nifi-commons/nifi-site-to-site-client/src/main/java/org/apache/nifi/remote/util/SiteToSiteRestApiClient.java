@@ -76,8 +76,6 @@ import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -90,6 +88,9 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,8 +111,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -176,11 +180,14 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
+    private long cacheExpirationMillis = 30000L;
     private static final Pattern HTTP_ABS_URL = Pattern.compile("^https?://.+$");
 
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
 
+    private static final ConcurrentMap<String, RemoteGroupContents> contentsMap = new ConcurrentHashMap<>();
+    private volatile long lastPruneTimestamp = System.currentTimeMillis();
 
     public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final EventReporter eventReporter) {
         this.sslContext = sslContext;
@@ -268,7 +275,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final HttpClientBuilder clientBuilder = HttpClients.custom();
 
         if (sslContext != null) {
-            clientBuilder.setSslcontext(sslContext);
+            clientBuilder.setSSLContext(sslContext);
             clientBuilder.addInterceptorFirst(new HttpsResponseInterceptor());
         }
 
@@ -368,10 +375,48 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     private ControllerDTO getController() throws IOException {
+        // first check cache and prune any old values.
+        // Periodically prune the map so that we are not keeping entries around forever, in case an RPG is removed
+        // from he canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
+        if (System.currentTimeMillis() > lastPruneTimestamp + TimeUnit.MINUTES.toMillis(5)) {
+            pruneCache();
+        }
+
+        final String internedUrl = baseUrl.intern();
+        synchronized (internedUrl) {
+            final RemoteGroupContents groupContents = contentsMap.get(internedUrl);
+
+            if (groupContents == null || groupContents.getContents() == null || groupContents.isOlderThan(cacheExpirationMillis)) {
+                logger.debug("No Contents for remote group at URL {} or contents have expired; will refresh contents", internedUrl);
+
+                final ControllerDTO refreshedContents;
+                try {
+                    refreshedContents = fetchController();
+                } catch (final Exception e) {
+                    // we failed to refresh contents, but we don't want to constantly poll the remote instance, failing.
+                    // So we put the ControllerDTO back but use a new RemoteGroupContents so that we get a new timestamp.
+                    final ControllerDTO existingController = groupContents == null ? null : groupContents.getContents();
+                    final RemoteGroupContents updatedContents = new RemoteGroupContents(existingController);
+                    contentsMap.put(internedUrl, updatedContents);
+                    throw e;
+                }
+
+                logger.debug("Successfully retrieved contents for remote group at URL {}", internedUrl);
+
+                final RemoteGroupContents updatedContents = new RemoteGroupContents(refreshedContents);
+                contentsMap.put(internedUrl, updatedContents);
+                return refreshedContents;
+            }
+
+            logger.debug("Contents for remote group at URL {} have already been fetched and have not yet expired. Will return the cached value.", internedUrl);
+            return groupContents.getContents();
+        }
+    }
+
+    private ControllerDTO fetchController() throws IOException {
         try {
             final HttpGet get = createGetControllerRequest();
             return execute(get, ControllerEntity.class).getController();
-
         } catch (final HttpGetFailedException e) {
             if (RESPONSE_CODE_NOT_FOUND == e.getResponseCode()) {
                 logger.debug("getController received NOT_FOUND, trying to access the old NiFi version resource url...");
@@ -379,6 +424,20 @@ public class SiteToSiteRestApiClient implements Closeable {
                 return execute(get, ControllerEntity.class).getController();
             }
             throw e;
+        }
+    }
+
+    private void pruneCache() {
+        for (final Map.Entry<String, RemoteGroupContents> entry : contentsMap.entrySet()) {
+            final String url = entry.getKey();
+            final RemoteGroupContents contents = entry.getValue();
+
+            // If any entry in the map is more than 4 times as old as the refresh period,
+            // then we can go ahead and remove it from the map. We use 4 * refreshMillis
+            // just to ensure that we don't have any race condition with the above #getRemoteContents.
+            if (contents.isOlderThan(TimeUnit.MINUTES.toMillis(5))) {
+                contentsMap.remove(url, contents);
+            }
         }
     }
 
@@ -1211,6 +1270,10 @@ public class SiteToSiteRestApiClient implements Closeable {
         this.readTimeoutMillis = readTimeoutMillis;
     }
 
+    public void setCacheExpirationMillis(final long expirationMillis) {
+        this.cacheExpirationMillis = expirationMillis;
+    }
+
     public static String getFirstUrl(final String clusterUrlStr) {
         if (clusterUrlStr == null) {
             return null;
@@ -1452,4 +1515,22 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
+    private static class RemoteGroupContents {
+        private final ControllerDTO contents;
+        private final long timestamp;
+
+        public RemoteGroupContents(final ControllerDTO contents) {
+            this.contents = contents;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public ControllerDTO getContents() {
+            return contents;
+        }
+
+        public boolean isOlderThan(final long millis) {
+            final long millisSinceRefresh = System.currentTimeMillis() - timestamp;
+            return millisSinceRefresh > millis;
+        }
+    }
 }

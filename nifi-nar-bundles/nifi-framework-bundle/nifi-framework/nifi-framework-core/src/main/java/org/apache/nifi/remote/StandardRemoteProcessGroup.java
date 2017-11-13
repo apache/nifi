@@ -102,6 +102,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final ProcessScheduler scheduler;
     private final EventReporter eventReporter;
     private final NiFiProperties nifiProperties;
+    private final long remoteContentsCacheExpiration;
 
     private final AtomicReference<String> name = new AtomicReference<>();
     private final AtomicReference<Position> position = new AtomicReference<>(new Position(0D, 0D));
@@ -155,6 +156,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         this.sslContext = sslContext;
         this.scheduler = flowController.getProcessScheduler();
         this.authorizationIssue = "Establishing connection to " + targetUris;
+
+        final String expirationPeriod = nifiProperties.getProperty(NiFiProperties.REMOTE_CONTENTS_CACHE_EXPIRATION, "30 secs");
+        remoteContentsCacheExpiration = FormatUtils.getTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS);
 
         final BulletinRepository bulletinRepository = flowController.getBulletinRepository();
         eventReporter = new EventReporter() {
@@ -963,7 +967,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setLocalAddress(getLocalAddress());
-
+        apiClient.setCacheExpirationMillis(remoteContentsCacheExpiration);
         return apiClient;
     }
 
