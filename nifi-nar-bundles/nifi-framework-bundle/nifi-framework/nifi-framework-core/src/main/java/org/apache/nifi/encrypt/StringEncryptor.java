@@ -113,7 +113,7 @@ public class StringEncryptor {
      * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
      * @param key       the UTF-8 characters from nifi.properties -- nifi.sensitive.props.key
      */
-    protected StringEncryptor(final String algorithm, final String provider, final String key) {
+    public StringEncryptor(final String algorithm, final String provider, final String key) {
         this.algorithm = algorithm;
         this.provider = provider;
         this.key = null;
