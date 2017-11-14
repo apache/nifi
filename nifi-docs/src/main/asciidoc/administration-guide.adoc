@@ -3004,6 +3004,7 @@ nifi.web.https.network.interface.eth1=eth1 +
 Providing three total network interfaces, including  `nifi.web.https.network.interface.default`.
 |nifi.web.jetty.working.directory|The location of the Jetty working directory. The default value is `./work/jetty`.
 |nifi.web.jetty.threads|The number of Jetty threads. The default value is `200`.
+|nifi.web.max.header.size|The maximum size allowed for request and response headers. The default value is 16 KB.
 |====
 
 === Security Properties
