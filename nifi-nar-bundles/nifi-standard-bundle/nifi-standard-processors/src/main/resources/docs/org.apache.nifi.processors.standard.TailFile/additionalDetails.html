@@ -105,28 +105,23 @@
         	and new log messages are always appended in log file of the current day.
         </p>
         <p>
-        	If the processor is configured with '<b>Multiple files</b>' mode and '<b>Fixed name</b>' rolling strategy, the processor will list the 
-        	files to tail in the 'Base directory' (recursively or not) and matching the regular expression. This listing will only occur once when 
-        	the processor is started. In this configuration, the processor will act as in 'Single file' mode for all files listed by the processor 
-        	when started.
-        </p>
-        <p>
-        	If the processor is configured with '<b>Multiple files</b>' mode and '<b>Changing name</b>' rolling strategy, two new properties are 
-        	mandatory:
+        	If the processor is configured with '<b>Multiple files</b>' mode, two additional properties are relevant:
         </p>
         <ul>
         	<li><b>Lookup frequency</b>: specifies the minimum duration the processor will wait before listing again the files to tail.</li>
         	<li><b>Maximum age</b>: specifies the necessary minimum duration to consider that no new messages will be appended in a file 
-        	regarding its last modification date.</li>
+        	regarding its last modification date. If the amount of time that has elapsed since the file was modified is larger than this
+        	period of time, the file will not be tailed. For example, if a file was modified 24 hours ago and this property is set to 12 hours,
+        	the file will not be tailed. But if this property is set to 36 hours, then the file will continue to be tailed.</li>
         </ul>
         <p>
-        	It is necessary to pay attention to 'Lookup frequency' and 'Maximum age' properties as well as the frequency at which the processor is 
-        	triggered in order to keep good performances. It is recommended to keep 'Maximum age' > 'Lookup frequency' > processor scheduling 
-        	frequency to avoid loosing messages. It also recommended not to set 'Maximum Age' too low because if messages are appended in a file 
-        	after this file has been considered "too old", all the messages in the file may be read again leading to data duplication.
+        	It is necessary to pay attention to 'Lookup frequency' and 'Maximum age' properties, as well as the frequency at which the processor is 
+        	triggered, in order to achieve high performance. It is recommended to keep 'Maximum age' > 'Lookup frequency' > processor scheduling 
+        	frequency to avoid missing data. It also recommended not to set 'Maximum Age' too low because if messages are appended in a file 
+        	after this file has been considered "too old", all the messages in the file may be read again, leading to data duplication.
         </p>
         <p>
-        	Besides, if the processor is configured with '<b>Multiple files</b>' mode and '<b>Changing name</b>' rolling strategy, the 'Rolling 
+        	If the processor is configured with '<b>Multiple files</b>' mode, the 'Rolling 
         	filename pattern' property must be specific enough to ensure that only the rolling files will be listed and not other currently tailed
         	files in the same directory (this can be achieved using ${filename} tag).
         </p>
