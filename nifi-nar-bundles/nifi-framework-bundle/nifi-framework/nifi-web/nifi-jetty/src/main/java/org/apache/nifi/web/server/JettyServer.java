@@ -30,6 +30,7 @@ import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -109,7 +110,6 @@ public class JettyServer implements NiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
     private static final String WEB_DEFAULTS_XML = "org/apache/nifi/web/webdefault.xml";
-    private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
 
     private static final FileFilter WAR_FILTER = new FileFilter() {
         @Override
@@ -578,8 +578,9 @@ public class JettyServer implements NiFiServer {
     private void configureConnectors(final Server server) throws ServerConfigurationException {
         // create the http configuration
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        httpConfiguration.setRequestHeaderSize(HEADER_BUFFER_SIZE);
-        httpConfiguration.setResponseHeaderSize(HEADER_BUFFER_SIZE);
+        final int headerSize = DataUnit.parseDataSize(props.getWebMaxHeaderSize(), DataUnit.B).intValue();
+        httpConfiguration.setRequestHeaderSize(headerSize);
+        httpConfiguration.setResponseHeaderSize(headerSize);
 
         if (props.getPort() != null) {
             final Integer port = props.getPort();
