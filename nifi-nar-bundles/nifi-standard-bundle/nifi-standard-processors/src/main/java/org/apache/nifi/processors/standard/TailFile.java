@@ -16,39 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.NullOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -77,6 +47,37 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.NullOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -89,9 +90,7 @@ import java.util.zip.Checksum;
         + "ingesting files that have been compressed when 'rolled over'.")
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Stores state about where in the Tailed File it left off so that on restart it does not have to duplicate data. "
         + "State is stored either local or clustered depend on the <File Location> property.")
-@WritesAttributes({
-    @WritesAttribute(attribute = "tailfile.original.path", description = "Path of the original file the flow file comes from.")
-    })
+@WritesAttribute(attribute = "tailfile.original.path", description = "Path of the original file the flow file comes from.")
 @Restricted("Provides operator the ability to read from any file that NiFi has access to.")
 public class TailFile extends AbstractProcessor {
 
@@ -195,15 +194,6 @@ public class TailFile extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor ROLLING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("tailfile-rolling-strategy")
-            .displayName("Rolling Strategy")
-            .description("Specifies if the files to tail have a fixed name or not.")
-            .required(true)
-            .allowableValues(FIXED_NAME, CHANGING_NAME)
-            .defaultValue(FIXED_NAME.getValue())
-            .build();
-
     static final PropertyDescriptor LOOKUP_FREQUENCY = new PropertyDescriptor.Builder()
             .name("tailfile-lookup-frequency")
             .displayName("Lookup frequency")
@@ -234,6 +224,7 @@ public class TailFile extends AbstractProcessor {
     private volatile Map<String, TailFileObject> states = new HashMap<String, TailFileObject>();
     private volatile AtomicLong lastLookup = new AtomicLong(0L);
     private volatile AtomicBoolean isMultiChanging = new AtomicBoolean(false);
+    private volatile boolean requireStateLookup = true;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -245,7 +236,6 @@ public class TailFile extends AbstractProcessor {
         properties.add(START_POSITION);
         properties.add(STATE_LOCATION);
         properties.add(RECURSIVE);
-        properties.add(ROLLING_STRATEGY);
         properties.add(LOOKUP_FREQUENCY);
         properties.add(MAXIMUM_AGE);
         return properties;
@@ -267,44 +257,29 @@ public class TailFile extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
-        if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
+        if (context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             String path = context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue();
-            if(path == null) {
-                results.add(new ValidationResult.Builder().subject(BASE_DIRECTORY.getName()).valid(false)
-                        .explanation("Base directory property cannot be empty in Multifile mode.").build());
+            if (path == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject(BASE_DIRECTORY.getName())
+                    .valid(false)
+                    .explanation("Base directory property cannot be empty in Multifile mode.")
+                    .build());
             } else if (!new File(path).isDirectory()) {
-                results.add(new ValidationResult.Builder().subject(BASE_DIRECTORY.getName()).valid(false)
-                            .explanation(path + " is not a directory.").build());
-            }
-
-            if(context.getProperty(ROLLING_STRATEGY).getValue().equals(CHANGING_NAME.getValue())) {
-                String freq = context.getProperty(LOOKUP_FREQUENCY).getValue();
-                if(freq == null) {
-                    results.add(new ValidationResult.Builder().subject(LOOKUP_FREQUENCY.getName()).valid(false)
-                            .explanation("In Multiple files mode and Changing name rolling strategy, lookup frequency "
-                                    + "property must be specified.").build());
-                }
-                String maxAge = context.getProperty(MAXIMUM_AGE).getValue();
-                if(maxAge == null) {
-                    results.add(new ValidationResult.Builder().subject(MAXIMUM_AGE.getName()).valid(false)
-                            .explanation("In Multiple files mode and Changing name rolling strategy, maximum age "
-                                    + "property must be specified.").build());
-                }
-            } else {
-                long max = context.getProperty(MAXIMUM_AGE).getValue() == null ? Long.MAX_VALUE : context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-                List<String> filesToTail = getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
-                        context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
-                        context.getProperty(RECURSIVE).asBoolean(),
-                        max);
-
-                if(filesToTail.isEmpty()) {
-                    results.add(new ValidationResult.Builder().subject(FILENAME.getName()).valid(false)
-                                .explanation("There is no file to tail. Files must exist when starting this processor.").build());
-                }
+                results.add(new ValidationResult.Builder()
+                    .subject(BASE_DIRECTORY.getName())
+                    .valid(false)
+                    .explanation(path + " is not a directory.")
+                    .build());
             }
         }
 
         return results;
+    }
+
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange() {
+        this.requireStateLookup = true;
     }
 
     @OnScheduled
@@ -429,10 +404,10 @@ public class TailFile extends AbstractProcessor {
      * @return List of files to tail
      */
     private List<String> getFilesToTail(final String baseDir, String fileRegex, boolean isRecursive, long maxAge) {
-        Collection<File> files = FileUtils.listFiles(new File(baseDir), null, isRecursive);
-        List<String> result = new ArrayList<String>();
+        final Collection<File> files = FileUtils.listFiles(new File(baseDir), null, isRecursive);
+        final List<String> result = new ArrayList<String>();
 
-        String baseDirNoTrailingSeparator = baseDir.endsWith(File.separator) ? baseDir.substring(0, baseDir.length() -1) : baseDir;
+        final String baseDirNoTrailingSeparator = baseDir.endsWith(File.separator) ? baseDir.substring(0, baseDir.length() - 1) : baseDir;
         final String fullRegex;
         if (File.separator.equals("/")) {
             // handle unix-style paths
@@ -441,13 +416,13 @@ public class TailFile extends AbstractProcessor {
             // handle windows-style paths, need to quote backslash characters
             fullRegex = baseDirNoTrailingSeparator + Pattern.quote(File.separator) + fileRegex;
         }
-        Pattern p = Pattern.compile(fullRegex);
+        final Pattern p = Pattern.compile(fullRegex);
 
-        for(File file : files) {
-            String path = file.getPath();
-            if(p.matcher(path).matches()) {
-                if(isMultiChanging.get()) {
-                    if((new Date().getTime() - file.lastModified()) < maxAge) {
+        for (File file : files) {
+            final String path = file.getPath();
+            if (p.matcher(path).matches()) {
+                if (isMultiChanging.get()) {
+                    if ((new Date().getTime() - file.lastModified()) < maxAge) {
                         result.add(path);
                     }
                 } else {
@@ -515,7 +490,14 @@ public class TailFile extends AbstractProcessor {
             if (existingTailFile.length() >= position) {
                 try (final InputStream tailFileIs = new FileInputStream(existingTailFile);
                         final CheckedInputStream in = new CheckedInputStream(tailFileIs, checksum)) {
-                    StreamUtils.copy(in, new NullOutputStream(), states.get(filePath).getState().getPosition());
+
+                    try {
+                        StreamUtils.copy(in, new NullOutputStream(), states.get(filePath).getState().getPosition());
+                    } catch (final EOFException eof) {
+                        // If we hit EOFException, then the file is smaller than we expected. Assume rollover.
+                        getLogger().debug("When recovering state, file being tailed has less data than was stored in the state. "
+                            + "Assuming rollover. Will begin tailing current file from beginning.");
+                    }
 
                     final long checksumResult = in.getChecksum().getValue();
                     if (checksumResult == states.get(filePath).getExpectedRecoveryChecksum()) {
@@ -589,16 +571,30 @@ public class TailFile extends AbstractProcessor {
                 try {
                     recoverState(context);
                 } catch (IOException e) {
-                    getLogger().error("Exception raised while looking up for new files", e);
+                    getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                     context.yield();
                     return;
                 }
             }
         }
-        if(states.isEmpty()) {
+
+        if (requireStateLookup) {
+            try {
+                recoverState(context);
+            } catch (IOException e) {
+                getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
+                context.yield();
+                return;
+            }
+
+            requireStateLookup = false;
+        }
+
+        if (states.isEmpty()) {
             context.yield();
             return;
         }
+
         for (String tailFile : states.keySet()) {
             processTailFile(context, session, tailFile);
         }
@@ -688,9 +684,38 @@ public class TailFile extends AbstractProcessor {
         final long startNanos = System.nanoTime();
 
         // Check if file has rotated
-        if (rolloverOccurred
-                || (timestamp <= file.lastModified() && length > file.length())) {
+        // We determine that the file has rotated if any of the following conditions are met:
+        // 1. 'rolloverOccured' == true, which indicates that we have found a new file matching the rollover pattern.
+        // 2. The file was modified after the timestamp in our state, AND the file is smaller than we expected. This satisfies
+        //    the case where we are tailing File A, and that file is then renamed (say to B) and a new file named A is created
+        //    and is written to. In such a case, File A may have a file size smaller than we have in our state, so we know that
+        //    it rolled over.
+        // 3. The File Channel that we have indicates that the size of the file is different than file.length() indicates, AND
+        //    the File Channel also indicates that we have read all data in the file. This case may also occur in the same scenario
+        //    as #2, above. In this case, the File Channel is pointing to File A, but the 'file' object is pointing to File B. They
+        //    both have the same name but are different files. As a result, once we have consumed all data from the File Channel,
+        //    we want to roll over and consume data from the new file.
+        boolean rotated = rolloverOccurred;
+        if (!rotated) {
+            final long fileLength = file.length();
+            if (length > fileLength) {
+                rotated = true;
+            } else {
+                try {
+                    final long readerSize = reader.size();
+                    final long readerPosition = reader.position();
 
+                    if (readerSize == readerPosition && readerSize != fileLength) {
+                        rotated = true;
+                    }
+                } catch (final IOException e) {
+                    getLogger().warn("Failed to determined the size or position of the File Channel when "
+                        + "determining if the file has rolled over. Will assume that the file being tailed has not rolled over", e);
+                }
+            }
+        }
+
+        if (rotated) {
             // Since file has rotated, we close the reader, create a new one, and then reset our state.
             try {
                 reader.close();
