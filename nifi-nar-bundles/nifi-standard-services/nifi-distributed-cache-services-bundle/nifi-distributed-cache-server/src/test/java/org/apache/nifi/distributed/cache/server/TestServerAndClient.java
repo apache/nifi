@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.SerializationException;
 import org.apache.commons.lang3.SystemUtils;
@@ -274,6 +275,13 @@ public class TestServerAndClient {
         assertTrue(contains);
         assertTrue(contains2);
 
+        final Deserializer<String> deserializer = new StringDeserializer();
+        final Set<String> keys = client.keySet(deserializer);
+        assertEquals(3, keys.size());
+        assertTrue(keys.contains("test"));
+        assertTrue(keys.contains("test2"));
+        assertTrue(keys.contains("test3"));
+
         final boolean addedAgain = client.putIfAbsent("test", "1", serializer, serializer);
         assertFalse(addedAgain);
 
@@ -306,6 +314,19 @@ public class TestServerAndClient {
         assertFalse(client.containsKey("test.1", serializer));
         assertFalse(client.containsKey("test.2", serializer));
         assertTrue(client.containsKey("test3", serializer));
+
+        // test removeByPatternAndGet
+        client.put("test.1", "1", serializer, serializer);
+        client.put("test.2", "2", serializer, serializer);
+        Map<String,String> removed = client.removeByPatternAndGet("test\\..*", deserializer, deserializer);
+        assertEquals(2, removed.size());
+        assertTrue(removed.containsKey("test.1"));
+        assertTrue(removed.containsKey("test.2"));
+        assertFalse(client.containsKey("test.1", serializer));
+        assertFalse(client.containsKey("test.2", serializer));
+        assertTrue(client.containsKey("test3", serializer));
+        removed = client.removeByPatternAndGet("test\\..*", deserializer, deserializer);
+        assertEquals(0, removed.size());
 
         newServer.shutdownServer();
         client.close();
@@ -436,6 +457,16 @@ public class TestServerAndClient {
         final boolean removed = client.remove("testKey", keySerializer);
         assertTrue(removed);
         LOGGER.debug("end remove");
+
+        client.put("testKey", "testValue", keySerializer, valueSerializer);
+        assertTrue(client.containsKey("testKey", keySerializer));
+        String removedValue = client.removeAndGet("testKey", keySerializer, deserializer);
+        assertEquals("testValue", removedValue);
+        removedValue = client.removeAndGet("testKey", keySerializer, deserializer);
+        assertNull(removedValue);
+
+        final Set<String> keys = client.keySet(deserializer);
+        assertEquals(0, keys.size());
 
         // Test removeByPattern, the first two should be removed and the last should remain
         client.put("test.1", "1", keySerializer, keySerializer);
@@ -687,6 +718,23 @@ public class TestServerAndClient {
         } catch (UnsupportedOperationException e) {
         }
 
+        try {
+            Set<String> keys = client.keySet(stringDeserializer);
+            fail("Version 3 operations should NOT work.");
+        } catch (UnsupportedOperationException e) {
+        }
+
+        try {
+            String removed = client.removeAndGet("v.*", stringSerializer, stringDeserializer);
+            fail("Version 3 operations should NOT work.");
+        } catch (UnsupportedOperationException e) {
+        }
+
+        try {
+            Map<String, String> removed = client.removeByPatternAndGet("v.*", stringDeserializer, stringDeserializer);
+            fail("Version 3 operations should NOT work.");
+        } catch (UnsupportedOperationException e) {
+        }
         client.close();
         server.shutdownServer();
     }

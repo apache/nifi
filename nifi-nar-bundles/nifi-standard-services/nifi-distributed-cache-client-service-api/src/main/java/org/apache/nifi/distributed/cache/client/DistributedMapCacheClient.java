@@ -167,6 +167,23 @@ public interface DistributedMapCacheClient extends ControllerService {
     <K> boolean remove(K key, Serializer<K> serializer) throws IOException;
 
     /**
+     * Removes the entry with the given key from the cache, if it is present,
+     * and returns the value that was removed from the map.
+     *
+     * @param <K> type of key
+     * @param <V> type of value
+     * @param key key
+     * @param keySerializer key serializer
+     * @param valueDeserializer value deserializer
+     * @return the value previously associated with the key, or null if there was no mapping
+     * null can also indicate that the map previously associated null with the key
+     * @throws IOException ex
+     */
+    default <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Removes entries whose keys match the specified pattern
      *
      * @param regex The regular expression / pattern on which to match the keys to be removed
@@ -174,4 +191,32 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @throws IOException if any error occurred while removing an entry
      */
     long removeByPattern(String regex) throws IOException;
+
+    /**
+     * Removes entries whose keys match the specified pattern, and returns a map of entries that
+     * were removed.
+     *
+     * @param <K> type of key
+     * @param <V> type of value
+     * @param regex The regular expression / pattern on which to match the keys to be removed
+     * @param keyDeserializer key deserializer
+     * @param valueDeserializer value deserializer
+     * @return A map of key/value entries that were removed from the cache
+     * @throws IOException if any error occurred while removing an entry
+     */
+    default <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Returns a set of all keys currently in the cache
+     *
+     * @param <K> type of key
+     * @param keyDeserializer key deserializer
+     * @return a Set of all keys currently in the cache
+     * @throws IOException ex
+     */
+    default <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 }

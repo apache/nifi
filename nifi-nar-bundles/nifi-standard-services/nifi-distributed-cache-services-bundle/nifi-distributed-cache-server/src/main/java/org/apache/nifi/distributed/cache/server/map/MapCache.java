@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface MapCache {
 
@@ -40,6 +41,8 @@ public interface MapCache {
     MapCacheRecord fetch(ByteBuffer key) throws IOException;
 
     MapPutResult replace(MapCacheRecord record) throws IOException;
+
+    Set<ByteBuffer> keySet() throws IOException;
 
     void shutdown() throws IOException;
 }

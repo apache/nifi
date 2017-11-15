@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
@@ -270,6 +271,16 @@ public class SimpleMapCache implements MapCache {
             return put(key, value, existing);
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<ByteBuffer> keySet() throws IOException {
+        readLock.lock();
+        try {
+            return cache.keySet();
+        } finally {
+            readLock.unlock();
         }
     }
 
