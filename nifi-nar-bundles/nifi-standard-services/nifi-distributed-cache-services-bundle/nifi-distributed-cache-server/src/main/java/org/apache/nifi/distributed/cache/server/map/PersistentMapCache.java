@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,6 +169,11 @@ public class PersistentMapCache implements MapCache {
             }
         }
         return removeResult;
+    }
+
+    @Override
+    public Set<ByteBuffer> keySet() throws IOException {
+        return wrapped.keySet();
     }
 
     @Override

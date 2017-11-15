@@ -22,6 +22,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -256,6 +257,27 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(new CommsAction<V>() {
+            @Override
+            public V execute(final CommsSession session) throws IOException {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("removeAndGet");
+
+                serialize(key, keySerializer, dos);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                return valueDeserializer.deserialize(responseBuffer);
+            }
+        });
+    }
+
+    @Override
     public long removeByPattern(String regex) throws IOException {
         return withCommsSession(session -> {
             final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
@@ -266,6 +288,34 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             // read response
             final DataInputStream dis = new DataInputStream(session.getInputStream());
             return dis.readLong();
+        });
+    }
+
+    @Override
+    public <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(new CommsAction<Map<K, V>>() {
+            @Override
+            public Map<K, V> execute(CommsSession session) throws IOException {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("removeByPatternAndGet");
+                dos.writeUTF(regex);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                final int mapSize = dis.readInt();
+                HashMap<K, V> resultMap = new HashMap<>(mapSize);
+                for (int i=0; i<mapSize; i++) {
+                    final byte[] keyBuffer = readLengthDelimitedResponse(dis);
+                    K key = keyDeserializer.deserialize(keyBuffer);
+                    final byte[] valueBuffer = readLengthDelimitedResponse(dis);
+                    V value = valueDeserializer.deserialize(valueBuffer);
+                    resultMap.put(key, value);
+                }
+                return resultMap;
+            }
         });
     }
 
@@ -318,6 +368,27 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             // read response
             final DataInputStream dis = new DataInputStream(session.getInputStream());
             return dis.readBoolean();
+        });
+    }
+
+    @Override
+    public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+        return withCommsSession(session -> {
+            validateProtocolVersion(session, 3);
+
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("keySet");
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            final int setSize = dis.readInt();
+            HashSet<K> resultSet = new HashSet<>(setSize);
+            for (int i=0; i<setSize; i++) {
+                final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                resultSet.add(keyDeserializer.deserialize(responseBuffer));
+            }
+            return resultSet;
         });
     }
 
