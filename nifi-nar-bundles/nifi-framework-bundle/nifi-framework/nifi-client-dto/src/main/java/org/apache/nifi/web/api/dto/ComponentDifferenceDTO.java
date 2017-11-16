@@ -17,12 +17,11 @@
 
 package org.apache.nifi.web.api.dto;
 
-import java.util.List;
-import java.util.Objects;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
-
-import io.swagger.annotations.ApiModelProperty;
+import java.util.List;
+import java.util.Objects;
 
 @XmlType(name = "componentDifference")
 public class ComponentDifferenceDTO {
@@ -30,7 +29,7 @@ public class ComponentDifferenceDTO {
     private String componentId;
     private String componentName;
     private String processGroupId;
-    private List<String> differences;
+    private List<DifferenceDTO> differences;
 
     @ApiModelProperty("The type of component")
     public String getComponentType() {
@@ -69,11 +68,11 @@ public class ComponentDifferenceDTO {
     }
 
     @ApiModelProperty("The differences in the component between the two flows")
-    public List<String> getDifferences() {
+    public List<DifferenceDTO> getDifferences() {
         return differences;
     }
 
-    public void setDifferences(List<String> differences) {
+    public void setDifferences(List<DifferenceDTO> differences) {
         this.differences = differences;
     }
 

@@ -428,6 +428,123 @@
     };
 
     /**
+     * Returns whether the process group support supports commit.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsCommitFlowVersion = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.current === true && versionControlInformation.modified === true;
+    };
+
+    /**
+     * Returns whether the process group supports revert local changes.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var hasLocalChanges = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.modified === true;
+    };
+
+    /**
+     * Returns whether the process group supports changing the flow version.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsChangeFlowVersion = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.modified === false;
+    };
+
+    /**
      * Determines whether the current selection supports stopping flow versioning.
      *
      * @param selection
@@ -640,9 +757,10 @@
         {id: 'version-menu-item', groupMenuItem: {clazz: 'fa', text: 'Version'}, menuItems: [
             {id: 'start-version-control-menu-item', condition: supportsStartFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Start version control', action: 'saveFlowVersion'}},
             {separator: true},
-            {id: 'commit-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'saveFlowVersion'}},
-            {id: 'revert-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa fa-undo', text: 'Revert local changes', action: 'revertLocalChanges'}},
-            {id: 'change-version-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Change version', action: 'changeFlowVersion'}},
+            {id: 'commit-menu-item', condition: supportsCommitFlowVersion, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'saveFlowVersion'}},
+            {id: 'local-changes-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa', text: 'Show local changes', action: 'showLocalChanges'}},
+            {id: 'revert-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa fa-undo', text: 'Revert local changes', action: 'revertLocalChanges'}},
+            {id: 'change-version-menu-item', condition: supportsChangeFlowVersion, menuItem: {clazz: 'fa', text: 'Change version', action: 'changeFlowVersion'}},
             {separator: true},
             {id: 'stop-version-control-menu-item', condition: supportsStopFlowVersioning, menuItem: {clazz: 'fa', text: 'Stop version control', action: 'stopVersionControl'}}
         ]},

@@ -1266,6 +1266,18 @@
         },
 
         /**
+         * Shows local changes.
+         */
+        showLocalChanges: function (selection) {
+            if (selection.empty()) {
+                nfFlowVersion.showLocalChanges(nfCanvasUtils.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                nfFlowVersion.showLocalChanges(selectionData.id)
+            }
+        },
+
+        /**
          * Changes the flow version.
          */
         changeFlowVersion: function (selection) {
