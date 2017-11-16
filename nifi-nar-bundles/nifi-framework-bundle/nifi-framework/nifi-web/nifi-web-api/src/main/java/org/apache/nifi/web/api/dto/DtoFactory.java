@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -214,6 +187,32 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
+
+import javax.ws.rs.WebApplicationException;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -2181,15 +2180,20 @@ public final class DtoFactory {
 
 
     public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
-        final Map<ComponentDifferenceDTO, List<String>> differencesByComponent = new HashMap<>();
+        final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
 
         for (final FlowDifference difference : comparison.getDifferences()) {
             final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
-            final List<String> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
-            differences.add(difference.getDescription());
+            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+
+            final DifferenceDTO dto = new DifferenceDTO();
+            dto.setDifferenceType(difference.getDifferenceType().getDescription());
+            dto.setDifference(difference.getDescription());
+
+            differences.add(dto);
         }
 
-        for (final Map.Entry<ComponentDifferenceDTO, List<String>> entry : differencesByComponent.entrySet()) {
+        for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
             entry.getKey().setDifferences(entry.getValue());
         }
 

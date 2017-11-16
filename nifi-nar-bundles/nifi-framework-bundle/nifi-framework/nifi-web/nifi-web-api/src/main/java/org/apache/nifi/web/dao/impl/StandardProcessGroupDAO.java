@@ -61,7 +61,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         // create the process group
         ProcessGroup group = flowController.createProcessGroup(processGroup.getId());
-        group.setName(processGroup.getName());
+        if (processGroup.getName() != null) {
+            group.setName(processGroup.getName());
+        }
         if (processGroup.getPosition() != null) {
             group.setPosition(new Position(processGroup.getPosition().getX(), processGroup.getPosition().getY()));
         }

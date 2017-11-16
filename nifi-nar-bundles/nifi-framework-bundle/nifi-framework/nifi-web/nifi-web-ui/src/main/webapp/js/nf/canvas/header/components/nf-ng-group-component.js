@@ -25,9 +25,10 @@
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
-                'nf.Common'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon) {
-                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon));
+                'nf.Common',
+                'nf.Dialog'],
+            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
+                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.GroupComponent =
@@ -37,7 +38,8 @@
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
-                require('nf.Common')));
+                require('nf.Common'),
+                require('nf.Dialog')));
     } else {
         nf.ng.GroupComponent = factory(root.$,
             root.nf.Client,
@@ -45,9 +47,10 @@
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
-            root.nf.Common);
+            root.nf.Common,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon) {
+}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -236,12 +239,22 @@
                         // hide the dialog
                         groupComponent.modal.hide();
 
-                        // create the group and resolve the deferred accordingly
-                        createGroup(groupName, pt).done(function (response) {
-                            deferred.resolve(response.component);
-                        }).fail(function () {
+                        // ensure the group name is specified
+                        if (nfCommon.isBlank(groupName)) {
+                            nfDialog.showOkDialog({
+                                headerText: 'Create Process Group',
+                                dialogContent: 'The group name is required.'
+                            });
+
                             deferred.reject();
-                        });
+                        } else {
+                            // create the group and resolve the deferred accordingly
+                            createGroup(groupName, pt).done(function (response) {
+                                deferred.resolve(response.component);
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        }
                     };
 
                     groupComponent.modal.update('setButtonModel', [{

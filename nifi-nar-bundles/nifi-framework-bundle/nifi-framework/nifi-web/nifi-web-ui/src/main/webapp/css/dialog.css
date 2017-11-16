@@ -264,6 +264,23 @@ div.progress-label {
 }
 
 /*
+    Local changes
+ */
+
+#revert-local-changes-table, #show-local-changes-table {
+    position: absolute;
+    top: 80px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 225px;
+}
+
+#revert-local-changes-filter, #show-local-changes-filter {
+    width: 173px;
+}
+
+/*
     Variable Registry
  */
 
