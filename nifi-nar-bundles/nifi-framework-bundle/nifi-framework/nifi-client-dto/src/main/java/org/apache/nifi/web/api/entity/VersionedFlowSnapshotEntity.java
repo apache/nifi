@@ -28,6 +28,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
     private VersionedFlowSnapshot versionedFlowSnapshot;
     private RevisionDTO processGroupRevision;
     private String registryId;
+    private Boolean updateDescendantVersionedFlows;
 
     @ApiModelProperty("The versioned flow snapshot")
     public VersionedFlowSnapshot getVersionedFlowSnapshot() {
@@ -54,5 +55,15 @@ public class VersionedFlowSnapshotEntity extends Entity {
 
     public void setRegistryId(String registryId) {
         this.registryId = registryId;
+    }
+
+    @ApiModelProperty("If the Process Group to be updated has a child or descendant Process Group that is also under "
+        + "Version Control, this specifies whether or not the contents of that child/descendant Process Group should be updated.")
+    public Boolean getUpdateDescendantVersionedFlows() {
+        return updateDescendantVersionedFlows;
+    }
+
+    public void setUpdateDescendantVersionedFlows(Boolean update) {
+        this.updateDescendantVersionedFlows = update;
     }
 }

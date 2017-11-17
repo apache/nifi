@@ -34,6 +34,7 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     private volatile String failureReason;
     private volatile boolean cancelled;
     private volatile T results;
+    private volatile Runnable cancelCallback;
 
     public StandardAsynchronousWebRequest(final String requestId, final String processGroupId, final NiFiUser user, final String state) {
         this.id = requestId;
@@ -54,6 +55,11 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     @Override
     public String getProcessGroupId() {
         return processGroupId;
+    }
+
+    @Override
+    public void setCancelCallback(final Runnable runnable) {
+        this.cancelCallback = runnable;
     }
 
     @Override
@@ -130,6 +136,7 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
         percentComplete = 100;
         state = "Canceled by user";
         setFailureReason("Request cancelled by user");
+        cancelCallback.run();
     }
 
     @Override

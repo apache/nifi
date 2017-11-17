@@ -43,7 +43,7 @@ public class CancellableTimedPause implements Pause {
 
         long sysTime = System.nanoTime();
         final long maxWaitTime = System.nanoTime() + pauseNanos;
-        while (sysTime < maxWaitTime) {
+        while (sysTime < maxWaitTime && !cancelled) {
             try {
                 TimeUnit.NANOSECONDS.sleep(pauseNanos);
             } catch (final InterruptedException ie) {

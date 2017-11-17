@@ -97,13 +97,12 @@ import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
-import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -3751,10 +3750,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final VersionedFlowSnapshot versionedFlowSnapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketIdentifier(),
-            versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), NiFiUserUtils.getNiFiUser());
+            versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), false, NiFiUserUtils.getNiFiUser());
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient, true);
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient, false);
         final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
 
         final ComparableDataFlow localFlow = new ComparableDataFlow() {
@@ -3781,7 +3780,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         };
 
-        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, new EvolvingDifferenceDescriptor());
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, new ConciseEvolvingDifferenceDescriptor());
         final FlowComparison flowComparison = flowComparator.compare();
 
         final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtos(flowComparison);
@@ -3850,6 +3849,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public void verifyCanUpdate(final String groupId, final VersionedFlowSnapshot proposedFlow, final boolean verifyConnectionRemoval, final boolean verifyNotDirty) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         group.verifyCanUpdate(proposedFlow, verifyConnectionRemoval, verifyNotDirty);
+    }
+
+    @Override
+    public void verifyCanSaveToFlowRegistry(final String groupId, final String registryId, final String bucketId, final String flowId) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        group.verifyCanSaveToFlowRegistry(registryId, bucketId, flowId);
+    }
+
+    @Override
+    public void verifyCanRevertLocalModifications(final String groupId, final VersionedFlowSnapshot versionedFlowSnapshot) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        group.verifyCanRevertLocalModifications();
+
+        // verify that the process group can be updated to the given snapshot. We do not verify that connections can
+        // be removed, because the flow may still be running, and it only matters that the connections can be removed once the components
+        // have been stopped.
+        group.verifyCanUpdate(versionedFlowSnapshot, false, false);
     }
 
     @Override
@@ -4028,7 +4044,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlowSnapshot getVersionedFlowSnapshot(final VersionControlInformationDTO versionControlInfo) throws IOException {
+    public VersionedFlowSnapshot getVersionedFlowSnapshot(final VersionControlInformationDTO versionControlInfo, final boolean fetchRemoteFlows) throws IOException {
         final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(versionControlInfo.getRegistryId());
         if (flowRegistry == null) {
             throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + versionControlInfo.getRegistryId());
@@ -4036,14 +4052,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final VersionedFlowSnapshot snapshot;
         try {
-            snapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketId(), versionControlInfo.getFlowId(), versionControlInfo.getVersion(), NiFiUserUtils.getNiFiUser());
+            snapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketId(), versionControlInfo.getFlowId(), versionControlInfo.getVersion(), fetchRemoteFlows, NiFiUserUtils.getNiFiUser());
         } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException("The Flow Registry with ID " + versionControlInfo.getRegistryId() + " reports that no Flow exists with Bucket "
                 + versionControlInfo.getBucketId() + ", Flow " + versionControlInfo.getFlowId() + ", Version " + versionControlInfo.getVersion());
         }
-
-        // If this Flow has a reference to a remote flow, we need to pull that remote flow as well
-        populateVersionedChildFlows(snapshot);
 
         return snapshot;
     }
@@ -4054,74 +4067,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return flowRegistry == null ? flowRegistryId : flowRegistry.getName();
     }
 
-    private void populateVersionedChildFlows(final VersionedFlowSnapshot snapshot) throws IOException {
-        final VersionedProcessGroup group = snapshot.getFlowContents();
-
-        for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedFlows(child);
-        }
-    }
-
-    private void populateVersionedFlows(final VersionedProcessGroup group) throws IOException {
-        final VersionedFlowCoordinates remoteCoordinates = group.getVersionedFlowCoordinates();
-
-        if (remoteCoordinates != null) {
-            final String registryUrl = remoteCoordinates.getRegistryUrl();
-            final String registryId = flowRegistryClient.getFlowRegistryId(registryUrl);
-            if (registryId == null) {
-                throw new IllegalArgumentException("Process Group with ID " + group.getIdentifier() + " is under Version Control, referencing a Flow Registry at URL [" + registryUrl
-                    + "], but no Flow Registry is currently registered for that URL.");
-            }
-
-            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
-
-            final VersionedFlowSnapshot childSnapshot;
-            try {
-                childSnapshot = flowRegistry.getFlowContents(remoteCoordinates.getBucketId(), remoteCoordinates.getFlowId(), remoteCoordinates.getVersion(), NiFiUserUtils.getNiFiUser());
-            } catch (final NiFiRegistryException e) {
-                throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + remoteCoordinates.getBucketId() + ", Flow " + remoteCoordinates.getFlowId() + ", Version " + remoteCoordinates.getVersion());
-            }
-
-            final VersionedProcessGroup fetchedGroup = childSnapshot.getFlowContents();
-            group.setComments(fetchedGroup.getComments());
-            group.setPosition(fetchedGroup.getPosition());
-            group.setName(fetchedGroup.getName());
-            group.setVariables(fetchedGroup.getVariables());
-
-            group.setConnections(new LinkedHashSet<>(fetchedGroup.getConnections()));
-            group.setControllerServices(new LinkedHashSet<>(fetchedGroup.getControllerServices()));
-            group.setFunnels(new LinkedHashSet<>(fetchedGroup.getFunnels()));
-            group.setInputPorts(new LinkedHashSet<>(fetchedGroup.getInputPorts()));
-            group.setLabels(new LinkedHashSet<>(fetchedGroup.getLabels()));
-            group.setOutputPorts(new LinkedHashSet<>(fetchedGroup.getOutputPorts()));
-            group.setProcessGroups(new LinkedHashSet<>(fetchedGroup.getProcessGroups()));
-            group.setProcessors(new LinkedHashSet<>(fetchedGroup.getProcessors()));
-            group.setRemoteProcessGroups(new LinkedHashSet<>(fetchedGroup.getRemoteProcessGroups()));
-        }
-
-        for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedFlows(child);
-        }
-    }
-
-
     @Override
     public ProcessGroupEntity updateProcessGroup(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
-        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified) {
+        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        return updateProcessGroupContents(user, revision, groupId, versionControlInfo, proposedFlowSnapshot, componentIdSeed, verifyNotModified, true);
+        return updateProcessGroupContents(user, revision, groupId, versionControlInfo, proposedFlowSnapshot, componentIdSeed, verifyNotModified, true, updateDescendantVersionedFlows);
     }
 
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final NiFiUser user, final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
-        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings) {
+        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(groupId);
         final RevisionUpdate<ProcessGroupDTO> snapshot = updateComponent(user, revision,
             processGroupNode,
-            () -> processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings),
+            () -> processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows),
             processGroup -> dtoFactory.createProcessGroupDto(processGroup));
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);

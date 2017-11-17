@@ -165,8 +165,11 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -1775,6 +1778,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * processor
      */
     public void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto) throws ProcessorInstantiationException {
+        instantiateSnippet(group, dto, true);
+    }
+
+    private void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto, final boolean topLevel) throws ProcessorInstantiationException {
         writeLock.lock();
         try {
             validateSnippetContents(requireNonNull(group), dto);
@@ -1789,6 +1796,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
                 serviceNode.setName(controllerServiceDTO.getName());
+                if (!topLevel) {
+                    serviceNode.setVersionedComponentId(controllerServiceDTO.getVersionedComponentId());
+                }
 
                 group.addControllerService(serviceNode);
             }
@@ -1812,6 +1822,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 label.setStyle(labelDTO.getStyle());
+                if (!topLevel) {
+                    label.setVersionedComponentId(labelDTO.getVersionedComponentId());
+                }
+
                 group.addLabel(label);
             }
 
@@ -1819,6 +1833,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final FunnelDTO funnelDTO : dto.getFunnels()) {
                 final Funnel funnel = createFunnel(funnelDTO.getId());
                 funnel.setPosition(toPosition(funnelDTO.getPosition()));
+                if (!topLevel) {
+                    funnel.setVersionedComponentId(funnelDTO.getVersionedComponentId());
+                }
+
                 group.addFunnel(funnel);
             }
 
@@ -1840,6 +1858,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     inputPort = createLocalInputPort(portDTO.getId(), portDTO.getName());
                 }
 
+                if (!topLevel) {
+                    inputPort.setVersionedComponentId(portDTO.getVersionedComponentId());
+                }
                 inputPort.setPosition(toPosition(portDTO.getPosition()));
                 inputPort.setProcessGroup(group);
                 inputPort.setComments(portDTO.getComments());
@@ -1861,6 +1882,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     outputPort = createLocalOutputPort(portDTO.getId(), portDTO.getName());
                 }
 
+                if (!topLevel) {
+                    outputPort.setVersionedComponentId(portDTO.getVersionedComponentId());
+                }
                 outputPort.setPosition(toPosition(portDTO.getPosition()));
                 outputPort.setProcessGroup(group);
                 outputPort.setComments(portDTO.getComments());
@@ -1876,6 +1900,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                 procNode.setPosition(toPosition(processorDTO.getPosition()));
                 procNode.setProcessGroup(group);
+                if (!topLevel) {
+                    procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
+                }
 
                 final ProcessorConfigDTO config = processorDTO.getConfig();
                 procNode.setComments(config.getComments());
@@ -1936,6 +1963,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
                 remoteGroup.setYieldDuration(remoteGroupDTO.getYieldDuration());
+                if (!topLevel) {
+                    remoteGroup.setVersionedComponentId(remoteGroupDTO.getVersionedComponentId());
+                }
+
                 if (remoteGroupDTO.getTransportProtocol() == null) {
                     remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.RAW);
                 } else {
@@ -1979,6 +2010,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     childGroup.setVariables(groupDTO.getVariables());
                 }
 
+                // If this Process Group is 'top level' then we do not set versioned component ID's.
+                // We do this only if this component is the child of a Versioned Component.
+                if (!topLevel) {
+                    childGroup.setVersionedComponentId(groupDTO.getVersionedComponentId());
+                }
+
                 group.addProcessGroup(childGroup);
 
                 final FlowSnippetDTO contents = groupDTO.getContents();
@@ -1995,7 +2032,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 childTemplateDTO.setFunnels(contents.getFunnels());
                 childTemplateDTO.setRemoteProcessGroups(contents.getRemoteProcessGroups());
                 childTemplateDTO.setControllerServices(contents.getControllerServices());
-                instantiateSnippet(childGroup, childTemplateDTO);
+                instantiateSnippet(childGroup, childTemplateDTO, false);
+
+                if (groupDTO.getVersionControlInformation() != null) {
+                    final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper();
+                    final VersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(childGroup, getFlowRegistryClient(), false);
+
+                    final VersionControlInformation vci = StandardVersionControlInformation.Builder
+                        .fromDto(groupDTO.getVersionControlInformation())
+                        .flowSnapshot(versionedGroup)
+                        .build();
+                    childGroup.setVersionControlInformation(vci, Collections.emptyMap());
+                }
             }
 
             //
@@ -2039,6 +2087,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 final Connection connection = createConnection(connectionDTO.getId(), connectionDTO.getName(), source, destination, relationships);
+                if (!topLevel) {
+                    connection.setVersionedComponentId(connectionDTO.getVersionedComponentId());
+                }
 
                 if (connectionDTO.getBends() != null) {
                     final List<Position> bendPoints = new ArrayList<>();
@@ -2088,6 +2139,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final RemoteProcessGroupPortDTO port : ports) {
                 final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
                 descriptor.setId(port.getId());
+                descriptor.setVersionedComponentId(port.getVersionedComponentId());
                 descriptor.setTargetId(port.getTargetId());
                 descriptor.setName(port.getName());
                 descriptor.setComments(port.getComments());

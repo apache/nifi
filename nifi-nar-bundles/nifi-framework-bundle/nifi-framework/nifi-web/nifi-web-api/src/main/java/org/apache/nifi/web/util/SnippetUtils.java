@@ -421,18 +421,24 @@ public final class SnippetUtils {
         }
 
         // get a list of all names of process groups so that we can rename as needed.
-        final List<String> groupNames = new ArrayList<>();
+        final Set<String> groupNames = new HashSet<>();
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             groupNames.add(childGroup.getName());
         }
 
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
-                String groupName = groupDTO.getName();
-                while (groupNames.contains(groupName)) {
-                    groupName = "Copy of " + groupName;
+                // If Version Control Information is present, then we don't want to rename the
+                // Process Group - we want it to remain the same as the one in Version Control.
+                // However, in order to disambiguate things, we generally do want to rename to
+                // 'Copy of...' so we do this only if there is no Version Control Information present.
+                if (groupDTO.getVersionControlInformation() == null) {
+                    String groupName = groupDTO.getName();
+                    while (groupNames.contains(groupName)) {
+                        groupName = "Copy of " + groupName;
+                    }
+                    groupDTO.setName(groupName);
                 }
-                groupDTO.setName(groupName);
                 groupNames.add(groupDTO.getName());
             }
         }

@@ -1368,11 +1368,13 @@ public interface NiFiServiceFacade {
      * Retrieves the Versioned Flow Snapshot for the coordinates provided by the given Version Control Information DTO
      *
      * @param versionControlInfo the coordinates of the versioned flow
+     * @param fetchRemoteFlows if the contents of Versioned Flow that is fetched contains a child/descendant Process Group
+     *            that is also under Version Control, this indicates whether that remote flow should also be fetched
      * @return the VersionedFlowSnapshot that corresponds to the given coordinates
      *
      * @throws ResourceNotFoundException if the Versioned Flow Snapshot could not be found
      */
-    VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo) throws IOException;
+    VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows) throws IOException;
 
     /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
@@ -1407,6 +1409,28 @@ public interface NiFiServiceFacade {
     void verifyCanUpdate(String groupId, VersionedFlowSnapshot proposedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
 
     /**
+     * Verifies that the Process Group with the given identifier can be saved to the flow registry
+     *
+     * @param groupId the ID of the Process Group
+     * @param registryId the ID of the Flow Registry
+     * @param bucketId the ID of the bucket
+     * @param flowId the ID of the flow
+     *
+     * @throws IllegalStateException if the Process Group cannot be saved to the flow registry with the coordinates specified
+     */
+    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId);
+
+    /**
+     * Verifies that the Process Group with the given identifier can have its local modifications reverted to the given VersionedFlowSnapshot
+     *
+     * @param groupId the ID of the Process Group
+     * @param versionedFlowSnapshot the Versioned Flow Snapshot
+     *
+     * @throws IllegalStateException if the Process Group cannot have its local modifications reverted
+     */
+    void verifyCanRevertLocalModifications(String groupId, VersionedFlowSnapshot versionedFlowSnapshot);
+
+    /**
      * Updates the Process group with the given ID to match the new snapshot
      *
      * @param revision the revision of the Process Group
@@ -1414,10 +1438,12 @@ public interface NiFiServiceFacade {
      * @param versionControlInfo the Version Control information
      * @param snapshot the new snapshot
      * @param componentIdSeed the seed to use for generating new component ID's
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
      * @return the Process Group
      */
     ProcessGroupEntity updateProcessGroup(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
-        boolean verifyNotModified);
+        boolean verifyNotModified, boolean updateDescendantVersionedFlows);
 
     /**
      * Updates the Process group with the given ID to match the new snapshot
@@ -1429,10 +1455,12 @@ public interface NiFiServiceFacade {
      * @param snapshot the new snapshot
      * @param componentIdSeed the seed to use for generating new component ID's
      * @param updateSettings whether or not the process group's name and position should be updated
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
      * @return the Process Group
      */
     ProcessGroupEntity updateProcessGroupContents(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
-        boolean verifyNotModified, boolean updateSettings);
+        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     // ----------------------------------------
     // Component state methods

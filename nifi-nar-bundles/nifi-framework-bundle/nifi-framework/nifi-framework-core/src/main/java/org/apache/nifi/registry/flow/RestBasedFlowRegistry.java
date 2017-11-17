@@ -178,21 +178,24 @@ public class RestBasedFlowRegistry implements FlowRegistry {
     }
 
     @Override
-    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version, final NiFiUser user) throws IOException, NiFiRegistryException {
+    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows, final NiFiUser user)
+            throws IOException, NiFiRegistryException {
         final FlowSnapshotClient snapshotClient = getRegistryClient().getFlowSnapshotClient(getIdentity(user));
         final VersionedFlowSnapshot flowSnapshot = snapshotClient.get(bucketId, flowId, version);
 
-        final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
-        for (final VersionedProcessGroup child : contents.getProcessGroups()) {
-            populateVersionedContentsRecursively(child, user);
+        if (fetchRemoteFlows) {
+            final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
+            for (final VersionedProcessGroup child : contents.getProcessGroups()) {
+                populateVersionedContentsRecursively(child, user);
+            }
         }
 
         return flowSnapshot;
     }
 
     @Override
-    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version) throws IOException, NiFiRegistryException {
-        return getFlowContents(bucketId, flowId, version, null);
+    public VersionedFlowSnapshot getFlowContents(final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows) throws IOException, NiFiRegistryException {
+        return getFlowContents(bucketId, flowId, version, fetchRemoteFlows, null);
     }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group, final NiFiUser user) throws NiFiRegistryException, IOException {
@@ -214,7 +217,7 @@ public class RestBasedFlowRegistry implements FlowRegistry {
             }
 
             final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
-            final VersionedFlowSnapshot snapshot = flowRegistry.getFlowContents(bucketId, flowId, version, user);
+            final VersionedFlowSnapshot snapshot = flowRegistry.getFlowContents(bucketId, flowId, version, true, user);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
             group.setComments(contents.getComments());

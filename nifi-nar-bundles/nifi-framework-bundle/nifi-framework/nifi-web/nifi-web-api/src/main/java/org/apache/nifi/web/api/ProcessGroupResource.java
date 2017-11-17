@@ -1644,7 +1644,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (versionControlInfo != null) {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
             // Step 2: Retrieve flow from Flow Registry
-            final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo);
+            final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
             final Bucket bucket = flowSnapshot.getBucket();
             final VersionedFlow flow = flowSnapshot.getFlow();
 
@@ -1653,6 +1653,8 @@ public class ProcessGroupResource extends ApplicationResource {
             versionControlInfo.setFlowDescription(flow.getDescription());
 
             versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
+            versionControlInfo.setModified(false);
+            versionControlInfo.setCurrent(flowSnapshot.isLatest());
 
             // Step 3: Resolve Bundle info
             BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
@@ -1709,8 +1711,13 @@ public class ProcessGroupResource extends ApplicationResource {
                         final RevisionDTO revisionDto = entity.getRevision();
                         final String newGroupId = entity.getComponent().getId();
                         final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
+
+                        // We don't want the Process Group's position to be updated because we want to keep the position where the user
+                        // placed the Process Group. However, we do want to use the name of the Process Group that is in the Flow Contents.
+                        // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
+                        flowSnapshot.getFlowContents().setPosition(null);
                         entity = serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
-                            versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, false);
+                        versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, true, true);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);

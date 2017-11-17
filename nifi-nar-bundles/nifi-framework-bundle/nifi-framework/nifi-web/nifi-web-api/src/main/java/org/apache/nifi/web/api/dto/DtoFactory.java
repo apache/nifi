@@ -118,6 +118,7 @@ import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedFunnel;
@@ -2202,15 +2203,23 @@ public final class DtoFactory {
 
     private ComponentDifferenceDTO createComponentDifference(final FlowDifference difference) {
         VersionedComponent component = difference.getComponentA();
-        if (component == null) {
+        if (component == null || difference.getComponentB() instanceof InstantiatedVersionedComponent) {
             component = difference.getComponentB();
         }
 
         final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
-        dto.setComponentId(component.getIdentifier());
         dto.setComponentName(component.getName());
         dto.setComponentType(component.getComponentType().name());
-        dto.setProcessGroupId(dto.getProcessGroupId());
+
+        if (component instanceof InstantiatedVersionedComponent) {
+            final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;
+            dto.setComponentId(instantiatedComponent.getInstanceId());
+            dto.setProcessGroupId(instantiatedComponent.getInstanceGroupId());
+        } else {
+            dto.setComponentId(component.getIdentifier());
+            dto.setProcessGroupId(dto.getProcessGroupId());
+        }
+
         return dto;
     }
 
