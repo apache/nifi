@@ -361,6 +361,8 @@ public class StatusMerger {
         }
 
         merge(target.getAggregateSnapshot(), targetReadablePermission, toMerge.getAggregateSnapshot(), toMergeReadablePermission);
+        
+        target.setRunStatus(target.getAggregateSnapshot().getRunStatus());
 
         if (target.getNodeSnapshots() != null) {
             final NodeProcessorStatusSnapshotDTO nodeSnapshot = new NodeProcessorStatusSnapshotDTO();

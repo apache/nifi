@@ -1083,6 +1083,7 @@ public final class DtoFactory {
         dto.setGroupId(procStatus.getGroupId());
         dto.setName(procStatus.getName());
         dto.setStatsLastRefreshed(new Date());
+        dto.setRunStatus(procStatus.getRunStatus().toString());
 
         final ProcessorStatusSnapshotDTO snapshot = new ProcessorStatusSnapshotDTO();
         dto.setAggregateSnapshot(snapshot);
