@@ -650,11 +650,15 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId) {
+    }
+
+    @Override
     public void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry) {
     }
 
     @Override
-    public void updateFlow(VersionedFlowSnapshot proposedFlow, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings) {
+    public void updateFlow(VersionedFlowSnapshot proposedFlow, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVerisonedFlows) {
     }
 
     @Override
@@ -665,5 +669,13 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void disconnectVersionControl() {
         this.versionControlInfo = null;
+    }
+
+    @Override
+    public void verifyCanRevertLocalModifications() {
+    }
+
+    @Override
+    public void verifyCanShowLocalModifications() {
     }
 }

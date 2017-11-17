@@ -99,4 +99,12 @@ public interface AsynchronousWebRequest<T> {
      * @return <code>true</code> if the request has been canceled, <code>false</code> otherwise
      */
     boolean isCancelled();
+
+    /**
+     * Sets the cancel callback to the given runnable, so that if {@link #cancel()} is called, the given {@link Runnable} will be triggered.
+     * If <code>null</code> is passed, no operation will be triggered when the task is cancelled.
+     *
+     * @param runnable the callback
+     */
+    void setCancelCallback(Runnable runnable);
 }

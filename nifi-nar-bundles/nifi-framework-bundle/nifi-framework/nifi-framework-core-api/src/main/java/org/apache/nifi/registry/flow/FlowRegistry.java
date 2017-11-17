@@ -159,6 +159,9 @@ public interface FlowRegistry {
      * @param bucketId the ID of the bucket
      * @param flowId the ID of the flow
      * @param version the version to retrieve
+     * @param fetchRemoteFlows if the remote flow has a child Process Group that also tracks to a remote flow, this specifies whether or not
+     *            the child's contents should be fetched.
+     * @param user the user on whose behalf the flow contents are being retrieved
      * @return the contents of the Flow from the Flow Registry
      *
      * @throws IOException if unable to communicate with the Flow Registry
@@ -167,7 +170,7 @@ public interface FlowRegistry {
      * @throws NullPointerException if any of the arguments is not specified
      * @throws IllegalArgumentException if the given version is less than 1
      */
-    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version, NiFiUser user) throws IOException, NiFiRegistryException;
+    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version, boolean fetchRemoteFlows, NiFiUser user) throws IOException, NiFiRegistryException;
 
     /**
      * Retrieves the contents of the Flow with the given Bucket ID, Flow ID, and version, from the Flow Registry
@@ -175,6 +178,8 @@ public interface FlowRegistry {
      * @param bucketId the ID of the bucket
      * @param flowId the ID of the flow
      * @param version the version to retrieve
+     * @param fetchRemoteFlows if the remote flow has a child Process Group that also tracks to a remote flow, this specifies whether or not
+     *            the child's contents should be fetched.
      * @return the contents of the Flow from the Flow Registry
      *
      * @throws IOException if unable to communicate with the Flow Registry
@@ -183,7 +188,7 @@ public interface FlowRegistry {
      * @throws NullPointerException if any of the arguments is not specified
      * @throws IllegalArgumentException if the given version is less than 1
      */
-    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version) throws IOException, NiFiRegistryException;
+    VersionedFlowSnapshot getFlowContents(String bucketId, String flowId, int version, boolean fetchRemoteFlows) throws IOException, NiFiRegistryException;
 
     /**
      * Retrieves a VersionedFlow by bucket id and flow id

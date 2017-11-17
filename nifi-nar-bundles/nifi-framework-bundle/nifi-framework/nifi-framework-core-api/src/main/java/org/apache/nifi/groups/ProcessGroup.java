@@ -784,8 +784,10 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *            and the Process Group has been modified since it was last synchronized with the Flow Registry, then this method will
      *            throw an IllegalStateException
      * @param updateSettings whether or not to update the process group's name and positions
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
      */
-    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings);
+    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
      * Verifies a template with the specified name can be created.
@@ -848,7 +850,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanUpdateVariables(Map<String, String> updatedVariables);
 
     /**
-     * Ensure that the contents of the Process Group can be update to match the given new flow
+     * Ensures that the contents of the Process Group can be update to match the given new flow
      *
      * @param updatedFlow the updated version of the flow
      * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
@@ -858,6 +860,27 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the Process Group is not in a state that will allow the update
      */
     void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
+
+    /**
+     * Ensures that the Process Group can have any local changes reverted
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local changes to be reverted
+     */
+    void verifyCanRevertLocalModifications();
+
+    /**
+     * Ensures that the Process Group can have its local modifications shown
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local modifications to be shown
+     */
+    void verifyCanShowLocalModifications();
+
+    /**
+     * Ensure that the contents of the Process Group can be saved to a Flow Registry in its current state
+     *
+     * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
+     */
+    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId);
 
     /**
      * Adds the given template to this Process Group
