@@ -18,7 +18,7 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -29,7 +29,7 @@ import java.io.File;
 /**
  * Common base argument logic for the CA server and client
  */
-public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
+public abstract class BaseCertificateAuthorityCommandLine extends BaseTlsToolkitCommandLine {
     public static final String TOKEN_ARG = "token";
     public static final String CONFIG_JSON_ARG = "configJson";
     public static final String READ_CONFIG_JSON_ARG = "configJsonIn";
