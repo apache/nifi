@@ -47,6 +47,8 @@ public class RangerBasePluginWithPolicies extends RangerBasePlugin {
 
     private static final Logger logger = LoggerFactory.getLogger(RangerBasePluginWithPolicies.class);
 
+    private final static String WILDCARD_ASTERISK = "*";
+
     private UserGroupProvider userGroupProvider;
     private AtomicReference<PolicyLookup> policies = new AtomicReference<>(new PolicyLookup());
 
@@ -110,9 +112,26 @@ public class RangerBasePluginWithPolicies extends RangerBasePlugin {
                 // get all the resources for this policy - excludes/recursive support disabled
                 final Set<String> resources = policy.getResources().values().stream()
                         .filter(resource -> {
+                            final boolean isMissingResource;
+                            final boolean isWildcard;
+                            if (resource.getValues() == null) {
+                                isMissingResource = true;
+                                isWildcard = false;
+                            } else {
+                                isMissingResource = false;
+                                isWildcard = resource.getValues().stream().anyMatch(value -> value.contains(WILDCARD_ASTERISK));
+                            }
+
                             final boolean isExclude = Boolean.TRUE.equals(resource.getIsExcludes());
                             final boolean isRecursive =  Boolean.TRUE.equals(resource.getIsRecursive());
 
+                            if (isMissingResource) {
+                                logger.warn("Encountered resources missing values. Skipping policy for viewing purposes. Will still be used for access decisions.");
+                            }
+                            if (isWildcard) {
+                                logger.warn(String.format("Resources [%s] include a wildcard value. Skipping policy for viewing purposes. "
+                                        + "Will still be used for access decisions.", StringUtils.join(resource.getValues(), ", ")));
+                            }
                             if (isExclude) {
                                 logger.warn(String.format("Resources [%s] marked as an exclude policy. Skipping policy for viewing purposes. "
                                         + "Will still be used for access decisions.", StringUtils.join(resource.getValues(), ", ")));
@@ -122,7 +141,7 @@ public class RangerBasePluginWithPolicies extends RangerBasePlugin {
                                         + "Will still be used for access decisions.", StringUtils.join(resource.getValues(), ", ")));
                             }
 
-                            return !isExclude && !isRecursive;
+                            return !isMissingResource && !isWildcard && !isExclude && !isRecursive;
                         })
                         .flatMap(resource -> resource.getValues().stream())
                         .collect(Collectors.toSet());
