@@ -23,7 +23,7 @@ import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.SystemExitCapturer;
-import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
@@ -251,14 +251,14 @@ public class TlsToolkitStandaloneTest {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }
 
-        String trustStoreFilename = BaseCommandLine.TRUSTSTORE + trustStoreType;
+        String trustStoreFilename = BaseTlsToolkitCommandLine.TRUSTSTORE + trustStoreType;
         assertEquals("./conf/" + trustStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
 
         Certificate certificate = trustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT);
         assertEquals(rootCert, certificate);
 
         String keyStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-        String keyStoreFilename = BaseCommandLine.KEYSTORE + keyStoreType;
+        String keyStoreFilename = BaseTlsToolkitCommandLine.KEYSTORE + keyStoreType;
         File keyStoreFile = new File(hostDir, keyStoreFilename);
         assertEquals("./conf/" + keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 

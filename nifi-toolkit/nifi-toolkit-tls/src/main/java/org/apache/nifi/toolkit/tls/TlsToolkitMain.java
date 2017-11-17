@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClientCommandLine;
 import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityServiceCommandLine;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
+import org.apache.nifi.toolkit.tls.status.TlsToolkitGetStatusCommandLine;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -42,6 +43,7 @@ public class TlsToolkitMain {
         mainMap.put("standalone", TlsToolkitStandaloneCommandLine.class);
         mainMap.put("server", TlsCertificateAuthorityServiceCommandLine.class);
         mainMap.put("client", TlsCertificateAuthorityClientCommandLine.class);
+        mainMap.put("status", TlsToolkitGetStatusCommandLine.class);
     }
 
     /**
