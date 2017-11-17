@@ -132,6 +132,7 @@
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
         <nifi.web.max.header.size>16 KB</nifi.web.max.header.size>
+        <nifi.web.proxy.context.path />
 
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />

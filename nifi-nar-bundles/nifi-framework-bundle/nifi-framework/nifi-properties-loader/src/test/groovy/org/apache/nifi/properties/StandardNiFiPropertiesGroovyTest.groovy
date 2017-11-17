@@ -322,4 +322,115 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert key == KEY_HEX
         assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
     }
+
+
+    @Test
+    void testShouldNormalizeContextPathProperty() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": noLeadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == "/" + noLeadingSlash
+    }
+
+    @Test
+    void testShouldHandleNormalizedContextPathProperty() {
+        // Arrange
+        String leadingSlash = "/some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == leadingSlash
+    }
+
+    @Test
+    void testShouldNormalizeMultipleContextPathsInProperty() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        String leadingSlash = "some/other/path"
+        String leadingAndTrailingSlash = "/a/third/path/"
+        List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
+        String combinedPaths = paths.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        def splitPaths = normalizedContextPath.split(",")
+        splitPaths.every {
+            assert it.startsWith("/")
+            assert !it.endsWith("/")
+        }
+    }
+
+    @Test
+    void testShouldHandleNormalizedContextPathPropertyAsList() {
+        // Arrange
+        String leadingSlash = "/some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
+
+        // Act
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
+
+        // Assert
+        assert normalizedContextPaths.size() == 1
+        assert normalizedContextPaths.contains(leadingSlash)
+    }
+
+    @Test
+    void testShouldNormalizeMultipleContextPathsInPropertyAsList() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        String leadingSlash = "/some/other/path"
+        String leadingAndTrailingSlash = "/a/third/path/"
+        List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
+        String combinedPaths = paths.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
+
+        // Assert
+        assert normalizedContextPaths.size() == 3
+        assert normalizedContextPaths.containsAll([leadingSlash, "/" + noLeadingSlash, leadingAndTrailingSlash[0..-2]])
+    }
+
+    @Test
+    void testShouldHandleNormalizingEmptyContextPathProperty() {
+        // Arrange
+        String empty = ""
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": empty])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${empty}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == empty
+    }
 }

@@ -17,36 +17,29 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
 <html>
-    <%
-        String contextPath = request.getHeader("X-ProxyContextPath");
-        if (contextPath == null) {
-            contextPath = request.getHeader("X-Forwarded-Context");
-        }
-        if (contextPath == null) {
-            contextPath = "";
-        }
-        if (contextPath.endsWith("/")) {
-            contextPath = contextPath.substring(0, contextPath.length() - 1);
-        }
-    %>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
-        <title>NiFi</title>
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/reset.css/reset.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-pane.css" type="text/css" />
-        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-page.css" type="text/css" />
-    </head>
+<%
+    // Sanitize the contextPath to ensure it is on this server
+    // rather than getting it from the header directly
+    String contextPath = request.getAttribute("contextPath").toString();
+%>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
+    <title>NiFi</title>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/reset.css/reset.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-pane.css" type="text/css"/>
+    <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-page.css" type="text/css"/>
+</head>
 
-    <body class="message-pane">
-        <div class="message-pane-message-box">
-            <p class="message-pane-title">
-                Did you mean: <a href="<%= contextPath %>/nifi/">/nifi</a>
-            </p>
-            <p class="message-pane-content">You may have mistyped...</p>
-        </div>
-    </body>
+<body class="message-pane">
+<div class="message-pane-message-box">
+    <p class="message-pane-title">
+        Did you mean: <a href="<%= contextPath %>/nifi/">/nifi</a>
+    </p>
+    <p class="message-pane-content">You may have mistyped...</p>
+</div>
+</body>
 </html>
