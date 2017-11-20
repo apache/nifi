@@ -90,7 +90,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final SSLContext sslContext;
     private final TransferDirection transferDirection;
     private final NiFiProperties nifiProperties;
-    private final String targetId;
+    private volatile String targetId;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
 
@@ -116,7 +116,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     @Override
     public String getTargetIdentifier() {
-        return targetId == null ? getIdentifier() : targetId;
+        final String target = this.targetId;
+        return target == null ? getIdentifier() : target;
+    }
+
+    public void setTargetIdentifier(final String targetId) {
+        this.targetId = targetId;
     }
 
     private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties) {
