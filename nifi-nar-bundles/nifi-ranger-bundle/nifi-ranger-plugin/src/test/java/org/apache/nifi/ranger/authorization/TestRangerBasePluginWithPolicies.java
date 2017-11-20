@@ -200,6 +200,76 @@ public class TestRangerBasePluginWithPolicies {
     }
 
     @Test
+    public void testMissingResourceValue() {
+        final String resourceIdentifier1 = "/resource-1";
+        RangerPolicyResource resource1 = new RangerPolicyResource();
+
+        final Map<String, RangerPolicyResource> policy1Resources = new HashMap<>();
+        policy1Resources.put(resourceIdentifier1, resource1);
+
+        final RangerPolicyItem policy1Item = new RangerPolicyItem();
+        policy1Item.setAccesses(Stream.of(new RangerPolicyItemAccess("WRITE")).collect(Collectors.toList()));
+
+        final RangerPolicy policy1 = new RangerPolicy();
+        policy1.setResources(policy1Resources);
+        policy1.setPolicyItems(Stream.of(policy1Item).collect(Collectors.toList()));
+
+        final List<RangerPolicy> policies = new ArrayList<>();
+        policies.add(policy1);
+
+        final RangerServiceDef serviceDef = new RangerServiceDef();
+        serviceDef.setName("nifi");
+
+        final ServicePolicies servicePolicies = new ServicePolicies();
+        servicePolicies.setPolicies(policies);
+        servicePolicies.setServiceDef(serviceDef);
+
+        // set all the policies in the plugin
+        final RangerBasePluginWithPolicies pluginWithPolicies = new RangerBasePluginWithPolicies("nifi", "nifi");
+        pluginWithPolicies.setPolicies(servicePolicies);
+
+        // ensure the policy was skipped
+        assertFalse(pluginWithPolicies.doesPolicyExist(resourceIdentifier1, RequestAction.WRITE));
+        assertTrue(pluginWithPolicies.getAccessPolicies().isEmpty());
+        assertNull(pluginWithPolicies.getAccessPolicy(resourceIdentifier1, RequestAction.WRITE));
+    }
+
+    @Test
+    public void testWildcardResourceValue() {
+        final String resourceIdentifier1 = "*";
+        RangerPolicyResource resource1 = new RangerPolicyResource(resourceIdentifier1);
+
+        final Map<String, RangerPolicyResource> policy1Resources = new HashMap<>();
+        policy1Resources.put(resourceIdentifier1, resource1);
+
+        final RangerPolicyItem policy1Item = new RangerPolicyItem();
+        policy1Item.setAccesses(Stream.of(new RangerPolicyItemAccess("WRITE")).collect(Collectors.toList()));
+
+        final RangerPolicy policy1 = new RangerPolicy();
+        policy1.setResources(policy1Resources);
+        policy1.setPolicyItems(Stream.of(policy1Item).collect(Collectors.toList()));
+
+        final List<RangerPolicy> policies = new ArrayList<>();
+        policies.add(policy1);
+
+        final RangerServiceDef serviceDef = new RangerServiceDef();
+        serviceDef.setName("nifi");
+
+        final ServicePolicies servicePolicies = new ServicePolicies();
+        servicePolicies.setPolicies(policies);
+        servicePolicies.setServiceDef(serviceDef);
+
+        // set all the policies in the plugin
+        final RangerBasePluginWithPolicies pluginWithPolicies = new RangerBasePluginWithPolicies("nifi", "nifi");
+        pluginWithPolicies.setPolicies(servicePolicies);
+
+        // ensure the policy was skipped
+        assertFalse(pluginWithPolicies.doesPolicyExist(resourceIdentifier1, RequestAction.WRITE));
+        assertTrue(pluginWithPolicies.getAccessPolicies().isEmpty());
+        assertNull(pluginWithPolicies.getAccessPolicy(resourceIdentifier1, RequestAction.WRITE));
+    }
+
+    @Test
     public void testExcludesPolicy() {
         final String resourceIdentifier1 = "/resource-1";
         RangerPolicyResource resource1 = new RangerPolicyResource(resourceIdentifier1);
