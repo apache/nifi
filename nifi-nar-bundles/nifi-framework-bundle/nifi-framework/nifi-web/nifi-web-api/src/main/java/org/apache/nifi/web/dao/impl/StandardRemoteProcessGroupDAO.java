@@ -382,6 +382,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdate(remoteProcessGroup, remoteProcessGroupDTO);
 
         // configure the remote process group
+        final String targetUris = remoteProcessGroupDTO.getTargetUris();
         final String name = remoteProcessGroupDTO.getName();
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
@@ -394,6 +395,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
         final String localNetworkInterface = remoteProcessGroupDTO.getLocalNetworkInterface();
 
+        if (isNotNull(targetUris)) {
+            remoteProcessGroup.setTargetUris(targetUris);
+        }
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
         }

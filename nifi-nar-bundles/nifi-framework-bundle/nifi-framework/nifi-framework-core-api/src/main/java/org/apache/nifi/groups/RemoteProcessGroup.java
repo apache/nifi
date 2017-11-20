@@ -39,6 +39,8 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     String getTargetUris();
 
+    void setTargetUris(String targetUris);
+
     ProcessGroup getProcessGroup();
 
     void setProcessGroup(ProcessGroup group);
