@@ -81,7 +81,16 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+    
+    @Test
+    public void testPOSTRequestsReceivedReturnCodeWithoutEL() throws Exception {
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -90,7 +99,17 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+    
+    @Test
+    public void testPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
+        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -103,7 +122,21 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+    
+    @Test
+    public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
+        SSLContextService sslContextService = configureProcessorSslContextService();
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -116,7 +149,21 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+    
+    @Test
+    public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
+        SSLContextService sslContextService = configureProcessorSslContextService();
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -159,14 +206,14 @@ public class TestListenHTTP {
         return connection.getResponseCode();
     }
 
-    private void testPOSTRequestsReceived() throws Exception {
+    private void testPOSTRequestsReceived(int returnCode) throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("payload 1");
         messages.add("");
         messages.add(null);
         messages.add("payload 2");
 
-        startWebServerAndSendMessages(messages);
+        startWebServerAndSendMessages(messages, returnCode);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
@@ -177,7 +224,7 @@ public class TestListenHTTP {
         mockFlowFiles.get(3).assertContentEquals("payload 2");
     }
 
-    private void startWebServerAndSendMessages(final List<String> messages)
+    private void startWebServerAndSendMessages(final List<String> messages, int returnCode)
             throws Exception {
 
             final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
@@ -187,7 +234,7 @@ public class TestListenHTTP {
             Runnable sendMessagestoWebServer = () -> {
                 try {
                     for (final String message : messages) {
-                        if (executePOST(message)!=200) fail("HTTP POST failed.");
+                        if (executePOST(message)!=returnCode) fail("HTTP POST failed.");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
