@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import javax.servlet.http.HttpServletResponse;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
@@ -99,7 +100,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .name("Return Code")
             .description("The HTTP return code returned after every HTTP call")
             .required(true)
-            .defaultValue("200")
+            .defaultValue(String.valueOf(HttpServletResponse.SC_OK))
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
