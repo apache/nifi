@@ -19,7 +19,6 @@ package org.apache.nifi.processors.grpc;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -64,7 +63,6 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContextBuilder;
 
-@EventDriven
 @SupportsBatching
 @Tags({"grpc", "rpc", "client"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

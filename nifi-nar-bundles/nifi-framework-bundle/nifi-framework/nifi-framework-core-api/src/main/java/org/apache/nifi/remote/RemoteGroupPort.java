@@ -40,8 +40,6 @@ public abstract class RemoteGroupPort extends AbstractPort implements Port, Remo
 
     public abstract boolean getTargetExists();
 
-    public abstract String getTargetIdentifier();
-
     public abstract boolean isTargetRunning();
 
     public abstract Integer getBatchCount();

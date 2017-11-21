@@ -21,7 +21,6 @@ import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGroupPortDescriptor {
 
     private String id;
-    private String targetId;
     private String groupId;
     private String name;
     private String comments;
@@ -60,15 +59,6 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    @Override
-    public String getTargetId() {
-        return targetId;
-    }
-
-    public void setTargetId(String targetId) {
-        this.targetId = targetId;
     }
 
     @Override

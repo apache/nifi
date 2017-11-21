@@ -20,14 +20,12 @@ package org.apache.nifi.confluent.schemaregistry.client;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.web.util.WebUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.node.ArrayNode;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
@@ -55,10 +53,8 @@ import java.util.concurrent.ConcurrentMap;
  * </p>
  */
 public class RestSchemaRegistryClient implements SchemaRegistryClient {
-
     private final List<String> baseUrls;
     private final Client client;
-    private final ComponentLog logger;
 
     private static final String SUBJECT_FIELD_NAME = "subject";
     private static final String VERSION_FIELD_NAME = "version";
@@ -69,15 +65,13 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final ConcurrentMap<Integer, String> schemaIdentifierToNameMap = new ConcurrentHashMap<>();
 
 
-    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
+    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
         clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
-
-        this.logger = logger;
     }
 
 
@@ -113,17 +107,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         final ArrayNode arrayNode = (ArrayNode) schemaNameArray;
         for (final JsonNode node : arrayNode) {
-            final String nodeName = node.asText();
+            final String nodeName = node.getTextValue();
 
             final String schemaPath = getSubjectPath(nodeName);
-            final JsonNode schemaNode;
-            try {
-                schemaNode = fetchJsonResponse(schemaPath, schemaDescription);
-            } catch (final SchemaNotFoundException | IOException e) {
-                logger.warn("Failed to fetch Schema with name '{}' from Confluent Schema Registry; "
-                    + "will skip this schema and continue attempting to retrieve other schemas", new Object[] {nodeName, e});
-                continue;
-            }
+            final JsonNode schemaNode = fetchJsonResponse(schemaPath, schemaDescription);
 
             final int id = schemaNode.get(ID_FIELD_NAME).asInt();
             schemaNameToIdentifierMap.put(nodeName, id);
@@ -138,10 +125,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     private RecordSchema createRecordSchema(final JsonNode schemaNode) throws SchemaNotFoundException {
-        final String subject = schemaNode.get(SUBJECT_FIELD_NAME).asText();
+        final String subject = schemaNode.get(SUBJECT_FIELD_NAME).getTextValue();
         final int version = schemaNode.get(VERSION_FIELD_NAME).asInt();
         final int id = schemaNode.get(ID_FIELD_NAME).asInt();
-        final String schemaText = schemaNode.get(SCHEMA_TEXT_FIELD_NAME).asText();
+        final String schemaText = schemaNode.get(SCHEMA_TEXT_FIELD_NAME).getTextValue();
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);

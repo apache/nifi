@@ -127,20 +127,6 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .defaultValue("1000")
             .build();
 
-    protected static final AllowableValue NULL_FIELD_EMPTY = new AllowableValue("empty-bytes", "Empty Bytes",
-            "Use empty bytes. This can be used to overwrite existing fields or to put an empty placeholder value if you want" +
-                    " every field to be present even if it has a null value.");
-    protected static final AllowableValue NULL_FIELD_SKIP  = new AllowableValue("skip-field", "Skip Field", "Skip the field (don't process it at all).");
-
-    protected static final PropertyDescriptor NULL_FIELD_STRATEGY = new PropertyDescriptor.Builder()
-            .name("hbase-record-null-field-strategy")
-            .displayName("Null Field Strategy")
-            .required(true)
-            .defaultValue("skip-field")
-            .description("Handle null field values as either an empty string or skip them altogether.")
-            .allowableValues(NULL_FIELD_EMPTY, NULL_FIELD_SKIP)
-            .build();
-
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -149,7 +135,6 @@ public class PutHBaseRecord extends AbstractPutHBase {
         properties.add(TABLE_NAME);
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
-        properties.add(NULL_FIELD_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(TIMESTAMP_FIELD_NAME);
         properties.add(BATCH_SIZE);
@@ -216,9 +201,6 @@ public class PutHBaseRecord extends AbstractPutHBase {
             while ((record = reader.nextRecord()) != null) {
                 PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), flowFile, rowFieldName, columnFamily,
                         timestampFieldName, fieldEncodingStrategy, rowEncodingStrategy, complexFieldStrategy);
-                if (putFlowFile.getColumns().size() == 0) {
-                    continue;
-                }
                 flowFiles.add(putFlowFile);
                 index++;
 
@@ -238,9 +220,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
         }
 
         if (!failed) {
-            if (columns > 0) {
-                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
-            }
+            sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
             flowFile = session.removeAttribute(flowFile, "restart.index");
             session.transfer(flowFile, REL_SUCCESS);
         } else {
@@ -337,15 +317,12 @@ public class PutHBaseRecord extends AbstractPutHBase {
         }
     }
 
-    static final byte[] EMPTY = "".getBytes();
-
     protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile, String rowFieldName,
                                     String columnFamily, String timestampFieldName, String fieldEncodingStrategy, String rowEncodingStrategy,
                                     String complexFieldStrategy)
             throws PutCreationFailedInvokedException {
         PutFlowFile retVal = null;
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String nullStrategy = context.getProperty(NULL_FIELD_STRATEGY).getValue();
 
         boolean asString = STRING_ENCODING_VALUE.equals(fieldEncodingStrategy);
 
@@ -373,17 +350,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
                     continue;
                 }
 
-                Object val = record.getValue(name);
-                final byte[] fieldValueBytes;
-                if (val == null && nullStrategy.equals(NULL_FIELD_SKIP.getValue())) {
-                    continue;
-                } else if (val == null && nullStrategy.equals(NULL_FIELD_EMPTY.getValue())) {
-                    fieldValueBytes = EMPTY;
-                } else {
-                    fieldValueBytes = asBytes(name, schema.getField(name).get().getDataType().getFieldType(), record, asString, complexFieldStrategy);
-                }
-
-
+                final byte[] fieldValueBytes = asBytes(name, schema.getField(name).get().getDataType().getFieldType(), record, asString, complexFieldStrategy);
                 if (fieldValueBytes != null) {
                     columns.add(new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp));
                 }
