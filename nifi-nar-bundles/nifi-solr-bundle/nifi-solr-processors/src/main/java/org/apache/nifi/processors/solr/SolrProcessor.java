@@ -19,9 +19,6 @@
 package org.apache.nifi.processors.solr;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -34,13 +31,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.HttpClientUtil;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
-import org.apache.solr.common.params.ModifiableSolrParams;
 
-import javax.net.ssl.SSLContext;
 import javax.security.auth.login.Configuration;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -205,47 +197,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
      * @return an HttpSolrClient or CloudSolrClient
      */
     protected SolrClient createSolrClient(final ProcessContext context, final String solrLocation) {
-        final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
-        final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final String jaasClientAppName = context.getProperty(JAAS_CLIENT_APP_NAME).getValue();
-
-        final ModifiableSolrParams params = new ModifiableSolrParams();
-        params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
-        params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connectionTimeout);
-        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
-        params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
-
-        // has to happen before the client is created below so that correct configurer would be set if neeeded
-        if (!StringUtils.isEmpty(jaasClientAppName)) {
-            System.setProperty("solr.kerberos.jaas.appname", jaasClientAppName);
-            HttpClientUtil.setConfigurer(new Krb5HttpClientConfigurer());
-        }
-
-        final HttpClient httpClient = HttpClientUtil.createClient(params);
-
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
-            final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(sslContext);
-            final Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
-            httpClient.getConnectionManager().getSchemeRegistry().register(httpsScheme);
-        }
-
-        if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            return new HttpSolrClient(solrLocation, httpClient);
-        } else {
-            final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
-            final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-            final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-
-            CloudSolrClient cloudSolrClient = new CloudSolrClient(solrLocation, httpClient);
-            cloudSolrClient.setDefaultCollection(collection);
-            cloudSolrClient.setZkClientTimeout(zkClientTimeout);
-            cloudSolrClient.setZkConnectTimeout(zkConnectionTimeout);
-            return cloudSolrClient;
-        }
+        final SolrUtils su = new SolrUtils(this);
+        return su.createSolrClient(context, solrLocation);
     }
 
     /**
