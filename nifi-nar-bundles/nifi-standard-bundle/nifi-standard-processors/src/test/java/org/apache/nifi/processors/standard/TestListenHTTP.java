@@ -88,9 +88,9 @@ public class TestListenHTTP {
     public void testPOSTRequestsReceivedReturnCodeWithoutEL() throws Exception {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(204));
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
 
-        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+        testPOSTRequestsReceived(HttpServletResponse.HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class TestListenHTTP {
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(204));
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
@@ -160,7 +160,7 @@ public class TestListenHTTP {
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(204));
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
