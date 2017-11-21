@@ -17,13 +17,18 @@
 package org.apache.nifi.schemaregistry.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.junit.Assert;
@@ -54,7 +59,6 @@ public class TestAvroSchemaRegistry {
         when(configContext.getProperties()).thenReturn(properties);
         AvroSchemaRegistry delegate = new AvroSchemaRegistry();
         delegate.enable(configContext);
-
         String locatedSchemaText = delegate.retrieveSchemaText(schemaName);
         assertEquals(fooSchemaText, locatedSchemaText);
         try {
@@ -62,6 +66,49 @@ public class TestAvroSchemaRegistry {
             Assert.fail("Expected a SchemaNotFoundException to be thrown but it was not");
         } catch (final SchemaNotFoundException expected) {
         }
+
+        delegate.close();
+    }
+
+    @Test
+    public void validateStrictAndNonStrictSchemaRegistrationFromDynamicProperties() throws Exception {
+        String schemaName = "fooSchema";
+        ConfigurationContext configContext = mock(ConfigurationContext.class);
+        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()
+                .name(schemaName)
+                .dynamic(true)
+                .build();
+        // NOTE: name of record and name of first field are not Avro-compliant, verified below
+        String fooSchemaText = "{\"namespace\": \"example.avro\", " + "\"type\": \"record\", " + "\"name\": \"$User\", "
+                + "\"fields\": [ " + "{\"name\": \"@name\", \"type\": [\"string\", \"null\"]}, "
+                + "{\"name\": \"favorite_number\",  \"type\": [\"int\", \"null\"]}, "
+                + "{\"name\": \"foo\",  \"type\": [\"int\", \"null\"]}, "
+                + "{\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]} " + "]" + "}";
+        PropertyDescriptor barSchema = new PropertyDescriptor.Builder()
+                .name("barSchema")
+                .dynamic(false)
+                .build();
+        properties.put(fooSchema, fooSchemaText);
+        properties.put(barSchema, "");
+        AvroSchemaRegistry delegate = new AvroSchemaRegistry();
+        delegate.getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDisplayName()));
+        when(configContext.getProperties()).thenReturn(properties);
+
+        ValidationContext validationContext = mock(ValidationContext.class);
+        when(validationContext.getProperties()).thenReturn(properties);
+        PropertyValue propertyValue = mock(PropertyValue.class);
+        when(validationContext.getProperty(AvroSchemaRegistry.VALIDATE_FIELD_NAMES)).thenReturn(propertyValue);
+
+        // Strict parsing
+        when(propertyValue.asBoolean()).thenReturn(true);
+        Collection<ValidationResult> results = delegate.customValidate(validationContext);
+        assertTrue(results.stream().anyMatch(result -> !result.isValid()));
+
+        // Non-strict parsing
+        when(propertyValue.asBoolean()).thenReturn(false);
+        results = delegate.customValidate(validationContext);
+        results.forEach(result -> assertTrue(result.isValid()));
 
         delegate.close();
     }
