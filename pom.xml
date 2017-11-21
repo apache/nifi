@@ -106,6 +106,7 @@ limitations under the License.
         <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
         <system.rules.version>1.16.1</system.rules.version>
+        <aws.sdk.version>1.11.172</aws.sdk.version>
     </properties>
 
     <dependencies>

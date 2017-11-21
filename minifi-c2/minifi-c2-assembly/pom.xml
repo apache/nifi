@@ -84,6 +84,11 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-c2-cache-s3</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-c2-provider-cache</artifactId>
             <version>${project.version}</version>
         </dependency>
