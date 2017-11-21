@@ -54,9 +54,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_EN
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 0.10.x Consumer API. "
-        + " Please note there are cases where the publisher can get into an indefinite stuck state.  We are closely monitoring"
-        + " how this evolves in the Kafka community and will take advantage of those fixes as soon as we can.  In the meantime"
-        + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on. The complementary NiFi processor for sending messages is PublishKafka_0_10.")
+        + "The complementary NiFi processor for sending messages is PublishKafka_0_10.")
 @Tags({"Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.10.x"})
 @WritesAttributes({
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_COUNT, description = "The number of messages written if more than one"),
