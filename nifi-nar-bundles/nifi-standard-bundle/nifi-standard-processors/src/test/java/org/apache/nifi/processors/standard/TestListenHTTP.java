@@ -39,12 +39,13 @@ import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.servlet.http.HttpServletResponse;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
 import static org.junit.Assert.fail;
 
-
 public class TestListenHTTP {
+
     private static final String SSL_CONTEXT_SERVICE_IDENTIFIER = "ssl-context";
 
     private static final String HTTP_POST_METHOD = "POST";
@@ -67,7 +68,7 @@ public class TestListenHTTP {
         runner = TestRunners.newTestRunner(proc);
         availablePort = NetworkUtils.availablePort();;
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
-        runner.setVariable(BASEPATH_VARIABLE,HTTP_BASE_PATH);
+        runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
 
     }
 
@@ -81,7 +82,16 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testPOSTRequestsReceivedReturnCodeWithoutEL() throws Exception {
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -90,7 +100,17 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
+        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -103,7 +123,21 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
+        SSLContextService sslContextService = configureProcessorSslContextService();
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -116,7 +150,21 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
         runner.assertValid();
 
-        testPOSTRequestsReceived();
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK);
+    }
+
+    @Test
+    public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
+        SSLContextService sslContextService = configureProcessorSslContextService();
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Test
@@ -137,7 +185,7 @@ public class TestListenHTTP {
         final URL url = new URL(scheme + "://localhost:" + availablePort + "/" + HTTP_BASE_PATH);
         HttpURLConnection connection;
 
-        if(secure) {
+        if (secure) {
             final HttpsURLConnection sslCon = (HttpsURLConnection) url.openConnection();
             final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.WANT);
             sslCon.setSSLSocketFactory(sslContext.getSocketFactory());
@@ -151,7 +199,7 @@ public class TestListenHTTP {
 
         final DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
 
-        if (message!=null) {
+        if (message != null) {
             wr.writeBytes(message);
         }
         wr.flush();
@@ -159,54 +207,56 @@ public class TestListenHTTP {
         return connection.getResponseCode();
     }
 
-    private void testPOSTRequestsReceived() throws Exception {
+    private void testPOSTRequestsReceived(int returnCode) throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("payload 1");
         messages.add("");
         messages.add(null);
         messages.add("payload 2");
 
-        startWebServerAndSendMessages(messages);
+        startWebServerAndSendMessages(messages, returnCode);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
-        runner.assertTransferCount(RELATIONSHIP_SUCCESS,4);
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
         mockFlowFiles.get(0).assertContentEquals("payload 1");
         mockFlowFiles.get(1).assertContentEquals("");
         mockFlowFiles.get(2).assertContentEquals("");
         mockFlowFiles.get(3).assertContentEquals("payload 2");
     }
 
-    private void startWebServerAndSendMessages(final List<String> messages)
+    private void startWebServerAndSendMessages(final List<String> messages, int returnCode)
             throws Exception {
 
-            final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-            final ProcessContext context = runner.getProcessContext();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        final ProcessContext context = runner.getProcessContext();
         proc.createHttpServer(context);
 
-            Runnable sendMessagestoWebServer = () -> {
-                try {
-                    for (final String message : messages) {
-                        if (executePOST(message)!=200) fail("HTTP POST failed.");
+        Runnable sendMessagestoWebServer = () -> {
+            try {
+                for (final String message : messages) {
+                    if (executePOST(message) != returnCode) {
+                        fail("HTTP POST failed.");
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    fail("Not expecting error here.");
                 }
-            };
-            new Thread(sendMessagestoWebServer).start();
-
-            long responseTimeout = 10000;
-
-            int numTransferred = 0;
-            long startTime = System.currentTimeMillis();
-            while (numTransferred < messages.size()  && (System.currentTimeMillis() - startTime < responseTimeout)) {
-                proc.onTrigger(context, processSessionFactory);
-                numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
-                Thread.sleep(100);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Not expecting error here.");
             }
+        };
+        new Thread(sendMessagestoWebServer).start();
 
-            runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
+        long responseTimeout = 10000;
+
+        int numTransferred = 0;
+        long startTime = System.currentTimeMillis();
+        while (numTransferred < messages.size() && (System.currentTimeMillis() - startTime < responseTimeout)) {
+            proc.onTrigger(context, processSessionFactory);
+            numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
+            Thread.sleep(100);
+        }
+
+        runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
 
     }
 
