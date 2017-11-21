@@ -21,7 +21,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -205,6 +208,36 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(session -> {
+            Map<K, V> response = new HashMap<>(keys.size());
+            try {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("subMap");
+                serialize(keys, keySerializer, dos);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+
+                for (K key : keys) {
+                    final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                    response.put(key, valueDeserializer.deserialize(responseBuffer));
+                }
+            } catch (UnsupportedOperationException uoe) {
+                // If the server doesn't support subMap, just emulate it with multiple calls to get()
+                for (K key : keys) {
+                    response.put(key, get(key, keySerializer, valueDeserializer));
+                }
+            }
+
+            return response;
+        });
+    }
+
+    @Override
     public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
         return withCommsSession(new CommsAction<Boolean>() {
             @Override
@@ -319,7 +352,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         }
 
         session = createCommsSession(configContext);
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(2, 1);
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(3, 2, 1);
         try {
             ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
             session.setProtocolVersion(versionNegotiator.getVersion());
@@ -366,6 +399,17 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         serializer.serialize(value, baos);
         dos.writeInt(baos.size());
         baos.writeTo(dos);
+    }
+
+    private <T> void serialize(final Set<T> values, final Serializer<T> serializer, final DataOutputStream dos) throws IOException {
+        // Write the number of elements to follow, then each element and its size
+        dos.writeInt(values.size());
+        for(T value : values) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            serializer.serialize(value, baos);
+            dos.writeInt(baos.size());
+            baos.writeTo(dos);
+        }
     }
 
     private <T> T withCommsSession(final CommsAction<T> action) throws IOException {
