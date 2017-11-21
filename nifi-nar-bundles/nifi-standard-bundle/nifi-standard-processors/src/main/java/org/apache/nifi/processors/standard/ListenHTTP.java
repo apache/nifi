@@ -129,7 +129,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor RETURN_CODE = new PropertyDescriptor.Builder()
     	.name("Return Code")
     	.description("The HTTP return code returned after every HTTP call")
-    	.required(true)
     	.defaultValue(String.valueOf(HttpServletResponse.SC_OK))
         .build();
 
