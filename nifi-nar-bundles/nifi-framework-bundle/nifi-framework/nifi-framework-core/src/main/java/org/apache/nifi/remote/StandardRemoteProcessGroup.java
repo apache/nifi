@@ -780,6 +780,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             if (!StringUtils.isBlank(descriptor.getBatchDuration())) {
                 port.setBatchDuration(descriptor.getBatchDuration());
             }
+            port.setVersionedComponentId(descriptor.getVersionedComponentId());
 
             inputPorts.put(descriptor.getId(), port);
             return port;

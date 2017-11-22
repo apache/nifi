@@ -3428,6 +3428,7 @@ public final class DtoFactory {
             batchCopy.setCount(batchOrg.getCount());
             batchCopy.setSize(batchOrg.getSize());
             batchCopy.setDuration(batchOrg.getDuration());
+            copy.setBatchSettings(batchCopy);
         }
         return copy;
     }

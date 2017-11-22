@@ -709,7 +709,7 @@ public class VersionsResource extends ApplicationResource {
                 final VersionControlInformationDTO versionControlInfoDto = new VersionControlInformationDTO();
                 versionControlInfoDto.setBucketId(snapshotMetadata.getBucketIdentifier());
                 versionControlInfoDto.setBucketName(bucket.getName());
-                versionControlInfoDto.setCurrent(true);
+                versionControlInfoDto.setCurrent(snapshotMetadata.getVersion() == flow.getVersionCount());
                 versionControlInfoDto.setFlowId(snapshotMetadata.getFlowIdentifier());
                 versionControlInfoDto.setFlowName(flow.getName());
                 versionControlInfoDto.setFlowDescription(flow.getDescription());
@@ -1152,7 +1152,7 @@ public class VersionsResource extends ApplicationResource {
         final String idGenerationSeed = getIdGenerationSeed().orElse(null);
 
         // Step 0: Get the Versioned Flow Snapshot from the Flow Registry
-        final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), false);
+        final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
@@ -1217,7 +1217,7 @@ public class VersionsResource extends ApplicationResource {
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, componentLifecycle, exampleUri,
-                            affectedComponents, user, replicateRequest, requestEntity, flowSnapshot, request, idGenerationSeed, false, false);
+                            affectedComponents, user, replicateRequest, requestEntity, flowSnapshot, request, idGenerationSeed, false, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
                     } catch (final LifecycleManagementException e) {

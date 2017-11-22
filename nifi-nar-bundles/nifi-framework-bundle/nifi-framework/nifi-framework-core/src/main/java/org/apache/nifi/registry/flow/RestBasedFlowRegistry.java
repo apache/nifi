@@ -231,6 +231,7 @@ public class RestBasedFlowRegistry implements FlowRegistry {
             group.setProcessors(contents.getProcessors());
             group.setRemoteProcessGroups(contents.getRemoteProcessGroups());
             group.setVariables(contents.getVariables());
+            coordinates.setLatest(snapshot.isLatest());
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {

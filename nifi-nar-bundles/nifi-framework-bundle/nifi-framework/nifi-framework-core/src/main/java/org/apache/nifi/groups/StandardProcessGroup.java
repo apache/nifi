@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -93,12 +94,15 @@ import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.BatchSize;
 import org.apache.nifi.registry.flow.Bundle;
+import org.apache.nifi.registry.flow.ComponentType;
 import org.apache.nifi.registry.flow.ConnectableComponent;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -128,7 +132,6 @@ import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.Revision;
@@ -145,6 +148,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<String> comments;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
+    private static final SecureRandom randomGenerator = new SecureRandom();
 
     private final StandardProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -3018,10 +3022,20 @@ public final class StandardProcessGroup implements ProcessGroup {
             final FlowComparator flowComparator = new StandardFlowComparator(localFlow, remoteFlow, new StaticDifferenceDescriptor());
             final FlowComparison flowComparison = flowComparator.compare();
 
-            final Set<String> updatedVersionedComponentIds = flowComparison.getDifferences().stream()
-                .filter(diff -> diff.getDifferenceType() != DifferenceType.POSITION_CHANGED)
-                .map(diff -> diff.getComponentA() == null ? diff.getComponentB().getIdentifier() : diff.getComponentA().getIdentifier())
-                .collect(Collectors.toSet());
+            final Set<String> updatedVersionedComponentIds = new HashSet<>();
+            for (final FlowDifference diff : flowComparison.getDifferences()) {
+                if (diff.getDifferenceType() == DifferenceType.POSITION_CHANGED) {
+                    continue;
+                }
+
+                final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
+                updatedVersionedComponentIds.add(component.getIdentifier());
+
+                if (component.getComponentType() == ComponentType.REMOTE_INPUT_PORT || component.getComponentType() == ComponentType.REMOTE_OUTPUT_PORT) {
+                    final String remoteGroupId = ((VersionedRemoteGroupPort) component).getRemoteGroupId();
+                    updatedVersionedComponentIds.add(remoteGroupId);
+                }
+            }
 
             if (LOG.isInfoEnabled()) {
                 final String differencesByLine = flowComparison.getDifferences().stream()
@@ -3106,13 +3120,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .registryId(registryId)
                 .registryName(registryName)
                 .bucketId(bucketId)
-                .bucketName(bucketId) // bucket name not yet known
+                .bucketName(bucketId)
                 .flowId(flowId)
-                .flowName(flowId) // flow id not yet known
+                .flowName(flowId)
                 .version(version)
                 .flowSnapshot(proposed)
                 .modified(false)
-                .current(true)
+                .current(remoteCoordinates.getLatest())
                 .build();
 
             group.setVersionControlInformation(vci, Collections.emptyMap());
@@ -3125,7 +3139,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         for (final VersionedProcessGroup proposedChildGroup : proposed.getProcessGroups()) {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
-
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
             if (childGroup == null) {
@@ -3291,7 +3304,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final RemoteProcessGroup added = addRemoteProcessGroup(group, proposedRpg, componentIdSeed);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedRpg.getIdentifier())) {
-                updateRemoteProcessGroup(rpg, proposedRpg);
+                updateRemoteProcessGroup(rpg, proposedRpg, componentIdSeed);
                 LOG.info("Updated {}", rpg);
             } else {
                 rpg.setPosition(new Position(proposedRpg.getPosition().getX(), proposedRpg.getPosition().getY()));
@@ -3388,27 +3401,28 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    protected String generateUuid(final String componentIdSeed) {
-        UUID uuid;
-        if (componentIdSeed == null) {
-            uuid = ComponentIdGenerator.generateId();
-        } else {
-            try {
-                UUID seedId = UUID.fromString(componentIdSeed);
-                uuid = new UUID(seedId.getMostSignificantBits(), componentIdSeed.hashCode());
-            } catch (Exception e) {
-                LOG.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
-                uuid = UUID.nameUUIDFromBytes(componentIdSeed.getBytes(StandardCharsets.UTF_8));
-            }
-        }
+    private String generateUuid(final String propposedId, final String destinationGroupId, final String seed) {
+        // TODO: I think we can get rid of all of those LinkedHashSet's now in the VersionedProcessGroup because
+        /// the UUID is properly keyed off of the ID of the component in the VersionedProcessGroup.
+        long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
 
+        UUID uuid;
+        if (StringUtils.isBlank(seed)) {
+            long lsb = randomGenerator.nextLong();
+            // since msb is extracted from type-one UUID, the type-one semantics will be preserved
+            uuid = new UUID(msb, lsb);
+        } else {
+            UUID seedId = UUID.nameUUIDFromBytes((propposedId + destinationGroupId + seed).getBytes(StandardCharsets.UTF_8));
+            uuid = new UUID(msb, seedId.getLeastSignificantBits());
+        }
+        LOG.debug("Generating UUID {} from currentId={}, seed={}", uuid, propposedId, seed);
         return uuid.toString();
     }
 
 
     private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip)
             throws ProcessorInstantiationException {
-        final ProcessGroup group = flowController.createProcessGroup(generateUuid(componentIdSeed));
+        final ProcessGroup group = flowController.createProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
         updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip);
@@ -3461,7 +3475,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 + " but no component could be found in the Process Group with a corresponding identifier");
         }
 
-        final Connection connection = flowController.createConnection(generateUuid(componentIdSeed), proposed.getName(), source, destination, proposed.getSelectedRelationships());
+        final Connection connection = flowController.createConnection(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName(), source, destination,
+            proposed.getSelectedRelationships());
         connection.setVersionedComponentId(proposed.getIdentifier());
         destinationGroup.addConnection(connection);
         updateConnection(connection, proposed);
@@ -3523,7 +3538,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String rpgId = connectableComponent.getGroupId();
                 final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
-                    .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .filter(component -> rpgId.equals(component.getVersionedComponentId().get()))
                     .findAny();
 
                 if (!rpgOption.isPresent()) {
@@ -3598,7 +3613,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private ControllerServiceNode addControllerService(final ProcessGroup destination, final VersionedControllerService proposed, final String componentIdSeed) {
         final String type = proposed.getType();
-        final String id = generateUuid(componentIdSeed);
+        final String id = generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed);
 
         final Bundle bundle = proposed.getBundle();
         final BundleCoordinate coordinate = toCoordinate(bundle);
@@ -3619,7 +3634,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Funnel addFunnel(final ProcessGroup destination, final VersionedFunnel proposed, final String componentIdSeed) {
-        final Funnel funnel = flowController.createFunnel(generateUuid(componentIdSeed));
+        final Funnel funnel = flowController.createFunnel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         funnel.setVersionedComponentId(proposed.getIdentifier());
         destination.addFunnel(funnel);
         updateFunnel(funnel, proposed);
@@ -3634,7 +3649,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
-        final Port port = flowController.createLocalInputPort(generateUuid(componentIdSeed), proposed.getName());
+        final Port port = flowController.createLocalInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addInputPort(port);
         updatePort(port, proposed);
@@ -3643,7 +3658,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Port addOutputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
-        final Port port = flowController.createLocalOutputPort(generateUuid(componentIdSeed), proposed.getName());
+        final Port port = flowController.createLocalOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addOutputPort(port);
         updatePort(port, proposed);
@@ -3652,7 +3667,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Label addLabel(final ProcessGroup destination, final VersionedLabel proposed, final String componentIdSeed) {
-        final Label label = flowController.createLabel(generateUuid(componentIdSeed), proposed.getLabel());
+        final Label label = flowController.createLabel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getLabel());
         label.setVersionedComponentId(proposed.getIdentifier());
         destination.addLabel(label);
         updateLabel(label, proposed);
@@ -3669,7 +3684,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private ProcessorNode addProcessor(final ProcessGroup destination, final VersionedProcessor proposed, final String componentIdSeed) throws ProcessorInstantiationException {
         final BundleCoordinate coordinate = toCoordinate(proposed.getBundle());
-        final ProcessorNode procNode = flowController.createProcessor(proposed.getType(), generateUuid(componentIdSeed), coordinate, true);
+        final ProcessorNode procNode = flowController.createProcessor(proposed.getType(), generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), coordinate, true);
         procNode.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addProcessor(procNode);
@@ -3717,25 +3732,25 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private RemoteProcessGroup addRemoteProcessGroup(final ProcessGroup destination, final VersionedRemoteProcessGroup proposed, final String componentIdSeed) {
-        final RemoteProcessGroup rpg = flowController.createRemoteProcessGroup(generateUuid(componentIdSeed), proposed.getTargetUris());
+        final RemoteProcessGroup rpg = flowController.createRemoteProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getTargetUris());
         rpg.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addRemoteProcessGroup(rpg);
-        updateRemoteProcessGroup(rpg, proposed);
+        updateRemoteProcessGroup(rpg, proposed, componentIdSeed);
 
         return rpg;
     }
 
-    private void updateRemoteProcessGroup(final RemoteProcessGroup rpg, final VersionedRemoteProcessGroup proposed) {
+    private void updateRemoteProcessGroup(final RemoteProcessGroup rpg, final VersionedRemoteProcessGroup proposed, final String componentIdSeed) {
         rpg.setComments(proposed.getComments());
         rpg.setCommunicationsTimeout(proposed.getCommunicationsTimeout());
         rpg.setInputPorts(proposed.getInputPorts() == null ? Collections.emptySet() : proposed.getInputPorts().stream()
-            .map(port -> createPortDescriptor(port))
+            .map(port -> createPortDescriptor(port, componentIdSeed, rpg.getIdentifier()))
             .collect(Collectors.toSet()));
         rpg.setName(proposed.getName());
         rpg.setNetworkInterface(proposed.getLocalNetworkInterface());
         rpg.setOutputPorts(proposed.getOutputPorts() == null ? Collections.emptySet() : proposed.getOutputPorts().stream()
-            .map(port -> createPortDescriptor(port))
+            .map(port -> createPortDescriptor(port, componentIdSeed, rpg.getIdentifier()))
             .collect(Collectors.toSet()));
         rpg.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         rpg.setProxyHost(proposed.getProxyHost());
@@ -3745,16 +3760,22 @@ public final class StandardProcessGroup implements ProcessGroup {
         rpg.setYieldDuration(proposed.getYieldDuration());
     }
 
-    private RemoteProcessGroupPortDescriptor createPortDescriptor(final VersionedRemoteGroupPort proposed) {
+    private RemoteProcessGroupPortDescriptor createPortDescriptor(final VersionedRemoteGroupPort proposed, final String componentIdSeed, final String rpgId) {
         final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
         descriptor.setVersionedComponentId(proposed.getIdentifier());
-        descriptor.setBatchCount(proposed.getBatchSize().getCount());
-        descriptor.setBatchDuration(proposed.getBatchSize().getDuration());
-        descriptor.setBatchSize(proposed.getBatchSize().getSize());
+
+        final BatchSize batchSize = proposed.getBatchSize();
+        if (batchSize != null) {
+            descriptor.setBatchCount(batchSize.getCount());
+            descriptor.setBatchDuration(batchSize.getDuration());
+            descriptor.setBatchSize(batchSize.getSize());
+        }
+
         descriptor.setComments(proposed.getComments());
         descriptor.setConcurrentlySchedulableTaskCount(proposed.getConcurrentlySchedulableTaskCount());
-        descriptor.setGroupId(proposed.getGroupId());
-        descriptor.setId(UUID.randomUUID().toString()); // TODO: Need to address this issue of port id's
+        descriptor.setGroupId(proposed.getRemoteGroupId());
+        descriptor.setTargetId(proposed.getTargetId());
+        descriptor.setId(generateUuid(proposed.getIdentifier(), rpgId, componentIdSeed));
         descriptor.setName(proposed.getName());
         descriptor.setUseCompression(proposed.isUseCompression());
         return descriptor;
@@ -3785,29 +3806,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
         final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, flowController.getFlowRegistryClient(), false);
 
-        final ComparableDataFlow currentFlow = new ComparableDataFlow() {
-            @Override
-            public VersionedProcessGroup getContents() {
-                return versionedGroup;
-            }
-
-            @Override
-            public String getName() {
-                return "Local Flow";
-            }
-        };
-
-        final ComparableDataFlow snapshotFlow = new ComparableDataFlow() {
-            @Override
-            public VersionedProcessGroup getContents() {
-                return vci.getFlowSnapshot();
-            }
-
-            @Override
-            public String getName() {
-                return "Versioned Flow";
-            }
-        };
+        final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
+        final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
         final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, new EvolvingDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();

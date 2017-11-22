@@ -309,10 +309,11 @@ public class NiFiRegistryDtoMapper {
         port.setGroupIdentifier(getGroupId(dto.getGroupId()));
         port.setComments(dto.getComments());
         port.setConcurrentlySchedulableTaskCount(dto.getConcurrentlySchedulableTaskCount());
-        port.setGroupId(dto.getGroupId());
+        port.setRemoteGroupId(dto.getGroupId());
         port.setName(dto.getName());
         port.setUseCompression(dto.getUseCompression());
-        port.setBatchSettings(mapBatchSettings(dto.getBatchSettings()));
+        port.setBatchSize(mapBatchSettings(dto.getBatchSettings()));
+        port.setTargetId(dto.getTargetId());
         port.setComponentType(componentType);
         return port;
     }

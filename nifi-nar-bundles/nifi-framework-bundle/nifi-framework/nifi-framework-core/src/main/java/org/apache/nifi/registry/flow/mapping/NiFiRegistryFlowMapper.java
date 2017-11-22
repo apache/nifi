@@ -310,7 +310,26 @@ public class NiFiRegistryFlowMapper {
         }
 
         component.setComments(connectable.getComments());
-        component.setGroupId(connectable.getProcessGroupIdentifier());
+        if (connectable instanceof RemoteGroupPort) {
+            final RemoteGroupPort port = (RemoteGroupPort) connectable;
+            final RemoteProcessGroup rpg = port.getRemoteProcessGroup();
+            final Optional<String> rpgVersionedId = rpg.getVersionedComponentId();
+            final String groupId;
+            if (rpgVersionedId.isPresent()) {
+                groupId = rpgVersionedId.get();
+            } else {
+                final String resolved = versionedComponentIds.get(rpg.getIdentifier());
+                if (resolved == null) {
+                    throw new IllegalArgumentException("Unable to find the Versioned Component ID for Remote Process Group that " + connectable + " belongs to");
+                }
+
+                groupId = resolved;
+            }
+
+            component.setGroupId(groupId);
+        } else {
+            component.setGroupId(connectable.getProcessGroupIdentifier());
+        }
         component.setName(connectable.getName());
         component.setType(ConnectableComponentType.valueOf(connectable.getConnectableType().name()));
         return component;
@@ -478,10 +497,11 @@ public class NiFiRegistryFlowMapper {
         port.setGroupIdentifier(getGroupId(remotePort.getRemoteProcessGroup().getIdentifier()));
         port.setComments(remotePort.getComments());
         port.setConcurrentlySchedulableTaskCount(remotePort.getMaxConcurrentTasks());
-        port.setGroupId(remotePort.getProcessGroupIdentifier());
+        port.setRemoteGroupId(getGroupId(remotePort.getRemoteProcessGroup().getIdentifier()));
         port.setName(remotePort.getName());
         port.setUseCompression(remotePort.isUseCompression());
-        port.setBatchSettings(mapBatchSettings(remotePort));
+        port.setBatchSize(mapBatchSettings(remotePort));
+        port.setTargetId(remotePort.getTargetIdentifier());
         port.setComponentType(componentType);
         return port;
     }
