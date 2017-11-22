@@ -25,6 +25,11 @@
   <packaging>nar</packaging>
   
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-druid-controller-service-api-nar</artifactId>
+			<type>nar</type>
+		</dependency>
    		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-druid-controller-service</artifactId>
