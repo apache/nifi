@@ -300,6 +300,7 @@ public class FingerprintFactoryTest {
         // Assert fingerprints with expected one.
         final String expected = "portId" +
                 "NO_VALUE" +
+                "NO_VALUE" +
                 "3" +
                 "true" +
                 "1234" +

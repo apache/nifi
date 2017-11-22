@@ -604,24 +604,6 @@ public class FlowResource extends ApplicationResource {
                             componentIds.add(outputPort.getIdentifier());
                         });
 
-                // ensure authorized for each remote input port we will attempt to schedule
-                group.findAllRemoteProcessGroups().stream()
-                    .flatMap(rpg -> rpg.getInputPorts().stream())
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
-                    .filter(port -> port.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
-                    .forEach(port -> {
-                        componentIds.add(port.getIdentifier());
-                    });
-
-                // ensure authorized for each remote output port we will attempt to schedule
-                group.findAllRemoteProcessGroups().stream()
-                    .flatMap(rpg -> rpg.getOutputPorts().stream())
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
-                    .filter(port -> port.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
-                    .forEach(port -> {
-                        componentIds.add(port.getIdentifier());
-                    });
-
                 return componentIds;
             });
 

@@ -3756,29 +3756,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, flowRegistryClient, false);
         final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
 
-        final ComparableDataFlow localFlow = new ComparableDataFlow() {
-            @Override
-            public VersionedProcessGroup getContents() {
-                return localGroup;
-            }
-
-            @Override
-            public String getName() {
-                return "Local Flow";
-            }
-        };
-
-        final ComparableDataFlow registryFlow = new ComparableDataFlow() {
-            @Override
-            public VersionedProcessGroup getContents() {
-                return registryGroup;
-            }
-
-            @Override
-            public String getName() {
-                return "Versioned Flow";
-            }
-        };
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, new ConciseEvolvingDifferenceDescriptor());
         final FlowComparison flowComparison = flowComparator.compare();
@@ -4037,7 +4016,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         if (componentTypeName.equals(org.apache.nifi.registry.flow.ComponentType.REMOTE_PROCESS_GROUP.name())) {
-            return authorizableLookup.getRemoteProcessGroup(versionedComponent.getInstanceGroupId());
+            return authorizableLookup.getRemoteProcessGroup(componentId);
         }
 
         return null;
