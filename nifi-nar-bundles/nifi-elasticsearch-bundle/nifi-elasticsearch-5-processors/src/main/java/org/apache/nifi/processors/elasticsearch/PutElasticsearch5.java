@@ -39,6 +39,7 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.index.VersionType;
 
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.node.NodeClosedException;
@@ -129,6 +130,12 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .defaultValue("100")
             .expressionLanguageSupported(true)
             .build();
+    
+    public static final PropertyDescriptor VERSION_ATTRIBUTE = new PropertyDescriptor.Builder()
+			.name("Version").displayName("Version Attribute")
+			.description("The name of the attribute containing the version for each FlowFile. Only used for index operation. Forces External Versioning")
+			.required(false).expressionLanguageSupported(false).addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+			.build();
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
@@ -155,6 +162,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
         descriptors.add(CHARSET);
         descriptors.add(BATCH_SIZE);
         descriptors.add(INDEX_OP);
+        descriptors.add(VERSION_ATTRIBUTE);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -179,6 +187,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
         }
 
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
+        final String version_attribute = context.getProperty(VERSION_ATTRIBUTE).getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final List<FlowFile> flowFiles = session.get(batchSize);
@@ -196,6 +205,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
                 final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
+                final Long version = version_attribute != null ? Long.parseLong(file.getAttribute(version_attribute)) : null;
                 final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(file).getValue());
 
 
@@ -212,18 +222,38 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                             String json = IOUtils.toString(in, charset)
                                     .replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
 
-                            if (indexOp.equalsIgnoreCase("index")) {
-                                bulk.add(esClient.get().prepareIndex(index, docType, id)
-                                        .setSource(json.getBytes(charset)));
-                            } else if (indexOp.equalsIgnoreCase("upsert")) {
-                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
-                                        .setDoc(json.getBytes(charset))
-                                        .setDocAsUpsert(true));
-                            } else if (indexOp.equalsIgnoreCase("update")) {
-                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
-                                        .setDoc(json.getBytes(charset)));
-                            } else {
-                                throw new IOException("Index operation: " + indexOp + " not supported.");
+                            switch(indexOp.toLowerCase()) {
+								case "index": {
+									if (version != null) {
+										bulk.add(esClient.get().prepareIndex(index, docType, id)
+												.setVersion(version).setVersionType(VersionType.EXTERNAL)
+												.setSource(json.getBytes(charset)));
+									} else {
+										bulk.add(esClient.get().prepareIndex(index, docType, id)
+												.setSource(json.getBytes(charset)));
+									}
+									break;
+								}
+								case "upsert": {
+									if (version != null) {
+										throw new IOException("Index operation: " + indexOp + " not supported with versioning.");
+									}
+									bulk.add(esClient.get().prepareUpdate(index, docType, id)
+	                                        .setDoc(json.getBytes(charset))
+	                                        .setDocAsUpsert(true));
+									break;
+								}
+								case "update": {
+									if (version != null) {
+										throw new IOException("Index operation: " + indexOp + " not supported with versioning.");
+									}
+									bulk.add(esClient.get().prepareUpdate(index, docType, id)
+	                                        .setDoc(json.getBytes(charset)));
+									break;
+								}
+								default :{
+									throw new IOException("Index operation: " + indexOp + " not supported.");
+								}
                             }
                         }
                     });

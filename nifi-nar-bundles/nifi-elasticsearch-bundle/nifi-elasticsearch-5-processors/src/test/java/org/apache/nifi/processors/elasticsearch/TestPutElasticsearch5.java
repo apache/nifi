@@ -36,6 +36,7 @@ import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import org.junit.After;
@@ -240,7 +241,7 @@ public class TestPutElasticsearch5 {
 
         runner.assertAllFlowFilesTransferred(FetchElasticsearch5.REL_RETRY, 1);
         runner.clearTransferState();
-
+        
         // Elasticsearch5 Parse exception
         processor.setExceptionToThrow(new ElasticsearchParseException("test"));
         runner.enqueue(docExample, new HashMap<String, String>() {{
@@ -337,6 +338,50 @@ public class TestPutElasticsearch5 {
 
         runner.assertAllFlowFilesTransferred(PutElasticsearch5.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch5.REL_FAILURE).get(0);
+        assertNotNull(out);
+    }
+    
+    @Test
+    public void testPutElasticSearchOnTriggerWithInvalidVersionOp() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
+
+        runner.setProperty(PutElasticsearch5.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch5.TYPE, "status");
+        runner.setProperty(PutElasticsearch5.BATCH_SIZE, "1");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch5.ID_ATTRIBUTE, "doc_id");
+        runner.assertValid();
+
+        runner.setProperty(PutElasticsearch5.INDEX_OP, "update");
+        runner.assertValid();
+        
+        runner.setProperty(PutElasticsearch5.VERSION_ATTRIBUTE, "version");
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearch5.REL_FAILURE, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch5.REL_FAILURE).get(0);
+        assertNotNull(out);
+        
+        runner.setProperty(PutElasticsearch5.INDEX_OP, "upsert");
+        runner.assertValid();
+        
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652141");
+        }});
+        runner.run(1, true, true);
+
+        out = runner.getFlowFilesForRelationship(PutElasticsearch5.REL_FAILURE).get(0);
         assertNotNull(out);
     }
 
