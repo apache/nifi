@@ -37,59 +37,20 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-druid-controller-service-api</artifactId>
             <version>1.5.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.druid</groupId>
-            <artifactId>tranquility-core_2.10</artifactId>
-            <version>0.8.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.druid</groupId>
-                    <artifactId>druid-console</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.druid</groupId>
-                    <artifactId>druid-aws-common</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>c3p0</groupId>
-                    <artifactId>c3p0</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.tesla.aether</groupId>
-                    <artifactId>tesla-aether</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.glassfish</groupId>
-                    <artifactId>javax.el</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.eclipse.aether</groupId>
-                    <artifactId>aether-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.maxmind.geoip2</groupId>
-                    <artifactId>geoip2</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.java.dev.jets3t</groupId>
-                    <artifactId>jets3t</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>tranquility-core_2.11</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock</artifactId>
+            <version>1.5.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -1553,6 +1553,160 @@ The following binary components are provided under the Apache Software License v
         The following NOTICE information applies:
           DataStax Java Driver for Apache Cassandra - Core
           Copyright (C) 2012-2017 DataStax Inc.
+    (ASLv2) bytebuffer-collections
+        The following NOTICE information applies:
+          bytebuffer-collections
+          Copyright 2011-2015 Metamarkets Group Inc.
+
+    (ASLv2) Druid
+        The following NOTICE information applies:
+          Druid - a distributed column store.
+          Copyright 2012-2016 Metamarkets Group Inc.
+          Copyright 2015-2016 Yahoo! Inc.
+          Copyright 2015-2016 Imply Data, Inc.
+
+          -------------------------------------------------------------------------------
+
+          This product contains a modified version of Andrew Duffy's java-alphanum library
+            * LICENSE:
+              * https://github.com/amjjd/java-alphanum/blob/5c036e2e492cc7f3b7bcdebd46b8f9e2a87927e5/LICENSE.txt (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/amjjd/java-alphanum
+
+          This product contains conjunctive normal form conversion code and a variance aggregator algorithm adapted from Apache Hive
+            * LICENSE:
+              * https://github.com/apache/hive/blob/branch-2.0/LICENSE (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/apache/hive
+
+          This product contains variable length long deserialization code adapted from Apache Lucene
+            * LICENSE:
+              * https://github.com/apache/lucene-solr/blob/master/lucene/LICENSE.txt (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/apache/lucene-solr
+
+          This product contains a modified version of Metamarkets java-util library
+            * LICENSE:
+              * https://github.com/metamx/java-util/blob/master/LICENSE (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/metamx/java-util
+            * COMMIT TAG:
+              * https://github.com/metamx/java-util/commit/826021f
+
+          This product contains a modified version of TestNG 6.8.7
+            * LICENSE:
+              * http://testng.org/license/ (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * http://testng.org/
+
+          This product contains a modified version of Metamarkets bytebuffer-collections library
+            * LICENSE:
+              * https://github.com/metamx/bytebuffer-collections/blob/master/LICENSE (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/metamx/bytebuffer-collections
+            * COMMIT TAG:
+              * https://github.com/metamx/bytebuffer-collections/commit/3d1e7c8
+
+          This product contains SQL query planning code adapted from Apache Calcite
+            * LICENSE:
+              * https://github.com/apache/calcite/blob/master/LICENSE (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://calcite.apache.org/
+
+          This product contains a modified version of Metamarkets extendedset library
+            * LICENSE:
+              * https://github.com/metamx/extendedset/blob/master/LICENSE (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * https://github.com/metamx/extendedset
+            * COMMIT TAG:
+              * https://github.com/metamx/extendedset/commit/c9d647d
+
+          This product contains a modified version of Alessandro Colantonio's CONCISE
+          (COmpressed 'N' Composable Integer SEt) library, extending the functionality of
+          ConciseSet to use IntBuffers.
+            * (c) 2010 Alessandro Colantonio
+            * <mailto:colanton@mat.uniroma3.it>
+            * <http://ricerca.mat.uniroma3.it/users/colanton>
+            * LICENSE:
+              * Apache License, Version 2.0
+            * HOMEPAGE:
+              * https://sourceforge.net/projects/concise/
+
+          This product contains a modified version of The Guava Authors's Closer class from Guava library:
+           * LICENSE:
+             * https://github.com/google/guava/blob/c462d69329709f72a17a64cb229d15e76e72199c/COPYING (Apache License, Version 2.0)
+           * HOMEPAGE:
+             * https://github.com/google/guava
+           * COMMIT TAG:
+             * https://github.com/google/guava/blob/c462d69329709f72a17a64cb229d15e76e72199c
+
+          This product contains code adapted from Apache Hadoop
+            * LICENSE:
+              * https://github.com/apache/hadoop/blob/trunk/LICENSE.txt (Apache License, Version 2.0)
+            * HOMEPAGE:
+              * http://hadoop.apache.org/
+
+      (ASLv2) Emitter
+        The following NOTICE information applies:
+          emitter
+          Copyright 2012-2015 Metamarkets Group Inc.
+
+      (ASLv2) Finagle
+        The following NOTICE information applies:
+          Copyright 2017, Twitter Inc.
+          This software contains portions of code from other open-source projects, including:
+          >>>>>>>>>>>>>>
+          Apache Thrift
+          Copyright 2006-2010 The Apache Software Foundation.
+
+          This product includes software developed at
+          The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) java-util
+    The following NOTICE information applies:
+       java-util
+       Copyright 2011-2017 Metamarkets Group Inc.
+
+  (ASLv2) jdbi
+    The following NOTICE information applies:
+      This product includes software developed by Brian McCallister
+
+  (ASLv2) Joda Convert
+       The following NOTICE information applies:
+         Joda Convert
+         Copyright 2010-present Stephen Colebourne
+
+         This product includes software developed by
+         Joda.org (http://www.joda.org/).
+
+
+         Joda-Convert includes code from Google Guava, which is licensed as follows:
+
+         Copyright (C) 2011 The Guava Authors
+
+         Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+         in compliance with the License. You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+         Unless required by applicable law or agreed to in writing, software distributed under the License
+         is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+         or implied. See the License for the specific language governing permissions and limitations under
+         the License.
+
+  (ASLv2) loglady
+    The following NOTICE information applies:
+       Copyright (c) 2013 Daniel Lundin
+
+  (ASLv2) scala_util
+    The following NOTICE information applies:
+      Copyright 2012 Metamarkets Group Inc.
+
+  (ASLv2) server-metrics
+    The following NOTICE information applies:
+      server-metrics
+      Copyright 2011-2015 Metamarkets Group Inc.
+
 
 ************************
 Common Development and Distribution License 1.1
@@ -1663,6 +1817,7 @@ Mozilla Public License v2.0
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
     (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Rhino (org.mozilla:rhino:jar:1.7R5 - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino/Download_Rhino)
 
 *****************
 Mozilla Public License v1.1

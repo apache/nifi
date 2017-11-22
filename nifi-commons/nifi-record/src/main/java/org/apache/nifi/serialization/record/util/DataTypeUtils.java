@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,12 +46,14 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public class DataTypeUtils {
 
-    // Regexes for parsing Floting-Point numbers
+    // Regexes for parsing Floating-Point numbers
     private static final String OptionalSign  = "[\\-\\+]?";
     private static final String Infinity = "(Infinity)";
     private static final String NotANumber = "(NaN)";
@@ -324,6 +327,87 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Map for field " + fieldName);
+    }
+
+    /**
+     * Creates a native Java object from a given object of a specified type. Non-scalar (complex, nested, etc.) data types are processed iteratively/recursively, such that all
+     * included objects are native Java objects, rather than Record API objects or implementation-specific objects.
+     * @param value The object to be converted
+     * @param dataType The type of the provided object
+     * @return An object representing a native Java conversion of the given input object
+     */
+    public static Object convertRecordFieldtoObject(final Object value, final DataType dataType) {
+
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Record) {
+            Record record = (Record) value;
+            RecordSchema recordSchema = record.getSchema();
+            if (recordSchema == null) {
+                throw new IllegalTypeConversionException("Cannot convert value of type Record to Map because Record does not have an associated Schema");
+            }
+            final Map<String, Object> recordMap = new HashMap<>();
+            for (RecordField field : recordSchema.getFields()) {
+                final DataType fieldDataType = field.getDataType();
+                final String fieldName = field.getFieldName();
+                Object fieldValue = record.getValue(fieldName);
+                if (fieldValue == null) {
+                    recordMap.put(fieldName, null);
+                } else if (isScalarValue(fieldDataType, fieldValue)) {
+                    recordMap.put(fieldName, fieldValue);
+
+                } else if (fieldDataType instanceof RecordDataType) {
+                    Record nestedRecord = (Record) fieldValue;
+                    recordMap.put(fieldName, convertRecordFieldtoObject(nestedRecord, fieldDataType));
+
+                } else if (fieldDataType instanceof MapDataType) {
+                    recordMap.put(fieldName, convertRecordMapToJavaMap((Map) fieldValue, ((MapDataType)fieldDataType).getValueType()));
+
+                } else if (fieldDataType instanceof ArrayDataType) {
+                    recordMap.put(fieldName, convertRecordArrayToJavaArray((Object[])fieldValue, ((ArrayDataType) fieldDataType).getElementType()));
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value [" + fieldValue + "] of type " + fieldDataType.toString()
+                            + " to Map for field " + fieldName + " because the type is not supported");
+                }
+            }
+            return recordMap;
+        } else if (value instanceof Map) {
+            return convertRecordMapToJavaMap((Map)value, ((MapDataType)dataType).getValueType());
+        } else if (dataType != null && isScalarValue(dataType, value)) {
+            return value;
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value of class " + value.getClass().getName() + " because the type is not supported");
+    }
+
+
+    public static Map<String, Object> convertRecordMapToJavaMap(final Map<String, Object> map, DataType valueDataType) {
+
+        if (map == null) {
+            return null;
+        }
+
+        Map<String, Object> resultMap = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            resultMap.put(entry.getKey(), convertRecordFieldtoObject(entry.getValue(), valueDataType));
+        }
+        return resultMap;
+    }
+
+    public static Object[] convertRecordArrayToJavaArray(final Object[] array, DataType elementDataType) {
+
+        if (array == null || array.length == 0 || isScalarValue(elementDataType, array[0])) {
+            return array;
+        } else {
+            // Must be an array of complex types, build an array of converted values
+            Object[] resultArray = new Object[array.length];
+            for (int i = 0; i < array.length; i++) {
+                resultArray[i] = convertRecordFieldtoObject(array[i], elementDataType);
+            }
+            return resultArray;
+        }
     }
 
     public static boolean isMapTypeCompatible(final Object value) {

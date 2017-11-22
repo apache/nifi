@@ -14,9 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors;
 
+package org.apache.nifi.controller.api.druid;
 
-public class PutDruidTest {
+import java.util.Map;
 
+import org.apache.nifi.controller.ControllerService;
+
+import com.metamx.tranquility.tranquilizer.Tranquilizer;
+
+public interface DruidTranquilityService extends ControllerService {
+    Tranquilizer<Map<String, Object>> getTranquilizer();
+
+    String getTransitUri();
 }

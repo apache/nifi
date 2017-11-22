@@ -27,10 +27,25 @@
     <packaging>pom</packaging>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <druid.version>0.9.1</druid.version>
+        <tranquility.version>0.8.2</tranquility.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.druid</groupId>
+                <artifactId>tranquility-core_2.11</artifactId>
+                <version>${tranquility.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.druid</groupId>
+                <artifactId>druid-processing</artifactId>
+                <version>${druid.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>nifi-druid-nar</module>
         <module>nifi-druid-controller-service-api-nar</module>
