@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -53,6 +54,12 @@ public class HostHeaderSanitizationCustomizer implements HttpConfiguration.Custo
         // Sometimes the hostname is left empty but the port is always populated
         validHosts.add("localhost");
         validHosts.add("localhost:" + serverPort);
+        try {
+            validHosts.add(InetAddress.getLocalHost().getHostName());
+            validHosts.add(InetAddress.getLocalHost().getHostName() + ":" + serverPort);
+        } catch (final Exception e) {
+            logger.warn("Failed to determine local hostname.", e);
+        }
 
         logger.info("Created " + this.toString());
     }
