@@ -18,6 +18,7 @@ package org.apache.nifi.web.server;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -60,6 +61,12 @@ public class HostHeaderHandler extends ScopedHandler {
         validHosts.add("localhost:" + serverPort);
         // Different from customizer -- empty is ok here
         validHosts.add("");
+        try {
+            validHosts.add(InetAddress.getLocalHost().getHostName());
+            validHosts.add(InetAddress.getLocalHost().getHostName() + ":" + serverPort);
+        } catch (final Exception e) {
+            logger.warn("Failed to determine local hostname.", e);
+        }
 
         logger.info("Created " + this.toString());
     }
