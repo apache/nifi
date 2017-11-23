@@ -16,36 +16,55 @@
  */
 package org.apache.nifi.processors.satori;
 
-import org.apache.nifi.annotation.behavior.*;
+import com.satori.rtm.RtmClient;
+import com.satori.rtm.RtmClientAdapter;
+import com.satori.rtm.RtmClientBuilder;
+import com.satori.rtm.SubscriptionMode;
+import com.satori.rtm.SubscriptionConfig;
+import com.satori.rtm.SubscriptionAdapter;
+import com.satori.rtm.auth.RoleSecretAuthProvider;
+import com.satori.rtm.model.AnyJson;
+import com.satori.rtm.model.SubscribeRequest;
+import com.satori.rtm.model.SubscriptionData;
+import com.satori.rtm.model.SubscriptionError;
+import com.satori.rtm.model.SubscribeReply;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import com.satori.rtm.*;
-import com.satori.rtm.auth.*;
-import com.satori.rtm.model.*;
 
 @Tags({"pubsub", "satori", "rtm", "realtime", "json"})
 @CapabilityDescription("Consumes a streaming data feed from Satori RTM (https://www.satori.com/docs/using-satori/overview)")
@@ -299,8 +318,7 @@ public class ConsumeSatoriRTM extends AbstractProcessor {
             // Get message(s) from queue
             final String message;
 
-            if (batch)
-            {
+            if (batch) {
                 // Wait for minimum number of messages as configured in the batch size
                 if (messageQueue.size() < batchSize) {
                     context.yield();

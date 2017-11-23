@@ -16,41 +16,47 @@
  */
 package org.apache.nifi.processors.satori;
 
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import org.apache.nifi.annotation.behavior.*;
+import com.satori.rtm.Ack;
+import com.satori.rtm.RtmClient;
+import com.satori.rtm.RtmClientAdapter;
+import com.satori.rtm.RtmClientBuilder;
+import com.satori.rtm.auth.RoleSecretAuthProvider;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.commons.io.IOUtils;
+import org.apache.nifi.stream.io.util.StreamDemarcator;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.satori.rtm.*;
-import com.satori.rtm.auth.*;
-import com.google.gson.JsonObject;
-import org.apache.nifi.stream.io.exception.TokenTooLargeException;
-import org.apache.nifi.stream.io.util.StreamDemarcator;
 
 @Tags({"pubsub", "satori", "rtm", "realtime", "json"})
 @CapabilityDescription("Publishes incoming messages to Satori RTM (https://www.satori.com/docs/using-satori/overview)")
@@ -274,8 +280,7 @@ public class PublishSatoriRTM extends AbstractProcessor {
         });
 
 
-        if (!failures.isEmpty())
-        {
+        if (!failures.isEmpty()) {
             // Deal with failures
             getLogger().error("Failed to publish message to Satori: " + failures.get(flowFile).toString());
             failures.clear();
