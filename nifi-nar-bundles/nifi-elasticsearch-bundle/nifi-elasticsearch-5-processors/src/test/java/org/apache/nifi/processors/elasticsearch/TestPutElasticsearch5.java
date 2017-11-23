@@ -36,7 +36,6 @@ import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import org.junit.After;
