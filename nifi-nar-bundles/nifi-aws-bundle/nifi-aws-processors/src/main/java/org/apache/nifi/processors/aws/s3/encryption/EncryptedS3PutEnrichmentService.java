@@ -84,15 +84,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
             .description("Customer provided 256-bit, base64-encoded encryption key.")
             .build();
 
-    public static final PropertyDescriptor CUSTOMER_KEY_MD5 = new PropertyDescriptor.Builder()
-            .name("sse-customer-key-md5")
-            .displayName("Customer Key MD5")
-            .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("Base64-encoded 128-bit MD5 digest of the encryption key.")
-            .build();
-
     public static final PropertyDescriptor CUSTOMER_ALGORITHM = new PropertyDescriptor.Builder()
             .name("sse-customer-algorithm")
             .displayName("Customer Algorithm")
@@ -106,7 +97,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
     private String algorithm;
     private String kmsKeyId;
     private String customerKey;
-    private String customerKeyMD5;
     private String customerAlgorithm;
 
 
@@ -116,7 +106,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
         props.add(ALGORITHM);
         props.add(KMS_KEY_ID);
         props.add(CUSTOMER_KEY);
-        props.add(CUSTOMER_KEY_MD5);
         props.add(CUSTOMER_ALGORITHM);
         properties = Collections.unmodifiableList(props);
     }
@@ -132,7 +121,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
         algorithm = context.getProperty(ALGORITHM).getValue();
         kmsKeyId = context.getProperty(KMS_KEY_ID).getValue();
         customerKey = context.getProperty(CUSTOMER_KEY).getValue();
-        customerKeyMD5 = context.getProperty(CUSTOMER_KEY_MD5).getValue();
         customerAlgorithm = context.getProperty(CUSTOMER_ALGORITHM).getValue();
 
         if (algorithm == null) algorithm = ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION;
@@ -159,10 +147,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
 
             String sseCustomerAlgorithm = customerAlgorithm == null ? ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION : customerAlgorithm;
             putObjectRequest.getMetadata().setSSECustomerAlgorithm(sseCustomerAlgorithm);
-
-            if (StringUtils.isNotBlank(customerKeyMD5)) {
-                putObjectRequest.getMetadata().setSSECustomerKeyMd5(customerKeyMD5);
-            }
         }
     }
 
@@ -187,10 +171,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
 
             String sseCustomerAlgorithm = customerAlgorithm == null ? ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION : customerAlgorithm;
             initiateMultipartUploadRequest.getObjectMetadata().setSSECustomerAlgorithm(sseCustomerAlgorithm);
-
-            if (StringUtils.isNotBlank(customerKeyMD5)) {
-                initiateMultipartUploadRequest.getObjectMetadata().setSSECustomerKeyMd5(customerKeyMD5);
-            }
         }
     }
 

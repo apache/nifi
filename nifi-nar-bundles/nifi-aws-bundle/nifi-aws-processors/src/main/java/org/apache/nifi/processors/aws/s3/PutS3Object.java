@@ -473,10 +473,6 @@ public class PutS3Object extends AbstractS3Processor {
                             request.setStorageClass(
                                     StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
 
-                            if (putEnrichmentService != null) {
-                                putEnrichmentService.enrich(request);
-                            }
-
                             final AccessControlList acl = createACL(context, ff);
                             if (acl != null) {
                                 request.setAccessControlList(acl);
@@ -484,6 +480,10 @@ public class PutS3Object extends AbstractS3Processor {
                             final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
                             if (cannedAcl != null) {
                                 request.withCannedAcl(cannedAcl);
+                            }
+
+                            if (putEnrichmentService != null) {
+                                putEnrichmentService.enrich(request);
                             }
 
                             try {
