@@ -79,6 +79,7 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
+import org.apache.nifi.processors.aws.s3.service.S3PutEnrichmentService;
 
 @SupportsBatching
 @SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
@@ -154,6 +155,14 @@ public class PutS3Object extends AbstractS3Processor {
         .defaultValue(StorageClass.Standard.name())
         .build();
 
+
+    public static final PropertyDescriptor PUT_ENRICHMENT_SERVICE = new PropertyDescriptor.Builder()
+            .name("Put Enrichment Service")
+            .description("Specifies an optional Put Enrichment Service that, if provided, will be used to create connections")
+            .required(false)
+            .identifiesControllerService(S3PutEnrichmentService.class)
+            .build();
+
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
             .name("Multipart Threshold")
             .description("Specifies the file size threshold for switch from the PutS3Object API to the " +
@@ -206,7 +215,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
         Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
+            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE, CLIENT_SERVICE, PUT_ENRICHMENT_SERVICE,
             ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE,
             SERVER_SIDE_ENCRYPTION, PROXY_HOST, PROXY_HOST_PORT));
 
@@ -403,6 +412,8 @@ public class PutS3Object extends AbstractS3Processor {
         final Long multipartThreshold = context.getProperty(MULTIPART_THRESHOLD).asDataSize(DataUnit.B).longValue();
         final Long multipartPartSize = context.getProperty(MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue();
 
+        final S3PutEnrichmentService putEnrichmentService = context.getProperty(PUT_ENRICHMENT_SERVICE).asControllerService(S3PutEnrichmentService.class);
+
         final long now = System.currentTimeMillis();
 
         /*
@@ -461,6 +472,7 @@ public class PutS3Object extends AbstractS3Processor {
                             final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
                             request.setStorageClass(
                                     StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
+
                             final AccessControlList acl = createACL(context, ff);
                             if (acl != null) {
                                 request.setAccessControlList(acl);
@@ -468,6 +480,10 @@ public class PutS3Object extends AbstractS3Processor {
                             final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
                             if (cannedAcl != null) {
                                 request.withCannedAcl(cannedAcl);
+                            }
+
+                            if (putEnrichmentService != null) {
+                                putEnrichmentService.enrich(request);
                             }
 
                             try {
@@ -553,6 +569,11 @@ public class PutS3Object extends AbstractS3Processor {
                                 final InitiateMultipartUploadRequest initiateRequest =
                                         new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
                                 initiateRequest.setStorageClass(currentState.getStorageClass());
+
+                                if (putEnrichmentService != null) {
+                                    putEnrichmentService.enrich(initiateRequest);
+                                }
+
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
                                     initiateRequest.setAccessControlList(acl);
