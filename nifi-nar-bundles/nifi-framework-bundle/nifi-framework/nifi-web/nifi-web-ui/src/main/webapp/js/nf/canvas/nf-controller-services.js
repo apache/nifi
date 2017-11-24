@@ -844,7 +844,7 @@
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
+            if (dataContext.permissions.canRead) {
                 var definedByCurrentGroup = false;
                 if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
                     // when opened in the process group context, the current group is store in #process-group-id
@@ -857,30 +857,39 @@
                 }
 
                 if (definedByCurrentGroup === true) {
-                    if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration" style="margin-top: 2px; margin-right: 3px;" ></div>';
-                        markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
-                    } else if (dataContext.component.state === 'DISABLED') {
-                        markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                    if (dataContext.permissions.canWrite) {
+                        // write permission... allow actions based on the current state of the service
+                        if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
+                            markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                            markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                        } else if (dataContext.component.state === 'DISABLED') {
+                            markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
-                        // if there are no validation errors allow enabling
-                        if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
-                            markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
+                            // if there are no validation errors allow enabling
+                            if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
+                                markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
+                            }
+
+                            if (dataContext.component.multipleVersionsAvailable === true) {
+                                markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                            }
+
+                            if (canWriteControllerServiceParent(dataContext)) {
+                                markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                            }
                         }
 
-                        if (dataContext.component.multipleVersionsAvailable === true) {
-                            markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                        if (dataContext.component.persistsState === true) {
+                            markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                         }
-
-                        if (canWriteControllerServiceParent(dataContext)) {
-                            markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                    } else {
+                        // no write permission... allow viewing configuration if in current group
+                        if (definedByCurrentGroup === true) {
+                            markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration" style="margin-top: 2px; margin-right: 3px;" ></div>';
                         }
-                    }
-
-                    if (dataContext.component.persistsState === true) {
-                        markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                     }
                 } else {
+                    // not defined in current group... show go to arrow
                     markup += '<div class="pointer go-to-controller-service fa fa-long-arrow-right" title="Go To" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
             }

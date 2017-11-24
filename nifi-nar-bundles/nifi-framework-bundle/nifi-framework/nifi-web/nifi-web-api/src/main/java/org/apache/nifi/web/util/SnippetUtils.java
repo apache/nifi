@@ -658,13 +658,24 @@ public final class SnippetUtils {
                     if (contents != null && contents.getInputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getInputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
                         }
                     }
                     if (contents != null && contents.getOutputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getOutputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
                         }
                     }
 

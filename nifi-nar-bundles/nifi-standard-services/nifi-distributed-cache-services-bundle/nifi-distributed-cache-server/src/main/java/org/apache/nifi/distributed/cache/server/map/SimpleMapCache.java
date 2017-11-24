@@ -60,7 +60,7 @@ public class SimpleMapCache implements MapCache {
 
     @Override
     public String toString() {
-        return "SimpleSetCache[service id=" + serviceIdentifier + "]";
+        return "SimpleMapCache[service id=" + serviceIdentifier + "]";
     }
 
     // don't need synchronized because this method is only called when the writeLock is held, and all
@@ -168,6 +168,31 @@ public class SimpleMapCache implements MapCache {
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException {
+        if (keys == null) {
+            return null;
+        }
+        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        readLock.lock();
+        try {
+            keys.forEach((key) -> {
+                final MapCacheRecord record = cache.get(key);
+                if (record == null) {
+                    results.put(key, null);
+                } else {
+                    inverseCacheMap.remove(record);
+                    record.hit();
+                    inverseCacheMap.put(record, key);
+                    results.put(key, record.getValue());
+                }
+            });
+        } finally {
+            readLock.unlock();
+        }
+        return results;
     }
 
     @Override

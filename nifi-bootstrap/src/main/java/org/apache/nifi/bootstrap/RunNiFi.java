@@ -34,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -1185,17 +1186,24 @@ public class RunNiFi {
     private Path createSensitiveKeyFile(File confDir) {
         Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
 
+        final boolean isPosixSupported = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
         try {
-            // Initially create file with the empty permission set (so nobody can get a file descriptor on it):
-            Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
-            FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(perms);
-            sensitiveKeyFile = Files.createFile(sensitiveKeyFile, attr);
+            if (isPosixSupported) {
+                // Initially create file with the empty permission set (so nobody can get a file descriptor on it):
+                Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+                FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(perms);
+                sensitiveKeyFile = Files.createFile(sensitiveKeyFile, attr);
 
-            // Then, once created, add owner-only rights:
-            perms.add(PosixFilePermission.OWNER_WRITE);
-            perms.add(PosixFilePermission.OWNER_READ);
-            attr = PosixFilePermissions.asFileAttribute(perms);
-            Files.setPosixFilePermissions(sensitiveKeyFile, perms);
+                // Then, once created, add owner-only rights:
+                perms.add(PosixFilePermission.OWNER_WRITE);
+                perms.add(PosixFilePermission.OWNER_READ);
+                attr = PosixFilePermissions.asFileAttribute(perms);
+                Files.setPosixFilePermissions(sensitiveKeyFile, perms);
+            } else {
+                // If Posix is not supported (e.g. Windows) then create the key file without permission settings.
+                cmdLogger.info("Current file system does not support Posix, using default permission settings.");
+                sensitiveKeyFile = Files.createFile(sensitiveKeyFile);
+            }
 
         } catch (final FileAlreadyExistsException faee) {
             cmdLogger.error("The sensitive.key file {} already exists. That shouldn't have been. Aborting.", sensitiveKeyFile);

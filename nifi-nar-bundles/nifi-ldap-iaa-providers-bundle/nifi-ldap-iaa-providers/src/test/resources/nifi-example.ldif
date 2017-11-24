@@ -29,6 +29,11 @@ objectClass: organizationalUnit
 objectClass: top
 ou: users
 
+dn: ou=users-2,o=nifi
+objectClass: organizationalUnit
+objectClass: top
+ou: users-2
+
 dn: cn=User 1,ou=users,o=nifi
 objectClass: organizationalPerson
 objectClass: person
@@ -55,6 +60,8 @@ objectClass: top
 cn: User 3
 sn: User3
 uid: user3
+
+## since the embedded ldap does not support memberof, we are using description to simulate
 
 dn: cn=User 4,ou=users,o=nifi
 objectClass: organizationalPerson
@@ -105,7 +112,22 @@ cn: User 8
 sn: User8
 uid: user8
 
+dn: cn=User 9,ou=users-2,o=nifi
+objectClass: organizationalPerson
+objectClass: person
+objectClass: inetOrgPerson
+objectClass: top
+cn: User 9
+sn: User9
+description: team3
+uid: user9
+
 dn: ou=groups,o=nifi
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+dn: ou=groups-2,o=nifi
 objectClass: organizationalUnit
 objectClass: top
 ou: groups
@@ -134,3 +156,11 @@ objectClass: groupOfNames
 objectClass: top
 cn: team2
 member: cn=User 1,ou=users,o=nifi
+
+## since the embedded ldap requires member to be fqdn, we are simulating using room and description
+
+dn: cn=team3,ou=groups-2,o=nifi
+objectClass: room
+objectClass: top
+cn: team3
+description: user9

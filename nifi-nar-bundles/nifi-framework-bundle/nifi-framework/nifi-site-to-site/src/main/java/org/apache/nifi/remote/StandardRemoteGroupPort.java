@@ -90,6 +90,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final SSLContext sslContext;
     private final TransferDirection transferDirection;
     private final NiFiProperties nifiProperties;
+    private final String targetId;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
 
@@ -97,7 +98,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         return clientRef.get();
     }
 
-    public StandardRemoteGroupPort(final String id, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
+    public StandardRemoteGroupPort(final String id, final String targetId, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
             final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
         final NiFiProperties nifiProperties) {
         // remote group port id needs to be unique but cannot just be the id of the port
@@ -105,11 +106,17 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         // instance more than once.
         super(id, name, processGroup, type, scheduler);
 
+        this.targetId = targetId;
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
         this.nifiProperties = nifiProperties;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
+    }
+
+    @Override
+    public String getTargetIdentifier() {
+        return targetId == null ? getIdentifier() : targetId;
     }
 
     private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties) {
@@ -164,7 +171,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         final SiteToSiteClient.Builder clientBuilder = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(remoteGroup.getTargetUris()))
-                .portIdentifier(getIdentifier())
+                .portIdentifier(getTargetIdentifier())
                 .sslContext(sslContext)
                 .useCompression(isUseCompression())
                 .eventReporter(remoteGroup.getEventReporter())

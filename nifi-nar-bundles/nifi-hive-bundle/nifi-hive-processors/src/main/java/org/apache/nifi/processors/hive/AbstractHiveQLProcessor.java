@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.hive;
 
+import org.antlr.runtime.tree.CommonTree;
+import org.apache.hadoop.hive.ql.parse.ASTNode;
+import org.apache.hadoop.hive.ql.parse.ParseDriver;
+import org.apache.hadoop.hive.ql.parse.ParseException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -29,15 +33,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
-import java.sql.SQLDataException;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
-
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,6 +55,9 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
 
     protected static final Pattern HIVEQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("hiveql\\.args\\.(\\d+)\\.type");
     protected static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
+    static String ATTR_INPUT_TABLES = "query.input.tables";
+    static String ATTR_OUTPUT_TABLES = "query.output.tables";
+
 
     public static final PropertyDescriptor HIVE_DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Hive Database Connection Pooling Service")
@@ -216,4 +225,111 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
         }
     }
 
+    protected static class TableName {
+        private final String database;
+        private final String table;
+        private final boolean input;
+
+        TableName(String database, String table, boolean input) {
+            this.database = database;
+            this.table = table;
+            this.input = input;
+        }
+
+        public String getDatabase() {
+            return database;
+        }
+
+        public String getTable() {
+            return table;
+        }
+
+        public boolean isInput() {
+            return input;
+        }
+
+        @Override
+        public String toString() {
+            return database == null || database.isEmpty() ? table : database + '.' + table;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            TableName tableName = (TableName) o;
+
+            if (input != tableName.input) return false;
+            if (database != null ? !database.equals(tableName.database) : tableName.database != null) return false;
+            return table.equals(tableName.table);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = database != null ? database.hashCode() : 0;
+            result = 31 * result + table.hashCode();
+            result = 31 * result + (input ? 1 : 0);
+            return result;
+        }
+    }
+
+    protected Set<TableName> findTableNames(final String query) throws ParseException {
+        final ASTNode node = new ParseDriver().parse(normalize(query));
+        final HashSet<TableName> tableNames = new HashSet<>();
+        findTableNames(node, tableNames);
+        return tableNames;
+    }
+
+    /**
+     * Normalize query.
+     * Hive resolves prepared statement parameters before executing a query,
+     * see {@link org.apache.hive.jdbc.HivePreparedStatement#updateSql(String, HashMap)} for detail.
+     * HiveParser does not expect '?' to be in a query string, and throws an Exception if there is one.
+     * In this normalize method, '?' is replaced to 'x' to avoid that.
+     */
+    private String normalize(String query) {
+        return query.replace('?', 'x');
+    }
+
+    private void findTableNames(final Object obj, final Set<TableName> tableNames) {
+        if (!(obj instanceof CommonTree)) {
+            return;
+        }
+        final CommonTree tree = (CommonTree) obj;
+        final int childCount = tree.getChildCount();
+        if ("TOK_TABNAME".equals(tree.getText())) {
+            final TableName tableName;
+            final boolean isInput = "TOK_TABREF".equals(tree.getParent().getText());
+            switch (childCount) {
+                case 1 :
+                    tableName = new TableName(null, tree.getChild(0).getText(), isInput);
+                    break;
+                case 2:
+                    tableName = new TableName(tree.getChild(0).getText(), tree.getChild(1).getText(), isInput);
+                    break;
+                default:
+                    throw new IllegalStateException("TOK_TABNAME does not have expected children, childCount=" + childCount);
+            }
+            // If parent is TOK_TABREF, then it is an input table.
+            tableNames.add(tableName);
+            return;
+        }
+        for (int i = 0; i < childCount; i++) {
+            findTableNames(tree.getChild(i), tableNames);
+        }
+    }
+
+    protected Map<String, String> toQueryTableAttributes(Set<TableName> tableNames) {
+        final Map<String, String> attributes = new HashMap<>();
+        for (TableName tableName : tableNames) {
+            final String attributeName = tableName.isInput() ? ATTR_INPUT_TABLES : ATTR_OUTPUT_TABLES;
+            if (attributes.containsKey(attributeName)) {
+                attributes.put(attributeName, attributes.get(attributeName) + "," + tableName);
+            } else {
+                attributes.put(attributeName, tableName.toString());
+            }
+        }
+        return attributes;
+    }
 }

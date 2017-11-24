@@ -17,6 +17,9 @@
 package org.apache.nifi.distributed.cache.client;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -116,6 +119,32 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @throws IOException ex
      */
     <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
+
+    /**
+     * Returns the values in the cache for the given keys, if they exist;
+     * otherwise returns <code>null</code>
+     *
+     * @param <K> the key type
+     * @param <V> the value type
+     * @param keys a set of keys whose values to lookup in the map
+     * @param keySerializer key serializer
+     * @param valueDeserializer value serializer
+     *
+     * @return the value in the cache for the given key, if one exists;
+     * otherwise returns <code>null</code>
+     * @throws IOException ex
+     */
+    default <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        // Default behavior is to iterate over the keys, calling get(key) and putting it into the results map
+        if (keys == null) {
+            return null;
+        }
+        Map<K, V> results = new HashMap<>(keys.size());
+        for (K key : keys) {
+            results.put(key, get(key, keySerializer, valueDeserializer));
+        }
+        return results;
+    }
 
     /**
      * Attempts to notify the server that we are finished communicating with it

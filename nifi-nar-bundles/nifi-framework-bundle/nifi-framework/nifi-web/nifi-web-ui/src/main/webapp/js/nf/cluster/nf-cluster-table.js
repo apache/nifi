@@ -145,7 +145,7 @@
             {
                 id: 'processors',
                 field: 'processors',
-                name: 'Processors',
+                name: 'Cores',
                 sortable: true,
                 resizable: true,
                 cssClass: 'cell-right',
@@ -155,7 +155,7 @@
             {
                 id: 'processorLoadAverage',
                 field: 'processorLoadAverage',
-                name: 'Processor Load Average',
+                name: 'Core Load Average',
                 sortable: true,
                 resizable: true,
                 cssClass: 'cell-right',

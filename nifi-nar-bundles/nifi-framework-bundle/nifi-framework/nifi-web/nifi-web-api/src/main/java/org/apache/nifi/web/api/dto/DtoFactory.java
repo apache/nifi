@@ -1083,6 +1083,7 @@ public final class DtoFactory {
         dto.setGroupId(procStatus.getGroupId());
         dto.setName(procStatus.getName());
         dto.setStatsLastRefreshed(new Date());
+        dto.setRunStatus(procStatus.getRunStatus().toString());
 
         final ProcessorStatusSnapshotDTO snapshot = new ProcessorStatusSnapshotDTO();
         dto.setAggregateSnapshot(snapshot);
@@ -1502,6 +1503,7 @@ public final class DtoFactory {
 
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setId(port.getIdentifier());
+        dto.setTargetId(port.getTargetIdentifier());
         dto.setName(port.getName());
         dto.setComments(port.getComments());
         dto.setTransmitting(port.isRunning());
@@ -3168,6 +3170,7 @@ public final class DtoFactory {
     public RemoteProcessGroupPortDTO copy(final RemoteProcessGroupPortDTO original) {
         final RemoteProcessGroupPortDTO copy = new RemoteProcessGroupPortDTO();
         copy.setId(original.getId());
+        copy.setTargetId(original.getTargetId());
         copy.setGroupId(original.getGroupId());
         copy.setName(original.getName());
         copy.setComments(original.getComments());

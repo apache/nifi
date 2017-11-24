@@ -2061,6 +2061,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final RemoteProcessGroupPortDTO port : ports) {
                 final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
                 descriptor.setId(port.getId());
+                descriptor.setTargetId(port.getTargetId());
                 descriptor.setName(port.getName());
                 descriptor.setComments(port.getComments());
                 descriptor.setTargetRunning(port.isTargetRunning());
