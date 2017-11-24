@@ -106,13 +106,15 @@ public class PublisherLease implements Closeable {
         Record record;
         int recordCount = 0;
 
-        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
+        try {
             while ((record = recordSet.next()) != null) {
                 recordCount++;
                 baos.reset();
 
-                writer.write(record);
-                writer.flush();
+                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
+                    writer.write(record);
+                    writer.flush();
+                }
 
                 final byte[] messageContent = baos.toByteArray();
                 final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
