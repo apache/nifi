@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -53,6 +54,8 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.VersionListing;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 
 @TriggerSerially
 @TriggerWhenEmpty
@@ -108,10 +111,23 @@ public class ListS3 extends AbstractS3Processor {
             .description("Specifies whether to use S3 versions, if applicable.  If false, only the latest version of each object will be returned.")
             .build();
 
+    public static final PropertyDescriptor LIST_TYPE = new PropertyDescriptor.Builder()
+            .name("list-type")
+            .displayName("List Type")
+            .expressionLanguageSupported(false)
+            .required(true)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .allowableValues(
+                    new AllowableValue("1", "List Objects V1"),
+                    new AllowableValue("2", "List Objects V2"))
+            .defaultValue("1")
+            .description("Specifies whether to use the original List Objects or the newer List Objects Version 2 endpoint.")
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
-                    SIGNER_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX, USE_VERSIONS));
+                    SIGNER_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Collections.singletonList(REL_SUCCESS)));
@@ -189,10 +205,12 @@ public class ListS3 extends AbstractS3Processor {
         String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
         boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
-
+        int listType = context.getProperty(LIST_TYPE).asInteger();
         S3BucketLister bucketLister = useVersions
                 ? new S3VersionBucketLister(client)
-                : new S3ObjectBucketLister(client);
+                : listType == 2
+                    ? new S3ObjectBucketListerVersion2(client)
+                    : new S3ObjectBucketLister(client);
 
         bucketLister.setBucketName(bucket);
 
@@ -332,6 +350,62 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public void setNextMarker() {
             listObjectsRequest.setMarker(objectListing.getNextMarker());
+        }
+
+        @Override
+        public boolean isTruncated() {
+            return (objectListing == null) ? false : objectListing.isTruncated();
+        }
+    }
+
+    public class S3ObjectBucketListerVersion2 implements S3BucketLister {
+        private AmazonS3 client;
+        private ListObjectsV2Request listObjectsRequest;
+        private ListObjectsV2Result objectListing;
+
+        public S3ObjectBucketListerVersion2(AmazonS3 client) {
+            this.client = client;
+        }
+
+        @Override
+        public void setBucketName(String bucketName) {
+            listObjectsRequest = new ListObjectsV2Request().withBucketName(bucketName);
+        }
+
+        @Override
+        public void setPrefix(String prefix) {
+            listObjectsRequest.setPrefix(prefix);
+        }
+
+        @Override
+        public void setDelimiter(String delimiter) {
+            listObjectsRequest.setDelimiter(delimiter);
+        }
+
+        @Override
+        public VersionListing listVersions() {
+            VersionListing versionListing = new VersionListing();
+            this.objectListing = client.listObjectsV2(listObjectsRequest);
+            for(S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
+                S3VersionSummary versionSummary = new S3VersionSummary();
+                versionSummary.setBucketName(objectSummary.getBucketName());
+                versionSummary.setETag(objectSummary.getETag());
+                versionSummary.setKey(objectSummary.getKey());
+                versionSummary.setLastModified(objectSummary.getLastModified());
+                versionSummary.setOwner(objectSummary.getOwner());
+                versionSummary.setSize(objectSummary.getSize());
+                versionSummary.setStorageClass(objectSummary.getStorageClass());
+                versionSummary.setIsLatest(true);
+
+                versionListing.getVersionSummaries().add(versionSummary);
+            }
+
+            return versionListing;
+        }
+
+        @Override
+        public void setNextMarker() {
+            listObjectsRequest.setContinuationToken(objectListing.getNextContinuationToken());
         }
 
         @Override
