@@ -238,7 +238,25 @@ public class ContentViewerController extends HttpServlet {
                             }
 
                             // convert the stream using the detected charset
-                            return IOUtils.toString(bis, match.getName());
+                            try {
+                                return IOUtils.toString(bis, match.getName());
+                            } catch (OutOfMemoryError e) {
+                                try {
+                                    byte[] part = new byte[2048];
+                                    bis.read(part, 0, part.length);
+                                    StringBuilder result = new StringBuilder(
+                                        "File size is too large. NiFi doesn't have enough memory " +
+                                            "to view the file. Use external viewer");
+                                    result.append('\n');
+                                    result.append('\n');
+                                    result.append('\n');
+                                    result.append(IOUtils.toString(part, match.getName()));
+                                    return result.toString();
+                                } catch (OutOfMemoryError e2) {
+                                    return "File size is too large. NiFi doesn't have enough " +
+                                        "memory to view the file. Use external viewer";
+                                }
+                            }
                         }
 
                         @Override
