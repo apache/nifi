@@ -543,7 +543,7 @@
                             params.set('processGroupId', 'root');
                         }
 
-                        if ((url.origin + url.pathname + '?' + params.toString()).length <= nfCanvasUtils.MAX_URL_LENGTH) {
+                        if ((url.origin + url.pathname + '?' + params.toString()).length <= MAX_URL_LENGTH) {
                             newUrl = url.origin + url.pathname + '?' + params.toString();
                         } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
                             // silently remove all component ids

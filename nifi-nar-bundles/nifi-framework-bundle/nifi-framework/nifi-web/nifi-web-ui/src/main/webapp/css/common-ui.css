@@ -109,6 +109,10 @@ body {
     color: #262626;
 }
 
+button {
+    border-radius: 0;
+}
+
 .value-color {
     color: #775351;
 }

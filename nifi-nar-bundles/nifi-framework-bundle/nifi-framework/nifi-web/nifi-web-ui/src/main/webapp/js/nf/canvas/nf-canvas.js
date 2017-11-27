@@ -182,7 +182,7 @@
             }, options));
 
             // update component visibility
-            nfCanvas.View.updateVisibility();
+            nfGraph.updateVisibility();
 
             // update the birdseye
             nfBirdseye.refresh();
@@ -979,97 +979,6 @@
 
         View: (function () {
 
-            /**
-             * Updates component visibility based on their proximity to the screen's viewport.
-             */
-            var updateComponentVisibility = function () {
-                var canvasContainer = $('#canvas-container');
-                var translate = nfCanvas.View.translate();
-                var scale = nfCanvas.View.scale();
-
-                // scale the translation
-                translate = [translate[0] / scale, translate[1] / scale];
-
-                // get the normalized screen width and height
-                var screenWidth = canvasContainer.width() / scale;
-                var screenHeight = canvasContainer.height() / scale;
-
-                // calculate the screen bounds one screens worth in each direction
-                var screenLeft = -translate[0] - screenWidth;
-                var screenTop = -translate[1] - screenHeight;
-                var screenRight = screenLeft + (screenWidth * 3);
-                var screenBottom = screenTop + (screenHeight * 3);
-
-                // detects whether a component is visible and should be rendered
-                var isComponentVisible = function (d) {
-                    if (!nfCanvas.View.shouldRenderPerScale()) {
-                        return false;
-                    }
-
-                    var left = d.position.x;
-                    var top = d.position.y;
-                    var right = left + d.dimensions.width;
-                    var bottom = top + d.dimensions.height;
-
-                    // determine if the component is now visible
-                    return screenLeft < right && screenRight > left && screenTop < bottom && screenBottom > top;
-                };
-
-                // detects whether a connection is visible and should be rendered
-                var isConnectionVisible = function (d) {
-                    if (!nfCanvas.View.shouldRenderPerScale()) {
-                        return false;
-                    }
-
-                    var x, y;
-                    if (d.bends.length > 0) {
-                        var i = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
-                        x = d.bends[i].x;
-                        y = d.bends[i].y;
-                    } else {
-                        x = (d.start.x + d.end.x) / 2;
-                        y = (d.start.y + d.end.y) / 2;
-                    }
-
-                    return screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
-                };
-
-                // marks the specific component as visible and determines if its entering or leaving visibility
-                var updateVisibility = function (d, isVisible) {
-                    var selection = d3.select('#id-' + d.id);
-                    var visible = isVisible(d);
-                    var wasVisible = selection.classed('visible');
-
-                    // mark the selection as appropriate
-                    selection.classed('visible', visible)
-                        .classed('entering', function () {
-                            return visible && !wasVisible;
-                        }).classed('leaving', function () {
-                        return !visible && wasVisible;
-                    });
-                };
-
-                // get the all components
-                var graph = nfGraph.get();
-
-                // update the visibility for each component
-                $.each(graph.processors, function (_, d) {
-                    updateVisibility(d, isComponentVisible);
-                });
-                $.each(graph.ports, function (_, d) {
-                    updateVisibility(d, isComponentVisible);
-                });
-                $.each(graph.processGroups, function (_, d) {
-                    updateVisibility(d, isComponentVisible);
-                });
-                $.each(graph.remoteProcessGroups, function (_, d) {
-                    updateVisibility(d, isComponentVisible);
-                });
-                $.each(graph.connections, function (_, d) {
-                    updateVisibility(d, isConnectionVisible);
-                });
-            };
-
             // initialize the zoom behavior
             var behavior;
 
@@ -1112,7 +1021,7 @@
                         .on('zoomend', function () {
                             // ensure the canvas was actually refreshed
                             if (nfCommon.isDefinedAndNotNull(refreshed)) {
-                                nfCanvas.View.updateVisibility();
+                                nfGraph.updateVisibility();
 
                                 // refresh the birdseye
                                 refreshed.done(function () {
@@ -1141,14 +1050,6 @@
                  */
                 shouldRenderPerScale: function () {
                     return nfCanvas.View.scale() >= MIN_SCALE_TO_RENDER;
-                },
-
-                /**
-                 * Updates component visibility based on the current translation/scale.
-                 */
-                updateVisibility: function () {
-                    updateComponentVisibility();
-                    nfGraph.pan();
                 },
 
                 /**
@@ -1346,7 +1247,7 @@
 
                         // update component visibility
                         if (refreshComponents) {
-                            nfCanvas.View.updateVisibility();
+                            nfGraph.updateVisibility();
                         }
 
                         // persist if appropriate

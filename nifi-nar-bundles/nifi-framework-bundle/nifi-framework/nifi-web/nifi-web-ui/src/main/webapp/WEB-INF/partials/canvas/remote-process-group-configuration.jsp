@@ -32,7 +32,7 @@
         <div class="setting">
             <div class="setting-name">URLs</div>
             <div class="setting-field">
-                <span id="remote-process-group-urls"></span>
+                <input type="text" id="remote-process-group-urls" class="setting-input"/>
             </div>
         </div>
         <div class="setting">

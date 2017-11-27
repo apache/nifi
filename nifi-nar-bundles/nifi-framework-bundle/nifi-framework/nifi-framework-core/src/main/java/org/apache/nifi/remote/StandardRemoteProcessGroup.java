@@ -192,6 +192,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public void setTargetUris(final String targetUris) {
         requireNonNull(targetUris);
+
+        // only attempt to update the target uris if they have changed
+        if (targetUris.equals(this.targetUris)) {
+            return;
+        }
+
         verifyCanUpdate();
 
         this.targetUris = targetUris;

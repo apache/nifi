@@ -541,11 +541,16 @@
 
             // determine if the item matches the filter
             var matchesId = item['componentId'].search(filterExp) >= 0;
-            var matchesComponent = item['componentName'].search(filterExp) >= 0;
             var matchesDifferenceType = item['differenceType'].search(filterExp) >= 0;
             var matchesDifference = item['difference'].search(filterExp) >= 0;
 
-            return matchesId || matchesComponent || matchesDifferenceType || matchesDifference;
+            // conditionally consider the component name
+            var matchesComponentName = false;
+            if (nfCommon.isDefinedAndNotNull(item['componentName'])) {
+                matchesComponentName = item['componentName'].search(filterExp) >= 0;
+            }
+
+            return matchesId || matchesComponentName || matchesDifferenceType || matchesDifference;
         };
 
         // initialize the component state filter
@@ -570,7 +575,7 @@
         // define the column model for local changes
         var localChangesColumns = [
             {
-                id: 'component',
+                id: 'componentName',
                 name: 'Component Name',
                 field: 'componentName',
                 formatter: valueFormatter,
@@ -610,7 +615,7 @@
         });
         localChangesData.setFilterArgs({
             searchString: '',
-            property: 'component'
+            property: 'componentName'
         });
         localChangesData.setFilter(filter);
 
@@ -1202,7 +1207,11 @@
                 url: '../nifi-api/flow/process-groups/' + encodeURIComponent(processGroupId),
                 dataType: 'json'
             }).done(function (response) {
+                // update the graph components
                 nfGraph.set(response.processGroupFlow.flow);
+
+                // update the component visibility
+                nfGraph.updateVisibility();
             }).fail(nfErrorHandler.handleAjaxError);
         } else {
             // if reverting selected PG... reload selected PG to update counts, etc
