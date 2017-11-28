@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A base class for processors that interact with Apache Solr.
@@ -46,19 +45,19 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class SolrProcessor extends AbstractProcessor {
 
-    public static final AllowableValue SOLR_TYPE_CLOUD = new AllowableValue(
-            "Cloud", "Cloud", "A SolrCloud instance.");
-
-    public static final AllowableValue SOLR_TYPE_STANDARD = new AllowableValue(
-            "Standard", "Standard", "A stand-alone Solr instance.");
-
-    public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor
-            .Builder().name("Solr Type")
-            .description("The type of Solr instance, Cloud or Standard.")
-            .required(true)
-            .allowableValues(SOLR_TYPE_CLOUD, SOLR_TYPE_STANDARD)
-            .defaultValue(SOLR_TYPE_STANDARD.getValue())
-            .build();
+    // make PropertyDescriptors of SolrUtils visible for classes extending SolrProcessor
+    public static AllowableValue SOLR_TYPE_CLOUD = SolrUtils.SOLR_TYPE_CLOUD;
+    public static AllowableValue SOLR_TYPE_STANDARD = SolrUtils.SOLR_TYPE_STANDARD;
+    public static PropertyDescriptor SOLR_TYPE = SolrUtils.SOLR_TYPE;
+    public static PropertyDescriptor COLLECTION = SolrUtils.COLLECTION;
+    public static PropertyDescriptor JAAS_CLIENT_APP_NAME = SolrUtils.JAAS_CLIENT_APP_NAME;
+    public static PropertyDescriptor SSL_CONTEXT_SERVICE = SolrUtils.SSL_CONTEXT_SERVICE;
+    public static PropertyDescriptor SOLR_SOCKET_TIMEOUT = SolrUtils.SOLR_SOCKET_TIMEOUT;
+    public static PropertyDescriptor SOLR_CONNECTION_TIMEOUT = SolrUtils.SOLR_CONNECTION_TIMEOUT;
+    public static PropertyDescriptor SOLR_MAX_CONNECTIONS = SolrUtils.SOLR_MAX_CONNECTIONS;
+    public static PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
+    public static PropertyDescriptor ZK_CLIENT_TIMEOUT = SolrUtils.ZK_CLIENT_TIMEOUT;
+    public static PropertyDescriptor ZK_CONNECTION_TIMEOUT = SolrUtils.ZK_CONNECTION_TIMEOUT;
 
     public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor
             .Builder().name("Solr Location")
@@ -68,23 +67,6 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor COLLECTION = new PropertyDescriptor
-            .Builder().name("Collection")
-            .description("The Solr collection name, only used with a Solr Type of Cloud")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor JAAS_CLIENT_APP_NAME = new PropertyDescriptor
-            .Builder().name("JAAS Client App Name")
-            .description("The name of the JAAS configuration entry to use when performing Kerberos authentication to Solr. If this property is " +
-                    "not provided, Kerberos authentication will not be attempted. The value must match an entry in the file specified by the " +
-                    "system property java.security.auth.login.config.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor
@@ -106,60 +88,6 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .sensitive(true)
             .build();
 
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context. This property must be set when communicating with a Solr over https.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
-    public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor
-            .Builder().name("Solr Socket Timeout")
-            .description("The amount of time to wait for data on a socket connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 seconds")
-            .build();
-
-    public static final PropertyDescriptor SOLR_CONNECTION_TIMEOUT = new PropertyDescriptor
-            .Builder().name("Solr Connection Timeout")
-            .description("The amount of time to wait when establishing a connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 seconds")
-            .build();
-
-    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS = new PropertyDescriptor
-            .Builder().name("Solr Maximum Connections")
-            .description("The maximum number of total connections allowed from the Solr client to Solr.")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("10")
-            .build();
-
-    public static final PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = new PropertyDescriptor
-            .Builder().name("Solr Maximum Connections Per Host")
-            .description("The maximum number of connections allowed from the Solr client to a single Solr host.")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("5")
-            .build();
-
-    public static final PropertyDescriptor ZK_CLIENT_TIMEOUT = new PropertyDescriptor
-            .Builder().name("ZooKeeper Client Timeout")
-            .description("The amount of time to wait for data on a connection to ZooKeeper, only used with a Solr Type of Cloud.")
-            .required(false)
-            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-            .defaultValue("10 seconds")
-            .build();
-
-    public static final PropertyDescriptor ZK_CONNECTION_TIMEOUT = new PropertyDescriptor
-            .Builder().name("ZooKeeper Connection Timeout")
-            .description("The amount of time to wait when establishing a connection to ZooKeeper, only used with a Solr Type of Cloud.")
-            .required(false)
-            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-            .defaultValue("10 seconds")
-            .build();
 
     private volatile SolrClient solrClient;
     private volatile String solrLocation;
@@ -197,8 +125,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
      * @return an HttpSolrClient or CloudSolrClient
      */
     protected SolrClient createSolrClient(final ProcessContext context, final String solrLocation) {
-        final SolrUtils su = new SolrUtils(this);
-        return su.createSolrClient(context, solrLocation);
+        return SolrUtils.createSolrClient(context, solrLocation);
     }
 
     /**
