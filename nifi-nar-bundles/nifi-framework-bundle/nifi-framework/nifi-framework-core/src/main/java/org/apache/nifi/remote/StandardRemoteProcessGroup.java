@@ -178,7 +178,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         };
 
         final Runnable checkAuthorizations = new InitializationTask();
-        backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id);
+        backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id, true);
         backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 5L, 30L, TimeUnit.SECONDS);
         backgroundThreadExecutor.submit(() -> {
             try {
@@ -435,11 +435,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * and started.
      *
      * @param ports the new ports
+     * @param pruneUnusedPorts if true, any ports that are not included in the given set of ports
+     *            and that do not have any incoming connections will be removed.
      *
      * @throws NullPointerException if the given argument is null
      */
     @Override
-    public void setInputPorts(final Set<RemoteProcessGroupPortDescriptor> ports) {
+    public void setInputPorts(final Set<RemoteProcessGroupPortDescriptor> ports, final boolean pruneUnusedPorts) {
         writeLock.lock();
         try {
             final List<String> newPortTargetIds = new ArrayList<>();
@@ -478,16 +480,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
             // See if we have any ports that no longer exist; cannot be removed within the loop because it would cause
             // a ConcurrentModificationException.
-            final Iterator<StandardRemoteGroupPort> itr = inputPorts.values().iterator();
-            while (itr.hasNext()) {
-                final StandardRemoteGroupPort port = itr.next();
-                if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
-                    port.setTargetExists(false);
-                    port.setTargetRunning(false);
+            if (pruneUnusedPorts) {
+                final Iterator<StandardRemoteGroupPort> itr = inputPorts.values().iterator();
+                while (itr.hasNext()) {
+                    final StandardRemoteGroupPort port = itr.next();
+                    if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
+                        port.setTargetExists(false);
+                        port.setTargetRunning(false);
 
-                    // If port has incoming connection, it will be cleaned up when the connection is removed
-                    if (!port.hasIncomingConnection()) {
-                        itr.remove();
+                        // If port has incoming connection, it will be cleaned up when the connection is removed
+                        if (!port.hasIncomingConnection()) {
+                            itr.remove();
+                        }
                     }
                 }
             }
@@ -521,11 +525,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * and started.
      *
      * @param ports the new ports
+     * @param pruneUnusedPorts if true, will remove any ports that are not in the given list and that have
+     *            no outgoing connections
      *
      * @throws NullPointerException if the given argument is null
      */
     @Override
-    public void setOutputPorts(final Set<RemoteProcessGroupPortDescriptor> ports) {
+    public void setOutputPorts(final Set<RemoteProcessGroupPortDescriptor> ports, final boolean pruneUnusedPorts) {
         writeLock.lock();
         try {
             final List<String> newPortTargetIds = new ArrayList<>();
@@ -535,7 +541,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final Map<String, StandardRemoteGroupPort> outputPortByTargetId = outputPorts.values().stream()
                     .collect(Collectors.toMap(StandardRemoteGroupPort::getTargetIdentifier, Function.identity()));
 
-                final Map<String, StandardRemoteGroupPort> outputPortByName = inputPorts.values().stream()
+                final Map<String, StandardRemoteGroupPort> outputPortByName = outputPorts.values().stream()
                     .collect(Collectors.toMap(StandardRemoteGroupPort::getName, Function.identity()));
 
                 // Check if we have a matching port already and add the port if not. We determine a matching port
@@ -564,16 +570,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
             // See if we have any ports that no longer exist; cannot be removed within the loop because it would cause
             // a ConcurrentModificationException.
-            final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
-            while (itr.hasNext()) {
-                final StandardRemoteGroupPort port = itr.next();
-                if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
-                    port.setTargetExists(false);
-                    port.setTargetRunning(false);
+            if (pruneUnusedPorts) {
+                final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
+                while (itr.hasNext()) {
+                    final StandardRemoteGroupPort port = itr.next();
+                    if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
+                        port.setTargetExists(false);
+                        port.setTargetRunning(false);
 
-                    // If port has connections, it will be cleaned up when connections are removed
-                    if (port.getConnections().isEmpty()) {
-                        itr.remove();
+                        // If port has connections, it will be cleaned up when connections are removed
+                        if (port.getConnections().isEmpty()) {
+                            itr.remove();
+                        }
                     }
                 }
             }
@@ -617,53 +625,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    @Override
-    public void removeAllNonExistentPorts() {
-        writeLock.lock();
-        try {
-            final Set<String> inputPortIds = new HashSet<>();
-            final Set<String> outputPortIds = new HashSet<>();
-
-            for (final Map.Entry<String, StandardRemoteGroupPort> entry : inputPorts.entrySet()) {
-                final RemoteGroupPort port = entry.getValue();
-
-                if (port.getTargetExists()) {
-                    continue;
-                }
-
-                // If there's a connection, we don't remove it.
-                if (port.hasIncomingConnection()) {
-                    continue;
-                }
-
-                inputPortIds.add(entry.getKey());
-            }
-
-            for (final Map.Entry<String, StandardRemoteGroupPort> entry : outputPorts.entrySet()) {
-                final RemoteGroupPort port = entry.getValue();
-
-                if (port.getTargetExists()) {
-                    continue;
-                }
-
-                // If there's a connection, we don't remove it.
-                if (!port.getConnections().isEmpty()) {
-                    continue;
-                }
-
-                outputPortIds.add(entry.getKey());
-            }
-
-            for (final String id : inputPortIds) {
-                inputPorts.remove(id);
-            }
-            for (final String id : outputPortIds) {
-                outputPorts.remove(id);
-            }
-        } finally {
-            writeLock.unlock();
-        }
-    }
 
     /**
      * Adds an Output Port to this Remote Process Group that is described by
@@ -865,35 +826,16 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 dto = apiClient.getController(targetUris);
             } catch (IOException e) {
-                writeLock.lock();
-                try {
-                    for (final Iterator<StandardRemoteGroupPort> iter = inputPorts.values().iterator(); iter.hasNext();) {
-                        final StandardRemoteGroupPort inputPort = iter.next();
-                        if (!inputPort.hasIncomingConnection()) {
-                            iter.remove();
-                        }
-                    }
-
-                    for (final Iterator<StandardRemoteGroupPort> iter = outputPorts.values().iterator(); iter.hasNext();) {
-                        final StandardRemoteGroupPort outputPort = iter.next();
-                        if (outputPort.getConnections().isEmpty()) {
-                            iter.remove();
-                        }
-                    }
-                } finally {
-                    writeLock.unlock();
-                }
-
                 throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + targetUris + " due to: " + e.getMessage());
             }
 
             writeLock.lock();
             try {
                 if (dto.getInputPorts() != null) {
-                    setInputPorts(convertRemotePort(dto.getInputPorts()));
+                    setInputPorts(convertRemotePort(dto.getInputPorts()), true);
                 }
                 if (dto.getOutputPorts() != null) {
-                    setOutputPorts(convertRemotePort(dto.getOutputPorts()));
+                    setOutputPorts(convertRemotePort(dto.getOutputPorts()), true);
                 }
 
                 // set the controller details

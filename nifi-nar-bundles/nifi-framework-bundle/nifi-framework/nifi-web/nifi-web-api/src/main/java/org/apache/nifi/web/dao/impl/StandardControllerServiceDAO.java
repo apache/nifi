@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
+
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
@@ -44,8 +46,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
@@ -171,6 +171,22 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 }
             }
         }
+
+        controllerService.getProcessGroup().onComponentModified();
+
+        // For any component that references this Controller Service, find the component's Process Group
+        // and notify the Process Group that a component has been modified. This way, we know to re-calculate
+        // whether or not the Process Group has local modifications.
+        final ProcessGroup group = controllerService.getProcessGroup();
+        controllerService.getReferences().getReferencingComponents().stream()
+            .map(ConfiguredComponent::getProcessGroupIdentifier)
+            .filter(id -> !id.equals(group.getIdentifier()))
+            .forEach(groupId -> {
+                final ProcessGroup descendant = group.findProcessGroup(groupId);
+                if (descendant != null) {
+                    descendant.onComponentModified();
+                }
+            });
 
         return controllerService;
     }

@@ -117,6 +117,8 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
@@ -213,6 +215,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -2187,17 +2190,23 @@ public final class DtoFactory {
 
 
     public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
+        return createComponentDifferenceDtos(comparison, null);
+    }
+
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison, final Predicate<FlowDifference> filter) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
 
         for (final FlowDifference difference : comparison.getDifferences()) {
-            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
-            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+            if (filter == null || filter.test(difference)) {
+                final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+                final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
 
-            final DifferenceDTO dto = new DifferenceDTO();
-            dto.setDifferenceType(difference.getDifferenceType().getDescription());
-            dto.setDifference(difference.getDescription());
+                final DifferenceDTO dto = new DifferenceDTO();
+                dto.setDifferenceType(difference.getDifferenceType().getDescription());
+                dto.setDifference(difference.getDescription());
 
-            differences.add(dto);
+                differences.add(dto);
+            }
         }
 
         for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
@@ -2252,6 +2261,12 @@ public final class DtoFactory {
         dto.setVersion(versionControlInfo.getVersion());
         dto.setCurrent(versionControlInfo.isCurrent());
         dto.setModified(versionControlInfo.isModified());
+
+        final VersionedFlowStatus status = versionControlInfo.getStatus();
+        final VersionedFlowState state = status.getState();
+        dto.setState(state == null ? null : state.name());
+        dto.setStateExplanation(status.getStateExplanation());
+
         return dto;
     }
 
@@ -3488,6 +3503,8 @@ public final class DtoFactory {
         copy.setVersion(original.getVersion());
         copy.setCurrent(original.getCurrent());
         copy.setModified(original.getModified());
+        copy.setState(original.getState());
+        copy.setStateExplanation(original.getStateExplanation());
         return copy;
     }
 

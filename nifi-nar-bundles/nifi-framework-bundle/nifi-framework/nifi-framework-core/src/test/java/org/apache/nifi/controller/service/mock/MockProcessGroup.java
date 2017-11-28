@@ -347,7 +347,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public ControllerServiceNode findControllerService(final String id) {
+    public ControllerServiceNode findControllerService(final String id, final boolean includeDescendants, final boolean includeAncestors) {
         return serviceMap.get(id);
     }
 
@@ -677,5 +677,9 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void verifyCanShowLocalModifications() {
+    }
+
+    @Override
+    public void onComponentModified() {
     }
 }

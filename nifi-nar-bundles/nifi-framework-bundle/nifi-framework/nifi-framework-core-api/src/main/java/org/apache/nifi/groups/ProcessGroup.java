@@ -462,11 +462,11 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     /**
      * @param id of the Controller Service
-     * @return the Controller Service with the given ID, if it exists as a child or
-     *         descendant of this ProcessGroup. This performs a recursive search of all
-     *         descendant ProcessGroups
+     * @param includeDescendantGroups whether or not to include descendant process groups
+     * @param includeAncestorGroups whether or not to include ancestor process groups
+     * @return the Controller Service with the given ID
      */
-    ControllerServiceNode findControllerService(String id);
+    ControllerServiceNode findControllerService(String id, boolean includeDescendantGroups, boolean includeAncestorGroups);
 
     /**
      * @return a List of all Controller Services contained within this ProcessGroup and any child Process Groups
@@ -976,4 +976,9 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param flowRegistry the Flow Registry to synchronize with
      */
     void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry);
+
+    /**
+     * Called whenever a component within this group or the group itself is modified
+     */
+    void onComponentModified();
 }

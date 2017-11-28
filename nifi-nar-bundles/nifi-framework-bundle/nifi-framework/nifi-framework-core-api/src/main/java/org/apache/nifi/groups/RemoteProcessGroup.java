@@ -61,9 +61,9 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
 
     void setName(String name);
 
-    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
-    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
     Set<RemoteGroupPort> getInputPorts();
 
@@ -214,11 +214,6 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
      * @param isClustered whether or not this instance is now clustered
      */
     void reinitialize(boolean isClustered);
-
-    /**
-     * Removes all non existent ports from this RemoteProcessGroup.
-     */
-    void removeAllNonExistentPorts();
 
     /**
      * Removes a port that no longer exists on the remote instance from this
