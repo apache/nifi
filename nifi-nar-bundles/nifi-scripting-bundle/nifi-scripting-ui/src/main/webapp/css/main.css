@@ -68,8 +68,8 @@ div.scrollable{
     font-size: 60%;
 }
 
-#variableList {
-    word-wrap: break-word;
+.info .fa {
+    vertical-align: middle;
 }
 
 .primary-button , .secondary-button {
@@ -89,6 +89,10 @@ div.scrollable{
 
 .primary-button{
     background: #728e9b;
+}
+
+.primary-button:hover {
+    border: 0;
 }
 
 .primary-button:hover:not(.disabled-button){
