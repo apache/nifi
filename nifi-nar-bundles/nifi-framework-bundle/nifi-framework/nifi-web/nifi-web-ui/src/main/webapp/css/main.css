@@ -153,6 +153,38 @@ div.context-menu-provenance {
     text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
+.up-to-date {
+    float: left;
+    color: #3da67a !important;
+    fill: #3da67a !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.locally-modified {
+    float: left;
+    color: #747474 !important;
+    fill: #747474 !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stale {
+    float: left;
+    color: #c7685d !important;
+    fill: #c7685d !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.locally-modified-and-stale {
+    float: left;
+    color: #c7685d !important;
+    fill: #c7685d !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
 div.valid {
     float: left;
     background-color: transparent;

@@ -101,6 +101,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
@@ -1648,7 +1649,7 @@ public final class DtoFactory {
         dto.setInactiveRemoteOutputPortCount(inactiveRemoteOutputPortCount);
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
 
-        final ProcessGroupCounts counts = group.getCounts();
+        final RemoteProcessGroupCounts counts = group.getCounts();
         if (counts != null) {
             dto.setInputPortCount(counts.getInputPortCount());
             dto.setOutputPortCount(counts.getOutputPortCount());
@@ -2175,6 +2176,11 @@ public final class DtoFactory {
         dto.setOutputPortCount(counts.getOutputPortCount());
         dto.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         dto.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        dto.setUpToDateCount(counts.getUpToDateCount());
+        dto.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        dto.setStaleCount(counts.getStaleCount());
+        dto.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        dto.setSyncFailureCount(counts.getSyncFailureCount());
 
         return dto;
     }
@@ -3452,6 +3458,12 @@ public final class DtoFactory {
         copy.setDisabledCount(original.getDisabledCount());
         copy.setActiveRemotePortCount(original.getActiveRemotePortCount());
         copy.setInactiveRemotePortCount(original.getInactiveRemotePortCount());
+
+        copy.setUpToDateCount(original.getUpToDateCount());
+        copy.setLocallyModifiedCount(original.getLocallyModifiedCount());
+        copy.setStaleCount(original.getStaleCount());
+        copy.setLocallyModifiedAndStaleCount(original.getLocallyModifiedAndStaleCount());
+        copy.setSyncFailureCount(original.getSyncFailureCount());
 
         if (original.getVariables() != null) {
             copy.setVariables(new HashMap<>(original.getVariables()));

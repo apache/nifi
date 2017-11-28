@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -138,6 +113,31 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -278,6 +278,12 @@ public final class StandardProcessGroup implements ProcessGroup {
         int activeRemotePorts = 0;
         int inactiveRemotePorts = 0;
 
+        int upToDate = 0;
+        int locallyModified = 0;
+        int stale = 0;
+        int locallyModifiedAndStale = 0;
+        int syncFailure = 0;
+
         readLock.lock();
         try {
             for (final ProcessorNode procNode : processors.values()) {
@@ -324,6 +330,27 @@ public final class StandardProcessGroup implements ProcessGroup {
                 stopped += childCounts.getStoppedCount();
                 invalid += childCounts.getInvalidCount();
                 disabled += childCounts.getDisabledCount();
+
+                // update the vci counts for this child group
+                final VersionControlInformation vci = childGroup.getVersionControlInformation();
+                if (vci != null) {
+                    if (vci.isModified() && !vci.isCurrent()) {
+                        locallyModifiedAndStale += 1;
+                    } else if (!vci.isCurrent()) {
+                        stale += 1;
+                    } else if (vci.isModified()) {
+                        locallyModified += 1;
+                    } else {
+                        upToDate += 1;
+                    }
+                }
+
+                // update the vci counts for all nested groups within the child
+                upToDate += childCounts.getUpToDateCount();
+                locallyModified += childCounts.getLocallyModifiedCount();
+                stale += childCounts.getStaleCount();
+                locallyModifiedAndStale += childCounts.getLocallyModifiedAndStaleCount();
+                syncFailure += childCounts.getSyncFailureCount();
             }
 
             for (final RemoteProcessGroup remoteGroup : findAllRemoteProcessGroups()) {
@@ -358,8 +385,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
 
-        return new ProcessGroupCounts(inputPortCount, outputPortCount, running, stopped,
-                invalid, disabled, activeRemotePorts, inactiveRemotePorts);
+        return new ProcessGroupCounts(inputPortCount, outputPortCount, running, stopped, invalid, disabled, activeRemotePorts,
+                inactiveRemotePorts, upToDate, locallyModified, stale, locallyModifiedAndStale, syncFailure);
     }
 
     @Override

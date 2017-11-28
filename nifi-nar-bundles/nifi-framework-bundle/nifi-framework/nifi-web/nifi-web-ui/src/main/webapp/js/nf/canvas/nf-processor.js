@@ -520,6 +520,17 @@
                         })
                         .text('5 min');
 
+                    // --------
+                    // comments
+                    // --------
+
+                    details.append('path')
+                        .attr({
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (processorData.dimensions.width - 2) + ', ' + (processorData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
+                        });
+
                     // -------------------
                     // active thread count
                     // -------------------
@@ -608,6 +619,37 @@
                         }).append('title').text(function (d) {
                             return nfCommon.formatBundle(d.component.bundle);
                         });
+
+                    // update the processor comments
+                    processor.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + processorData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(processorData.component.config.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#processor-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + processorData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.text(processorData.component.config.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
                 } else {
                     // clear the processor name
                     processor.select('text.processor-name').text(null);
@@ -617,6 +659,9 @@
 
                     // clear the processor bundle
                     processor.select('text.processor-bundle').text(null);
+
+                    // clear the processor comments
+                    processor.select('path.component-comments').style('visibility', false);
                 }
 
                 // populate the stats
@@ -903,6 +948,7 @@
             // remove any associated tooltips
             $('#run-status-tip-' + d.id).remove();
             $('#bulletin-tip-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 

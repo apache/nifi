@@ -17,10 +17,8 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="show-local-changes-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
-        <div class="setting">
-            <div class="setting-field">
-                The following changes have been made to the flow since the last version.
-            </div>
+        <div class="setting local-changes-message">
+            <span id="show-local-changes-message"></span>
         </div>
         <div id="show-local-changes-filter-controls">
             <div id="show-local-changes-filter-status" class="filter-status">

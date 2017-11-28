@@ -17,10 +17,8 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="revert-local-changes-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
-        <div class="setting">
-            <div class="setting-field">
-                Are you sure you want to revert changes? All flow configuration changes detailed below will be reverted to the last version.
-            </div>
+        <div class="setting local-changes-message">
+            <span id="revert-local-changes-message"></span>&nbsp;<span style="font-weight: bold;">Revert will remove all changes.</span>
         </div>
         <span id="revert-local-changes-process-group-id" class="hidden"></span>
         <div id="revert-local-changes-filter-controls">
