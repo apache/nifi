@@ -378,6 +378,10 @@
                 });
 
                 return refreshGraph;
+            } else {
+                return $.Deferred(function (deferred) {
+                    deferred.reject();
+                }).promise();
             }
         },
 

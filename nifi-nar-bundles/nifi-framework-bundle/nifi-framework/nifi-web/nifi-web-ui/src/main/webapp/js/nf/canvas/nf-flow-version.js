@@ -126,13 +126,16 @@
 
             var localChangesData = localChangesGrid.getData();
             localChangesData.setItems([]);
+            localChangesData.setFilterArgs({
+                searchString: ''
+            });
         }
 
         filterInput.val('');
 
         displayedLabel.text('0');
         totalLabel.text('0');
-    }
+    };
 
     /**
      * Clears the version grid
@@ -386,9 +389,18 @@
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-            return aString === bString ? 0 : aString > bString ? 1 : -1;
+            var aIsBlank = nfCommon.isBlank(a[sortDetails.columnId]);
+            var bIsBlank = nfCommon.isBlank(b[sortDetails.columnId]);
+
+            if (aIsBlank && bIsBlank) {
+                return 0;
+            } else if (aIsBlank) {
+                return 1;
+            } else if (bIsBlank) {
+                return -1;
+            }
+
+            return a[sortDetails.columnId] === b[sortDetails.columnId] ? 0 : a[sortDetails.columnId] > b[sortDetails.columnId] ? 1 : -1;
         };
 
         // perform the sort
@@ -584,7 +596,7 @@
             },
             {
                 id: 'differenceType',
-                name: 'Type',
+                name: 'Change Type',
                 field: 'differenceType',
                 formatter: valueFormatter,
                 sortable: true,
@@ -596,8 +608,7 @@
                 field: 'difference',
                 formatter: valueFormatter,
                 sortable: true,
-                resizable: true,
-                minWidth: 300
+                resizable: true
             },
             {
                 id: 'actions',
@@ -614,22 +625,21 @@
             inlineFilters: false
         });
         localChangesData.setFilterArgs({
-            searchString: '',
-            property: 'componentName'
+            searchString: getFilterText()
         });
         localChangesData.setFilter(filter);
 
         // initialize the sort
         sort({
-            columnId: 'version',
-            sortAsc: false
+            columnId: 'componentName',
+            sortAsc: true
         }, localChangesData);
 
         // initialize the grid
         var localChangesGrid = new Slick.Grid(localChangesTable, localChangesData, localChangesColumns, gridOptions);
         localChangesGrid.setSelectionModel(new Slick.RowSelectionModel());
         localChangesGrid.registerPlugin(new Slick.AutoTooltips());
-        localChangesGrid.setSortColumn('version', false);
+        localChangesGrid.setSortColumn('componentName', true);
         localChangesGrid.onSort.subscribe(function (e, args) {
             sort({
                 columnId: args.sortCol.id,
@@ -650,9 +660,13 @@
                     if (componentDifference.componentType === 'Controller Service') {
                         nfProcessGroupConfiguration.showConfiguration(componentDifference.processGroupId).done(function () {
                             nfProcessGroupConfiguration.selectControllerService(componentDifference.componentId);
+
+                            localChangesTable.closest('.large-dialog').modal('hide');
                         });
                     } else {
-                        nfCanvasUtils.showComponent(componentDifference.processGroupId, componentDifference.componentId);
+                        nfCanvasUtils.showComponent(componentDifference.processGroupId, componentDifference.componentId).done(function () {
+                            localChangesTable.closest('.large-dialog').modal('hide');
+                        });
                     }
                 }
             }
@@ -1240,10 +1254,11 @@
      * Shows local changes for the specified process group.
      *
      * @param processGroupId
+     * @param localChangesMessage
      * @param localChangesTable
      * @param totalLabel
      */
-    var loadLocalChanges = function (processGroupId, localChangesTable, totalLabel) {
+    var loadLocalChanges = function (processGroupId, localChangesMessage, localChangesTable, totalLabel) {
         var localChangesGrid = localChangesTable.data('gridInstance');
         var localChangesData = localChangesGrid.getData();
 
@@ -1255,7 +1270,19 @@
         localChangesGrid.resetActiveCell();
         localChangesData.setItems([]);
 
-        return $.ajax({
+        // load the necessary details
+        var loadMessage = getVersionControlInformation(processGroupId).done(function (response) {
+            if (nfCommon.isDefinedAndNotNull(response.versionControlInformation)) {
+                var vci = response.versionControlInformation;
+                localChangesMessage.text('The following changes have been made to ' + vci.flowName + ' (Version ' + vci.version + ').');
+            } else {
+                nfDialog.showOkDialog({
+                    headerText: 'Change Version',
+                    dialogContent: 'This Process Group is not currently under version control.'
+                });
+            }
+        });
+        var loadChanges = $.ajax({
             type: 'GET',
             url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/local-modifications',
             dataType: 'json'
@@ -1292,6 +1319,8 @@
                 });
             }
         }).fail(nfErrorHandler.handleAjaxError);
+
+        return $.when(loadMessage, loadChanges);
     };
 
     /**
@@ -1593,7 +1622,7 @@
             // init the show local changes dialog
             $('#show-local-changes-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Local Changes',
+                headerText: 'Show Local Changes',
                 buttons: [{
                     buttonText: 'Close',
                     color: {
@@ -1711,7 +1740,7 @@
          * @param processGroupId
          */
         revertLocalChanges: function (processGroupId) {
-            loadLocalChanges(processGroupId, $('#revert-local-changes-table'), $('#total-revert-local-changes-entries')).done(function () {
+            loadLocalChanges(processGroupId, $('#revert-local-changes-message'), $('#revert-local-changes-table'), $('#total-revert-local-changes-entries')).done(function () {
                 $('#revert-local-changes-process-group-id').text(processGroupId);
                 $('#revert-local-changes-dialog').modal('show');
             });
@@ -1723,7 +1752,7 @@
          * @param processGroupId
          */
         showLocalChanges: function (processGroupId) {
-            loadLocalChanges(processGroupId, $('#show-local-changes-table'), $('#total-show-local-changes-entries')).done(function () {
+            loadLocalChanges(processGroupId, $('#show-local-changes-message'), $('#show-local-changes-table'), $('#total-show-local-changes-entries')).done(function () {
                 $('#show-local-changes-dialog').modal('show');
             });
         },

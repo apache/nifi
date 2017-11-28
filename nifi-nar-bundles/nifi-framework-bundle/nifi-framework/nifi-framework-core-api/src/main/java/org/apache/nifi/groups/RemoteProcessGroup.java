@@ -73,7 +73,7 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
 
     RemoteGroupPort getOutputPort(String id);
 
-    ProcessGroupCounts getCounts();
+    RemoteProcessGroupCounts getCounts();
 
     void refreshFlowContents() throws CommunicationsException;
 

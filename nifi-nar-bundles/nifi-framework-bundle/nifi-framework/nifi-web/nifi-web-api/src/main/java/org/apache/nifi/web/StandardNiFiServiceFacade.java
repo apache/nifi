@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -269,8 +267,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -3018,6 +3016,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ControllerDTO controllerDTO = new ControllerDTO();
         controllerDTO.setId(controllerFacade.getRootGroupId());
         controllerDTO.setInstanceId(controllerFacade.getInstanceId());
+        controllerDTO.setName(controllerFacade.getName());
+        controllerDTO.setComments(controllerFacade.getComments());
         controllerDTO.setInputPorts(inputPortDtos);
         controllerDTO.setOutputPorts(outputPortDtos);
         controllerDTO.setInputPortCount(inputPortDtos.size());

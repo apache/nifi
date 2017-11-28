@@ -16,8 +16,43 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.exception.CommunicationsException;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroupCounts;
+import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -47,42 +82,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.connectable.Port;
-import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.CommunicationsException;
-import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.ProcessGroupCounts;
-import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the Root Process Group of a remote NiFi Instance. Holds
@@ -137,7 +137,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     // Maps a Port Name to a PullingPort that can be used to receive files from that port
     private final Map<String, StandardRemoteGroupPort> outputPorts = new HashMap<>();
 
-    private ProcessGroupCounts counts = new ProcessGroupCounts(0, 0, 0, 0, 0, 0, 0, 0);
+    private RemoteProcessGroupCounts counts = new RemoteProcessGroupCounts(0, 0);
     private Long refreshContentsTimestamp = null;
     private Boolean destinationSecure;
     private Integer listeningPort;
@@ -829,7 +829,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public ProcessGroupCounts getCounts() {
+    public RemoteProcessGroupCounts getCounts() {
         readLock.lock();
         try {
             return counts;
@@ -838,7 +838,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    private void setCounts(final ProcessGroupCounts counts) {
+    private void setCounts(final RemoteProcessGroupCounts counts) {
         writeLock.lock();
         try {
             this.counts = counts;
@@ -910,39 +910,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (dto.getOutputPortCount() != null) {
                     outputPortCount = dto.getOutputPortCount();
                 }
-                int runningCount = 0;
-                if (dto.getRunningCount() != null) {
-                    runningCount = dto.getRunningCount();
-                }
-                int stoppedCount = 0;
-                if (dto.getStoppedCount() != null) {
-                    stoppedCount = dto.getStoppedCount();
-                }
-                int invalidCount = 0;
-                if (dto.getInvalidCount() != null) {
-                    invalidCount = dto.getInvalidCount();
-                }
-                int disabledCount = 0;
-                if (dto.getDisabledCount() != null) {
-                    disabledCount = dto.getDisabledCount();
-                }
-
-                int activeRemotePortCount = 0;
-                if (dto.getActiveRemotePortCount() != null) {
-                    activeRemotePortCount = dto.getActiveRemotePortCount();
-                }
-
-                int inactiveRemotePortCount = 0;
-                if (dto.getInactiveRemotePortCount() != null) {
-                    inactiveRemotePortCount = dto.getInactiveRemotePortCount();
-                }
 
                 this.listeningPort = dto.getRemoteSiteListeningPort();
                 this.listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
                 this.destinationSecure = dto.isSiteToSiteSecure();
 
-                final ProcessGroupCounts newCounts = new ProcessGroupCounts(inputPortCount, outputPortCount,
-                        runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount);
+                final RemoteProcessGroupCounts newCounts = new RemoteProcessGroupCounts(inputPortCount, outputPortCount);
                 setCounts(newCounts);
                 this.refreshContentsTimestamp = System.currentTimeMillis();
             } finally {

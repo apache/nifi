@@ -136,6 +136,11 @@ text.active-thread-count {
     font-weight: bold;
 }
 
+path.component-comments {
+    fill: #000;
+    stroke: #000;
+}
+
 /*
     Selection
 */
@@ -471,5 +476,4 @@ text.remote-process-group-transmission-secure {
 
 text.remote-process-group-last-refresh {
     fill: #728e9b;
-    text-anchor: end;
 }

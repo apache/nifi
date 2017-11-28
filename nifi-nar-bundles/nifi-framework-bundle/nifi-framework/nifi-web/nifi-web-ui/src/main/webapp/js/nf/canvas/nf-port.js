@@ -280,6 +280,17 @@
                             }
                         });
 
+                    // --------
+                    // comments
+                    // --------
+
+                    details.append('path')
+                        .attr({
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (portData.dimensions.width - 2) + ', ' + (portData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
+                        });
+
                     // -------------------
                     // active thread count
                     // -------------------
@@ -321,9 +332,43 @@
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
+
+                    // update the port comments
+                    port.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + portData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(portData.component.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#port-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + portData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.text(portData.component.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
                 } else {
                     // clear the port name
                     port.select('text.port-name').text(null);
+
+                    // clear the port comments
+                    port.select('path.component-comments').style('visibility', false);
                 }
 
                 // populate the stats
@@ -519,6 +564,7 @@
             // remove any associated tooltips
             $('#run-status-tip-' + d.id).remove();
             $('#bulletin-tip-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 
