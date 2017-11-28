@@ -83,9 +83,8 @@ detectOS() {
     fi
     # In addition to those, go around the linux space and query the widely
     # adopted /etc/os-release to detect linux variants
-    if [ -f /etc/os-release ]
-    then
-        source /etc/os-release
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
     fi
 }
 
