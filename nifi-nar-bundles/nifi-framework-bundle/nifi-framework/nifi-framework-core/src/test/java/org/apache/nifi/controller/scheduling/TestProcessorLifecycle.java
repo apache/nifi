@@ -72,6 +72,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -100,13 +101,13 @@ public class TestProcessorLifecycle {
         FileUtils.deleteDirectory(new File("./target/lifecycletest"));
     }
 
-    private void assertScheduledState(final ScheduledState desiredState, final ScheduledState actualState) {
-        assertScheduledState(desiredState, actualState, 1000L);
+    private void assertCondition(final Supplier<Boolean> supplier) {
+        assertCondition(supplier, 1000L);
     }
 
-    private void assertScheduledState(final ScheduledState desiredState, final ScheduledState actualState, final long delayToleranceMillis) {
+    private void assertCondition(final Supplier<Boolean> supplier, final long delayToleranceMillis) {
         final long startTime = System.currentTimeMillis();
-        while (((System.currentTimeMillis() - startTime) < delayToleranceMillis) && desiredState != actualState) {
+        while (((System.currentTimeMillis() - startTime) < delayToleranceMillis) && !supplier.get()) {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException ex) {
@@ -114,20 +115,7 @@ public class TestProcessorLifecycle {
                 break;
             }
         }
-        assertEquals(desiredState, actualState);
-    }
-
-    private void assertOperationCount(final List<String> actualNames, final int expectedCount, final long delayToleranceMillis) {
-        final long startTime = System.currentTimeMillis();
-        while (((System.currentTimeMillis() - startTime) < delayToleranceMillis) && actualNames.size() < expectedCount) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException ex) {
-                Thread.interrupted();
-                break;
-            }
-        }
-        assertEquals(expectedCount, actualNames.size());
+        assertTrue(supplier.get());
     }
 
     @Test
@@ -139,17 +127,17 @@ public class TestProcessorLifecycle {
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
                 UUID.randomUUID().toString(), fcsb.getSystemBundle().getBundleDetails().getCoordinate());
 
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getPhysicalScheduledState());
         // validates idempotency
         for (int i = 0; i < 2; i++) {
             testProcNode.enable();
         }
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getPhysicalScheduledState());
         testProcNode.disable();
-        assertScheduledState(ScheduledState.DISABLED, testProcNode.getScheduledState());
-        assertScheduledState(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.DISABLED == testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
     }
 
     @Test
@@ -162,18 +150,18 @@ public class TestProcessorLifecycle {
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
                 UUID.randomUUID().toString(), fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getPhysicalScheduledState());
         // validates idempotency
         for (int i = 0; i < 2; i++) {
             testProcNode.disable();
         }
-        assertScheduledState(ScheduledState.DISABLED, testProcNode.getScheduledState());
-        assertScheduledState(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.DISABLED == testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
 
         ProcessScheduler ps = fc.getProcessScheduler();
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.DISABLED, testProcNode.getPhysicalScheduledState());
+        assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
     }
 
     /**
@@ -201,7 +189,7 @@ public class TestProcessorLifecycle {
         ps.startProcessor(testProcNode);
 
         Thread.sleep(500);
-        assertOperationCount(testProcessor.operationNames, 1, 1000L);
+        assertCondition(() -> testProcessor.operationNames.size() == 1);
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
     }
 
@@ -219,13 +207,13 @@ public class TestProcessorLifecycle {
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
         // sets the scenario for the processor to run
         int randomDelayLimit = 3000;
         this.randomOnTriggerDelay(testProcessor, randomDelayLimit);
         final ProcessScheduler ps = fc.getProcessScheduler();
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
         assertTrue(testProcessor.operationNames.isEmpty());
     }
 
@@ -256,7 +244,7 @@ public class TestProcessorLifecycle {
         testGroup.addProcessor(testProcNode);
 
         fc.startProcessGroup(testGroup.getIdentifier());
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
 
         fc.stopAllProcessors();
 
@@ -264,9 +252,9 @@ public class TestProcessorLifecycle {
 
         // validates that regardless of how many running tasks, lifecycle
         // operation are invoked atomically (once each).
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 1000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 1000L);
         // . . . hence only 3 operations must be in the list
-        assertOperationCount(testProcessor.operationNames, 3, 2000L);
+        assertCondition(() -> testProcessor.operationNames.size() == 3, 2000L);
         // . . . and ordered as @OnScheduled, @OnUnscheduled, @OnStopped
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
         assertEquals("@OnUnscheduled", testProcessor.operationNames.get(1));
@@ -297,7 +285,7 @@ public class TestProcessorLifecycle {
         ExecutorService executor = Executors.newFixedThreadPool(100);
         int startCallsCount = 10000;
         final CountDownLatch countDownCounter = new CountDownLatch(startCallsCount);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState());
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
         final Random random = new Random();
         for (int i = 0; i < startCallsCount / 2; i++) {
             executor.execute(new Runnable() {
@@ -355,11 +343,11 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 5000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 5000L);
 
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 5000L);
-        assertOperationCount(testProcessor.operationNames, 2, 8000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 5000L);
+        assertCondition(() -> testProcessor.operationNames.size() == 2, 8000L);
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
         assertEquals("@OnUnscheduled", testProcessor.operationNames.get(1));
     }
@@ -388,9 +376,9 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 10000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 10000L);
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
     }
 
     /**
@@ -417,9 +405,9 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
     }
 
     /**
@@ -442,9 +430,9 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 5000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 5000L);
     }
 
     /**
@@ -467,9 +455,9 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 3000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 3000L);
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 4000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 4000L);
     }
 
     /**
@@ -494,11 +482,11 @@ public class TestProcessorLifecycle {
         ProcessScheduler ps = fc.getProcessScheduler();
 
         ps.startProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.disableProcessor(testProcNode);
-        assertScheduledState(ScheduledState.RUNNING, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
-        assertScheduledState(ScheduledState.STOPPED, testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
     }
 
     /**
