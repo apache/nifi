@@ -66,7 +66,7 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
     private volatile File kerberosServiceKeytab = null;
 
     @Override
-    public Optional<Object> lookup(Map<String, String> coordinates) throws LookupFailureException {
+    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         // Delegate the lookup() call to the scripted LookupService
         return lookupService.get().lookup(coordinates);
     }

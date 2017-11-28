@@ -114,8 +114,12 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, String> coordinates) throws LookupFailureException {
-        final String rowKey = coordinates.get(ROW_KEY_KEY);
+    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        if (coordinates.get(ROW_KEY_KEY) == null) {
+            return Optional.empty();
+        }
+
+        final String rowKey = coordinates.get(ROW_KEY_KEY).toString();
         if (StringUtils.isBlank(rowKey)) {
             return Optional.empty();
         }

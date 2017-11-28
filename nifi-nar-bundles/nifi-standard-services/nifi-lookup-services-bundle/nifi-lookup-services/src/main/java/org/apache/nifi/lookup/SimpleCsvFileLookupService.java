@@ -194,12 +194,12 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
     }
 
     @Override
-    public Optional<String> lookup(final Map<String, String> coordinates) throws LookupFailureException {
+    public Optional<String> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }
 
-        final String key = coordinates.get(KEY);
+        final String key = coordinates.get(KEY).toString();
         if (StringUtils.isBlank(key)) {
             return Optional.empty();
         }

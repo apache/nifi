@@ -58,12 +58,12 @@ public class SimpleKeyValueLookupService extends AbstractControllerService imple
     }
 
     @Override
-    public Optional<String> lookup(final Map<String, String> coordinates) {
+    public Optional<String> lookup(final Map<String, Object> coordinates) {
         if (coordinates == null) {
             return Optional.empty();
         }
 
-        final String key = coordinates.get(KEY);
+        final String key = coordinates.get(KEY).toString();
         if (key == null) {
             return Optional.empty();
         }
