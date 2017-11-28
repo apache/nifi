@@ -74,7 +74,7 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
     }
 
     @Override
-    public Optional<Object> lookup(Map<String, String> coordinates) throws LookupFailureException {
+    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(coordinates);
         Document query = new Document(clean);

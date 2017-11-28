@@ -383,12 +383,12 @@ public class TestLookupRecord {
         }
 
         @Override
-        public Optional<String> lookup(final Map<String, String> coordinates) {
-            if (coordinates == null) {
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
+            if (coordinates == null || coordinates.get("lookup") == null) {
                 return Optional.empty();
             }
 
-            final String key = coordinates.get("lookup");
+            final String key = (String)coordinates.get("lookup");
             if (key == null) {
                 return Optional.empty();
             }
@@ -415,12 +415,12 @@ public class TestLookupRecord {
         }
 
         @Override
-        public Optional<Record> lookup(final Map<String, String> coordinates) {
-            if (coordinates == null) {
+        public Optional<Record> lookup(final Map<String, Object> coordinates) {
+            if (coordinates == null || coordinates.get("lookup") == null) {
                 return Optional.empty();
             }
 
-            final String key = coordinates.get("lookup");
+            final String key = (String)coordinates.get("lookup");
             if (key == null) {
                 return Optional.empty();
             }

@@ -142,7 +142,7 @@ public class TestLookupAttribute {
 
     private static class InvalidLookupService extends AbstractControllerService implements StringLookupService {
       @Override
-      public Optional<String> lookup(Map<String, String> coordinates) {
+      public Optional<String> lookup(Map<String, Object> coordinates) {
           return Optional.empty();
       }
 

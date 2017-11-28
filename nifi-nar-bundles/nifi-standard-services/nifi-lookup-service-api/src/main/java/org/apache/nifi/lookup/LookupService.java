@@ -33,7 +33,7 @@ public interface LookupService<T> extends ControllerService {
      *
      * @throws LookupFailureException if unable to lookup a value for the given coordinates
      */
-    Optional<T> lookup(Map<String, String> coordinates) throws LookupFailureException;
+    Optional<T> lookup(Map<String, Object> coordinates) throws LookupFailureException;
 
     /**
      * @return the Class that represents the type of value that will be returned by {@link #lookup(Map)}
