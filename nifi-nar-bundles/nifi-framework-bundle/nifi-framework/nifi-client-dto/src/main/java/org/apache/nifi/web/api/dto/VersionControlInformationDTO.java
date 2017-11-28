@@ -34,6 +34,8 @@ public class VersionControlInformationDTO {
     private Integer version;
     private Boolean modified;
     private Boolean current;
+    private String state;
+    private String stateExplanation;
 
     @ApiModelProperty("The ID of the Process Group that is under version control")
     public String getGroupId() {
@@ -134,5 +136,25 @@ public class VersionControlInformationDTO {
 
     public void setCurrent(Boolean current) {
         this.current = current;
+    }
+
+    @ApiModelProperty(readOnly = true,
+        value = "The current state of the Process Group, as it relates to the Versioned Flow",
+        allowableValues = "LOCALLY_MODIFIED_DESCENDANT, LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(final String state) {
+        this.state = state;
+    }
+
+    @ApiModelProperty(readOnly = true, value = "Explanation of why the group is in the specified state")
+    public String getStateExplanation() {
+        return stateExplanation;
+    }
+
+    public void setStateExplanation(String explanation) {
+        this.stateExplanation = explanation;
     }
 }

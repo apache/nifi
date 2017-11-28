@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
@@ -27,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
-public interface ControllerServiceNode extends ConfiguredComponent, VersionedComponent {
+public interface ControllerServiceNode extends ConfiguredComponent, ConfigurableComponent, VersionedComponent {
 
     /**
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service

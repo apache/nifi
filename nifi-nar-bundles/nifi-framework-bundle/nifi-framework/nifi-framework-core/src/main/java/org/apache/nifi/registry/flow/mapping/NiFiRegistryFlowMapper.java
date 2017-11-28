@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -44,6 +43,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -59,15 +59,16 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.PortType;
 import org.apache.nifi.registry.flow.Position;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -80,54 +81,14 @@ public class NiFiRegistryFlowMapper {
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
-    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final FlowRegistryClient registryClient, final boolean mapDescendantVersionedFlows) {
+    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
+            final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
-        final InstantiatedVersionedProcessGroup mapped = mapGroup(group, registryClient, true, mapDescendantVersionedFlows);
+        final InstantiatedVersionedProcessGroup mapped = mapGroup(group, serviceProvider, registryClient, true, mapDescendantVersionedFlows);
 
-        populateReferencedAncestorServices(group, mapped);
         populateReferencedAncestorVariables(group, mapped);
 
         return mapped;
-    }
-
-    private void populateReferencedAncestorServices(final ProcessGroup group, final VersionedProcessGroup versionedGroup) {
-        final Set<ControllerServiceNode> ancestorControllerServices = group.getControllerServices(true);
-        ancestorControllerServices.remove(group.getControllerServices(false));
-        final Map<String, ControllerServiceNode> ancestorServicesById = ancestorControllerServices.stream()
-            .collect(Collectors.toMap(ControllerServiceNode::getIdentifier, Function.identity()));
-
-        final Set<ControllerServiceNode> referenced = new HashSet<>();
-
-        for (final ProcessorNode processor : group.findAllProcessors()) {
-            findReferencedServices(processor, ancestorServicesById, referenced);
-        }
-
-        for (final ControllerServiceNode service : group.findAllControllerServices()) {
-            findReferencedServices(service, ancestorServicesById, referenced);
-        }
-
-        final Set<VersionedControllerService> versionedServices = referenced.stream().map(this::mapControllerService)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        versionedGroup.getControllerServices().addAll(versionedServices);
-    }
-
-    private Set<ControllerServiceNode> findReferencedServices(final ConfiguredComponent component, final Map<String, ControllerServiceNode> ancestorServicesById,
-        final Set<ControllerServiceNode> referenced) {
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.getControllerServiceDefinition() != null) {
-                final String serviceId = entry.getValue();
-                final ControllerServiceNode serviceNode = ancestorServicesById.get(serviceId);
-                if (serviceNode != null) {
-                    referenced.add(serviceNode);
-                    referenced.addAll(findReferencedServices(serviceNode, ancestorServicesById, referenced));
-                }
-            }
-        }
-
-        return referenced;
     }
 
     private void populateReferencedAncestorVariables(final ProcessGroup group, final VersionedProcessGroup versionedGroup) {
@@ -167,7 +128,9 @@ public class NiFiRegistryFlowMapper {
     }
 
 
-    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final FlowRegistryClient registryClient, final boolean topLevel, final boolean mapDescendantVersionedFlows) {
+    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceLookup, final FlowRegistryClient registryClient,
+            final boolean topLevel, final boolean mapDescendantVersionedFlows) {
+
         final InstantiatedVersionedProcessGroup versionedGroup = new InstantiatedVersionedProcessGroup(group.getIdentifier(), group.getProcessGroupIdentifier());
         versionedGroup.setIdentifier(getId(group.getVersionedComponentId(), group.getIdentifier()));
         versionedGroup.setGroupIdentifier(getGroupId(group.getProcessGroupIdentifier()));
@@ -212,7 +175,7 @@ public class NiFiRegistryFlowMapper {
         }
 
         versionedGroup.setControllerServices(group.getControllerServices(false).stream()
-            .map(this::mapControllerService)
+            .map(service -> mapControllerService(service, serviceLookup))
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setFunnels(group.getFunnels().stream()
@@ -232,7 +195,7 @@ public class NiFiRegistryFlowMapper {
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setProcessors(group.getProcessors().stream()
-            .map(this::mapProcessor)
+            .map(processor -> mapProcessor(processor, serviceLookup))
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setRemoteProcessGroups(group.getRemoteProcessGroups().stream()
@@ -240,7 +203,7 @@ public class NiFiRegistryFlowMapper {
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setProcessGroups(group.getProcessGroups().stream()
-            .map(grp -> mapGroup(grp, registryClient, false, mapDescendantVersionedFlows))
+            .map(grp -> mapGroup(grp, serviceLookup, registryClient, false, mapDescendantVersionedFlows))
             .collect(Collectors.toCollection(LinkedHashSet::new)));
 
         versionedGroup.setConnections(group.getConnections().stream()
@@ -335,7 +298,7 @@ public class NiFiRegistryFlowMapper {
         return component;
     }
 
-    public VersionedControllerService mapControllerService(final ControllerServiceNode controllerService) {
+    public VersionedControllerService mapControllerService(final ControllerServiceNode controllerService, final ControllerServiceProvider serviceProvider) {
         final VersionedControllerService versionedService = new InstantiatedVersionedControllerService(controllerService.getIdentifier(), controllerService.getProcessGroupIdentifier());
         versionedService.setIdentifier(getId(controllerService.getVersionedComponentId(), controllerService.getIdentifier()));
         versionedService.setGroupIdentifier(getGroupId(controllerService.getProcessGroupIdentifier()));
@@ -345,14 +308,16 @@ public class NiFiRegistryFlowMapper {
         versionedService.setComments(controllerService.getComments());
 
         versionedService.setControllerServiceApis(mapControllerServiceApis(controllerService));
-        versionedService.setProperties(mapProperties(controllerService));
+        versionedService.setProperties(mapProperties(controllerService, serviceProvider));
+        versionedService.setPropertyDescriptors(mapPropertyDescriptors(controllerService));
         versionedService.setType(controllerService.getCanonicalClassName());
 
         return versionedService;
     }
 
-    private Map<String, String> mapProperties(final ConfiguredComponent component) {
+    private Map<String, String> mapProperties(final ConfiguredComponent component, final ControllerServiceProvider serviceProvider) {
         final Map<String, String> mapped = new HashMap<>();
+
         component.getProperties().keySet().stream()
             .filter(property -> !property.isSensitive())
             .forEach(property -> {
@@ -360,9 +325,32 @@ public class NiFiRegistryFlowMapper {
                 if (value == null) {
                     value = property.getDefaultValue();
                 }
+
+                if (value != null && property.getControllerServiceDefinition() != null) {
+                    // Property references a Controller Service. Instead of storing the existing value, we want
+                    // to store the Versioned Component ID of the service.
+                    final ControllerServiceNode controllerService = serviceProvider.getControllerServiceNode(value);
+                    if (controllerService != null) {
+                        value = getId(controllerService.getVersionedComponentId(), controllerService.getIdentifier());
+                    }
+                }
+
                 mapped.put(property.getName(), value);
             });
+
         return mapped;
+    }
+
+    private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ConfiguredComponent component) {
+        final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
+        for (final PropertyDescriptor descriptor : component.getProperties().keySet()) {
+            final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+            versionedDescriptor.setName(descriptor.getName());
+            versionedDescriptor.setDisplayName(descriptor.getDisplayName());
+            versionedDescriptor.setIdentifiesControllerService(descriptor.getControllerServiceDefinition() != null);
+            descriptors.put(descriptor.getName(), versionedDescriptor);
+        }
+        return descriptors;
     }
 
     private Bundle mapBundle(final BundleCoordinate coordinate) {
@@ -441,7 +429,7 @@ public class NiFiRegistryFlowMapper {
         return position;
     }
 
-    public VersionedProcessor mapProcessor(final ProcessorNode procNode) {
+    public VersionedProcessor mapProcessor(final ProcessorNode procNode, final ControllerServiceProvider serviceProvider) {
         final VersionedProcessor processor = new InstantiatedVersionedProcessor(procNode.getIdentifier(), procNode.getProcessGroupIdentifier());
         processor.setIdentifier(getId(procNode.getVersionedComponentId(), procNode.getIdentifier()));
         processor.setGroupIdentifier(getGroupId(procNode.getProcessGroupIdentifier()));
@@ -456,7 +444,8 @@ public class NiFiRegistryFlowMapper {
         processor.setName(procNode.getName());
         processor.setPenaltyDuration(procNode.getPenalizationPeriod());
         processor.setPosition(mapPosition(procNode.getPosition()));
-        processor.setProperties(mapProperties(procNode));
+        processor.setProperties(mapProperties(procNode, serviceProvider));
+        processor.setPropertyDescriptors(mapPropertyDescriptors(procNode));
         processor.setRunDurationMillis(procNode.getRunDuration(TimeUnit.MILLISECONDS));
         processor.setSchedulingPeriod(procNode.getSchedulingPeriod());
         processor.setSchedulingStrategy(procNode.getSchedulingStrategy().name());

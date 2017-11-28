@@ -107,7 +107,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
             final int scheduleComponentStatus = clusterResponse.getStatus();
             if (scheduleComponentStatus != Status.OK.getStatusCode()) {
-                throw new LifecycleManagementException("Failed to transition components to a state of " + desiredState);
+                final String explanation = getResponseEntity(clusterResponse, String.class);
+                throw new LifecycleManagementException("Failed to transition components to a state of " + desiredState + " due to " + explanation);
             }
 
             final boolean processorsTransitioned = waitForProcessorStatus(user, exampleUri, groupId, componentMap, desiredState, pause);
@@ -312,7 +313,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
             final int disableServicesStatus = clusterResponse.getStatus();
             if (disableServicesStatus != Status.OK.getStatusCode()) {
-                throw new LifecycleManagementException("Failed to update Controller Services to a state of " + desiredState);
+                final String explanation = getResponseEntity(clusterResponse, String.class);
+                throw new LifecycleManagementException("Failed to update Controller Services to a state of " + desiredState + " due to " + explanation);
             }
 
             final boolean serviceTransitioned = waitForControllerServiceStatus(user, originalUri, groupId, affectedServiceIds, desiredState, pause);

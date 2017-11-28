@@ -204,7 +204,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
         for (final String serviceId : serviceIds) {
-            final ControllerServiceNode serviceNode = group.findControllerService(serviceId);
+            final ControllerServiceNode serviceNode = group.findControllerService(serviceId, true, true);
+            if (serviceNode == null) {
+                throw new ResourceNotFoundException("Could not find Controller Service with identifier " + serviceId);
+            }
+
             if (ControllerServiceState.ENABLED.equals(state)) {
                 final CompletableFuture<Void> serviceFuture = flowController.enableControllerService(serviceNode);
                 future = CompletableFuture.allOf(future, serviceFuture);
@@ -234,6 +238,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setComments(comments);
         }
 
+        group.onComponentModified();
         return group;
     }
 
@@ -247,7 +252,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
-        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getFlowRegistryClient(), false);
+        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController, flowController.getFlowRegistryClient(), false);
 
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .registryName(registryName)
@@ -257,6 +262,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .build();
 
         group.setVersionControlInformation(vci, versionedComponentMapping);
+        group.onComponentModified();
 
         return group;
     }
@@ -279,6 +285,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .build();
 
         group.setVersionControlInformation(svci, Collections.emptyMap());
+        group.onComponentModified();
+
         return group;
     }
 
@@ -295,6 +303,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .forEach(var -> variableMap.put(var.getName(), var.getValue()));
 
         group.setVariables(variableMap);
+        group.onComponentModified();
         return group;
     }
 

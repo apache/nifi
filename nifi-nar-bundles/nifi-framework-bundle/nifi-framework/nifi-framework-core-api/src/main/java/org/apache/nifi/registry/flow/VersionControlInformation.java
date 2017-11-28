@@ -77,6 +77,11 @@ public interface VersionControlInformation {
     boolean isCurrent();
 
     /**
+     * @return the current status of the Process Group as it relates to the associated Versioned Flow.
+     */
+    VersionedFlowStatus getStatus();
+
+    /**
      * @return the snapshot of the flow that was synchronized with the Flow Registry
      */
     VersionedProcessGroup getFlowSnapshot();

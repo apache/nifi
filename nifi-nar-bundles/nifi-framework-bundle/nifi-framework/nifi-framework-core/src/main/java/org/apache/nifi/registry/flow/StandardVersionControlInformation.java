@@ -34,6 +34,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
     private volatile VersionedProcessGroup flowSnapshot;
     private volatile boolean modified;
     private volatile boolean current;
+    private final VersionedFlowStatus status;
 
     public static class Builder {
         private String registryIdentifier;
@@ -47,6 +48,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         private VersionedProcessGroup flowSnapshot;
         private Boolean modified = null;
         private Boolean current = null;
+        private VersionedFlowStatus status;
 
         public Builder registryId(String registryId) {
             this.registryIdentifier = registryId;
@@ -103,6 +105,11 @@ public class StandardVersionControlInformation implements VersionControlInformat
             return this;
         }
 
+        public Builder status(final VersionedFlowStatus status) {
+            this.status = status;
+            return this;
+        }
+
         public static Builder fromDto(VersionControlInformationDTO dto) {
             Builder builder = new Builder();
             builder.registryId(dto.getRegistryId())
@@ -126,7 +133,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             Objects.requireNonNull(version, "Version must be specified");
 
             final StandardVersionControlInformation svci = new StandardVersionControlInformation(registryIdentifier, registryName,
-                bucketIdentifier, flowIdentifier, version, flowSnapshot, modified, current);
+                bucketIdentifier, flowIdentifier, version, flowSnapshot, modified, current, status);
 
             svci.setBucketName(bucketName);
             svci.setFlowName(flowName);
@@ -138,7 +145,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
 
     public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
-        final VersionedProcessGroup snapshot, final boolean modified, final boolean current) {
+        final VersionedProcessGroup snapshot, final boolean modified, final boolean current, final VersionedFlowStatus status) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
         this.bucketIdentifier = bucketId;
@@ -147,6 +154,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         this.flowSnapshot = snapshot;
         this.modified = modified;
         this.current = current;
+        this.status = status;
     }
 
 
@@ -231,5 +239,10 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
     public void setFlowSnapshot(final VersionedProcessGroup flowSnapshot) {
         this.flowSnapshot = flowSnapshot;
+    }
+
+    @Override
+    public VersionedFlowStatus getStatus() {
+        return status;
     }
 }

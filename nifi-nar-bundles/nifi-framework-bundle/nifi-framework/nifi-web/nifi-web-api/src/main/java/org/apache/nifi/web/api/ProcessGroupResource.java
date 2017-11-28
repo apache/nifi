@@ -1717,7 +1717,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
                         flowSnapshot.getFlowContents().setPosition(null);
                         entity = serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
-                        versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, true, true);
+                            versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, true, true);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);
