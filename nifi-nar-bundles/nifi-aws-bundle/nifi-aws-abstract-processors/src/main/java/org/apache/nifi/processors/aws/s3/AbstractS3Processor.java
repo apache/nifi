@@ -127,7 +127,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
 
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("Client Service")
+            .name("client-service")
+            .displayName("Client Service")
             .description("Specifies an optional Client Service that, if provided, will be used to create connections")
             .required(false)
             .identifiesControllerService(S3ClientService.class)

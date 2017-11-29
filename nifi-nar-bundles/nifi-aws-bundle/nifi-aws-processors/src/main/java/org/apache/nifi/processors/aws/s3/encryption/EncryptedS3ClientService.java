@@ -71,7 +71,6 @@ public class EncryptedS3ClientService extends AbstractControllerService implemen
             .name("kms-cmk-id")
             .displayName("KMS Customer Master Key Id")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Identifier belonging to the custom master key managed by the KMS.")
             .build();
@@ -88,7 +87,6 @@ public class EncryptedS3ClientService extends AbstractControllerService implemen
             .name("secret-key")
             .displayName("Secret Key")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Secret key used when performing symmetric client side encryption.")
             .build();
@@ -104,7 +102,6 @@ public class EncryptedS3ClientService extends AbstractControllerService implemen
             .name("private-key")
             .displayName("Private Key")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Private key used when performing asymmetric client side encryption.")
             .build();
@@ -120,7 +117,6 @@ public class EncryptedS3ClientService extends AbstractControllerService implemen
             .name("public-key")
             .displayName("Public Key")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Public key used when performing asymmetric client side encryption.")
             .build();

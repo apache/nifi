@@ -157,7 +157,8 @@ public class PutS3Object extends AbstractS3Processor {
 
 
     public static final PropertyDescriptor PUT_ENRICHMENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("Put Enrichment Service")
+            .name("put-enrichment-service")
+            .displayName("Put Enrichment Service")
             .description("Specifies an optional Put Enrichment Service that, if provided, will be used to create connections")
             .required(false)
             .identifiesControllerService(S3PutEnrichmentService.class)
