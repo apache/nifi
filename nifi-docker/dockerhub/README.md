@@ -16,10 +16,10 @@
 # Docker Image Quickstart
 
 ## Capabilities
-This image currently supports running in standalone mode either unsecured or with Two-Way SSL.
-
-More capabilities will continue to be added and made available from the 
-
+This image currently supports running in standalone mode either unsecured or with user authentication provided through:
+   * [Two-Way SSL with Client Certificates](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security-configuration)
+   * [Lightweight Directory Access Protocol (LDAP)](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#ldap_login_identity_provider)
+   
 ## Building
 The Docker image can be built using the following command:
 
@@ -74,6 +74,45 @@ Finally, this command makes use of a volume to provide certificates on the host 
       -d \
       apache/nifi:latest
 
+### Standalone Instance, LDAP
+In this configuration, the user will need to provide certificates and the associated configuration information.  Optionally,
+if the LDAP provider of interest is operating in LDAPS or START_TLS modes, certificates will additionally be needed.
+Of particular note, is the `AUTH` environment variable which is set to `ldap`.  Additionally, the user must provide a
+DN as provided by the configured LDAP server in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be 
+used to seed the instance with an initial user with administrative privileges.  Finally, this command makes use of a 
+volume to provide certificates on the host system to the container instance.
+
+#### For a minimal, connection to an LDAP server using SIMPLE authentication:
+
+    docker run --name nifi \
+      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -p 18443:8443 \
+      -e AUTH=tls \
+      -e KEYSTORE_PATH=/opt/certs/keystore.jks \
+      -e KEYSTORE_TYPE=JKS \
+      -e KEYSTORE_PASSWORD=QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs \
+      -e TRUSTSTORE_PATH=/opt/certs/truststore.jks \
+      -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
+      -e TRUSTSTORE_TYPE=JKS \
+      -e INITIAL_ADMIN_IDENTITY='cn=admin,dc=example,dc=org' \
+      -e LDAP_AUTHENTICATION_STRATEGY='SIMPLE' \
+      -e LDAP_MANAGER_DN='cn=admin,dc=example,dc=org' \
+      -e LDAP_MANAGER_PASSWORD='password' \
+      -e LDAP_USER_SEARCH_BASE='dc=example,dc=org' \
+      -e LDAP_USER_SEARCH_FILTER='cn={0}' \
+      -e LDAP_IDENTITY_STRATEGY='USE_DN' \
+      -e LDAP_URL='ldap://ldap:389' \
+      -d \
+      apache/nifi:latest
+
+#### The following, optional environment variables may be added to the above command when connecting to a secure  LDAP server configured with START_TLS or LDAPS
+
+    -e LDAP_TLS_KEYSTORE: ''
+    -e LDAP_TLS_KEYSTORE_PASSWORD: ''
+    -e LDAP_TLS_KEYSTORE_TYPE: ''
+    -e LDAP_TLS_TRUSTSTORE: ''
+    -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
+    -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
 ## Configuration Information
 The following ports are specified by the Docker container for NiFi operation within the container and 
@@ -84,8 +123,3 @@ can be published to the host.
 | HTTP Port                | nifi.web.http.port            | 8080  |
 | HTTPS Port               | nifi.web.https.port           | 8443  |
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
-
-
-
-
-  
