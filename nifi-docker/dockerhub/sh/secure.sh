@@ -15,7 +15,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-[ -f /opt/nifi/scripts/common.sh ] && . /opt/nifi/scripts/common.sh
+scripts_dir='/opt/nifi/scripts'
+
+[ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
 # Perform idempotent changes of configuration to support secure environments
 echo 'Configuring environment with SSL settings'
@@ -28,13 +30,13 @@ fi
 : ${KEYSTORE_TYPE:?"Must specify the type of keystore (JKS, PKCS12, PEM) of the keystore being used."}
 : ${KEYSTORE_PASSWORD:?"Must specify the password of the keystore being used."}
 
-: ${TRUSTSTORE_PATH:?"Must specify an absolute path to the truststore  being used."}
+: ${TRUSTSTORE_PATH:?"Must specify an absolute path to the truststore being used."}
 if [ ! -f "${TRUSTSTORE_PATH}" ]; then
     echo "Keystore file specified (${TRUSTSTORE_PATH}) does not exist."
     exit 1
 fi
-: ${TRUSTSTORE_TYPE:?"Need to set DEST non-empty"}
-: ${TRUSTSTORE_PASSWORD:?"Need to set DEST non-empty"}
+: ${TRUSTSTORE_TYPE:?"Must specify the type of truststore (JKS, PKCS12, PEM) of the truststore being used."}
+: ${TRUSTSTORE_PASSWORD:?"Must specify the password of the truststore being used."}
 
 prop_replace 'nifi.security.keystore'           "${KEYSTORE_PATH}"
 prop_replace 'nifi.security.keystoreType'       "${KEYSTORE_TYPE}"
