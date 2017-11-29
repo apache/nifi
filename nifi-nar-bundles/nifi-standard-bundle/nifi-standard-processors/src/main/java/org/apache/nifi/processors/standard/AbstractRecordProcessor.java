@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -46,6 +35,17 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
@@ -128,7 +128,9 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                             recordCount.set(writeResult.getRecordCount());
                         }
-                    } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                    } catch (final SchemaNotFoundException e) {
+                        throw new ProcessException(e.getLocalizedMessage(), e);
+                    } catch (final MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
                     }
                 }
