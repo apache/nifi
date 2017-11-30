@@ -90,6 +90,7 @@
         <module>nifi-grpc-bundle</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
+        <module>nifi-satori-bundle</module>
   </modules>
 
     <build>
