@@ -135,11 +135,10 @@
             </properties>
         </profile>
         <profile>
-            <id>supportpowerpc</id>
+            <id>includeifnotppc</id>
             <activation>
                 <os>
-                    <family>unix</family>
-                    <arch>ppc</arch>
+                    <arch>!ppc64le</arch>
                 </os>
             </activation>
             <modules>
