@@ -70,7 +70,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
             .name("sse-kme-key-id")
             .displayName("KMS Key Id")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Custom KMS key identifier. Supports key or alias ARN.")
             .build();
@@ -79,7 +78,6 @@ public class EncryptedS3PutEnrichmentService extends AbstractControllerService i
             .name("sse-customer-key")
             .displayName("Customer Key")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("Customer provided 256-bit, base64-encoded encryption key.")
             .build();
