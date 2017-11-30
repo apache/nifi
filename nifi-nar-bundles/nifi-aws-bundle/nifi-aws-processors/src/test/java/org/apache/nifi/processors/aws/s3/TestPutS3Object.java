@@ -21,10 +21,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3EncryptionClient;
+import com.amazonaws.services.s3.model.CryptoMode;
+import com.amazonaws.services.s3.model.CryptoStorageMode;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.s3.encryption.EncryptedS3ClientService;
+import org.apache.nifi.processors.aws.s3.encryption.EncryptedS3PutEnrichmentService;
+import org.apache.nifi.processors.aws.s3.service.S3PutEnrichmentService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -47,46 +56,36 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 
 public class TestPutS3Object {
     private TestRunner runner = null;
     private PutS3Object mockPutS3Object = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
+
+    private S3ClientService encryptedS3ClientService = null;
+    private S3PutEnrichmentService encryptedS3PutEnrichmentService = null;
 
     @Before
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         mockPutS3Object = new PutS3Object() {
             protected AmazonS3Client getClient() {
-                actualS3Client = client;
                 return mockS3Client;
             }
         };
+
+        encryptedS3ClientService = new EncryptedS3ClientService();
+        encryptedS3PutEnrichmentService = new EncryptedS3PutEnrichmentService();
+
         runner = TestRunners.newTestRunner(mockPutS3Object);
     }
 
     @Test
     public void testPutSinglePart() {
-        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
-        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
-        runner.setProperty("x-custom-prop", "hello");
-        final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "testfile.txt");
-        runner.enqueue("Test Content", ffAttributes);
-
-        PutObjectResult putObjectResult = Mockito.spy(PutObjectResult.class);
-        Date expiration = new Date();
-        putObjectResult.setExpirationTime(expiration);
-        putObjectResult.setMetadata(new ObjectMetadata());
-        putObjectResult.setVersionId("test-version");
-        Mockito.when(putObjectResult.getETag()).thenReturn("test-etag");
-        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
-        MultipartUploadListing uploadListing = new MultipartUploadListing();
-        Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
-        Mockito.when(mockS3Client.getResourceUrl(Mockito.anyString(), Mockito.anyString())).thenReturn("test-s3-url");
+        enqueueDefaultTestFile();
+        setupMocksForPutS3TestFile();
 
         runner.assertValid();
         runner.run(1);
@@ -106,11 +105,7 @@ public class TestPutS3Object {
 
     @Test
     public void testPutSinglePartException() {
-        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
-        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
-        final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "testfile.txt");
-        runner.enqueue("Test Content", ffAttributes);
+        enqueueDefaultTestFile();
 
         MultipartUploadListing uploadListing = new MultipartUploadListing();
         Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
@@ -120,6 +115,47 @@ public class TestPutS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testSinglePartClientSideEncryption() throws InitializationException {
+        runner.addControllerService("client-service", encryptedS3ClientService);
+        runner.setProperty(PutS3Object.CLIENT_SERVICE, "client-service");
+        runner.setProperty(encryptedS3ClientService, EncryptedS3ClientService.ENCRYPTION_METHOD, EncryptedS3ClientService.METHOD_CSE_MK);
+        runner.setProperty(encryptedS3ClientService, EncryptedS3ClientService.CRYPTO_MODE, CryptoMode.StrictAuthenticatedEncryption.toString());
+        runner.setProperty(encryptedS3ClientService, EncryptedS3ClientService.CRYPTO_STORAGE_MODE, CryptoStorageMode.InstructionFile.toString());
+        runner.setProperty(encryptedS3ClientService, EncryptedS3ClientService.KMS_REGION, "ap-northeast-1");
+        runner.enableControllerService(encryptedS3ClientService);
+
+        enqueueDefaultTestFile();
+        setupMocksForPutS3TestFile();
+
+        runner.assertValid();
+        runner.run(1);
+
+        AWSCredentials credentials = new BasicAWSCredentials("accessKey","secretKey");
+        AmazonS3EncryptionClient s3Client = (AmazonS3EncryptionClient)encryptedS3ClientService.getClient(credentials, new ClientConfiguration());
+        assertNotNull(s3Client);
+    }
+
+    @Test
+    public void testSinglePartServerSideEncryption() throws InitializationException {
+        runner.addControllerService("put-enrichment-sevice", encryptedS3PutEnrichmentService);
+        runner.setProperty(PutS3Object.PUT_ENRICHMENT_SERVICE, "put-enrichment-sevice");
+        runner.setProperty(encryptedS3PutEnrichmentService, EncryptedS3PutEnrichmentService.ENCRYPTION_METHOD, EncryptedS3PutEnrichmentService.METHOD_SSE_KMS);
+        runner.setProperty(encryptedS3PutEnrichmentService, EncryptedS3PutEnrichmentService.KMS_KEY_ID, "kms-key-id");
+        runner.enableControllerService(encryptedS3PutEnrichmentService);
+
+        enqueueDefaultTestFile();
+        setupMocksForPutS3TestFile();
+
+        runner.assertValid();
+        runner.run(1);
+
+        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
+        PutObjectRequest request = captureRequest.getValue();
+        assertEquals("kms-key-id", request.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
     }
 
     @Test
@@ -150,7 +186,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
+        assertEquals("size should be eq", 30, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -166,6 +202,8 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.SECRET_KEY));
         assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
         assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
+        assertTrue(pd.contains(PutS3Object.CLIENT_SERVICE));
+        assertTrue(pd.contains(PutS3Object.PUT_ENRICHMENT_SERVICE));
         assertTrue(pd.contains(PutS3Object.TIMEOUT));
         assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
         assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
@@ -174,4 +212,24 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
     }
 
+    private void setupMocksForPutS3TestFile() {
+        PutObjectResult putObjectResult = Mockito.spy(PutObjectResult.class);
+        Date expiration = new Date();
+        putObjectResult.setExpirationTime(expiration);
+        putObjectResult.setMetadata(new ObjectMetadata());
+        putObjectResult.setVersionId("test-version");
+        Mockito.when(putObjectResult.getETag()).thenReturn("test-etag");
+        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
+        MultipartUploadListing uploadListing = new MultipartUploadListing();
+        Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
+        Mockito.when(mockS3Client.getResourceUrl(Mockito.anyString(), Mockito.anyString())).thenReturn("test-s3-url");
+    }
+
+    private void enqueueDefaultTestFile() {
+        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
+        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
+        final Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put("filename", "testfile.txt");
+        runner.enqueue("Test Content", ffAttributes);
+    }
 }
