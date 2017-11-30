@@ -44,7 +44,7 @@
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpcore</artifactId>
-                <version>${hadoop.http.client.version}</version>
+                <version>${hadoop.http.core.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
