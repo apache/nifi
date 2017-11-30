@@ -320,6 +320,42 @@ public class TestTailFile {
     }
 
     @Test
+    public void testRolloverWriteMoreDataThanPrevious() throws IOException, InterruptedException {
+        // If we have read all data in a file, and that file does not end with a new-line, then the last line
+        // in the file will have been read, added to the checksum, and then we would re-seek to "unread" that
+        // last line since it didn't have a new-line. We need to ensure that if the data is then rolled over
+        // that our checksum does not take into account those bytes that have been "unread."
+
+        // this mimics the case when we are reading a log file that rolls over while processor is running.
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.run(1, false, true);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("hello\n".getBytes());
+        runner.run(1, true, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.clearTransferState();
+
+        raf.write("world".getBytes());
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0); // should not pull in data because no \n
+
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+
+        raf = new RandomAccessFile(new File("target/log.txt"), "rw");
+        raf.write("longer than hello\n".getBytes());
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("longer than hello\n");
+    }
+
+
+    @Test
     public void testMultipleRolloversAfterHavingReadAllData() throws IOException, InterruptedException {
         // this mimics the case when we are reading a log file that rolls over while processor is running.
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
@@ -670,7 +706,6 @@ public class TestTailFile {
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
         runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
         runner.setProperty(TailFile.RECURSIVE, "false");
-        runner.setProperty(TailFile.ROLLING_STRATEGY, TailFile.FIXED_NAME);
 
         initializeFile("target/log_1.txt", "firstLine\n");
 
@@ -795,7 +830,6 @@ public class TestTailFile {
     public void testMultipleFilesChangingNameStrategy() throws IOException, InterruptedException {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
-        runner.setProperty(TailFile.ROLLING_STRATEGY, TailFile.CHANGING_NAME);
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.FILENAME, ".*app-.*.log");
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "2s");
