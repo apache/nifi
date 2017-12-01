@@ -534,11 +534,10 @@ language governing permissions and limitations under the License. -->
     </dependencies>
     <profiles>
         <profile>
-            <id>supportpowerpc</id>
+            <id>includeifnotppc</id>
             <activation>
                 <os>
-                    <family>unix</family>
-                    <arch>ppc</arch>
+                    <arch>!ppc64le</arch>
                 </os>
             </activation>
             <dependencies>
