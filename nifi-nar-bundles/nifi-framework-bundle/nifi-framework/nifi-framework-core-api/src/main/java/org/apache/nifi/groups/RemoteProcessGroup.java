@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 
 public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
+    void initialize();
+
     @Override
     String getIdentifier();
 

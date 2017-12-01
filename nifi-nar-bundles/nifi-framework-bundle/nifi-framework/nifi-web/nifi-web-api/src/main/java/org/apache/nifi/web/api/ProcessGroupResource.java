@@ -1641,6 +1641,10 @@ public class ProcessGroupResource extends ApplicationResource {
         // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
 
         final VersionControlInformationDTO versionControlInfo = requestProcessGroupEntity.getComponent().getVersionControlInformation();
+        if (versionControlInfo != null) {
+            serviceFacade.verifyImportProcessGroup(versionControlInfo, groupId);
+        }
+
         if (versionControlInfo != null && requestProcessGroupEntity.getVersionedFlowSnapshot() == null) {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
             // Step 2: Retrieve flow from Flow Registry
@@ -1685,12 +1689,8 @@ public class ProcessGroupResource extends ApplicationResource {
                         }
                     }
                 },
-                () -> {
-                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
-                    if (versionedFlowSnapshot != null) {
-                        serviceFacade.verifyComponentTypes(versionedFlowSnapshot.getFlowContents());
-                    }
-                },
+            () -> {
+            },
                 processGroupEntity -> {
                     final ProcessGroupDTO processGroup = processGroupEntity.getComponent();
 

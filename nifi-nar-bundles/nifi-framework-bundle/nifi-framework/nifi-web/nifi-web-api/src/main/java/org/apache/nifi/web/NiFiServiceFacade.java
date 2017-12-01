@@ -418,6 +418,17 @@ public interface NiFiServiceFacade {
     void verifyComponentTypes(VersionedProcessGroup versionedGroup);
 
     /**
+     * Verifies that the flow identified by the given Version Control Information can be imported into the Process Group
+     * with the given id
+     *
+     * @param versionControlInfo the information about the versioned flow
+     * @param groupId the ID of the Process Group where the flow should be instantiated
+     *
+     * @throws IllegalStateException if the flow cannot be imported into the specified group
+     */
+    void verifyImportProcessGroup(VersionControlInformationDTO versionControlInfo, String groupId);
+
+    /**
      * Creates a new Template based off the specified snippet.
      *
      * @param name name

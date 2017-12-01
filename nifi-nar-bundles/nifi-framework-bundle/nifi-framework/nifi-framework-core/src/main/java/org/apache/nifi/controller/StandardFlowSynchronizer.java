@@ -360,6 +360,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
                     }
 
+                    rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
+
                     // If there are any Templates that do not exist in the Proposed Flow that do exist in the 'existing flow', we need
                     // to ensure that we also add those to the appropriate Process Groups, so that we don't lose them.
                     final Document existingFlowConfiguration = parseFlowBytes(existingFlow);
