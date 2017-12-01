@@ -135,11 +135,9 @@
             </properties>
         </profile>
         <profile>
-            <id>includeifnotppc</id>
+            <id>include-grpc</id>
             <activation>
-                <os>
-                    <arch>!ppc64le</arch>
-                </os>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <modules>
                 <module>nifi-grpc-bundle</module>
