@@ -1792,7 +1792,7 @@ public final class DtoFactory {
         componentDto.setId(processorDto.getId());
         componentDto.setName(processorDto.getName());
         componentDto.setProcessGroupId(processorDto.getParentGroupId());
-        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         componentDto.setState(processorDto.getState());
         componentDto.setValidationErrors(processorDto.getValidationErrors());
         component.setComponent(componentDto);

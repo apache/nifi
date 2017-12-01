@@ -1779,6 +1779,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      */
     public void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto) throws ProcessorInstantiationException {
         instantiateSnippet(group, dto, true);
+        group.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
     }
 
     private void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto, final boolean topLevel) throws ProcessorInstantiationException {

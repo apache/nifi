@@ -2964,6 +2964,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             versionControlInformation.getStatus()) {
 
             @Override
+            public String getRegistryName() {
+                final String registryId = versionControlInformation.getRegistryIdentifier();
+                final FlowRegistry registry = flowController.getFlowRegistryClient().getFlowRegistry(registryId);
+                return registry == null ? registryId : registry.getName();
+            }
+
+            @Override
             public boolean isModified() {
                 boolean updated = false;
                 while (true) {
@@ -3220,7 +3227,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 updated = flowStatus.compareAndSet(status, updatedStatus);
             }
         } catch (final IOException | NiFiRegistryException e) {
-            final String message = String.format("Failed to synchronize Process Group with Flow Registry because could not determine the most recent version of the Flow in the Flow Registry");
+            final String message = String.format("Failed to synchronize Process Group with Flow Registry : " + e.getMessage());
             setSyncFailedState(message);
 
             LOG.error("Failed to synchronize {} with Flow Registry because could not determine the most recent version of the Flow in the Flow Registry", this, e);
@@ -3451,6 +3458,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (childGroup == null) {
                 final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
+                added.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
                 updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, updateName, updateDescendantVersionedGroups, variablesToSkip);
@@ -3759,7 +3767,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final Connectable destination = getConnectable(destinationGroup, proposed.getDestination());
         if (destination == null) {
-            throw new IllegalArgumentException("Connection has a destination with identifier " + proposed.getIdentifier()
+            throw new IllegalArgumentException("Connection has a destination with identifier " + proposed.getDestination().getId()
                 + " but no component could be found in the Process Group with a corresponding identifier");
         }
 

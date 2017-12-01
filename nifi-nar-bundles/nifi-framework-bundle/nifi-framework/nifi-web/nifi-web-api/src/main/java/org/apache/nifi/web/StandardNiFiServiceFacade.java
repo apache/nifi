@@ -1863,6 +1863,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyImportProcessGroup(final VersionControlInformationDTO versionControlInfo, final String groupId) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        verifyImportProcessGroup(versionControlInfo, group);
+    }
+
+    private void verifyImportProcessGroup(final VersionControlInformationDTO vciDto, final ProcessGroup group) {
+        if (group == null) {
+            return;
+        }
+
+        final VersionControlInformation vci = group.getVersionControlInformation();
+        if (vci != null) {
+            if (Objects.equals(vciDto.getRegistryId(), vci.getRegistryIdentifier())
+                && Objects.equals(vciDto.getBucketId(), vci.getBucketIdentifier())
+                && Objects.equals(vciDto.getFlowId(), vci.getFlowIdentifier())) {
+
+                throw new IllegalStateException("Cannot import the specified Versioned Flow into the Process Group because doing so would cause a recursive dataflow. "
+                    + "If Process Group A contains Process Group B, then Process Group B is not allowed to contain the flow identified by Process Group A.");
+            }
+        }
+
+        verifyImportProcessGroup(vciDto, group.getParent());
+    }
+
+    @Override
     public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
         // get the specified snippet
         final Snippet snippet = snippetDAO.getSnippet(snippetId);

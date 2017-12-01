@@ -424,14 +424,23 @@ public class VersionsResource extends ApplicationResource {
         if (versionedFlowDto == null) {
             throw new IllegalArgumentException("Version Control Information must be supplied.");
         }
-        if (versionedFlowDto.getBucketId() == null) {
+        if (StringUtils.isEmpty(versionedFlowDto.getBucketId())) {
             throw new IllegalArgumentException("The Bucket ID must be supplied.");
         }
-        if (versionedFlowDto.getFlowName() == null && versionedFlowDto.getFlowId() == null) {
+        if (StringUtils.isEmpty(versionedFlowDto.getFlowName()) && StringUtils.isEmpty(versionedFlowDto.getFlowId())) {
             throw new IllegalArgumentException("The Flow Name or Flow ID must be supplied.");
         }
-        if (versionedFlowDto.getRegistryId() == null) {
+        if (versionedFlowDto.getFlowName().length() > 1000) {
+            throw new IllegalArgumentException("The Flow Name cannot exceed 1,000 characters");
+        }
+        if (StringUtils.isEmpty(versionedFlowDto.getRegistryId())) {
             throw new IllegalArgumentException("The Registry ID must be supplied.");
+        }
+        if (versionedFlowDto.getDescription() != null && versionedFlowDto.getDescription().length() > 65535) {
+            throw new IllegalArgumentException("Flow Description cannot exceed 65,535 characters");
+        }
+        if (versionedFlowDto.getComments() != null && versionedFlowDto.getComments().length() > 65535) {
+            throw new IllegalArgumentException("Comments cannot exceed 65,535 characters");
         }
 
         // ensure we're not attempting to version the root group
