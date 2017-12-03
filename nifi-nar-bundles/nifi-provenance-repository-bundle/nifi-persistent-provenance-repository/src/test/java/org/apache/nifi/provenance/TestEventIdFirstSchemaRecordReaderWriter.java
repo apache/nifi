@@ -63,7 +63,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testEventIdFirstSchemaRecordReaderWriter");
         tocFile = TocUtil.getTocFile(journalFile);
         idGenerator.set(0L);
-    };
+    }
 
     @Test
     public void testContentClaimUnchanged() throws IOException {

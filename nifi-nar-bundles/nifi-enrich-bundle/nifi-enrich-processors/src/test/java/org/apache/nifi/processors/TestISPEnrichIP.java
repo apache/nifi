@@ -284,7 +284,9 @@ public class TestISPEnrichIP {
 
         return new ObjectMapper().reader(IspResponse.class).with(inject).readValue(maxMindIspResponse);
 
-    }    private IspResponse getIspResponseWithoutASNDetail() throws Exception {
+    }
+
+    private IspResponse getIspResponseWithoutASNDetail() throws Exception {
         final String maxMindIspResponse = "{\n" +
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +

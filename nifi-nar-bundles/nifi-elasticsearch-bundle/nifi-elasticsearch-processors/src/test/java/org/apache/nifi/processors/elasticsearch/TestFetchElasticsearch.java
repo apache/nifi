@@ -101,7 +101,7 @@ public class TestFetchElasticsearch {
 
         runner.assertAllFlowFilesTransferred(FetchElasticsearch.REL_SUCCESS, 1);
         assertFalse(runner.getProvenanceEvents().isEmpty());
-        runner.getProvenanceEvents().forEach(event -> { assertEquals(event.getEventType(), ProvenanceEventType.FETCH); });
+        runner.getProvenanceEvents().forEach(event -> assertEquals(event.getEventType(), ProvenanceEventType.FETCH) );
         final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearch.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");

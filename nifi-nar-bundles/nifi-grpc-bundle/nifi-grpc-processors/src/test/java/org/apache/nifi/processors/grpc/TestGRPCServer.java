@@ -86,7 +86,7 @@ public class TestGRPCServer<T extends BindableService> {
     /**
      * Starts the gRPC server @localhost:port.
      */
-    public void start(final int port) throws Exception {
+    public int start(final int port) throws Exception {
         final NettyServerBuilder nettyServerBuilder = NettyServerBuilder
                 .forPort(port)
                 .directExecutor()
@@ -132,6 +132,7 @@ public class TestGRPCServer<T extends BindableService> {
         }
 
         server = nettyServerBuilder.build().start();
+        final int actualPort = server.getPort();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -142,6 +143,7 @@ public class TestGRPCServer<T extends BindableService> {
                 System.err.println("*** server shut down");
             }
         });
+        return actualPort;
     }
 
     /**
