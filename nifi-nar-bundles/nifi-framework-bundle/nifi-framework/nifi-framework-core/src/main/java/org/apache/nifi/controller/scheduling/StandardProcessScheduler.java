@@ -294,7 +294,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * {@link ProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)}
      * method.
      *
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable).
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode) {

@@ -44,6 +44,11 @@ language governing permissions and limitations under the License. -->
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>dir</format>
+                                <format>zip</format>
+                                <format>tar.gz</format>
+                            </formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -832,9 +837,11 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>generateArchives</id>
+            <id>avoid-archive-formats</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>dir-only</name>
+                </property>
             </activation>
             <build>
                 <plugins>
@@ -852,39 +859,15 @@ language governing permissions and limitations under the License. -->
                                 </goals>
                                 <phase>package</phase>
                                 <configuration>
-                                    <formats>
-                                        <format>dir</format>
-                                        <format>zip</format>
-                                        <format>tar.gz</format>
-                                    </formats>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>dir-only</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>nifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
+                                    <archiverConfig>
+                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                        <directoryMode>0775</directoryMode>
+                                        <fileMode>0664</fileMode>
+                                    </archiverConfig>
+                                    <descriptors>
+                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
                                     <formats>
                                         <format>dir</format>
                                     </formats>
