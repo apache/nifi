@@ -206,7 +206,7 @@ public class TestStandardProcessScheduler {
         procNode.setProperties(procProps);
 
         scheduler.enableControllerService(service);
-        scheduler.startProcessor(procNode);
+        scheduler.startProcessor(procNode, true);
 
         Thread.sleep(1000L);
 

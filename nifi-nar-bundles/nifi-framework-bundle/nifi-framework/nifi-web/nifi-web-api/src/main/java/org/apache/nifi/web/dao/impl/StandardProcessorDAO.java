@@ -426,7 +426,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     // perform the appropriate action
                     switch (purposedScheduledState) {
                         case RUNNING:
-                            parentGroup.startProcessor(processor);
+                            parentGroup.startProcessor(processor, true);
                             break;
                         case STOPPED:
                             switch (processor.getScheduledState()) {

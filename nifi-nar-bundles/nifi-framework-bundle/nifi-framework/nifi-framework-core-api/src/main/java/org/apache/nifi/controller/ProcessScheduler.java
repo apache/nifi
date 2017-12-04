@@ -40,9 +40,13 @@ public interface ProcessScheduler {
      * is already scheduled to run, does nothing.
      *
      * @param procNode to start
+     * @param failIfStopping If <code>false</code>, and the Processor is in the 'STOPPING' state,
+     *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
+     *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
+     *            will throw an {@link IllegalStateException}.
      * @throws IllegalStateException if the Processor is disabled
      */
-    Future<Void> startProcessor(ProcessorNode procNode);
+    Future<Void> startProcessor(ProcessorNode procNode, boolean failIfStopping);
 
     /**
      * Stops scheduling the given processor to run and invokes all methods on
