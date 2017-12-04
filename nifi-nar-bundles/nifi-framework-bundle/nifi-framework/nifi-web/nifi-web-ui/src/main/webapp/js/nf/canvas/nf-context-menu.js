@@ -463,7 +463,7 @@
         }
 
         // check the selection for version control information
-        return versionControlInformation.current === true && versionControlInformation.modified === true;
+        return versionControlInformation.state === 'LOCALLY_MODIFIED';
     };
 
     /**
@@ -502,7 +502,7 @@
         }
 
         // check the selection for version control information
-        return versionControlInformation.modified === true;
+        return versionControlInformation.state === 'LOCALLY_MODIFIED' || versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
     };
 
     /**
@@ -541,7 +541,7 @@
         }
 
         // check the selection for version control information
-        return versionControlInformation.modified === false;
+        return versionControlInformation.state !== 'LOCALLY_MODIFIED' && versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE';
     };
 
     /**

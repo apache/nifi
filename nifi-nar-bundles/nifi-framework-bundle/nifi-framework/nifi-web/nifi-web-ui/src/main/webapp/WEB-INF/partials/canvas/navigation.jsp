@@ -21,8 +21,7 @@
         highlight-crumb-id="appCtrl.nf.CanvasUtils.getGroupId();"
         separator-func="appCtrl.nf.Common.isDefinedAndNotNull"
         is-tracking="appCtrl.serviceProvider.breadcrumbsCtrl.isTracking"
-        is-current="appCtrl.serviceProvider.breadcrumbsCtrl.isCurrent"
-        is-modified="appCtrl.serviceProvider.breadcrumbsCtrl.isModified"
+        get-version-control-class="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlClass"
         get-version-control-tooltip="appCtrl.serviceProvider.breadcrumbsCtrl.getVersionControlTooltip">
 </nf-breadcrumbs>
 <div id="graph-controls">

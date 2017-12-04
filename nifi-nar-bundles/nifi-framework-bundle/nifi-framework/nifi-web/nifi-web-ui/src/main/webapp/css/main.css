@@ -161,7 +161,7 @@ div.context-menu-provenance {
     text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-.locally-modified {
+.locally-modified, .sync-failure {
     float: left;
     color: #747474 !important;
     fill: #747474 !important;
@@ -169,15 +169,7 @@ div.context-menu-provenance {
     text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-.stale {
-    float: left;
-    color: #c7685d !important;
-    fill: #c7685d !important;
-    margin-top: 0px !important;
-    text-shadow: 0 0 4px rgba(255,255,255,1);
-}
-
-.locally-modified-and-stale {
+.stale, .locally-modified-and-stale {
     float: left;
     color: #c7685d !important;
     fill: #c7685d !important;
