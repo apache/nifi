@@ -51,7 +51,7 @@ before_install:
   - mvn -q apache-rat:check
 
 install:
-  - mvn -q -T 2C -DskipTests=true -Pdir-only clean install
+  - mvn -q -T 2C -DskipTests=true -Ddir-only clean install
 
 script:
   # Replace variables seems to be the only option to pass proper values to surefire
