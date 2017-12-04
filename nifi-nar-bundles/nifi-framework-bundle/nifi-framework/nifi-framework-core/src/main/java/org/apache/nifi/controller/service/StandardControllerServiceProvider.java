@@ -285,7 +285,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         // start all of the components that are not disabled
         for (final ProcessorNode node : processors) {
             if (node.getScheduledState() != ScheduledState.DISABLED) {
-                node.getProcessGroup().startProcessor(node);
+                node.getProcessGroup().startProcessor(node, true);
                 updated.add(node);
             }
         }

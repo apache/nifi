@@ -149,7 +149,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessor(final ProcessorNode processor) {
+    public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
         return CompletableFuture.completedFuture(null);
     }
 

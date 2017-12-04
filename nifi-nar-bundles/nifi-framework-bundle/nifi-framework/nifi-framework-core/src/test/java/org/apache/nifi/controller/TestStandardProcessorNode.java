@@ -105,11 +105,11 @@ public class TestStandardProcessorNode {
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null);
         final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
             @Override
-            public void postMonitor() {
+            public void onTaskComplete() {
             }
 
             @Override
-            public Future<?> invokeMonitoringTask(final Callable<?> task) {
+            public Future<?> scheduleTask(final Callable<?> task) {
                 return taskScheduler.submit(task);
             }
 
@@ -119,7 +119,7 @@ public class TestStandardProcessorNode {
             }
         };
 
-        procNode.start(taskScheduler, 20000L, processContext, schedulingAgentCallback);
+        procNode.start(taskScheduler, 20000L, processContext, schedulingAgentCallback, true);
 
         Thread.sleep(1000L);
         assertEquals(1, processor.onScheduledCount);
