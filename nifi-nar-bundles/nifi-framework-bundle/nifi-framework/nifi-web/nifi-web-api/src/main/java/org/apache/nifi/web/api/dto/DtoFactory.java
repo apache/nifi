@@ -2050,7 +2050,7 @@ public final class DtoFactory {
 
         final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> entry.getValue()));
-        group.setVariables(variables);
+        dto.setVariables(variables);
 
         final ProcessGroup parentGroup = group.getParent();
         if (parentGroup != null) {
