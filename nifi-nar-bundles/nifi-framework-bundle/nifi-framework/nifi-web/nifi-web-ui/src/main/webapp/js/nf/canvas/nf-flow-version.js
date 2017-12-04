@@ -227,10 +227,11 @@
      *
      * @param registryIdentifier
      * @param bucketCombo
+     * @param flowCombo
      * @param selectBucket
      * @returns {*}
      */
-    var loadBuckets = function (registryIdentifier, bucketCombo, selectBucket) {
+    var loadBuckets = function (registryIdentifier, bucketCombo, flowCombo, selectBucket) {
         return $.ajax({
             type: 'GET',
             url: '../nifi-api/flow/registries/' + encodeURIComponent(registryIdentifier) + '/buckets',
@@ -258,6 +259,14 @@
                     optionClass: 'unset',
                     disabled: true
                 });
+                flowCombo.combo('destroy').combo({
+                    options: [{
+                        text: 'No available flows',
+                        value: null,
+                        optionClass: 'unset',
+                        disabled: true
+                    }]
+                });
             }
 
             // load the buckets
@@ -282,6 +291,14 @@
             bucketCombo.combo('destroy').combo({
                 options: [{
                     text: 'No available buckets',
+                    value: null,
+                    optionClass: 'unset',
+                    disabled: true
+                }]
+            });
+            flowCombo.combo('destroy').combo({
+                options: [{
+                    text: 'No available flows',
                     value: null,
                     optionClass: 'unset',
                     disabled: true
@@ -316,7 +333,7 @@
                 clearFlowVersionsGrid();
             }
 
-            loadBuckets(selectedOption.value, bucketCombo, selectBucket).fail(function () {
+            loadBuckets(selectedOption.value, bucketCombo, flowCombo, selectBucket).fail(function () {
                 showNoBucketsAvailable();
             });
         }
@@ -1439,7 +1456,7 @@
 
                                 nfDialog.showOkDialog({
                                     headerText: 'Revert Local Changes',
-                                    dialogContent: nfCommon.escapeHtml(changeRequest.failureReason)
+                                    dialogContent: nfCommon.escapeHtml(revertRequest.failureReason)
                                 });
                             } else {
                                 // update the percent complete

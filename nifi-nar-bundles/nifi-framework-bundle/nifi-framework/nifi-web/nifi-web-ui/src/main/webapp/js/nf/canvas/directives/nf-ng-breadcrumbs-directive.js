@@ -42,8 +42,7 @@
                 'highlightCrumbId': '=',
                 'separatorFunc': '=',
                 'isTracking': '=',
-                'isCurrent': '=',
-                'isModified': '=',
+                'getVersionControlClass': '=',
                 'getVersionControlTooltip': '='
             },
             link: function (scope, element, attrs) {

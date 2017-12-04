@@ -17,23 +17,14 @@
 
 package org.apache.nifi.web.api;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -65,6 +56,7 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.CreateActiveRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
@@ -80,6 +72,21 @@ import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -94,13 +101,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
 
 @Path("/versions")
 @Api(value = "/versions", description = "Endpoint for managing version control for a flow")
@@ -168,7 +168,7 @@ public class VersionsResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("start-requests")
+    @Path("active-requests")
     @ApiOperation(
         value = "Creates a request so that a Process Group can be placed under Version Control or have its Version Control configuration changed. Creating this request will "
             + "prevent any other threads from simultaneously saving local changes to Version Control. It will not, however, actually save the local flow to the Flow Registry. A "
@@ -182,20 +182,28 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response createVersionControlRequest() throws InterruptedException {
+    public Response createVersionControlRequest(
+            @ApiParam(value = "The versioned flow details.", required = true) final CreateActiveRequestEntity requestEntity) throws InterruptedException {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
         }
 
+        if (requestEntity.getProcessGroupId() == null) {
+            throw new IllegalArgumentException("The id of the process group that will be updated must be specified.");
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
         return withWriteLock(
             serviceFacade,
-            /* entity */ null,
+            requestEntity,
             lookup -> {
-                // TODO - pass in PG ID to authorize
+                final Authorizable processGroup = lookup.getProcessGroup(requestEntity.getProcessGroupId()).getAuthorizable();
+                processGroup.authorize(authorizer, RequestAction.WRITE, user);
             },
             /* verifier */ null,
-            requestEntity -> {
+            entity -> {
                 final String requestId = generateUuid();
 
                 // We need to ensure that only a single Version Control Request can occur throughout the flow.
@@ -204,7 +212,7 @@ public class VersionsResource extends ApplicationResource {
                 // As a result, may could end up in a situation where we are creating flows in the registry that are never referenced.
                 synchronized (activeRequestMonitor) {
                     if (activeRequest == null || activeRequest.isExpired()) {
-                        activeRequest = new ActiveRequest(requestId);
+                        activeRequest = new ActiveRequest(requestId, user, entity.getProcessGroupId());
                     } else {
                         throw new IllegalStateException("A request is already underway to place a Process Group in this NiFi instance under Version Control. "
                             + "Only a single such request is allowed to occurred at a time. Please try the request again momentarily.");
@@ -219,7 +227,7 @@ public class VersionsResource extends ApplicationResource {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("start-requests/{id}")
+    @Path("active-requests/{id}")
     @ApiOperation(
             value = "Updates the request with the given ID",
             response = VersionControlInformationEntity.class,
@@ -235,7 +243,7 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response updateVersionControlRequest(@ApiParam("The request ID.") @PathParam("id") final String requestId,
-        @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlComponentMappingEntity requestEntity) {
+        @ApiParam(value = "The version control component mapping.", required = true) final VersionControlComponentMappingEntity requestEntity) {
 
         // Verify request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
@@ -287,7 +295,15 @@ public class VersionsResource extends ApplicationResource {
                 throw new IllegalStateException("Version Control Request with ID " + requestId + " has already expired");
             }
 
+            if (activeRequest.isUpdatePerformed()) {
+                throw new IllegalStateException("Version Control Request with ID " + requestId + " has already been performed");
+            }
+
             final String groupId = requestEntity.getVersionControlInformation().getGroupId();
+
+            if (!activeRequest.getProcessGroupId().equals(groupId)) {
+                throw new IllegalStateException("Version Control Request with ID " + requestId + " was created for a different process group id");
+            }
 
             final Revision groupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), groupId);
             return withWriteLock(
@@ -295,13 +311,24 @@ public class VersionsResource extends ApplicationResource {
                 requestEntity,
                 groupRevision,
                 lookup -> {
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    if (user == null) {
+                        throw new AccessDeniedException("Unknown user.");
+                    }
+
+                    if (!user.equals(activeRequest.getUser())) {
+                        throw new AccessDeniedException("Only the user that creates the Version Control Request can use it.");
+                    }
                 },
                 null,
                 (rev, mappingEntity) -> {
+                    // set the version control information
                     final VersionControlInformationEntity responseEntity = serviceFacade.setVersionControlInformation(rev, groupId,
                         mappingEntity.getVersionControlInformation(), mappingEntity.getVersionControlComponentMapping());
+
+                    // indicate that the active request has performed the update
+                    activeRequest.updatePerformed();
+
                     return generateOkResponse(responseEntity).build();
                 });
         }
@@ -311,10 +338,10 @@ public class VersionsResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("start-requests/{id}")
+    @Path("active-requests/{id}")
     @ApiOperation(
         value = "Deletes the Version Control Request with the given ID. This will allow other threads to save flows to the Flow Registry. See also the documentation "
-            + "for POSTing to /versions/start-requests for information regarding why this is done.",
+            + "for POSTing to /versions/active-requests for information regarding why this is done.",
             notes = NON_GUARANTEED_ENDPOINT)
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -328,28 +355,36 @@ public class VersionsResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        return withWriteLock(
-            serviceFacade,
-            null,
-            lookup -> {
-            },
-            null,
-            requestEntity -> {
-                synchronized (activeRequestMonitor) {
-                    if (activeRequest == null) {
-                        throw new IllegalStateException("No Version Control Request with ID " + requestId + " is currently active");
+        synchronized (activeRequestMonitor) {
+            if (activeRequest == null) {
+                throw new IllegalStateException("No Version Control Request with ID " + requestId + " is currently active");
+            }
+
+            if (!requestId.equals(activeRequest.getRequestId())) {
+                throw new IllegalStateException("No Version Control Request with ID " + requestId + " is currently active");
+            }
+
+            return withWriteLock(
+                serviceFacade,
+                null,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    if (user == null) {
+                        throw new AccessDeniedException("Unknown user.");
                     }
 
-                    if (!requestId.equals(activeRequest.getRequestId())) {
-                        throw new IllegalStateException("No Version Control Request with ID " + requestId + " is currently active");
+                    if (!user.equals(activeRequest.getUser())) {
+                        throw new AccessDeniedException("Only the user that creates the Version Control Request can use it.");
                     }
-
+                },
+                null,
+                requestEntity -> {
+                    // clear the active request
                     activeRequest = null;
-                }
 
-                return generateOkResponse().build();
-            });
-
+                    return generateOkResponse().build();
+                });
+        }
     }
 
 
@@ -407,7 +442,7 @@ public class VersionsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             // We first have to obtain a "lock" on all nodes in the cluster so that multiple Version Control requests
-            // are not being made simultaneously. We do this by making a POST to /nifi-api/versions/start-requests.
+            // are not being made simultaneously. We do this by making a POST to /nifi-api/versions/active-requests.
             // The Response gives us back the Request ID.
             final URI requestUri;
             try {
@@ -415,7 +450,7 @@ public class VersionsResource extends ApplicationResource {
                 final String requestId = lockVersionControl(originalUri, groupId);
 
                 requestUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                    originalUri.getPort(), "/nifi-api/versions/start-requests/" + requestId, null, originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/versions/active-requests/" + requestId, null, originalUri.getFragment());
             } catch (final URISyntaxException e) {
                 throw new RuntimeException(e);
             }
@@ -448,9 +483,12 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
                 final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+                // require write to this group
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+
+                // require read to this group and all descendants
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
             },
             () -> {
                 final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
@@ -493,15 +531,19 @@ public class VersionsResource extends ApplicationResource {
 
     private String lockVersionControl(final URI originalUri, final String groupId) throws URISyntaxException {
         final URI createRequestUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-            originalUri.getPort(), "/nifi-api/versions/start-requests", null, originalUri.getFragment());
+            originalUri.getPort(), "/nifi-api/versions/active-requests", null, originalUri.getFragment());
 
         final NodeResponse clusterResponse;
         try {
+            // create an active request entity to indicate the group id
+            final CreateActiveRequestEntity activeRequestEntity = new CreateActiveRequestEntity();
+            activeRequestEntity.setProcessGroupId(groupId);
+
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
+                clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, activeRequestEntity, Collections.emptyMap()).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                    getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, new MultivaluedHashMap<>(), Collections.emptyMap()).awaitMergedResponse();
+                    getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, activeRequestEntity, Collections.emptyMap()).awaitMergedResponse();
             }
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -625,7 +667,7 @@ public class VersionsResource extends ApplicationResource {
             },
             (revision, groupEntity) -> {
                 // disconnect from version control
-                final VersionControlInformationEntity entity = serviceFacade.deleteVersionControl(requestRevision, groupId);
+                final VersionControlInformationEntity entity = serviceFacade.deleteVersionControl(revision, groupId);
 
                 // generate the response
                 return generateOkResponse(entity).build();
@@ -716,8 +758,8 @@ public class VersionsResource extends ApplicationResource {
                 versionControlInfoDto.setGroupId(groupId);
                 versionControlInfoDto.setModified(false);
                 versionControlInfoDto.setVersion(snapshotMetadata.getVersion());
-                versionControlInfoDto.setRegistryId(requestEntity.getRegistryId());
-                versionControlInfoDto.setRegistryName(serviceFacade.getFlowRegistryName(requestEntity.getRegistryId()));
+                versionControlInfoDto.setRegistryId(entity.getRegistryId());
+                versionControlInfoDto.setRegistryName(serviceFacade.getFlowRegistryName(entity.getRegistryId()));
 
                 final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroup(rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false,
                     entity.getUpdateDescendantVersionedFlows());
@@ -785,6 +827,7 @@ public class VersionsResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest = requestManager.getRequest(requestType, requestId, user);
 
         final VersionedFlowUpdateRequestDTO updateRequestDto = new VersionedFlowUpdateRequestDTO();
@@ -865,6 +908,7 @@ public class VersionsResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest = requestManager.removeRequest(requestType, requestId, user);
         if (asyncRequest == null) {
             throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
@@ -1021,11 +1065,8 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component.
                 final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
-                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
@@ -1049,7 +1090,7 @@ public class VersionsResource extends ApplicationResource {
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, componentLifecycle, exampleUri,
-                            affectedComponents, user, replicateRequest, requestEntity, flowSnapshot, request, idGenerationSeed, true, true);
+                            affectedComponents, user, replicateRequest, processGroupEntity, flowSnapshot, request, idGenerationSeed, true, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
                     } catch (final LifecycleManagementException e) {
@@ -1170,11 +1211,8 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component.
                 final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
-                super.authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final boolean containsRestrictedComponents = FlowRegistryUtils.containsRestrictedComponent(groupContents);
@@ -1217,7 +1255,7 @@ public class VersionsResource extends ApplicationResource {
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, componentLifecycle, exampleUri,
-                            affectedComponents, user, replicateRequest, requestEntity, flowSnapshot, request, idGenerationSeed, false, true);
+                            affectedComponents, user, replicateRequest, processGroupEntity, flowSnapshot, request, idGenerationSeed, false, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
                     } catch (final LifecycleManagementException e) {
@@ -1471,11 +1509,17 @@ public class VersionsResource extends ApplicationResource {
         private static final long MAX_REQUEST_LOCK_NANOS = TimeUnit.MINUTES.toNanos(1L);
 
         private final String requestId;
+        private final NiFiUser user;
+        private final String processGroupId;
         private final long creationNanos = System.nanoTime();
         private final long expirationTime = creationNanos + MAX_REQUEST_LOCK_NANOS;
 
-        private ActiveRequest(final String requestId) {
+        private boolean updatePerformed = false;
+
+        private ActiveRequest(final String requestId, final NiFiUser user, final String processGroupId) {
             this.requestId = requestId;
+            this.user = user;
+            this.processGroupId = processGroupId;
         }
 
         public boolean isExpired() {
@@ -1484,6 +1528,22 @@ public class VersionsResource extends ApplicationResource {
 
         public String getRequestId() {
             return requestId;
+        }
+
+        public NiFiUser getUser() {
+            return user;
+        }
+
+        public String getProcessGroupId() {
+            return processGroupId;
+        }
+
+        public void updatePerformed() {
+            updatePerformed = true;
+        }
+
+        public boolean isUpdatePerformed() {
+            return updatePerformed;
         }
     }
 }

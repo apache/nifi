@@ -397,7 +397,7 @@
                             'class': 'process-group-disabled-count process-group-contents-count'
                         });
 
-                    // current icon
+                    // up to date icon
                     details.append('text')
                         .attr({
                             'x': 10,
@@ -409,7 +409,7 @@
                         })
                         .text('\uf00c');
 
-                    // current count
+                    // up to date count
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -418,7 +418,7 @@
                             'class': 'process-group-up-to-date-count process-group-contents-count'
                         });
 
-                    // modified icon
+                    // locally modified icon
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -429,7 +429,7 @@
                         })
                         .text('\uf069');
 
-                    // modified count
+                    // locally modified count
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -438,7 +438,7 @@
                             'class': 'process-group-locally-modified-count process-group-contents-count'
                         });
 
-                    // not current icon
+                    // stale icon
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -449,7 +449,7 @@
                         })
                         .text('\uf0aa');
 
-                    // not current count
+                    // stale count
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -458,7 +458,7 @@
                             'class': 'process-group-stale-count process-group-contents-count'
                         });
 
-                    // modified and not current icon
+                    // locally modified and stale icon
                     details.append('text')
                         .attr({
                             'y': function () {
@@ -469,13 +469,33 @@
                         })
                         .text('\uf06a');
 
-                    // modified and not current count
+                    // locally modified and stale count
                     details.append('text')
                         .attr({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
                             'class': 'process-group-locally-modified-and-stale-count process-group-contents-count'
+                        });
+
+                    // sync failure icon
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-sync-failure process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf128');
+
+                    // sync failure count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-sync-failure-count process-group-contents-count'
                         });
 
                     // ----------------
@@ -940,13 +960,14 @@
                             'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
                             'fill': function () {
                                 if (isUnderVersionControl(processGroupData)) {
-                                    var modified = processGroupData.component.versionControlInformation.modified;
-                                    var current = processGroupData.component.versionControlInformation.current;
-                                    if (modified === true && current === false) {
+                                    var vciState = processGroupData.component.versionControlInformation.state;
+                                    if (vciState === 'SYNC_FAILURE') {
+                                        return '#666666';
+                                    } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
                                         return '#BA554A';
-                                    } else if (current === false) {
+                                    } else if (vciState === 'STALE') {
                                         return '#BA554A';
-                                    } else if (modified === true) {
+                                    } else if (vciState === 'LOCALLY_MODIFIED') {
                                         return '#666666';
                                     } else {
                                         return '#1A9964';
@@ -958,13 +979,14 @@
                         })
                         .text(function () {
                             if (isUnderVersionControl(processGroupData)) {
-                                var modified = processGroupData.component.versionControlInformation.modified;
-                                var current = processGroupData.component.versionControlInformation.current;
-                                if (modified === true && current === false) {
+                                var vciState = processGroupData.component.versionControlInformation.state;
+                                if (vciState === 'SYNC_FAILURE') {
+                                    return '\uf128'
+                                } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
                                     return '\uf06a';
-                                } else if (current === false) {
+                                } else if (vciState === 'STALE') {
                                     return '\uf0aa';
-                                } else if (modified === true) {
+                                } else if (vciState === 'LOCALLY_MODIFIED') {
                                     return '\uf069';
                                 } else {
                                     return '\uf00c';
@@ -1081,8 +1103,8 @@
                         });
                     var upToDateCount = details.select('text.process-group-up-to-date-count')
                         .attr('x', function () {
-                            var currentCountX = parseInt(upToDate.attr('x'), 10);
-                            return currentCountX + Math.round(upToDate.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                            var updateToDateCountX = parseInt(upToDate.attr('x'), 10);
+                            return updateToDateCountX + Math.round(upToDate.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                         })
                         .text(function (d) {
                             return d.component.upToDateCount;
@@ -1097,13 +1119,13 @@
                             return d.component.locallyModifiedCount === 0;
                         })
                         .attr('x', function () {
-                            var currentX = parseInt(upToDateCount.attr('x'), 10);
-                            return currentX + Math.round(upToDateCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                            var upToDateX = parseInt(upToDateCount.attr('x'), 10);
+                            return upToDateX + Math.round(upToDateCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                         });
                     var locallyModifiedCount = details.select('text.process-group-locally-modified-count')
                         .attr('x', function () {
-                            var modifiedCountX = parseInt(locallyModified.attr('x'), 10);
-                            return modifiedCountX + Math.round(locallyModified.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                            var locallyModifiedCountX = parseInt(locallyModified.attr('x'), 10);
+                            return locallyModifiedCountX + Math.round(locallyModified.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                         })
                         .text(function (d) {
                             return d.component.locallyModifiedCount;
@@ -1118,13 +1140,13 @@
                             return d.component.staleCount === 0;
                         })
                         .attr('x', function () {
-                            var modifiedX = parseInt(locallyModifiedCount.attr('x'), 10);
-                            return modifiedX + Math.round(locallyModifiedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                            var locallyModifiedX = parseInt(locallyModifiedCount.attr('x'), 10);
+                            return locallyModifiedX + Math.round(locallyModifiedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                         });
                     var staleCount = details.select('text.process-group-stale-count')
                         .attr('x', function () {
-                            var notCurrentCountX = parseInt(stale.attr('x'), 10);
-                            return notCurrentCountX + Math.round(stale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                            var staleCountX = parseInt(stale.attr('x'), 10);
+                            return staleCountX + Math.round(stale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                         })
                         .text(function (d) {
                             return d.component.staleCount;
@@ -1139,16 +1161,37 @@
                             return d.component.locallyModifiedAndStaleCount === 0;
                         })
                         .attr('x', function () {
-                            var runningX = parseInt(staleCount.attr('x'), 10);
-                            return runningX + Math.round(staleCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                            var staleX = parseInt(staleCount.attr('x'), 10);
+                            return staleX + Math.round(staleCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                         });
-                    details.select('text.process-group-locally-modified-and-stale-count')
+                    var locallyModifiedAndStaleCount = details.select('text.process-group-locally-modified-and-stale-count')
                         .attr('x', function () {
-                            var modifiedAndNotCurrentCountX = parseInt(locallyModifiedAndStale.attr('x'), 10);
-                            return modifiedAndNotCurrentCountX + Math.round(locallyModifiedAndStale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                            var locallyModifiedAndStaleCountX = parseInt(locallyModifiedAndStale.attr('x'), 10);
+                            return locallyModifiedAndStaleCountX + Math.round(locallyModifiedAndStale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                         })
                         .text(function (d) {
                             return d.component.locallyModifiedAndStaleCount;
+                        });
+
+                    // update sync failure
+                    var syncFailure = details.select('text.process-group-sync-failure')
+                        .classed('sync-failure', function (d) {
+                            return d.component.syncFailureCount > 0;
+                        })
+                        .classed('zero', function (d) {
+                            return d.component.syncFailureCount === 0;
+                        })
+                        .attr('x', function () {
+                            var syncFailureX = parseInt(locallyModifiedAndStaleCount.attr('x'), 10);
+                            return syncFailureX + Math.round(locallyModifiedAndStaleCount.node().getComputedTextLength()) + CONTENTS_SPACER - 2;
+                        });
+                    details.select('text.process-group-sync-failure-count')
+                        .attr('x', function () {
+                            var syncFailureCountX = parseInt(syncFailure.attr('x'), 10);
+                            return syncFailureCountX + Math.round(syncFailure.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                        })
+                        .text(function (d) {
+                            return d.component.syncFailureCount;
                         });
                 } else {
                     // update version control information

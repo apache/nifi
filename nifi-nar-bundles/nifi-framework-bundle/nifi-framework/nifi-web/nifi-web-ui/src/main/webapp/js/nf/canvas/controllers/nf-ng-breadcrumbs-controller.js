@@ -107,31 +107,28 @@
             },
 
             /**
-             * Returns whether the specified version control information is current.
+             * Returns the class string to use for the version control of the specified breadcrumb.
              *
              * @param breadcrumbEntity
-             * @returns {boolean}
+             * @returns {string}
              */
-            isCurrent: function (breadcrumbEntity) {
+            getVersionControlClass: function (breadcrumbEntity) {
                 if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
-                    return breadcrumbEntity.breadcrumb.versionControlInformation.current === true;
+                    var vciState = breadcrumbEntity.breadcrumb.versionControlInformation.state;
+                    if (vciState === 'SYNC_FAILURE') {
+                        return 'breadcrumb-version-control-gray fa fa-question'
+                    } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
+                        return 'breadcrumb-version-control-red fa fa-exclamation-circle';
+                    } else if (vciState === 'STALE') {
+                        return 'breadcrumb-version-control-red fa fa-arrow-circle-up';
+                    } else if (vciState === 'LOCALLY_MODIFIED') {
+                        return 'breadcrumb-version-control-gray fa fa-asterisk';
+                    } else {
+                        return 'breadcrumb-version-control-green fa fa-check';
+                    }
+                } else {
+                    return '';
                 }
-
-                return false;
-            },
-
-            /**
-             * Returns whether the specified version control information is current.
-             *
-             * @param versionControlInformation
-             * @returns {boolean}
-             */
-            isModified: function (breadcrumbEntity) {
-                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
-                    return breadcrumbEntity.breadcrumb.versionControlInformation.modified === true;
-                }
-
-                return false;
             },
 
             /**
