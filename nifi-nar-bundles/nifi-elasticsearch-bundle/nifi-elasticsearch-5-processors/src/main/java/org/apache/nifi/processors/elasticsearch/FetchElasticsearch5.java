@@ -176,7 +176,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             final GetResponse getResponse = getRequestBuilder.execute().actionGet();
 
             if (getResponse == null || !getResponse.isExists()) {
-                logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found",
+                logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
                         new Object[]{index, docType, docId});
 
                 // We couldn't find the document, so penalize it and send it to "not found"
