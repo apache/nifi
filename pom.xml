@@ -1985,7 +1985,9 @@
             <!-- Performs execution of Integration Tests using the Maven 
                 FailSafe Plugin. The view of integration tests in this context are those 
                 tests interfacing with external sources and services requiring additional 
-                resources or credentials that cannot be explicitly provided. -->
+                resources or credentials that cannot be explicitly provided. Also appropriate
+                for tests which depend on inter-thread and/or network or having timing
+                considerations which could make the tests brittle on various environments.-->
             <id>integration-tests</id>
             <build>
                 <plugins>

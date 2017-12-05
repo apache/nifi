@@ -48,7 +48,7 @@ import org.mockito.Mockito;
 
 
 
-public class TestLumberjackSocketChannelHandler {
+public class ITLumberjackSocketChannelHandler {
     private EventFactory<TestEvent> eventFactory;
     private ChannelHandlerFactory<TestEvent,AsyncChannelDispatcher> channelHandlerFactory;
     private BlockingQueue<ByteBuffer> byteBuffers;
