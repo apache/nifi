@@ -253,7 +253,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     }
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
-                    logger.warn("Failed to read {}/{}/{} from Elasticsearch: Document not found",
+                    logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
                             new Object[]{index, docType, docId});
 
                     // We couldn't find the document, so send it to "not found"
