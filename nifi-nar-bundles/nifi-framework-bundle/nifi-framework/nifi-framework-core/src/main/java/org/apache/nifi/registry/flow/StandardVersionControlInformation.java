@@ -32,8 +32,6 @@ public class StandardVersionControlInformation implements VersionControlInformat
     private volatile String flowDescription;
     private final int version;
     private volatile VersionedProcessGroup flowSnapshot;
-    private volatile boolean modified;
-    private volatile boolean current;
     private final VersionedFlowStatus status;
 
     public static class Builder {
@@ -46,8 +44,6 @@ public class StandardVersionControlInformation implements VersionControlInformat
         private String flowDescription;
         private int version;
         private VersionedProcessGroup flowSnapshot;
-        private Boolean modified = null;
-        private Boolean current = null;
         private VersionedFlowStatus status;
 
         public Builder registryId(String registryId) {
@@ -90,16 +86,6 @@ public class StandardVersionControlInformation implements VersionControlInformat
             return this;
         }
 
-        public Builder modified(boolean modified) {
-            this.modified = modified;
-            return this;
-        }
-
-        public Builder current(boolean current) {
-            this.current = current;
-            return this;
-        }
-
         public Builder flowSnapshot(VersionedProcessGroup snapshot) {
             this.flowSnapshot = snapshot;
             return this;
@@ -119,8 +105,17 @@ public class StandardVersionControlInformation implements VersionControlInformat
                 .flowId(dto.getFlowId())
                 .flowName(dto.getFlowName())
                 .flowDescription(dto.getFlowDescription())
-                .current(dto.getCurrent() == null ? true : dto.getCurrent())
-                .modified(dto.getModified() == null ? false : dto.getModified())
+                .status(new VersionedFlowStatus() {
+                    @Override
+                    public VersionedFlowState getState() {
+                        return VersionedFlowState.valueOf(dto.getState());
+                    }
+
+                    @Override
+                    public String getStateExplanation() {
+                        return dto.getStateExplanation();
+                    }
+                })
                 .version(dto.getVersion());
 
             return builder;
@@ -133,7 +128,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             Objects.requireNonNull(version, "Version must be specified");
 
             final StandardVersionControlInformation svci = new StandardVersionControlInformation(registryIdentifier, registryName,
-                bucketIdentifier, flowIdentifier, version, flowSnapshot, modified, current, status);
+                bucketIdentifier, flowIdentifier, version, flowSnapshot, status);
 
             svci.setBucketName(bucketName);
             svci.setFlowName(flowName);
@@ -145,15 +140,13 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
 
     public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
-        final VersionedProcessGroup snapshot, final boolean modified, final boolean current, final VersionedFlowStatus status) {
+        final VersionedProcessGroup snapshot, final VersionedFlowStatus status) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
         this.bucketIdentifier = bucketId;
         this.flowIdentifier = flowId;
         this.version = version;
         this.flowSnapshot = snapshot;
-        this.modified = modified;
-        this.current = current;
         this.status = status;
     }
 
@@ -215,26 +208,8 @@ public class StandardVersionControlInformation implements VersionControlInformat
     }
 
     @Override
-    public boolean isModified() {
-        return modified;
-    }
-
-    @Override
-    public boolean isCurrent() {
-        return current;
-    }
-
-    @Override
     public VersionedProcessGroup getFlowSnapshot() {
         return flowSnapshot;
-    }
-
-    public void setModified(final boolean modified) {
-        this.modified = modified;
-    }
-
-    public void setCurrent(final boolean current) {
-        this.current = current;
     }
 
     public void setFlowSnapshot(final VersionedProcessGroup flowSnapshot) {

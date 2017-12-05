@@ -17,21 +17,16 @@
 
 package org.apache.nifi.groups;
 
-import java.util.Set;
-
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.diff.FlowDifference;
 
 class StandardVersionedFlowStatus implements VersionedFlowStatus {
     private final VersionedFlowState state;
     private final String explanation;
-    private final Set<FlowDifference> currentDifferences;
 
-    StandardVersionedFlowStatus(final VersionedFlowState state, final String explanation, final Set<FlowDifference> differences) {
+    StandardVersionedFlowStatus(final VersionedFlowState state, final String explanation) {
         this.state = state;
         this.explanation = explanation;
-        this.currentDifferences = differences;
     }
 
     @Override
@@ -42,9 +37,5 @@ class StandardVersionedFlowStatus implements VersionedFlowStatus {
     @Override
     public String getStateExplanation() {
         return explanation;
-    }
-
-    Set<FlowDifference> getCurrentDifferences() {
-        return currentDifferences;
     }
 }

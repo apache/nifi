@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -114,7 +116,6 @@ import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -140,7 +141,6 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
@@ -192,7 +192,6 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
-import javax.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -215,7 +214,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -234,8 +232,6 @@ public final class DtoFactory {
     private ControllerServiceProvider controllerServiceProvider;
     private EntityFactory entityFactory;
     private Authorizer authorizer;
-    private NiFiProperties properties;
-    private FlowRegistryClient flowRegistryClient;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -2190,23 +2186,17 @@ public final class DtoFactory {
 
 
     public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
-        return createComponentDifferenceDtos(comparison, null);
-    }
-
-    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison, final Predicate<FlowDifference> filter) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
 
         for (final FlowDifference difference : comparison.getDifferences()) {
-            if (filter == null || filter.test(difference)) {
-                final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
-                final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
 
-                final DifferenceDTO dto = new DifferenceDTO();
-                dto.setDifferenceType(difference.getDifferenceType().getDescription());
-                dto.setDifference(difference.getDescription());
+            final DifferenceDTO dto = new DifferenceDTO();
+            dto.setDifferenceType(difference.getDifferenceType().getDescription());
+            dto.setDifference(difference.getDescription());
 
-                differences.add(dto);
-            }
+            differences.add(dto);
         }
 
         for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
@@ -2259,8 +2249,6 @@ public final class DtoFactory {
         dto.setFlowName(versionControlInfo.getFlowName());
         dto.setFlowDescription(versionControlInfo.getFlowDescription());
         dto.setVersion(versionControlInfo.getVersion());
-        dto.setCurrent(versionControlInfo.isCurrent());
-        dto.setModified(versionControlInfo.isModified());
 
         final VersionedFlowStatus status = versionControlInfo.getStatus();
         final VersionedFlowState state = status.getState();
@@ -3501,8 +3489,6 @@ public final class DtoFactory {
         copy.setFlowName(original.getFlowName());
         copy.setFlowDescription(original.getFlowDescription());
         copy.setVersion(original.getVersion());
-        copy.setCurrent(original.getCurrent());
-        copy.setModified(original.getModified());
         copy.setState(original.getState());
         copy.setStateExplanation(original.getStateExplanation());
         return copy;
@@ -3832,13 +3818,5 @@ public final class DtoFactory {
 
     public void setBulletinRepository(BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
-    }
-
-    public void setProperties(final NiFiProperties properties) {
-        this.properties = properties;
-    }
-
-    public void setFlowRegistryClient(FlowRegistryClient flowRegistryClient) {
-        this.flowRegistryClient = flowRegistryClient;
     }
 }

@@ -448,7 +448,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
         }
 
-        remoteProcessGroup.getProcessGroup().onComponentModified();
+        final ProcessGroup group = remoteProcessGroup.getProcessGroup();
+        if (group != null) {
+            group.onComponentModified();
+        }
         return remoteProcessGroup;
     }
 

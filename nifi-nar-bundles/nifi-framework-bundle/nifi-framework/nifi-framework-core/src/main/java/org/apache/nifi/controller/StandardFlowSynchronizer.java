@@ -88,6 +88,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -1116,10 +1117,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final FlowRegistry flowRegistry = controller.getFlowRegistryClient().getFlowRegistry(versionControlInfoDto.getRegistryId());
             final String registryName = flowRegistry == null ? versionControlInfoDto.getRegistryId() : flowRegistry.getName();
 
+            versionControlInfoDto.setState(VersionedFlowState.SYNC_FAILURE.name());
+            versionControlInfoDto.setStateExplanation("Process Group has not yet been synchronized with the Flow Registry");
             final StandardVersionControlInformation versionControlInformation = StandardVersionControlInformation.Builder.fromDto(versionControlInfoDto)
                 .registryName(registryName)
-                .modified(false)
-                .current(true)
                 .build();
 
             // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components

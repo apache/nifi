@@ -26,6 +26,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -234,6 +235,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
         if (isNotNull(processGroupDTO.getPosition())) {
             group.setPosition(new Position(processGroupDTO.getPosition().getX(), processGroupDTO.getPosition().getY()));
+            final ProcessGroup parent = group.getParent();
+            if (parent != null) {
+                parent.onComponentModified();
+            }
         }
         if (isNotNull(comments)) {
             group.setComments(comments);
@@ -258,8 +263,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .registryName(registryName)
             .flowSnapshot(flowSnapshot)
-            .modified(false)
-            .current(true)
             .build();
 
         group.setVersionControlInformation(vci, versionedComponentMapping);
@@ -281,6 +284,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
+        group.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
 
         final StandardVersionControlInformation svci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .flowSnapshot(proposedSnapshot.getFlowContents())

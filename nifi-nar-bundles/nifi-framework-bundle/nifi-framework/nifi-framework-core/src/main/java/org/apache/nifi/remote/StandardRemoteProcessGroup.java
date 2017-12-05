@@ -178,9 +178,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
         };
 
-        final Runnable checkAuthorizations = new InitializationTask();
         backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id, true);
-        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 30L, 30L, TimeUnit.SECONDS);
     }
 
     @Override
@@ -197,6 +195,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 logger.warn("Unable to communicate with remote instance {}", new Object[] {this, e});
             }
         });
+
+        final Runnable checkAuthorizations = new InitializationTask();
+        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 0L, 60L, TimeUnit.SECONDS);
     }
 
     @Override
