@@ -97,6 +97,7 @@ import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
@@ -292,6 +293,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -1592,7 +1594,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             final D dto = dtoCreation.apply(component);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-            return new StandardRevisionUpdate<D>(dto, lastMod);
+            return new StandardRevisionUpdate<>(dto, lastMod);
         });
     }
 
@@ -1779,7 +1781,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         controllerFacade.save();
 
         final SnippetDTO dto = dtoFactory.createSnippetDto(snippet);
-        final RevisionUpdate<SnippetDTO> snapshot = new StandardRevisionUpdate<SnippetDTO>(dto, null);
+        final RevisionUpdate<SnippetDTO> snapshot = new StandardRevisionUpdate<>(dto, null);
 
         return entityFactory.createSnippetEntity(snapshot.getComponent());
     }
@@ -2088,7 +2090,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
 
                     final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-                    return new StandardRevisionUpdate<ControllerServiceDTO>(dto, lastMod);
+                    return new StandardRevisionUpdate<>(dto, lastMod);
                 });
         } else {
             snapshot = revisionManager.updateRevision(claim, user, () -> {
@@ -2098,7 +2100,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 controllerFacade.save();
 
                 final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-                return new StandardRevisionUpdate<ControllerServiceDTO>(dto, lastMod);
+                return new StandardRevisionUpdate<>(dto, lastMod);
             });
         }
 
@@ -2440,7 +2442,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final Revision updatedRevision = revisionManager.getRevision(revision.getComponentId()).incrementRevision(revision.getClientId());
             final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
 
-            return new StandardRevisionUpdate<FlowRegistry>(registry, lastModification);
+            return new StandardRevisionUpdate<>(registry, lastModification);
         });
 
         final FlowRegistry updatedReg = revisionUpdate.getComponent();
@@ -2483,7 +2485,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-            return new StandardRevisionUpdate<ReportingTaskDTO>(dto, lastMod);
+            return new StandardRevisionUpdate<>(dto, lastMod);
         });
 
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());
@@ -3649,6 +3651,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public VersionControlComponentMappingEntity registerFlowWithFlowRegistry(final String groupId, final StartVersionControlRequestEntity requestEntity) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+
         final VersionControlInformation currentVci = processGroup.getVersionControlInformation();
         final int expectedVersion = currentVci == null ? 1 : currentVci.getVersion() + 1;
 
@@ -3697,15 +3700,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final VersionControlInformationDTO vci = new VersionControlInformationDTO();
         vci.setBucketId(bucket.getIdentifier());
         vci.setBucketName(bucket.getName());
-        vci.setCurrent(true);
         vci.setFlowId(flow.getIdentifier());
         vci.setFlowName(flow.getName());
         vci.setFlowDescription(flow.getDescription());
         vci.setGroupId(groupId);
-        vci.setModified(false);
         vci.setRegistryId(registryId);
         vci.setRegistryName(getFlowRegistryName(registryId));
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
+        vci.setState(VersionedFlowState.UP_TO_DATE.name());
 
         final Map<String, String> mapping = dtoFactory.createVersionControlComponentMappingDto(versionedProcessGroup);
 
@@ -3777,8 +3779,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
         final FlowComparison flowComparison = flowComparator.compare();
 
-        final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtos(flowComparison,
-            diff -> diff.getDifferenceType() != DifferenceType.POSITION_CHANGED && diff.getDifferenceType() != DifferenceType.STYLE_CHANGED);
+        final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtos(flowComparison);
 
         final FlowComparisonEntity entity = new FlowComparisonEntity();
         entity.setComponentDifferences(differenceDtos);
@@ -4079,30 +4080,88 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return flowRegistry == null ? flowRegistryId : flowRegistry.getName();
     }
 
-    @Override
-    public ProcessGroupEntity updateProcessGroup(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
-        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
+    private List<Revision> getComponentRevisions(final ProcessGroup processGroup, final boolean includeGroupRevision) {
+        final List<Revision> revisions = new ArrayList<>();
+        if (includeGroupRevision) {
+            revisions.add(revisionManager.getRevision(processGroup.getIdentifier()));
+        }
 
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        return updateProcessGroupContents(user, revision, groupId, versionControlInfo, proposedFlowSnapshot, componentIdSeed, verifyNotModified, true, updateDescendantVersionedFlows);
+        processGroup.findAllConnections().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllControllerServices().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllFunnels().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllInputPorts().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllOutputPorts().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllLabels().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllProcessGroups().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllProcessors().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllRemoteProcessGroups().stream()
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+        processGroup.findAllRemoteProcessGroups().stream()
+            .flatMap(rpg -> Stream.concat(rpg.getInputPorts().stream(), rpg.getOutputPorts().stream()))
+            .map(component -> revisionManager.getRevision(component.getIdentifier()))
+            .forEach(revisions::add);
+
+        return revisions;
     }
 
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final NiFiUser user, final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
         final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
-        final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(groupId);
-        final RevisionUpdate<ProcessGroupDTO> snapshot = updateComponent(user, revision,
-            processGroupNode,
-            () -> processGroupDAO.updateProcessGroupFlow(groupId, user, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows),
-            processGroup -> dtoFactory.createProcessGroupDto(processGroup));
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final List<Revision> revisions = getComponentRevisions(processGroup, false);
+        revisions.add(revision);
 
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
-        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
-        final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
-        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroupNode.getIdentifier()));
+        final RevisionClaim revisionClaim = new StandardRevisionClaim(revisions);
+
+        final RevisionUpdate<ProcessGroupDTO> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, new UpdateRevisionTask<ProcessGroupDTO>() {
+            @Override
+            public RevisionUpdate<ProcessGroupDTO> update() {
+                // update the Process Group
+                processGroupDAO.updateProcessGroupFlow(groupId, user, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
+
+                // update the revisions
+                final Set<Revision> updatedRevisions = revisions.stream()
+                    .map(rev -> revisionManager.getRevision(rev.getComponentId()).incrementRevision(revision.getClientId()))
+                    .collect(Collectors.toSet());
+
+                // save
+                controllerFacade.save();
+
+                // gather details for response
+                final ProcessGroupDTO dto = dtoFactory.createProcessGroupDto(processGroup);
+
+                final Revision updatedRevision = revisionManager.getRevision(groupId).incrementRevision(revision.getClientId());
+                final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
+                return new StandardRevisionUpdate<>(dto, lastModification, updatedRevisions);
+            }
+        });
+
+        final FlowModification lastModification = revisionUpdate.getLastModification();
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
+        final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(lastModification);
+        final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroup.getIdentifier()));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+        return entityFactory.createProcessGroupEntity(revisionUpdate.getComponent(), updatedRevision, permissions, status, bulletinEntities);
     }
 
     private AuthorizationResult authorizeAction(final Action action) {

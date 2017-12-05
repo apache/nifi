@@ -20,6 +20,7 @@ package org.apache.nifi.cluster.manager;
 import java.util.Map;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
@@ -37,12 +38,54 @@ public class VersionControlInformationEntityMerger {
             .forEach(entity -> {
                 final VersionControlInformationDTO dto = entity.getVersionControlInformation();
 
-                // We consider the flow to be current only if ALL nodes indicate that it is current
-                clientDto.setCurrent(Boolean.TRUE.equals(clientDto.getCurrent()) && Boolean.TRUE.equals(dto.getCurrent()));
-
-                // We consider the flow to be modified if ANY node indicates that it is modified
-                clientDto.setModified(Boolean.TRUE.equals(clientDto.getModified()) || Boolean.TRUE.equals(dto.getModified()));
+                updateFlowState(clientDto, dto);
             });
     }
 
+
+    private static boolean isCurrent(final VersionedFlowState state) {
+        return state == VersionedFlowState.UP_TO_DATE || state == VersionedFlowState.LOCALLY_MODIFIED;
+    }
+
+    private static boolean isModified(final VersionedFlowState state) {
+        return state == VersionedFlowState.LOCALLY_MODIFIED || state == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
+    }
+
+    public static void updateFlowState(final VersionControlInformationDTO clientDto, final VersionControlInformationDTO dto) {
+        final VersionedFlowState clientState = VersionedFlowState.valueOf(clientDto.getState());
+        if (clientState == VersionedFlowState.SYNC_FAILURE) {
+            return;
+        }
+
+        final VersionedFlowState dtoState = VersionedFlowState.valueOf(dto.getState());
+        if (dtoState == VersionedFlowState.SYNC_FAILURE) {
+            clientDto.setState(dto.getState());
+            clientDto.setStateExplanation(dto.getStateExplanation());
+            return;
+        }
+
+        final boolean clientCurrent = isCurrent(clientState);
+        final boolean clientModified = isModified(clientState);
+
+        final boolean dtoCurrent = isCurrent(dtoState);
+        final boolean dtoModified = isModified(dtoState);
+
+        final boolean current = clientCurrent && dtoCurrent;
+        final boolean stale = !current;
+        final boolean modified = clientModified && dtoModified;
+
+        final VersionedFlowState flowState;
+        if (modified && stale) {
+            flowState = VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
+        } else if (modified) {
+            flowState = VersionedFlowState.LOCALLY_MODIFIED;
+        } else if (stale) {
+            flowState = VersionedFlowState.STALE;
+        } else {
+            flowState = VersionedFlowState.UP_TO_DATE;
+        }
+
+        clientDto.setState(flowState.name());
+        clientDto.setStateExplanation(flowState.getDescription());
+    }
 }

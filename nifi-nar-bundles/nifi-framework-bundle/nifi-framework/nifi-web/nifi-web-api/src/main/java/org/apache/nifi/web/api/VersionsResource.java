@@ -40,6 +40,7 @@ import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -166,14 +167,14 @@ public class VersionsResource extends ApplicationResource {
 
 
     @POST
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     @Path("active-requests")
     @ApiOperation(
         value = "Creates a request so that a Process Group can be placed under Version Control or have its Version Control configuration changed. Creating this request will "
             + "prevent any other threads from simultaneously saving local changes to Version Control. It will not, however, actually save the local flow to the Flow Registry. A "
             + "POST to /versions/process-groups/{id} should be used to initiate saving of the local flow to the Flow Registry.",
-            response = VersionControlInformationEntity.class,
+            response = String.class,
             notes = NON_GUARANTEED_ENDPOINT)
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -186,7 +187,7 @@ public class VersionsResource extends ApplicationResource {
             @ApiParam(value = "The versioned flow details.", required = true) final CreateActiveRequestEntity requestEntity) {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST);
+            return replicate(HttpMethod.POST, requestEntity);
         }
 
         if (requestEntity.getProcessGroupId() == null) {
@@ -548,11 +549,14 @@ public class VersionsResource extends ApplicationResource {
             final CreateActiveRequestEntity activeRequestEntity = new CreateActiveRequestEntity();
             activeRequestEntity.setProcessGroupId(groupId);
 
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", MediaType.APPLICATION_JSON);
+
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, activeRequestEntity, Collections.emptyMap()).awaitMergedResponse();
+                clusterResponse = getRequestReplicator().replicate(HttpMethod.POST, createRequestUri, activeRequestEntity, headers).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                    getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, activeRequestEntity, Collections.emptyMap()).awaitMergedResponse();
+                    getClusterCoordinatorNode(), HttpMethod.POST, createRequestUri, activeRequestEntity, headers).awaitMergedResponse();
             }
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -761,18 +765,20 @@ public class VersionsResource extends ApplicationResource {
                 final VersionControlInformationDTO versionControlInfoDto = new VersionControlInformationDTO();
                 versionControlInfoDto.setBucketId(snapshotMetadata.getBucketIdentifier());
                 versionControlInfoDto.setBucketName(bucket.getName());
-                versionControlInfoDto.setCurrent(snapshotMetadata.getVersion() == flow.getVersionCount());
                 versionControlInfoDto.setFlowId(snapshotMetadata.getFlowIdentifier());
                 versionControlInfoDto.setFlowName(flow.getName());
                 versionControlInfoDto.setFlowDescription(flow.getDescription());
                 versionControlInfoDto.setGroupId(groupId);
-                versionControlInfoDto.setModified(false);
                 versionControlInfoDto.setVersion(snapshotMetadata.getVersion());
                 versionControlInfoDto.setRegistryId(entity.getRegistryId());
                 versionControlInfoDto.setRegistryName(serviceFacade.getFlowRegistryName(entity.getRegistryId()));
 
-                final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroup(rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false,
-                    entity.getUpdateDescendantVersionedFlows());
+                final VersionedFlowState flowState = snapshotMetadata.getVersion() == flow.getVersionCount() ? VersionedFlowState.UP_TO_DATE : VersionedFlowState.STALE;
+                versionControlInfoDto.setState(flowState.name());
+
+                final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroupContents(user, rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false,
+                    true, entity.getUpdateDescendantVersionedFlows());
                 final VersionControlInformationDTO updatedVci = updatedGroup.getComponent().getVersionControlInformation();
 
                 final VersionControlInformationEntity responseEntity = new VersionControlInformationEntity();
@@ -1103,7 +1109,7 @@ public class VersionsResource extends ApplicationResource {
                             affectedComponents, user, replicateRequest, processGroupEntity, flowSnapshot, request, idGenerationSeed, true, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
-                    } catch (final LifecycleManagementException e) {
+                    } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
                         vcur.setFailureReason("Failed to update flow to new version due to " + e);
                     }
@@ -1268,7 +1274,7 @@ public class VersionsResource extends ApplicationResource {
                             affectedComponents, user, replicateRequest, processGroupEntity, flowSnapshot, request, idGenerationSeed, false, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
-                    } catch (final LifecycleManagementException e) {
+                    } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
                         vcur.setFailureReason("Failed to update flow to new version due to " + e.getMessage());
                     }
@@ -1403,15 +1409,14 @@ public class VersionsResource extends ApplicationResource {
                 final VersionControlInformationDTO vci = new VersionControlInformationDTO();
                 vci.setBucketId(metadata.getBucketIdentifier());
                 vci.setBucketName(bucket.getName());
-                vci.setCurrent(flowSnapshot.isLatest());
                 vci.setFlowDescription(flow.getDescription());
                 vci.setFlowId(flow.getIdentifier());
                 vci.setFlowName(flow.getName());
                 vci.setGroupId(groupId);
-                vci.setModified(false);
                 vci.setRegistryId(requestVci.getRegistryId());
                 vci.setRegistryName(serviceFacade.getFlowRegistryName(requestVci.getRegistryId()));
                 vci.setVersion(metadata.getVersion());
+                vci.setState(flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE.name() : VersionedFlowState.STALE.name());
 
                 serviceFacade.updateProcessGroupContents(user, revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified, false, updateDescendantVersionedFlows);
             }

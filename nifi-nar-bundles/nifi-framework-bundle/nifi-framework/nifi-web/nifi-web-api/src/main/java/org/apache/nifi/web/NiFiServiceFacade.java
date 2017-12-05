@@ -1442,20 +1442,6 @@ public interface NiFiServiceFacade {
      */
     void verifyCanRevertLocalModifications(String groupId, VersionedFlowSnapshot versionedFlowSnapshot);
 
-    /**
-     * Updates the Process group with the given ID to match the new snapshot
-     *
-     * @param revision the revision of the Process Group
-     * @param groupId the ID of the Process Group
-     * @param versionControlInfo the Version Control information
-     * @param snapshot the new snapshot
-     * @param componentIdSeed the seed to use for generating new component ID's
-     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
-     *            update the contents of that Process Group
-     * @return the Process Group
-     */
-    ProcessGroupEntity updateProcessGroup(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
-        boolean verifyNotModified, boolean updateDescendantVersionedFlows);
 
     /**
      * Updates the Process group with the given ID to match the new snapshot

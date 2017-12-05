@@ -55,7 +55,7 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
         if (targetVersionControl == null) {
             targetGroupDto.setVersionControlInformation(toMergeGroupDto.getVersionControlInformation());
         } else if (toMergeVersionControl != null) {
-            targetVersionControl.setCurrent(Boolean.TRUE.equals(targetVersionControl.getCurrent()) && Boolean.TRUE.equals(toMergeVersionControl.getCurrent()));
+            VersionControlInformationEntityMerger.updateFlowState(targetVersionControl, toMergeVersionControl);
         }
     }
 }

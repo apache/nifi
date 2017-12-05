@@ -66,17 +66,6 @@ public interface VersionControlInformation {
     int getVersion();
 
     /**
-     * @return <code>true</code> if the flow has been modified since the last time that it was updated from the Flow Registry or saved
-     *         to the Flow Registry; <code>false</code> if the flow is in sync with the Flow Registry.
-     */
-    boolean isModified();
-
-    /**
-     * @return <code>true</code> if this version of the flow is the most recent version of the flow available in the Flow Registry, <code>false</code> otherwise.
-     */
-    boolean isCurrent();
-
-    /**
      * @return the current status of the Process Group as it relates to the associated Versioned Flow.
      */
     VersionedFlowStatus getStatus();

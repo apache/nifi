@@ -52,8 +52,6 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="flowRegistryClient" ref="flowRegistryClient" />
     </bean>
 
     <!-- snippet utils -->

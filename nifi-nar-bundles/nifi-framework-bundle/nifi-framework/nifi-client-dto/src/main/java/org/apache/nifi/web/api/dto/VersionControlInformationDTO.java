@@ -32,8 +32,6 @@ public class VersionControlInformationDTO {
     private String flowName;
     private String flowDescription;
     private Integer version;
-    private Boolean modified;
-    private Boolean current;
     private String state;
     private String stateExplanation;
 
@@ -116,26 +114,6 @@ public class VersionControlInformationDTO {
 
     public void setVersion(final Integer version) {
         this.version = version;
-    }
-
-    @ApiModelProperty(readOnly=true,
-        value = "Whether or not the flow has been modified since it was last synced to the Flow Registry. The value will be null if this information is not yet known.")
-    public Boolean getModified() {
-        return modified;
-    }
-
-    public void setModified(Boolean modified) {
-        this.modified = modified;
-    }
-
-    @ApiModelProperty(readOnly=true,
-        value = "Whether or not this is the most recent version of the flow in the Flow Registry. The value will be null if this information is not yet known.")
-    public Boolean getCurrent() {
-        return current;
-    }
-
-    public void setCurrent(Boolean current) {
-        this.current = current;
     }
 
     @ApiModelProperty(readOnly = true,
