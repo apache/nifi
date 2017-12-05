@@ -78,7 +78,7 @@ class ListenSyslogGroovyTest extends GroovyTestCase {
         Assert.assertTrue(port > 0)
 
         // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new TestListenSyslog.SingleConnectionSocketSender(port, numMessages, 100, ZERO_LENGTH_MESSAGE))
+        final Thread sender = new Thread(new ITListenSyslog.SingleConnectionSocketSender(port, numMessages, 100, ZERO_LENGTH_MESSAGE))
         sender.setDaemon(true)
         sender.start()
 

@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -62,214 +61,9 @@ public class TestListenSyslog {
     static final String HOST = "localhost.home";
     static final String BODY = "some message";
 
-    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY ;
+    static final String VALID_MESSAGE = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY;
     static final String VALID_MESSAGE_TCP = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
     static final String INVALID_MESSAGE = "this is not valid\n";
-
-    @Test
-    public void testUDP() throws IOException, InterruptedException {
-        final ListenSyslog proc = new ListenSyslog();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.UDP_VALUE.getValue());
-        runner.setProperty(ListenSyslog.PORT, "0");
-
-        // schedule to start listening on a random port
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.onScheduled(context);
-
-        final int numMessages = 20;
-        final int port = proc.getPort();
-        Assert.assertTrue(port > 0);
-
-        // write some UDP messages to the port in the background
-        final Thread sender = new Thread(new DatagramSender(port, numMessages, 10, VALID_MESSAGE));
-        sender.setDaemon(true);
-        sender.start();
-
-        // call onTrigger until we read all datagrams, or 30 seconds passed
-        try {
-            int numTransferred = 0;
-            long timeout = System.currentTimeMillis() + 30000;
-
-            while (numTransferred < numMessages && System.currentTimeMillis() < timeout) {
-                Thread.sleep(10);
-                proc.onTrigger(context, processSessionFactory);
-                numTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
-            }
-            Assert.assertEquals("Did not process all the datagrams", numMessages, numTransferred);
-
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            checkFlowFile(flowFile, 0, ListenSyslog.UDP_VALUE.getValue());
-
-            final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-            Assert.assertNotNull(events);
-            Assert.assertEquals(numMessages, events.size());
-
-            final ProvenanceEventRecord event = events.get(0);
-            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-            Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("udp"));
-
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-        }
-    }
-
-    @Test
-    public void testTCPSingleConnection() throws IOException, InterruptedException {
-        final ListenSyslog proc = new ListenSyslog();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.TCP_VALUE.getValue());
-        runner.setProperty(ListenSyslog.PORT, "0");
-
-        // schedule to start listening on a random port
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.onScheduled(context);
-
-        // Allow time for the processor to perform its scheduled start
-        Thread.sleep(500);
-
-        final int numMessages = 20;
-        final int port = proc.getPort();
-        Assert.assertTrue(port > 0);
-
-        // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
-        sender.setDaemon(true);
-        sender.start();
-
-        // call onTrigger until we read all messages, or 30 seconds passed
-        try {
-            int nubTransferred = 0;
-            long timeout = System.currentTimeMillis() + 30000;
-
-            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
-                Thread.sleep(10);
-                proc.onTrigger(context, processSessionFactory);
-                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
-            }
-            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
-
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
-
-            final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-            Assert.assertNotNull(events);
-            Assert.assertEquals(numMessages, events.size());
-
-            final ProvenanceEventRecord event = events.get(0);
-            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-            Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("tcp"));
-
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-        }
-    }
-
-    @Test
-    public void testTCPSingleConnectionWithNewLines() throws IOException, InterruptedException {
-        final ListenSyslog proc = new ListenSyslog();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.TCP_VALUE.getValue());
-        runner.setProperty(ListenSyslog.PORT, "0");
-
-        // schedule to start listening on a random port
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.onScheduled(context);
-
-        final int numMessages = 3;
-        final int port = proc.getPort();
-        Assert.assertTrue(port > 0);
-
-        // send 3 messages as 1
-        final String multipleMessages = VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n" + VALID_MESSAGE_TCP + "\n";
-        final Thread sender = new Thread(new SingleConnectionSocketSender(port, 1, 10, multipleMessages));
-        sender.setDaemon(true);
-        sender.start();
-
-        // call onTrigger until we read all messages, or 30 seconds passed
-        try {
-            int nubTransferred = 0;
-            long timeout = System.currentTimeMillis() + 30000;
-
-            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
-                Thread.sleep(10);
-                proc.onTrigger(context, processSessionFactory);
-                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
-            }
-            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
-
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
-
-            final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-            Assert.assertNotNull(events);
-            Assert.assertEquals(numMessages, events.size());
-
-            final ProvenanceEventRecord event = events.get(0);
-            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-            Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("tcp"));
-
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-        }
-    }
-
-    @Test
-    public void testTCPMultipleConnection() throws IOException, InterruptedException {
-        final ListenSyslog proc = new ListenSyslog();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.TCP_VALUE.getValue());
-        runner.setProperty(ListenSyslog.MAX_CONNECTIONS, "5");
-        runner.setProperty(ListenSyslog.PORT, "0");
-
-        // schedule to start listening on a random port
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.onScheduled(context);
-
-        final int numMessages = 20;
-        final int port = proc.getPort();
-        Assert.assertTrue(port > 0);
-
-        // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new MultiConnectionSocketSender(port, numMessages, 10, VALID_MESSAGE_TCP));
-        sender.setDaemon(true);
-        sender.start();
-
-        // call onTrigger until we read all messages, or 30 seconds passed
-        try {
-            int nubTransferred = 0;
-            long timeout = System.currentTimeMillis() + 30000;
-
-            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
-                Thread.sleep(10);
-                proc.onTrigger(context, processSessionFactory);
-                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
-            }
-            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
-
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
-
-            final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-            Assert.assertNotNull(events);
-            Assert.assertEquals(numMessages, events.size());
-
-            final ProvenanceEventRecord event = events.get(0);
-            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-            Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("tcp"));
-
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-        }
-    }
 
     @Test
     public void testBatching() throws IOException, InterruptedException {
@@ -318,47 +112,6 @@ public class TestListenSyslog {
             final ProvenanceEventRecord event = events.get(0);
             Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
             Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("udp"));
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-        }
-    }
-
-    @Test
-    public void testInvalid() throws IOException, InterruptedException {
-        final ListenSyslog proc = new ListenSyslog();
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenSyslog.PROTOCOL, ListenSyslog.TCP_VALUE.getValue());
-        runner.setProperty(ListenSyslog.PORT, "0");
-
-        // schedule to start listening on a random port
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.onScheduled(context);
-
-        final int numMessages = 10;
-        final int port = proc.getPort();
-        Assert.assertTrue(port > 0);
-
-        // write some TCP messages to the port in the background
-        final Thread sender = new Thread(new SingleConnectionSocketSender(port, numMessages, 100, INVALID_MESSAGE));
-        sender.setDaemon(true);
-        sender.start();
-
-        // call onTrigger until we read all messages, or 30 seconds passed
-        try {
-            int nubTransferred = 0;
-            long timeout = System.currentTimeMillis() + 30000;
-
-            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
-                Thread.sleep(50);
-                proc.onTrigger(context, processSessionFactory);
-                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID).size();
-            }
-
-            // all messages should be transferred to invalid
-            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
-
         } finally {
             // unschedule to close connections
             proc.onUnscheduled();
@@ -431,21 +184,6 @@ public class TestListenSyslog {
         runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0).assertContentEquals(VALID_MESSAGE);
     }
 
-
-    private void checkFlowFile(final MockFlowFile flowFile, final int port, final String protocol) {
-        flowFile.assertContentEquals(VALID_MESSAGE.replace("\n", ""));
-        Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.PRIORITY.key()));
-        Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SEVERITY.key()));
-        Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.FACILITY.key()));
-        Assert.assertEquals(TIME, flowFile.getAttribute(SyslogAttributes.TIMESTAMP.key()));
-        Assert.assertEquals(HOST, flowFile.getAttribute(SyslogAttributes.HOSTNAME.key()));
-        Assert.assertEquals(BODY, flowFile.getAttribute(SyslogAttributes.BODY.key()));
-        Assert.assertEquals("true", flowFile.getAttribute(SyslogAttributes.VALID.key()));
-        Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(SyslogAttributes.PORT.key()));
-        Assert.assertEquals(protocol, flowFile.getAttribute(SyslogAttributes.PROTOCOL.key()));
-        Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SENDER.key())));
-    }
-
     /**
      * Sends a given number of datagrams to the given port.
      */
@@ -470,12 +208,12 @@ public class TestListenSyslog {
 
             try (DatagramChannel channel = DatagramChannel.open()) {
                 channel.connect(new InetSocketAddress("localhost", port));
-                for (int i=0; i < numMessages; i++) {
+                for (int i = 0; i < numMessages; i++) {
                     buffer.clear();
                     buffer.put(bytes);
                     buffer.flip();
 
-                    while(buffer.hasRemaining()) {
+                    while (buffer.hasRemaining()) {
                         channel.write(buffer);
                     }
 
@@ -485,98 +223,13 @@ public class TestListenSyslog {
                 LOGGER.error(e.getMessage(), e);
             } catch (InterruptedException e) {
                 LOGGER.error(e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Sends a given number of datagrams to the given port.
-     */
-    public static final class SingleConnectionSocketSender implements Runnable {
-
-        final int port;
-        final int numMessages;
-        final long delay;
-        final String message;
-
-        public SingleConnectionSocketSender(int port, int numMessages, long delay, String message) {
-            this.port = port;
-            this.numMessages = numMessages;
-            this.delay = delay;
-            this.message = message;
-        }
-
-        @Override
-        public void run() {
-            byte[] bytes = message.getBytes(Charset.forName("UTF-8"));
-            final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-
-            try (SocketChannel channel = SocketChannel.open()) {
-                channel.connect(new InetSocketAddress("localhost", port));
-
-                for (int i=0; i < numMessages; i++) {
-                    buffer.clear();
-                    buffer.put(bytes);
-                    buffer.flip();
-
-                    while (buffer.hasRemaining()) {
-                        channel.write(buffer);
-                    }
-                    Thread.sleep(delay);
-                }
-            } catch (IOException e) {
-                LOGGER.error(e.getMessage(), e);
-            } catch (InterruptedException e) {
-                LOGGER.error(e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Sends a given number of datagrams to the given port.
-     */
-    public static final class MultiConnectionSocketSender implements Runnable {
-
-        final int port;
-        final int numMessages;
-        final long delay;
-        final String message;
-
-        public MultiConnectionSocketSender(int port, int numMessages, long delay, String message) {
-            this.port = port;
-            this.numMessages = numMessages;
-            this.delay = delay;
-            this.message = message;
-        }
-
-        @Override
-        public void run() {
-            byte[] bytes = message.getBytes(Charset.forName("UTF-8"));
-            final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-
-            for (int i=0; i < numMessages; i++) {
-                try (SocketChannel channel = SocketChannel.open()) {
-                    channel.connect(new InetSocketAddress("localhost", port));
-
-                    buffer.clear();
-                    buffer.put(bytes);
-                    buffer.flip();
-
-                    while (buffer.hasRemaining()) {
-                        channel.write(buffer);
-                    }
-                    Thread.sleep(delay);
-                } catch (IOException e) {
-                    LOGGER.error(e.getMessage(), e);
-                } catch (InterruptedException e) {
-                    LOGGER.error(e.getMessage(), e);
-                }
             }
         }
     }
 
     // A mock version of ListenSyslog that will queue the provided events
     private static class FailParseProcessor extends ListenSyslog {
+
         @Override
         protected SyslogParser getParser() {
             return new SyslogParser(StandardCharsets.UTF_8) {
@@ -589,6 +242,7 @@ public class TestListenSyslog {
     }
 
     private static class CannedMessageProcessor extends ListenSyslog {
+
         private final Iterator<RawSyslogEvent> eventItr;
 
         public CannedMessageProcessor(final List<RawSyslogEvent> events) {
