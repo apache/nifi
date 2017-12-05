@@ -48,14 +48,10 @@ before_install:
   - cat ~/.mavenrc
   # Remove nifi repo again to save travis from caching it
   - rm -rf $HOME/.m2/repository/org/apache/nifi/
-  - mvn -q apache-rat:check
 
 install:
-  - mvn -q -T 2C -DskipTests=true -Ddir-only clean install
-
-script:
   # Replace variables seems to be the only option to pass proper values to surefire
   # Note: The reason the sed is done as part of script is to ensure the pom hack 
   # won't affect the 'clean install' above
   - bash .travis.sh
-  - mvn -Pcontrib-check verify
+  - mvn -T 2C -Pcontrib-check -Ddir-only clean install
