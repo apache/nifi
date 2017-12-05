@@ -135,11 +135,12 @@
             </properties>
         </profile>
         <profile>
-            <id>includeifnotppc</id>
+            <id>include-grpc</id>
+            <!-- This profile handles the inclusion of grpc artifacts. They are notoriously
+            environment specific in terms of build such as not working in os/arch=ppc64le
+            or in Centos6 due to requiring a newer version of GLIBC. -->
             <activation>
-                <os>
-                    <arch>!ppc64le</arch>
-                </os>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <modules>
                 <module>nifi-grpc-bundle</module>
