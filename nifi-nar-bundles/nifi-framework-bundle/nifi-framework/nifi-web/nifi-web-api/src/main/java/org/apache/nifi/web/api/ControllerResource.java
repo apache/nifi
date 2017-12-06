@@ -46,8 +46,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.RegistriesEntity;
-import org.apache.nifi.web.api.entity.RegistryEntity;
+import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
@@ -91,12 +91,12 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified registry.
      *
-     * @param registryEntity registry
+     * @param registryClientEntity registry
      * @return dtos
      */
-    public RegistryEntity populateRemainingRegistryEntityContent(final RegistryEntity registryEntity) {
-        registryEntity.setUri(generateResourceUri("controller", "registry-clients", registryEntity.getId()));
-        return registryEntity;
+    public RegistryClientEntity populateRemainingRegistryEntityContent(final RegistryClientEntity registryClientEntity) {
+        registryClientEntity.setUri(generateResourceUri("controller", "registry-clients", registryClientEntity.getId()));
+        return registryClientEntity;
     }
 
     /**
@@ -316,7 +316,7 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-clients")
-    @ApiOperation(value = "Gets the listing of available registry clients", response = RegistriesEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the listing of available registry clients", response = RegistryClientsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {
@@ -333,10 +333,10 @@ public class ControllerResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        final Set<RegistryEntity> registries = serviceFacade.getRegistryClients();
+        final Set<RegistryClientEntity> registries = serviceFacade.getRegistryClients();
         registries.forEach(registry -> populateRemainingRegistryEntityContent(registry));
 
-        final RegistriesEntity registryEntities = new RegistriesEntity();
+        final RegistryClientsEntity registryEntities = new RegistryClientsEntity();
         registryEntities.setRegistries(registries);
 
         return generateOkResponse(registryEntities).build();
@@ -346,8 +346,8 @@ public class ControllerResource extends ApplicationResource {
      * Creates a new Registry.
      *
      * @param httpServletRequest  request
-     * @param requestRegistryEntity A registryEntity.
-     * @return A registryEntity.
+     * @param requestRegistryClientEntity A registryClientEntity.
+     * @return A registryClientEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -355,7 +355,7 @@ public class ControllerResource extends ApplicationResource {
     @Path("registry-clients")
     @ApiOperation(
             value = "Creates a new registry client",
-            response = RegistryEntity.class,
+            response = RegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -373,28 +373,28 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The registry configuration details.",
                     required = true
-            ) final RegistryEntity requestRegistryEntity) {
+            ) final RegistryClientEntity requestRegistryClientEntity) {
 
-        if (requestRegistryEntity == null || requestRegistryEntity.getComponent() == null) {
+        if (requestRegistryClientEntity == null || requestRegistryClientEntity.getComponent() == null) {
             throw new IllegalArgumentException("Registry details must be specified.");
         }
 
-        if (requestRegistryEntity.getRevision() == null || (requestRegistryEntity.getRevision().getVersion() == null || requestRegistryEntity.getRevision().getVersion() != 0)) {
+        if (requestRegistryClientEntity.getRevision() == null || (requestRegistryClientEntity.getRevision().getVersion() == null || requestRegistryClientEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
         }
 
-        final RegistryDTO requestReportingTask = requestRegistryEntity.getComponent();
+        final RegistryDTO requestReportingTask = requestRegistryClientEntity.getComponent();
         if (requestReportingTask.getId() != null) {
             throw new IllegalArgumentException("Registry ID cannot be specified.");
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, requestRegistryEntity);
+            return replicate(HttpMethod.POST, requestRegistryClientEntity);
         }
 
         return withWriteLock(
                 serviceFacade,
-                requestRegistryEntity,
+                requestRegistryClientEntity,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
                 },
@@ -407,7 +407,7 @@ public class ControllerResource extends ApplicationResource {
 
                     // create the reporting task and generate the json
                     final Revision revision = getRevision(registryEntity, registry.getId());
-                    final RegistryEntity entity = serviceFacade.createRegistryClient(revision, registry);
+                    final RegistryClientEntity entity = serviceFacade.createRegistryClient(revision, registry);
                     populateRemainingRegistryEntityContent(entity);
 
                     // build the response
@@ -420,7 +420,7 @@ public class ControllerResource extends ApplicationResource {
      * Retrieves the specified registry.
      *
      * @param id The id of the registry to retrieve
-     * @return A registryEntity.
+     * @return A registryClientEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -428,7 +428,7 @@ public class ControllerResource extends ApplicationResource {
     @Path("/registry-clients/{id}")
     @ApiOperation(
             value = "Gets a registry client",
-            response = RegistryEntity.class,
+            response = RegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller")
             }
@@ -442,7 +442,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getRegistry(
+    public Response getRegistryClient(
             @ApiParam(
                     value = "The registry id.",
                     required = true
@@ -457,7 +457,7 @@ public class ControllerResource extends ApplicationResource {
         authorizeController(RequestAction.READ);
 
         // get the registry
-        final RegistryEntity entity = serviceFacade.getRegistryClient(id);
+        final RegistryClientEntity entity = serviceFacade.getRegistryClient(id);
         populateRemainingRegistryEntityContent(entity);
 
         return generateOkResponse(entity).build();
@@ -477,7 +477,7 @@ public class ControllerResource extends ApplicationResource {
     @Path("/registry-clients/{id}")
     @ApiOperation(
             value = "Updates a registry client",
-            response = RegistryEntity.class,
+            response = RegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -501,7 +501,7 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The registry configuration details.",
                     required = true
-            ) final RegistryEntity requestRegsitryEntity) {
+            ) final RegistryClientEntity requestRegsitryEntity) {
 
         if (requestRegsitryEntity == null || requestRegsitryEntity.getComponent() == null) {
             throw new IllegalArgumentException("Registry details must be specified.");
@@ -536,7 +536,7 @@ public class ControllerResource extends ApplicationResource {
                     final RegistryDTO registry = registryEntity.getComponent();
 
                     // update the controller service
-                    final RegistryEntity entity = serviceFacade.updateRegistryClient(revision, registry);
+                    final RegistryClientEntity entity = serviceFacade.updateRegistryClient(revision, registry);
                     populateRemainingRegistryEntityContent(entity);
 
                     return generateOkResponse(entity).build();
@@ -562,7 +562,7 @@ public class ControllerResource extends ApplicationResource {
     @Path("/registry-clients/{id}")
     @ApiOperation(
             value = "Deletes a registry client",
-            response = RegistryEntity.class,
+            response = RegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -598,14 +598,14 @@ public class ControllerResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        final RegistryEntity requestRegistryEntity = new RegistryEntity();
-        requestRegistryEntity.setId(id);
+        final RegistryClientEntity requestRegistryClientEntity = new RegistryClientEntity();
+        requestRegistryClientEntity.setId(id);
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                requestRegistryEntity,
+                requestRegistryClientEntity,
                 requestRevision,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
@@ -613,7 +613,7 @@ public class ControllerResource extends ApplicationResource {
                 () -> serviceFacade.verifyDeleteRegistry(id),
                 (revision, registryEntity) -> {
                     // delete the specified registry
-                    final RegistryEntity entity = serviceFacade.deleteRegistryClient(revision, registryEntity.getId());
+                    final RegistryClientEntity entity = serviceFacade.deleteRegistryClient(revision, registryEntity.getId());
                     return generateOkResponse(entity).build();
                 }
         );

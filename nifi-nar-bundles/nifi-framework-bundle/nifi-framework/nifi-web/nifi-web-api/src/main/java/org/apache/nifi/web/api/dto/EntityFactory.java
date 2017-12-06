@@ -35,6 +35,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -56,6 +57,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -546,4 +549,43 @@ public final class EntityFactory {
         entity.setProcessGroupRevision(processGroupRevision);
         return entity;
     }
+
+    public RegistryClientEntity createRegistryClientEntity(final RegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final RegistryClientEntity entity = new RegistryClientEntity();
+        entity.setRevision(revision);
+        entity.setPermissions(permissions);
+
+        if (dto != null) {
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public RegistryEntity createRegistryEntity(final RegistryDTO dto) {
+        final RegistryEntity entity = new RegistryEntity();
+
+        if (dto != null) {
+            entity.setRegistry(dto);
+        }
+
+        return entity;
+    }
+
+    public BucketEntity createBucketEntity(final BucketDTO dto, final PermissionsDTO permissions) {
+        final BucketEntity entity = new BucketEntity();
+        entity.setId(dto.getId());
+        entity.setPermissions(permissions);
+
+        if (permissions != null && permissions.getCanRead()) {
+            entity.setBucket(dto);
+        }
+
+        return entity;
+    }
+
 }

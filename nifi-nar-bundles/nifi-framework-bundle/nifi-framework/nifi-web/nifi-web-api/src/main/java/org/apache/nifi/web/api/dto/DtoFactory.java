@@ -272,10 +272,10 @@ public final class DtoFactory {
         actionDto.setId(action.getId());
         actionDto.setSourceId(action.getSourceId());
         actionDto.setSourceName(action.getSourceName());
-        actionDto.setSourceType(action.getSourceType().name());
+        actionDto.setSourceType(action.getSourceType().toString());
         actionDto.setTimestamp(action.getTimestamp());
         actionDto.setUserIdentity(action.getUserIdentity());
-        actionDto.setOperation(action.getOperation().name());
+        actionDto.setOperation(action.getOperation().toString());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
         actionDto.setComponentDetails(createComponentDetailsDto(action.getComponentDetails()));
 

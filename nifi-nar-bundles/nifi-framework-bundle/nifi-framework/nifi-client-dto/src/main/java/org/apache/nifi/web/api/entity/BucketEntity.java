@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.BucketDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -26,8 +27,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "bucketEntity")
 public class BucketEntity extends Entity {
 
+    private String id;
     private BucketDTO bucket;
+    private PermissionsDTO permissions;
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public BucketDTO getBucket() {
         return bucket;
@@ -35,5 +45,13 @@ public class BucketEntity extends Entity {
 
     public void setBucket(BucketDTO bucket) {
         this.bucket = bucket;
+    }
+
+    public PermissionsDTO getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 }

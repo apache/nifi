@@ -24,16 +24,15 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RegistryDTO.
  */
 @XmlRootElement(name = "registryEntity")
-public class RegistryEntity extends ComponentEntity {
+public class RegistryEntity {
 
-    private RegistryDTO component;
+    private RegistryDTO registry;
 
-
-    public RegistryDTO getComponent() {
-        return component;
+    public RegistryDTO getRegistry() {
+        return registry;
     }
 
-    public void setComponent(RegistryDTO component) {
-        this.component = component;
+    public void setRegistry(RegistryDTO registry) {
+        this.registry = registry;
     }
 }

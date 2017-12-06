@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -118,8 +119,8 @@ public interface ProcessGroupDAO {
      *            update the contents of that Process Group
      * @return the process group
      */
-    ProcessGroup updateProcessGroupFlow(String groupId, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
-        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+    ProcessGroup updateProcessGroupFlow(String groupId, NiFiUser user, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
+                                        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
      * Applies the given Version Control Information to the Process Group
@@ -141,10 +142,11 @@ public interface ProcessGroupDAO {
     /**
      * Updates the specified variable registry
      *
+     * @param user the user performing the update
      * @param variableRegistry the Variable Registry
      * @return the Process Group that was updated
      */
-    ProcessGroup updateVariableRegistry(VariableRegistryDTO variableRegistry);
+    ProcessGroup updateVariableRegistry(NiFiUser user, VariableRegistryDTO variableRegistry);
 
     /**
      * Verifies that the specified updates to a current Process Group can be applied at this time

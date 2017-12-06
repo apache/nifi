@@ -16,26 +16,23 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.RegistryDTO;
+
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Set;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a set of RegistryEntity's.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RegistryDTO.
  */
-@XmlRootElement(name = "registryClientsEntity")
-public class RegistriesEntity extends Entity {
+@XmlRootElement(name = "registryClientEntity")
+public class RegistryClientEntity extends ComponentEntity {
 
-    private Set<RegistryEntity> registries;
+    private RegistryDTO component;
 
-    /**
-     * @return collection of RegistryEntity's that are being serialized
-     */
-    public Set<RegistryEntity> getRegistries() {
-        return registries;
+    public RegistryDTO getComponent() {
+        return component;
     }
 
-    public void setRegistries(Set<RegistryEntity> registries) {
-        this.registries = registries;
+    public void setComponent(RegistryDTO component) {
+        this.component = component;
     }
-
 }

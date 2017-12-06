@@ -920,7 +920,7 @@
         'delete': function (selection) {
             if (nfCommon.isUndefined(selection) || selection.empty()) {
                 nfDialog.showOkDialog({
-                    headerText: 'Reload',
+                    headerText: 'Delete Components',
                     dialogContent: 'No eligible components are selected. Please select the components to be deleted.'
                 });
             } else {

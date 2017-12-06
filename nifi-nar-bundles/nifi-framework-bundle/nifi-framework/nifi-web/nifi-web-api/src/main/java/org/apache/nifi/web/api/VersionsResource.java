@@ -183,7 +183,7 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response createVersionControlRequest(
-            @ApiParam(value = "The versioned flow details.", required = true) final CreateActiveRequestEntity requestEntity) throws InterruptedException {
+            @ApiParam(value = "The versioned flow details.", required = true) final CreateActiveRequestEntity requestEntity) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -412,7 +412,7 @@ public class VersionsResource extends ApplicationResource {
     })
     public Response saveToFlowRegistry(
         @ApiParam("The process group id.") @PathParam("id") final String groupId,
-        @ApiParam(value = "The versioned flow details.", required = true) final StartVersionControlRequestEntity requestEntity) throws IOException {
+        @ApiParam(value = "The versioned flow details.", required = true) final StartVersionControlRequestEntity requestEntity) {
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
@@ -569,8 +569,9 @@ public class VersionsResource extends ApplicationResource {
         return requestId;
     }
 
-    private void replicateVersionControlMapping(final VersionControlComponentMappingEntity mappingEntity, final StartVersionControlRequestEntity requestEntity, final URI requestUri,
-        final String groupId) {
+    private void replicateVersionControlMapping(final VersionControlComponentMappingEntity mappingEntity, final StartVersionControlRequestEntity requestEntity,
+                                                final URI requestUri, final String groupId) {
+
         final Map<String, String> headers = new HashMap<>();
         headers.put("content-type", MediaType.APPLICATION_JSON);
 
@@ -652,7 +653,7 @@ public class VersionsResource extends ApplicationResource {
                 value = "If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.",
                 required = false)
         @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-        @ApiParam("The process group id.") @PathParam("id") final String groupId) throws IOException {
+        @ApiParam("The process group id.") @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -705,7 +706,7 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response updateFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
-        @ApiParam(value = "The controller service configuration details.", required = true) final VersionedFlowSnapshotEntity requestEntity) throws IOException, LifecycleManagementException {
+        @ApiParam(value = "The controller service configuration details.", required = true) final VersionedFlowSnapshotEntity requestEntity) {
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();

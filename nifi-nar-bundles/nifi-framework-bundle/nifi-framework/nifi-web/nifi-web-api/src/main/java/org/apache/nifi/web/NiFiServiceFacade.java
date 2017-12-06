@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -106,6 +98,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
@@ -123,6 +116,14 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -1929,7 +1930,7 @@ public interface NiFiServiceFacade {
      * @param registryDTO The registry DTO
      * @return The reporting task DTO
      */
-    RegistryEntity createRegistryClient(Revision revision, RegistryDTO registryDTO);
+    RegistryClientEntity createRegistryClient(Revision revision, RegistryDTO registryDTO);
 
     /**
      * Gets a registry with the specified id.
@@ -1937,14 +1938,14 @@ public interface NiFiServiceFacade {
      * @param registryId id
      * @return entity
      */
-    RegistryEntity getRegistryClient(String registryId);
+    RegistryClientEntity getRegistryClient(String registryId);
 
     /**
      * Returns all registry clients.
      *
      * @return registry clients
      */
-    Set<RegistryEntity> getRegistryClients();
+    Set<RegistryClientEntity> getRegistryClients();
 
     /**
      * Gets all registries for the current user.
@@ -1991,7 +1992,7 @@ public interface NiFiServiceFacade {
      * @param registryDTO the registry dto
      * @return the updated registry registry entity
      */
-    RegistryEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO);
+    RegistryClientEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO);
 
     /**
      * Deletes the specified registry using the specified revision.
@@ -2000,7 +2001,7 @@ public interface NiFiServiceFacade {
      * @param registryId id
      * @return the deleted registry entity
      */
-    RegistryEntity deleteRegistryClient(Revision revision, String registryId);
+    RegistryClientEntity deleteRegistryClient(Revision revision, String registryId);
 
     /**
      * Verifies the specified registry can be removed.

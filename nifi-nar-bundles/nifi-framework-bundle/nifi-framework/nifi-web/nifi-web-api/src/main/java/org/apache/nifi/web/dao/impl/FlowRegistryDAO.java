@@ -17,11 +17,6 @@
 
 package org.apache.nifi.web.dao.impl;
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -36,6 +31,7 @@ import org.apache.nifi.web.dao.RegistryDAO;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class FlowRegistryDAO implements RegistryDAO {
@@ -65,7 +61,6 @@ public class FlowRegistryDAO implements RegistryDAO {
 
     @Override
     public Set<FlowRegistry> getFlowRegistriesForUser(final NiFiUser user) {
-        // TODO - implement to be user specific
         return getFlowRegistries();
     }
 

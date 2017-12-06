@@ -220,6 +220,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
@@ -927,7 +928,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(variableRegistryDto.getProcessGroupId());
         final RevisionUpdate<VariableRegistryDTO> snapshot = updateComponent(user, revision,
             processGroupNode,
-            () -> processGroupDAO.updateVariableRegistry(variableRegistryDto),
+            () -> processGroupDAO.updateVariableRegistry(user, variableRegistryDto),
             processGroup -> dtoFactory.createVariableRegistryDto(processGroup, revisionManager));
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
@@ -2301,10 +2302,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
 
     @Override
-    public RegistryEntity createRegistryClient(Revision revision, RegistryDTO registryDTO) {
+    public RegistryClientEntity createRegistryClient(Revision revision, RegistryDTO registryDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        // read lock on the containing group
         // request claim for component to be created... revision already verified (version == 0)
         final RevisionClaim claim = new StandardRevisionClaim(revision);
 
@@ -2321,52 +2321,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         });
 
         final FlowRegistry registry = revisionUpdate.getComponent();
-        return createRegistryEntity(registry);
+        return createRegistryClientEntity(registry);
     }
 
     @Override
-    public RegistryEntity getRegistryClient(final String registryId) {
+    public RegistryClientEntity getRegistryClient(final String registryId) {
         final FlowRegistry registry = registryDAO.getFlowRegistry(registryId);
-        return createRegistryEntity(registry);
+        return createRegistryClientEntity(registry);
     }
 
-    private RegistryEntity createRegistryEntity(final FlowRegistry flowRegistry) {
+    private RegistryClientEntity createRegistryClientEntity(final FlowRegistry flowRegistry) {
         if (flowRegistry == null) {
             return null;
         }
 
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(flowRegistry.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getController());
         final RegistryDTO dto = dtoFactory.createRegistryDto(flowRegistry);
-        final Revision revision = revisionManager.getRevision(dto.getId());
 
-        final RegistryEntity entity = new RegistryEntity();
-        entity.setComponent(dto);
-        entity.setRevision(dtoFactory.createRevisionDTO(revision));
-        entity.setId(dto.getId());
-
-        // User who created it can read/write it.
-        final PermissionsDTO permissions = new PermissionsDTO();
-        permissions.setCanRead(true);
-        permissions.setCanWrite(true);
-        entity.setPermissions(permissions);
-
-        return entity;
-    }
-
-    private BucketEntity createBucketEntity(final Bucket bucket) {
-        if (bucket == null) {
-            return null;
-        }
-
-        final BucketDTO dto = new BucketDTO();
-        dto.setId(bucket.getIdentifier());
-        dto.setName(bucket.getName());
-        dto.setDescription(bucket.getDescription());
-        dto.setCreated(bucket.getCreatedTimestamp());
-
-        final BucketEntity entity = new BucketEntity();
-        entity.setBucket(dto);
-
-        return entity;
+        return entityFactory.createRegistryClientEntity(dto, revision, permissions);
     }
 
     private VersionedFlowEntity createVersionedFlowEntity(final String registryId, final VersionedFlow versionedFlow) {
@@ -2400,23 +2373,40 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<RegistryEntity> getRegistryClients() {
+    public Set<RegistryClientEntity> getRegistryClients() {
         return registryDAO.getFlowRegistries().stream()
-            .map(this::createRegistryEntity)
+            .map(this::createRegistryClientEntity)
             .collect(Collectors.toSet());
     }
 
     @Override
     public Set<RegistryEntity> getRegistriesForUser(final NiFiUser user) {
         return registryDAO.getFlowRegistriesForUser(user).stream()
-                .map(this::createRegistryEntity)
+                .map(flowRegistry -> entityFactory.createRegistryEntity(dtoFactory.createRegistryDto(flowRegistry)))
                 .collect(Collectors.toSet());
     }
 
     @Override
     public Set<BucketEntity> getBucketsForUser(final String registryId, final NiFiUser user) {
         return registryDAO.getBucketsForUser(registryId, user).stream()
-                .map(this::createBucketEntity)
+                .map(bucket -> {
+                    if (bucket == null) {
+                        return null;
+                    }
+
+                    final BucketDTO dto = new BucketDTO();
+                    dto.setId(bucket.getIdentifier());
+                    dto.setName(bucket.getName());
+                    dto.setDescription(bucket.getDescription());
+                    dto.setCreated(bucket.getCreatedTimestamp());
+
+                    final Set<String> authorizedActions = bucket.getAuthorizedActions();
+                    final PermissionsDTO permissions = new PermissionsDTO();
+                    permissions.setCanRead(authorizedActions.contains("read"));
+                    permissions.setCanWrite(authorizedActions.contains("write"));
+
+                    return entityFactory.createBucketEntity(dto, permissions);
+                })
                 .collect(Collectors.toSet());
     }
 
@@ -2435,7 +2425,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public RegistryEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO) {
+    public RegistryClientEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO) {
         final RevisionClaim revisionClaim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -2454,7 +2444,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         });
 
         final FlowRegistry updatedReg = revisionUpdate.getComponent();
-        return createRegistryEntity(updatedReg);
+        return createRegistryClientEntity(updatedReg);
     }
 
     @Override
@@ -2463,7 +2453,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public RegistryEntity deleteRegistryClient(final Revision revision, final String registryId) {
+    public RegistryClientEntity deleteRegistryClient(final Revision revision, final String registryId) {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -2473,7 +2463,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return reg;
         });
 
-        return createRegistryEntity(registry);
+        return createRegistryClientEntity(registry);
     }
 
     @Override
@@ -3695,10 +3685,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // add first snapshot to the flow in the registry
             registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), expectedVersion);
         } catch (final NiFiRegistryException e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException(e.getLocalizedMessage());
         } catch (final IOException ioe) {
-            // will result in a 500: Internal Server Error
-            throw new RuntimeException("Failed to communicate with Flow Registry when attempting to " + action);
+            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to " + action);
         }
 
         final Bucket bucket = registeredSnapshot.getBucket();
@@ -4105,7 +4094,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(groupId);
         final RevisionUpdate<ProcessGroupDTO> snapshot = updateComponent(user, revision,
             processGroupNode,
-            () -> processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows),
+            () -> processGroupDAO.updateProcessGroupFlow(groupId, user, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows),
             processGroup -> dtoFactory.createProcessGroupDto(processGroup));
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);

@@ -20,21 +20,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a set of RegistryEntity's.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a set of RegistryClientEntity's.
  */
 @XmlRootElement(name = "registryClientsEntity")
-public class RegistriesEntity extends Entity {
+public class RegistryClientsEntity extends Entity {
 
-    private Set<RegistryEntity> registries;
+    private Set<RegistryClientEntity> registries;
 
     /**
-     * @return collection of RegistryEntity's that are being serialized
+     * @return collection of RegistryClientEntity's that are being serialized
      */
-    public Set<RegistryEntity> getRegistries() {
+    public Set<RegistryClientEntity> getRegistries() {
         return registries;
     }
 
-    public void setRegistries(Set<RegistryEntity> registries) {
+    public void setRegistries(Set<RegistryClientEntity> registries) {
         this.registries = registries;
     }
 
