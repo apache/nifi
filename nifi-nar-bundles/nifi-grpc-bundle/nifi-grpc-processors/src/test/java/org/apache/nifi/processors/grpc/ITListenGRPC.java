@@ -48,7 +48,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-public class TestListenGRPC {
+public class ITListenGRPC {
     private static final String HOST = "localhost";
     private static final String CERT_DN = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
     private static final String SOURCE_SYSTEM_UUID = "FAKE_UUID";

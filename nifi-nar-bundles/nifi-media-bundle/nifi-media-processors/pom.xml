@@ -42,23 +42,29 @@
         <dependency>
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
-            <version>2.8.0</version>
-        </dependency>
-        <!-- Would like a newer version of tika-core and tika-parsers but newer 
-        tika-parser versions have cat-X json lib and other libraries that need to
-        have their license validated such as geoapis. --> 
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>1.8</version>
+            <version>2.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-parsers</artifactId>
-            <version>1.8</version>
+            <version>1.16</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+                <!--This must be excluded because it appears to have an invalid ASF unfriendly license.
+                This might cause weird behavior in usage of Tika Parsers - not sure.  Have emailed the
+                Tika community 
+                https://lists.apache.org/thread.html/283e34e24db9382512b58bc24bc000efeffabba5e3475bc72e624967@%3Cuser.tika.apache.org%3E
+                -->
+                <exclusion>
+                    <groupId>javax.measure</groupId>
+                    <artifactId>jsr-275</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>

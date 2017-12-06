@@ -198,6 +198,21 @@ The following binary components are provided under the Apache Software License v
        Based on source code originally developed in the PaDaF project.
        Copyright (c) 2010 Atos Worldline SAS
 
+    (ASLv2) Apache FontBox
+      The following NOTICE information applies:
+        Apache FontBox
+        Copyright 2008-2017 The Apache Software Foundation
+
+    (ASLv2) Apache SIS
+      The following NOTICE information applies:
+        Apache SIS
+        Copyright 2010-2017 The Apache Software Foundation
+
+    (ASLv2) Apache JempBox
+      The following NOTICE information applies:
+        Apache JempBox
+        Copyright 2008-2017 The Apache Software Foundation
+
     (ASLv2) Apache XMLBeans
       The following NOTICE information applies:
         Portions of this software were originally based on the following:
@@ -256,7 +271,13 @@ The following binary components are provided under the Apache Software License v
         JCommander Copyright Notices
         Copyright 2010 Cedric Beust cedric@beust.com
 
-  (ASLv2) Apache Commons Lang
+    (ASLv2) Rome
+      The following NOTICE information applies:
+        Rome Copyright Notices
+        Copyright 2004 Sun Microsystems, Inc.
+        Copyright 2011 The ROME Team
+  
+    (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
       Copyright 2001-2017 The Apache Software Foundation
@@ -535,6 +556,11 @@ The following binary components are provided under the Apache Software License v
       Apache Commons Daemon
       Copyright 1999-2013 The Apache Software Foundation
 
+  (ASLv2) Apache Commons Exec
+    The following NOTICE information applies:
+      Apache Commons Exec
+      Copyright 2005-2016 The Apache Software Foundation
+
   (ASLv2) Apache Commons EL
     The following NOTICE information applies:
       Apache Commons EL
@@ -572,6 +598,28 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Apache POI
         Copyright 2012 The Apache Software Foundation.
+        
+        This product contains parts that were originally based on software from BEA.
+        Copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/> (dead link),
+        which was acquired by Oracle Corporation in 2008.
+        <http://www.oracle.com/us/corporate/Acquisitions/bea/index.html>
+        <https://en.wikipedia.org/wiki/BEA_Systems>
+        
+        This product contains W3C XML Schema documents. Copyright 2001-2003 (c)
+        World Wide Web Consortium (Massachusetts Institute of Technology, European
+        Research Consortium for Informatics and Mathematics, Keio University)
+
+        This product contains the Piccolo XML Parser for Java
+        (http://piccolo.sourceforge.net/). Copyright 2002 Yuval Oren.
+
+        This product contains the chunks_parse_cmds.tbl file from the vsdump program.
+        Copyright (C) 2006-2007 Valek Filippov (frob@df.ru)
+
+        This product contains parts of the eID Applet project 
+        <http://eid-applet.googlecode.com> and <https://github.com/e-Contract/eid-applet>.
+        Copyright (c) 2009-2014
+        FedICT (federal ICT department of Belgium), e-Contract.be BVBA (https://www.e-contract.be),
+        Bart Hanssens from FedICT
 
   (ASLv2) Yammer Metrics
     The following NOTICE information applies:
@@ -586,6 +634,11 @@ The following binary components are provided under the Apache Software License v
           Written by Doug Lea with assistance from members of JCP JSR-166
           Expert Group and released to the public domain, as explained at
           http://creativecommons.org/publicdomain/zero/1.0/
+
+  (ASLv2) Apache CXF
+    The following NOTICE information applies:
+      Apache CXF
+      Copyright 2008-2017 The Apache Software Foundation
 
   (ASLv2) Apache Lucene
     The following NOTICE information applies:
@@ -883,6 +936,30 @@ The following binary components are provided under the Apache Software License v
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
 
+    (ASLv2) Apache XMLBeans
+      The following NOTICE information applies:
+        Portions of this software were originally based on the following:
+        - software copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+        Aside from contributions to the Apache XMLBeans project, this
+        software also includes:
+
+        - one or more source files from the Apache Xerces-J and Apache Axis
+        products, Copyright (c) 1999-2003 Apache Software Foundation
+
+        - W3C XML Schema documents Copyright 2001-2003 (c) World Wide Web
+        Consortium (Massachusetts Institute of Technology, European Research
+        Consortium for Informatics and Mathematics, Keio University)
+
+        - resolver.jar from Apache Xml Commons project,
+        Copyright (c) 2001-2003 Apache Software Foundation
+
+        - Piccolo XML Parser for Java from http://piccolo.sourceforge.net/,
+        Copyright 2002 Yuval Oren under the terms of the Apache Software License 2.0
+
+        - JSR-173 Streaming API for XML from http://sourceforge.net/projects/xmlpullparser/,
+        Copyright 2005 BEA under the terms of the Apache Software License 2.0
+
   (ASLv2) Woodstox Core ASL
     The following NOTICE information applies:
       This product currently only contains code developed by authors
@@ -914,6 +991,16 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Apache Commons Pool
         Copyright 1999-2009 The Apache Software Foundation.
+
+    (ASLv2) Objenesis
+      The following NOTICE information applies:
+        Objenesis
+        Copyright 2006-2013 Joe Walnes, Henri Tremblay, Leonardo Mesquita
+
+   (ASLv2) Apache Maven
+      The following NOTICE information applies:
+        Apache Maven
+        Copyright 2003-2017 The Apache Software Foundation.
 
     (ASLv2) Apache Derby
       The following NOTICE information applies:
@@ -1037,7 +1124,7 @@ The following binary components are provided under the Apache Software License v
 
       Copyright 2010-2012 RethinkDB
 
-(ASLv2) Carrotsearch HPPC
+    (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
       HPPC borrowed code, ideas or both from:
 
@@ -1055,8 +1142,11 @@ The following binary components are provided under the Apache Software License v
 
     (ASLv2) subethasmtp
        The following NOTICE information applies:
-
        Copyright (C) 2006-2007 SubEthaMail.org
+
+    (ASLv2) Apache OpenNLP Tools
+      Apache OpenNLP Tools
+      Copyright 2015 The Apache Software Foundation
 
     (ASLv2) Apache Commons Email
        The following NOTICE information applies:
@@ -1163,6 +1253,10 @@ The following binary components are provided under the Apache Software License v
 	    * https://netty.io
 	  * LOCATION_IN_GRPC:
     * netty/third_party/netty
+
+  (ASLv2) Ehcache 2.x
+    The following NOTICE information applies:
+      Copyright 2003-2010 Terracotta, Inc.
 
   (ASLv2) The Netty Project
       The following NOTICE information applies:
@@ -1457,6 +1551,10 @@ The following binary components are provided under the Apache Software License v
         Other developers who have contributed code are:
 
         * Brian Langel
+
+    (ASLv2) Boilerpipe
+      The following NOTICE information applies:
+          Copyright (c) 2009-2011 Christian Kohlschütter
 
 ************************
 Common Development and Distribution License 1.1
