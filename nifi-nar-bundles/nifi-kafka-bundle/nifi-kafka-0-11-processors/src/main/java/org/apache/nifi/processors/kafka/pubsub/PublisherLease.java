@@ -117,10 +117,7 @@ public class PublisherLease implements Closeable {
             byte[] messageContent;
             try {
                 while ((messageContent = demarcator.nextToken()) != null) {
-                    // We do not want to use any key if we have a demarcator because that would result in
-                    // the key being the same for multiple messages
-                    final byte[] keyToUse = demarcatorBytes == null ? messageKey : null;
-                    publish(flowFile, keyToUse, messageContent, topic, tracker);
+                    publish(flowFile, messageKey, messageContent, topic, tracker);
 
                     if (tracker.isFailed(flowFile)) {
                         // If we have a failure, don't try to send anything else.
