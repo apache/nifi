@@ -150,8 +150,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         String grokExpression = grok.getOriginalGrokPattern();
         populateSchemaFieldNames(grok, grokExpression, fields);
 
-        fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField(GrokRecordReader.RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType(), true));
+        fields.add(new RecordField(GrokRecordReader.RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
         return schema;

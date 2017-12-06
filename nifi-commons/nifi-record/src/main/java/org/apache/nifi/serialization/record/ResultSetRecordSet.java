@@ -127,7 +127,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
             final DataType dataType = getDataType(sqlType, rs, column);
             final String fieldName = metadata.getColumnLabel(column);
-            final RecordField field = new RecordField(fieldName, dataType);
+            final RecordField field = new RecordField(fieldName, dataType, metadata.isNullable(column));
             fields.add(field);
         }
 
