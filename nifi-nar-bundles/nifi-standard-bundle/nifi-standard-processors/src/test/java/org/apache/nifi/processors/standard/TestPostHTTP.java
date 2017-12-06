@@ -46,13 +46,13 @@ public class TestPostHTTP {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(CaptureServlet.class, "/*");
-        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
 
         // create the service
         server = new TestServer(sslProperties);
         server.addHandler(handler);
         server.startServer();
 
+        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
         runner = TestRunners.newTestRunner(PostHTTP.class);
     }
 

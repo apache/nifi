@@ -47,12 +47,13 @@ public class PutSlackTest {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(CaptureServlet.class, "/*");
-        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
 
         // create the service
         server = new TestServer();
         server.addHandler(handler);
         server.startServer();
+
+        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
     }
 
     @Test(expected = AssertionError.class)
