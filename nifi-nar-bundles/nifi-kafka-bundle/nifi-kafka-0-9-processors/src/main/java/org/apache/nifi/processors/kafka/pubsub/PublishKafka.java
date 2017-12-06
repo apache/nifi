@@ -150,8 +150,10 @@ public class PublishKafka extends AbstractProcessor {
         .name("kafka-key")
         .displayName("Kafka Key")
         .description("The Key to use for the Message. "
-            + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present "
-            + "and we're not demarcating.")
+            + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present."
+            + "Beware that setting Kafka key and demarcating at the same time may potentially lead to many Kafka messages with the same key."
+            + "Normally this is not a problem as Kafka does not enforce or assume message and key uniqueness. Still, setting the demarcator and Kafka key at the same time poses a risk of "
+            + "data loss on Kafka. During a topic compaction on Kafka, messages will be deduplicated based on this key.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(true)
@@ -372,9 +374,6 @@ public class PublishKafka extends AbstractProcessor {
 
 
     private byte[] getMessageKey(final FlowFile flowFile, final ProcessContext context) {
-        if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
-            return null;
-        }
 
         final String uninterpretedKey;
         if (context.getProperty(KEY).isSet()) {
