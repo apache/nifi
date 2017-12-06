@@ -52,4 +52,4 @@ install:
   # Note: The reason the sed is done as part of script is to ensure the pom hack 
   # won't affect the 'clean install' above
   - bash .travis.sh
-  - mvn -T 2C -Pcontrib-check -Ddir-only clean install
+  - mvn clean install -Pcontrib-check -Ddir-only
