@@ -46,7 +46,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 
-public class TestJettyWebSocketCommunication {
+public class ITJettyWebSocketCommunication {
 
     protected int serverPort;
     protected String serverPath = "/test";

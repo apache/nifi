@@ -22,12 +22,12 @@ import org.apache.nifi.websocket.WebSocketService;
 import org.junit.Test;
 
 
-public class TestJettyWebSocketSecureCommunication extends TestJettyWebSocketCommunication{
+public class ITJettyWebSocketSecureCommunication extends ITJettyWebSocketCommunication{
 
     private final StandardSSLContextService sslContextService = new StandardSSLContextService();
     private final ControllerServiceTestContext sslTestContext = new ControllerServiceTestContext(sslContextService, "SSLContextService");
 
-    public TestJettyWebSocketSecureCommunication() {
+    public ITJettyWebSocketSecureCommunication() {
         try {
             sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE, "src/test/resources/certs/localhost-ks.jks");
             sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
