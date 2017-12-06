@@ -31,6 +31,7 @@ cache:
   directories:
     - $HOME/.m2
     - $HOME/.npm
+
 before_cache:
   # Remove nifi repo again to save travis from caching it
   - rm -rf $HOME/.m2/repository/org/apache/nifi/
@@ -47,9 +48,11 @@ before_install:
   # Remove nifi repo again to save travis from caching it
   - rm -rf $HOME/.m2/repository/org/apache/nifi/
 
-install:
+install: true
+    
+script:
   # Replace variables seems to be the only option to pass proper values to surefire
   # Note: The reason the sed is done as part of script is to ensure the pom hack 
   # won't affect the 'clean install' above
   - bash .travis.sh
-  - mvn -T 2C -Pcontrib-check -Ddir-only clean install
+  - mvn -T 2 clean install -Pcontrib-check -Ddir-only

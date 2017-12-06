@@ -38,9 +38,9 @@ import java.nio.charset.Charset;
  * Tests PutSyslog sending messages to ListenSyslog to simulate a syslog server forwarding
  * to ListenSyslog, or PutSyslog sending to a syslog server.
  */
-public class TestListenAndPutSyslog {
+public class ITListenAndPutSyslog {
 
-    static final Logger LOGGER = LoggerFactory.getLogger(TestListenAndPutSyslog.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(ITListenAndPutSyslog.class);
 
     private ListenSyslog listenSyslog;
     private TestRunner listenSyslogRunner;
