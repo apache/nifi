@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.RegistriesEntity;
+import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -1316,7 +1317,7 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries")
-    @ApiOperation(value = "Gets the listing of available registries", response = RegistriesEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the listing of available registries", response = RegistryClientsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {

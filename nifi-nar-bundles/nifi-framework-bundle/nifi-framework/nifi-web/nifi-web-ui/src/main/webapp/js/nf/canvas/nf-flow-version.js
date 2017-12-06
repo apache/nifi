@@ -180,9 +180,11 @@
      * @param registryCombo
      * @param bucketCombo
      * @param flowCombo
+     * @param selectBucket
+     * @param bucketCheck
      * @returns {deferred}
      */
-    var loadRegistries = function (dialog, registryCombo, bucketCombo, flowCombo, selectBucket) {
+    var loadRegistries = function (dialog, registryCombo, bucketCombo, flowCombo, selectBucket, bucketCheck) {
         return $.ajax({
             type: 'GET',
             url: '../nifi-api/flow/registries',
@@ -192,11 +194,11 @@
 
             if (nfCommon.isDefinedAndNotNull(registriesResponse.registries) && registriesResponse.registries.length > 0) {
                 registriesResponse.registries.sort(function (a, b) {
-                    return a.component.name > b.component.name;
+                    return a.registry.name > b.registry.name;
                 });
 
                 $.each(registriesResponse.registries, function (_, registryEntity) {
-                    var registry = registryEntity.component;
+                    var registry = registryEntity.registry;
                     registries.push({
                         text: registry.name,
                         value: registry.id,
@@ -216,7 +218,7 @@
             registryCombo.combo({
                 options: registries,
                 select: function (selectedOption) {
-                    selectRegistry(dialog, selectedOption, bucketCombo, flowCombo, selectBucket)
+                    selectRegistry(dialog, selectedOption, bucketCombo, flowCombo, selectBucket, bucketCheck)
                 }
             });
         }).fail(nfErrorHandler.handleAjaxError);
@@ -229,9 +231,10 @@
      * @param bucketCombo
      * @param flowCombo
      * @param selectBucket
+     * @param bucketCheck
      * @returns {*}
      */
-    var loadBuckets = function (registryIdentifier, bucketCombo, flowCombo, selectBucket) {
+    var loadBuckets = function (registryIdentifier, bucketCombo, flowCombo, selectBucket, bucketCheck) {
         return $.ajax({
             type: 'GET',
             url: '../nifi-api/flow/registries/' + encodeURIComponent(registryIdentifier) + '/buckets',
@@ -241,18 +244,33 @@
 
             if (nfCommon.isDefinedAndNotNull(response.buckets) && response.buckets.length > 0) {
                 response.buckets.sort(function (a, b) {
+                    if (a.permissions.canRead === false && b.permissions.canRead === false) {
+                        return 0;
+                    } else if (a.permissions.canRead === false) {
+                        return -1;
+                    } else if (b.permissions.canRead === false) {
+                        return 1;
+                    }
+
                     return a.bucket.name > b.bucket.name;
                 });
 
                 $.each(response.buckets, function (_, bucketEntity) {
-                    var bucket = bucketEntity.bucket;
-                    buckets.push({
-                        text: bucket.name,
-                        value: bucket.id,
-                        description: nfCommon.escapeHtml(bucket.description)
-                    });
+                    if (bucketEntity.permissions.canRead === true) {
+                        var bucket = bucketEntity.bucket;
+
+                        if (bucketCheck(bucketEntity)) {
+                            buckets.push({
+                                text: bucket.name,
+                                value: bucket.id,
+                                description: nfCommon.escapeHtml(bucket.description)
+                            });
+                        }
+                    }
                 });
-            } else {
+            }
+
+            if (buckets.length === 0) {
                 buckets.push({
                     text: 'No available buckets',
                     value: null,
@@ -285,8 +303,9 @@
      * @param bucketCombo
      * @param flowCombo
      * @param selectBucket
+     * @param bucketCheck
      */
-    var selectRegistry = function (dialog, selectedOption, bucketCombo, flowCombo, selectBucket) {
+    var selectRegistry = function (dialog, selectedOption, bucketCombo, flowCombo, selectBucket, bucketCheck) {
         var showNoBucketsAvailable = function () {
             bucketCombo.combo('destroy').combo({
                 options: [{
@@ -333,7 +352,7 @@
                 clearFlowVersionsGrid();
             }
 
-            loadBuckets(selectedOption.value, bucketCombo, flowCombo, selectBucket).fail(function () {
+            loadBuckets(selectedOption.value, bucketCombo, flowCombo, selectBucket, bucketCheck).fail(function () {
                 showNoBucketsAvailable();
             });
         }
@@ -744,7 +763,9 @@
             }]
         }).show();
 
-        loadRegistries($('#import-flow-version-dialog'), registryCombo, bucketCombo, flowCombo, selectBucketImportVersion).done(function () {
+        loadRegistries($('#import-flow-version-dialog'), registryCombo, bucketCombo, flowCombo, selectBucketImportVersion, function (bucketEntity) {
+            return true;
+        }).done(function () {
             // show the import dialog
             $('#import-flow-version-dialog').modal('setHeaderText', 'Import Version').modal('setButtonModel', [{
                 buttonText: 'Import',
@@ -904,23 +925,35 @@
      * @param selectedBucket
      */
     var selectBucketImportVersion = function (selectedBucket) {
-        // mark the flows as loading
-        $('#import-flow-version-name-combo').combo('destroy').combo({
-            options: [{
-                text: 'Loading flows...',
-                value: null,
-                optionClass: 'unset',
-                disabled: true
-            }]
-        });
-
         // clear the flow versions grid
         clearFlowVersionsGrid();
 
-        var selectedRegistry = $('#import-flow-version-registry-combo').combo('getSelectedOption');
+        if (nfCommon.isDefinedAndNotNull(selectedBucket.value)) {
+            // mark the flows as loading
+            $('#import-flow-version-name-combo').combo('destroy').combo({
+                options: [{
+                    text: 'Loading flows...',
+                    value: null,
+                    optionClass: 'unset',
+                    disabled: true
+                }]
+            });
 
-        // load the flows for the currently selected registry and bucket
-        loadFlows(selectedRegistry.value, selectedBucket.value, selectVersionedFlow);
+            var selectedRegistry = $('#import-flow-version-registry-combo').combo('getSelectedOption');
+
+            // load the flows for the currently selected registry and bucket
+            loadFlows(selectedRegistry.value, selectedBucket.value, selectVersionedFlow);
+        } else {
+            // mark no flows available
+            $('#import-flow-version-name-combo').combo('destroy').combo({
+                options: [{
+                    text: 'No available flows',
+                    value: null,
+                    optionClass: 'unset',
+                    disabled: true
+                }]
+            });
+        }
     };
 
     /**
@@ -988,7 +1021,22 @@
         var importFlowVersionGrid = $('#import-flow-version-table').data('gridInstance');
         if (nfCommon.isDefinedAndNotNull(importFlowVersionGrid)) {
             var selected = importFlowVersionGrid.getSelectedRows();
-            return selected.length !== 1;
+
+            // if the version label is visible, this is a change version request so disable when
+            // the version that represents the current version is selected
+            if ($('#import-flow-version-label').is(':visible')) {
+                if (selected.length === 1) {
+                    var selectedFlow = importFlowVersionGrid.getDataItem(selected[0]);
+
+                    var currentVersion = parseInt($('#import-flow-version-label').text(), 10);
+                    return currentVersion === selectedFlow.version;
+                } else {
+                    return true;
+                }
+            } else {
+                // if importing, enable when a single row is selecting
+                return selected.length !== 1;
+            }
         } else {
             return true;
         }
@@ -1731,7 +1779,9 @@
                         // reposition the version label
                         $('#save-flow-version-label').css('margin-top', '0');
 
-                        loadRegistries($('#save-flow-version-dialog'), registryCombo, bucketCombo, null, selectBucketSaveFlowVersion).done(function () {
+                        loadRegistries($('#save-flow-version-dialog'), registryCombo, bucketCombo, null, selectBucketSaveFlowVersion, function (bucketEntity) {
+                            return bucketEntity.permissions.canWrite === true;
+                        }).done(function () {
                             deferred.resolve();
                         }).fail(function () {
                             deferred.reject();

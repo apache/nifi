@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
@@ -143,7 +144,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public CompletableFuture<Void> scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+    public Future<Void> scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
@@ -275,8 +276,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
-        final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
+    public ProcessGroup updateProcessGroupFlow(final String groupId, final NiFiUser user, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
+                                               final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
+
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
 
@@ -291,7 +293,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateVariableRegistry(final VariableRegistryDTO variableRegistry) {
+    public ProcessGroup updateVariableRegistry(final NiFiUser user, final VariableRegistryDTO variableRegistry) {
         final ProcessGroup group = locateProcessGroup(flowController, variableRegistry.getProcessGroupId());
         if (group == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistry.getProcessGroupId());

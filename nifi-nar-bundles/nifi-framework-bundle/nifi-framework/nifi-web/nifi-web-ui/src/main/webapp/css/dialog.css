@@ -323,6 +323,13 @@ div.slick-cell div.overridden {
     text-decoration: line-through;
 }
 
+#variable-message {
+    position: absolute;
+    top: 550px;
+    left: 20px;
+    font-size: 13px;
+}
+
 /*
     Registry configuration dialog
  */
