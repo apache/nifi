@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi RecordPath Guide
-============================
+= Apache NiFi RecordPath Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
 [[overview]]
-Overview
---------
+== Overview
 Apache NiFi offers a very robust set of Processors that are capable of ingesting, processing,
 routing, transforming, and delivering data of any format. This is possible because the NiFi
 framework itself is data-agnostic. It doesn't care whether your data is a 100-byte JSON message
@@ -76,8 +74,7 @@ Enter the NiFi RecordPath language. RecordPath is intended to be a simple, easy-
 
 
 [[structure]]
-Structure of a RecordPath
--------------------------
+== Structure of a RecordPath
 
 A Record in NiFi is made up of (potentially) many fields, and each of these fields could actually be itself a Record. This means that
 a Record can be thought of as having a hierarchical, or nested, structure. We talk about an "inner Record" as being the child of the

@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi In Depth
-====================
+= Apache NiFi In Depth
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
-Intro
------
+== Intro
 This advanced level document is aimed at providing an in-depth look at the implementation and design decisions of NiFi. It assumes the reader has read enough of the other documentation to know the basics of NiFi.
 
 FlowFiles are at the heart of NiFi and its flow-based design. A FlowFile is a data record, which consists of a pointer to its content (payload) and attributes to support the content, that is associated with one or more provenance events. The attributes are key/value pairs that act as the metadata for the FlowFile, such as the FlowFile filename. The content is the actual data or the payload of the file. Provenance is a record of what has happened to the FlowFile. Each one of these parts has its own repository (repo) for storage.
