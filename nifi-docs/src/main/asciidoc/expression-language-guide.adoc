@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi Expression Language Guide
-=====================================
+= Apache NiFi Expression Language Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
 [[overview]]
-Overview
---------
+== Overview
 All data in Apache NiFi is represented by an abstraction called a FlowFile.
 A FlowFile is comprised of two major pieces: content and attributes.
 The content portion of the FlowFile represents the data on which to operate.
@@ -48,8 +46,7 @@ and manipulate their values.
 
 
 [[structure]]
-Structure of a NiFi Expression
-------------------------------
+== Structure of a NiFi Expression
 
 The NiFi Expression Language always begins with the start delimiter `${` and ends
 with the end delimiter `}`. Between the start and end delimiters is the text of the
