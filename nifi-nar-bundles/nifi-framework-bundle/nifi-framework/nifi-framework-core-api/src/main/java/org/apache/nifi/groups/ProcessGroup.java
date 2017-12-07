@@ -161,10 +161,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * Starts the given Processor
      *
      * @param processor the processor to start
+     * @param failIfStopping If <code>false</code>, and the Processor is in the 'STOPPING' state,
+     *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
+     *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
+     *            will throw an {@link IllegalStateException}.
      * @throws IllegalStateException if the processor is not valid, or is
-     * already running
+     *             already running
      */
-    CompletableFuture<Void> startProcessor(ProcessorNode processor);
+    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
 
     /**
      * Starts the given Input Port

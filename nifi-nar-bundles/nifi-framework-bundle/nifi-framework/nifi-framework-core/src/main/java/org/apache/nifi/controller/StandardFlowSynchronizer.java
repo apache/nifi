@@ -761,7 +761,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         case RUNNING:
                             // we want to run now. Make sure processor is not disabled and then start it.
                             procNode.getProcessGroup().enableProcessor(procNode);
-                            controller.startProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier());
+                            controller.startProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier(), false);
                             break;
                         case STOPPED:
                             if (procNode.getScheduledState() == ScheduledState.DISABLED) {
