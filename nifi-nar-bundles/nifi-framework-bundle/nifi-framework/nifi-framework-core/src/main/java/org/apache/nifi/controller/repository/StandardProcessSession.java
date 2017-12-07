@@ -1580,7 +1580,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 registerDequeuedRecord(flowFile, connection);
             }
 
-            return new ArrayList<FlowFile>(newlySelected);
+            return new ArrayList<>(newlySelected);
         } finally {
             if (lockQueue) {
                 connection.unlock();
@@ -1615,7 +1615,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     registerDequeuedRecord(flowFile, conn);
                 }
 
-                return new ArrayList<FlowFile>(newlySelected);
+                return new ArrayList<>(newlySelected);
             }
 
             return new ArrayList<>();
@@ -1658,7 +1658,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile clone(final FlowFile example) {
+    public FlowFile clone(FlowFile example) {
+        example = validateRecordState(example);
         return clone(example, 0L, example.getSize());
     }
 
