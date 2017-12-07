@@ -65,7 +65,7 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
 
                 final List<RecordField> fields = new ArrayList<>();
                 for (final String columnName : csvParser.getHeaderMap().keySet()) {
-                    fields.add(new RecordField(columnName, RecordFieldType.STRING.getDataType()));
+                    fields.add(new RecordField(columnName, RecordFieldType.STRING.getDataType(), true));
                 }
 
                 return new SimpleRecordSchema(fields);
