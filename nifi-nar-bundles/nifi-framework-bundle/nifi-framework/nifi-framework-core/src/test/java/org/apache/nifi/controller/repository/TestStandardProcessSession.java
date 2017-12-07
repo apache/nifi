@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -268,6 +269,80 @@ public class TestStandardProcessSession {
 
         verify(conn1, times(1)).poll(any(Set.class));
         verify(conn2, times(1)).poll(any(Set.class));
+    }
+
+    @Test
+    public void testCloneOriginalDataSmaller() throws IOException {
+        final byte[] originalContent = "hello".getBytes();
+        final byte[] replacementContent = "NEW DATA".getBytes();
+
+        final Connection conn1 = createConnection();
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(originalContent))
+            .size(originalContent.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        when(connectable.getIncomingConnections()).thenReturn(Collections.singletonList(conn1));
+
+        final FlowFile input = session.get();
+        assertEquals(originalContent.length, input.getSize());
+
+        final FlowFile modified = session.write(input, (in, out) -> out.write(replacementContent));
+        assertEquals(replacementContent.length, modified.getSize());
+
+        // Clone 'input', not 'modified' because we want to ensure that we use the outdated reference to ensure
+        // that the framework uses the most current reference.
+        final FlowFile clone = session.clone(input);
+        assertEquals(replacementContent.length, clone.getSize());
+
+        final byte[] buffer = new byte[replacementContent.length];
+        try (final InputStream in = session.read(clone)) {
+            StreamUtils.fillBuffer(in, buffer);
+        }
+
+        assertArrayEquals(replacementContent, buffer);
+    }
+
+    @Test
+    public void testCloneOriginalDataLarger() throws IOException {
+        final byte[] originalContent = "hello there 12345".getBytes();
+        final byte[] replacementContent = "NEW DATA".getBytes();
+
+        final Connection conn1 = createConnection();
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(originalContent))
+            .size(originalContent.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        when(connectable.getIncomingConnections()).thenReturn(Collections.singletonList(conn1));
+
+        final FlowFile input = session.get();
+        assertEquals(originalContent.length, input.getSize());
+
+        final FlowFile modified = session.write(input, (in, out) -> out.write(replacementContent));
+        assertEquals(replacementContent.length, modified.getSize());
+
+        // Clone 'input', not 'modified' because we want to ensure that we use the outdated reference to ensure
+        // that the framework uses the most current reference.
+        final FlowFile clone = session.clone(input);
+        assertEquals(replacementContent.length, clone.getSize());
+
+        final byte[] buffer = new byte[replacementContent.length];
+        try (final InputStream in = session.read(clone)) {
+            StreamUtils.fillBuffer(in, buffer);
+        }
+
+        assertArrayEquals(replacementContent, buffer);
     }
 
     @Test
@@ -1909,6 +1984,23 @@ public class TestStandardProcessSession {
             return contentClaim;
         }
 
+        public ContentClaim create(byte[] content) throws IOException {
+            final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false, false);
+            final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+
+            claimantCounts.put(contentClaim, new AtomicInteger(1));
+            final Path path = getPath(contentClaim);
+            final Path parent = path.getParent();
+            if (Files.exists(parent) == false) {
+                Files.createDirectories(parent);
+            }
+
+            try (final OutputStream out = new FileOutputStream(getPath(contentClaim).toFile())) {
+                out.write(content);
+            }
+            return contentClaim;
+        }
+
         @Override
         public int incrementClaimaintCount(ContentClaim claim) {
             AtomicInteger count = claimantCounts.get(claim);
@@ -1938,7 +2030,7 @@ public class TestStandardProcessSession {
 
         @Override
         public Set<String> getContainerNames() {
-            return new HashSet<String>();
+            return new HashSet<>();
         }
 
         @Override
