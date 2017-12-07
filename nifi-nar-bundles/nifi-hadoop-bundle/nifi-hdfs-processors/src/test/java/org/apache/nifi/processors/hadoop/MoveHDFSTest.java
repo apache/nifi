@@ -1,15 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.hadoop;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
@@ -23,173 +30,222 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class MoveHDFSTest {
 
-	private static final String OUTPUT_DIRECTORY = "src/test/resources/testdataoutput";
-	private static final String INPUT_DIRECTORY = "src/test/resources/testdata";
-	private static final String DOT_FILE_PATH = "src/test/resources/testdata/.testfordotfiles";
-	private NiFiProperties mockNiFiProperties;
-	private KerberosProperties kerberosProperties;
+    private static final String OUTPUT_DIRECTORY = "target/test-data-output";
+    private static final String TEST_DATA_DIRECTORY = "src/test/resources/testdata";
+    private static final String INPUT_DIRECTORY = "target/test-data-input";
+    private NiFiProperties mockNiFiProperties;
+    private KerberosProperties kerberosProperties;
 
-	@Before
-	public void setup() {
-		mockNiFiProperties = mock(NiFiProperties.class);
-		when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-		kerberosProperties = new KerberosProperties(null);
-	}
+    @Before
+    public void setup() {
+        mockNiFiProperties = mock(NiFiProperties.class);
+        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
+        kerberosProperties = new KerberosProperties(null);
+    }
 
-	@After
-	public void teardown() {
-		File outputDirectory = new File(OUTPUT_DIRECTORY);
-		if (outputDirectory.exists()) {
-			if (outputDirectory.isDirectory()) {
-				moveFilesFromOutputDirectoryToInput();
-			}
-			outputDirectory.delete();
-		}
-		removeDotFile();
-	}
+    @After
+    public void teardown() {
+        File inputDirectory = new File(INPUT_DIRECTORY);
+        File outputDirectory = new File(OUTPUT_DIRECTORY);
+        if (inputDirectory.exists()) {
+            Assert.assertTrue("Could not delete input directory: " + inputDirectory, FileUtils.deleteQuietly(inputDirectory));
+        }
+        if (outputDirectory.exists()) {
+            Assert.assertTrue("Could not delete output directory: " + outputDirectory, FileUtils.deleteQuietly(outputDirectory));
+        }
+    }
 
-	private void removeDotFile() {
-		File dotFile = new File(DOT_FILE_PATH);
-		if (dotFile.exists()) {
-			dotFile.delete();
-		}
-	}
+    @Test
+    public void testOutputDirectoryValidator() {
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        Collection<ValidationResult> results;
+        ProcessContext pc;
 
-	private void moveFilesFromOutputDirectoryToInput() {
-		File folder = new File(OUTPUT_DIRECTORY);
-		for (File file : folder.listFiles()) {
-			if (file.isFile()) {
-				String path = file.getAbsolutePath();
-				if(!path.endsWith(".crc")) {
-					String newPath = path.replaceAll("testdataoutput", "testdata");
-					File newFile = new File(newPath);
-					if (!newFile.exists()) {
-						file.renameTo(newFile);
-					}
-				} else {
-					file.delete();
-				}
-			}
-		}
-	}
+        results = new HashSet<>();
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "/source");
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        Assert.assertEquals(1, results.size());
+        for (ValidationResult vr : results) {
+            assertTrue(vr.toString().contains("Output Directory is required"));
+        }
+    }
 
-	@Test
-	public void testOutputDirectoryValidator() {
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		Collection<ValidationResult> results;
-		ProcessContext pc;
+    @Test
+    public void testBothInputAndOutputDirectoriesAreValid() {
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        Collection<ValidationResult> results;
+        ProcessContext pc;
 
-		results = new HashSet<>();
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "/source");
-		runner.enqueue(new byte[0]);
-		pc = runner.getProcessContext();
-		if (pc instanceof MockProcessContext) {
-			results = ((MockProcessContext) pc).validate();
-		}
-		Assert.assertEquals(1, results.size());
-		for (ValidationResult vr : results) {
-			assertTrue(vr.toString().contains("Output Directory is required"));
-		}
-	}
+        results = new HashSet<>();
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        Assert.assertEquals(0, results.size());
+    }
 
-	@Test
-	public void testBothInputAndOutputDirectoriesAreValid() {
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		Collection<ValidationResult> results;
-		ProcessContext pc;
+    @Test
+    public void testOnScheduledShouldRunCleanly() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(7, flowFiles.size());
+    }
 
-		results = new HashSet<>();
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
-		runner.enqueue(new byte[0]);
-		pc = runner.getProcessContext();
-		if (pc instanceof MockProcessContext) {
-			results = ((MockProcessContext) pc).validate();
-		}
-		Assert.assertEquals(0, results.size());
-	}
+    @Test
+    public void testDotFileFilterIgnore() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.IGNORE_DOTTED_FILES, "true");
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(7, flowFiles.size());
+        Assert.assertTrue(new File(INPUT_DIRECTORY, ".dotfile").exists());
+    }
 
-	@Test
-	public void testOnScheduledShouldRunCleanly() {
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
-		runner.enqueue(new byte[0]);
-		runner.setValidateExpressionUsage(false);
-		runner.run();
-		List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
-		runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-		Assert.assertEquals(7, flowFiles.size());
-	}
-	
-	@Test
-	public void testDotFileFilter() throws IOException {
-		createDotFile();
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.IGNORE_DOTTED_FILES, "false");
-		runner.enqueue(new byte[0]);
-		runner.setValidateExpressionUsage(false);
-		runner.run();
-		List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
-		runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-		Assert.assertEquals(8, flowFiles.size());
-	}
-	
-	@Test
-	public void testFileFilterRegex() {
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
-		runner.setProperty(MoveHDFS.FILE_FILTER_REGEX, ".*\\.gz");
-		runner.enqueue(new byte[0]);
-		runner.setValidateExpressionUsage(false);
-		runner.run();
-		List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
-		runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-		Assert.assertEquals(1, flowFiles.size());
-	}
-	
-	@Test
-	public void testSingleFileAsInput() {
-		MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
-		TestRunner runner = TestRunners.newTestRunner(proc);
-		runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
-		runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
-		runner.enqueue(new byte[0]);
-		runner.setValidateExpressionUsage(false);
-		runner.run();
-		List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
-		runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
-		Assert.assertEquals(1, flowFiles.size());
-	}
+    @Test
+    public void testDotFileFilterInclude() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.IGNORE_DOTTED_FILES, "false");
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(8, flowFiles.size());
+    }
 
-	private void createDotFile() throws IOException {
-		File dotFile = new File(DOT_FILE_PATH);
-		dotFile.createNewFile();
-	}
+    @Test
+    public void testFileFilterRegex() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.FILE_FILTER_REGEX, ".*\\.gz");
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+    }
 
-	private static class TestableMoveHDFS extends MoveHDFS {
+    @Test
+    public void testSingleFileAsInputCopy() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OPERATION, "copy");
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertTrue(new File(INPUT_DIRECTORY, "randombytes-1").exists());
+        Assert.assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
+    }
 
-		private KerberosProperties testKerberosProperties;
+    @Test
+    public void testSingleFileAsInputMove() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertFalse(new File(INPUT_DIRECTORY, "randombytes-1").exists());
+        Assert.assertTrue(new File(OUTPUT_DIRECTORY, "randombytes-1").exists());
+    }
 
-		public TestableMoveHDFS(KerberosProperties testKerberosProperties) {
-			this.testKerberosProperties = testKerberosProperties;
-		}
+    @Test
+    public void testDirectoryWithSubDirectoryAsInputMove() throws IOException {
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
+        File subdir = new File(INPUT_DIRECTORY, "subdir");
+        FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), subdir);
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.enqueue(new byte[0]);
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(7, flowFiles.size());
+        Assert.assertTrue(new File(INPUT_DIRECTORY).exists());
+        Assert.assertTrue(subdir.exists());
+    }
 
-		@Override
-		protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-			return testKerberosProperties;
-		}
+    @Test
+    public void testEmptyInputDirectory() throws IOException {
+        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        Files.createDirectories(Paths.get(INPUT_DIRECTORY));
+        runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+        runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+        runner.enqueue(new byte[0]);
+        Assert.assertEquals(0, Files.list(Paths.get(INPUT_DIRECTORY)).count());
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
+        Assert.assertEquals(0, flowFiles.size());
+    }
 
-	}
+    private static class TestableMoveHDFS extends MoveHDFS {
+
+        private KerberosProperties testKerberosProperties;
+
+        public TestableMoveHDFS(KerberosProperties testKerberosProperties) {
+            this.testKerberosProperties = testKerberosProperties;
+        }
+
+        @Override
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
+            return testKerberosProperties;
+        }
+
+    }
 
 }
