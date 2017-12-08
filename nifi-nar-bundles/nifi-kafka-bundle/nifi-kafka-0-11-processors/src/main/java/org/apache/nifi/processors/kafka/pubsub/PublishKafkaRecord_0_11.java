@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -378,7 +379,10 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
             }
 
             // Send each FlowFile to Kafka asynchronously.
-            for (final FlowFile flowFile : flowFiles) {
+            final Iterator<FlowFile> itr = flowFiles.iterator();
+            while (itr.hasNext()) {
+                final FlowFile flowFile = itr.next();
+
                 if (!isScheduled()) {
                     // If stopped, re-queue FlowFile instead of sending it
                     if (useTransactions) {
@@ -388,6 +392,7 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
                     }
 
                     session.transfer(flowFile);
+                    itr.remove();
                     continue;
                 }
 
