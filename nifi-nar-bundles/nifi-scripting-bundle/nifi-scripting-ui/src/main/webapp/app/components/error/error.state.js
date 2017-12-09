@@ -17,6 +17,11 @@
 
 'use strict';
 
+/**
+ * Defines the application general error route.
+ *
+ * @argument {object} $stateProvider       The router state manager
+ */
 var ErrorState = function ($stateProvider) {
 
     $stateProvider

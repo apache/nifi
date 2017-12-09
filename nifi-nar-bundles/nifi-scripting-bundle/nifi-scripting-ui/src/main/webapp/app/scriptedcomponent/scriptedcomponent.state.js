@@ -16,6 +16,11 @@
  */
 'use strict';
 
+/**
+ * Defines a scripted component route.
+ *
+ * @argument {object} $stateProvider       The router state manager
+ */
 var ScriptedComponentState = function ($stateProvider) {
 
     $stateProvider

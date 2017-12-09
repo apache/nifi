@@ -17,6 +17,12 @@
 
 'use strict';
 
+/**
+ * Initializes the main view.
+ *
+ * @argument {object} $scope       The current model
+ * @argument {object} $state       The current router state
+ */
 var MainController = function ($scope, $state) {
 
     // check obtained parameters

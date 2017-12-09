@@ -16,8 +16,16 @@
  */
 'use strict';
 
+/**
+ * Creates the editor UI view. Model changes are saved by a scripted component service 'implementation'.
+ *
+ * @argument {object} $scope       The current model
+ * @argument {object} $state       The current router state
+ * @argument {object} ScriptedComponentFactory       Scripted component service
+ * @argument {object} details       Retrieved NiFi scripted component data
+ */
 var ScriptedComponentController = function ($scope, $state, ScriptedComponentFactory, details) {
-    $scope.processorId = '';
+    $scope.componentId = '';
     $scope.clientId = '';
     $scope.revisionId = '';
     $scope.error = '';
@@ -25,6 +33,11 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
     $scope.editor = {};
     $scope.saveStatus = '';
 
+    /**
+     * Converts given map to array.
+     *
+     * @argument {object} map       The map to be converted
+     */
     $scope.convertToArray = function (map) {
         var labelValueArray = [];
 
@@ -37,28 +50,53 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
         return labelValueArray;
     };
 
+    /**
+     * Extracts the current script body.
+     *
+     * @argument {object} details       The component configuration
+     */
     $scope.getScriptBody = function (details) {
         return details['properties']['Script Body'] ? details['properties']['Script Body'] : '';
     }
 
+    /**
+     * Extracts the chosen script engine.
+     *
+     * @argument {object} details       The component configuration
+     */
     $scope.getScriptEngine = function (details) {
         return details['properties']['Script Engine'] ? details['properties']['Script Engine'] :
             details['descriptors']['Script Engine']['defaultValue'];
     }
 
+    /**
+     * Extracts the available script engines.
+     *
+     * @argument {object} details       The component configuration
+     */
     $scope.getScriptEngineOptions = function (details) {
         return $scope.convertToArray(details['descriptors']['Script Engine']['allowableValues']);
     };
 
+    /**
+     * Fills the current model with component attributes.
+     *
+     * @argument {object} details       The component configuration
+     */
     $scope.populateScopeWithDetails = function (details) {
         $scope.scriptBody = $scope.getScriptBody(details);
         $scope.scriptEngine = $scope.getScriptEngine(details);
         $scope.scriptEngineOptions = $scope.getScriptEngineOptions(details);
     };
 
-    // populete the scope with processor details
+    // fill the scope with scripted component details
     $scope.populateScopeWithDetails(details.data);
 
+    /**
+     * Normalizes NiFi script engine name in order to comply with the CodeMirror API contract.
+     *
+     * @argument {string} scriptEngine       NiFi script engine name
+     */
     $scope.mapMode = function (scriptEngine) {
         var scriptEngineNormalized = scriptEngine.toLowerCase();
 
@@ -66,14 +104,29 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
         return $state.current.data.nameToMime[scriptEngineNormalized] ? $state.current.data.nameToMime[scriptEngineNormalized] : 'application/json';
     }
 
+    /**
+     * Sets highlighting mode for the CodeMirror editor based on the selected script engine.
+     *
+     * @argument {object} editor       CodeMirror editor
+     * @argument {string} scriptEngine       NiFi script engine name
+     */
     $scope.toggleScriptEngine = function (editor, scriptEngine) {
         editor.setOption('mode', $scope.mapMode(scriptEngine));
     }
 
+    /**
+     * Lists globally available highlighting modes of the CodeMirror library.
+     *
+     */
     $scope.getAvailableModes = function () {
         return CodeMirror.mimeModes;
     }
 
+    /**
+     * Indents content of the editor.
+     *
+     * @argument {object} editor       CodeMirror editor
+     */
     $scope.formatEditor = function (editor) {
         // indent every line in the editor
         for (var i = 0; i < editor.lineCount(); i++) {
@@ -81,6 +134,11 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
         }
     }
 
+    /**
+     * Initializes the CodeMirror editor instance.
+     *
+     * @argument {object} editor       CodeMirror editor
+     */
     $scope.initEditor = function (editor) {
         $scope.editor = editor;
 
@@ -103,6 +161,12 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
         onLoad: $scope.initEditor
     };
 
+    /**
+     * Creates a scripted component DTO.
+     *
+     * @argument {string} scriptEngine       NiFi script engine name
+     * @argument {string} scriptBody       Script body
+     */
     $scope.prepareProperties = function (scriptEngine, scriptBody) {
         return {
             'Script Engine': scriptEngine,
@@ -111,16 +175,32 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
         };
     };
 
+    /**
+     * Handles errors during save operation.
+     *
+     * @argument {string} message       Error message
+     * @argument {string} detail       Error message details
+     */
     $scope.showError = function (message, detail) {
         $scope.error = message;
         console.log('Error received:', detail);
     };
 
-    $scope.saveScript = function (scriptEngine, scriptBody, processorId, clientId, revisionId) {
+
+    /**
+     * Saves the current model as configuration of the scripted component.
+     *
+     * @argument {string} scriptEngine       Script engine name
+     * @argument {string} scriptBody       Script body
+     * @argument {string} componentId       The scripted component ID
+     * @argument {string} clientId        The current client ID
+     * @argument {number} revisionId        The current scripted component revision ID
+     */
+    $scope.saveScript = function (scriptEngine, scriptBody, componentId, clientId, revisionId) {
         var properties = $scope.prepareProperties(scriptEngine, scriptBody);
 
         // save current properties
-        ScriptedComponentFactory.setProperties(processorId, revisionId, clientId, properties)
+        ScriptedComponentFactory.setProperties(componentId, revisionId, clientId, properties)
             .then(function (response) {
                 var details = response.data;
                 $scope.populateScopeWithDetails(details);
@@ -131,8 +211,13 @@ var ScriptedComponentController = function ($scope, $state, ScriptedComponentFac
             });
     };
 
+    /**
+     * Populates the view with given component configuration.
+     *
+     * @argument {object} params       Passed scripted component configuration
+     */
     $scope.initController = function (params) {
-        $scope.processorId = params.id;
+        $scope.componentId = params.id;
         $scope.clientId = params.clientId;
         $scope.revisionId = params.revision;
         $scope.editable = eval(params.editable);

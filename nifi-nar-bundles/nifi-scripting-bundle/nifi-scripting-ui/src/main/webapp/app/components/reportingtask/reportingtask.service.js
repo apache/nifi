@@ -17,6 +17,11 @@
 
 'use strict';
 
+/**
+ * Defines data service for a scripted reporting task.
+ *
+ * @argument {object} $http       HTTP service
+ */
 var ReportingTaskService = function ReportingTaskService($http) {
 
     return {
@@ -25,6 +30,14 @@ var ReportingTaskService = function ReportingTaskService($http) {
         'getDetails': getDetails
     };
 
+    /**
+     * Sets configuration for specified scripted reporting task.
+     *
+     * @argument {string} reportingTaskId       The reporting task ID
+     * @argument {number} revisionId        The current reporting task revision ID
+     * @argument {string} clientId        The current client ID
+     * @argument {object} properties        New reporting task configuration
+     */
     function setProperties(reportingTaskId, revisionId, clientId, properties) {
         var urlParams = 'reportingTaskId=' + reportingTaskId + '&revisionId=' + revisionId + '&clientId=' + clientId;
         return $http({
@@ -34,6 +47,11 @@ var ReportingTaskService = function ReportingTaskService($http) {
         });
     }
 
+    /**
+     * Gets component type of specified scripted reporting task.
+     *
+     * @argument {string} id       The reporting task ID
+     */
     function getType(id) {
         return $http({
             url: "api/standard/reporting-task/details?reportingTaskId=" + id,
@@ -46,6 +64,11 @@ var ReportingTaskService = function ReportingTaskService($http) {
         });
     }
 
+    /**
+     * Gets configuration of specified scripted reporting task.
+     *
+     * @argument {string} id       The reporting task ID
+     */
     function getDetails(id) {
         return $http({
             url: "api/standard/reporting-task/details?reportingTaskId=" + id,

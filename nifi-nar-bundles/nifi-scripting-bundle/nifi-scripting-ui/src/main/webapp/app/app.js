@@ -17,7 +17,14 @@
 
 'use strict';
 
-var AppRun =  function($rootScope,$state,$http){
+/**
+ * AngularJS run block. Configures an authorizaton and error handlers.
+ *
+ * @argument {object} $rootScope       The root application scope
+ * @argument {object} $state       The router state
+ * @argument {object} $http       HTTP service
+ */
+var AppRun = function($rootScope,$state,$http){
 
     if (nf.Storage.hasItem('jwt')) {
         var token = nf.Storage.getItem('jwt');
@@ -31,6 +38,12 @@ var AppRun =  function($rootScope,$state,$http){
 
 };
 
+/**
+ * AngularJS config block. Defines a default route and used Material Design theme.
+ *
+ * @argument {object} $urlRouterProvider       The client URL provider
+ * @argument {object} $mdThemingProvider       The Material Design theme configurator
+ */
 var AppConfig = function ($urlRouterProvider,$mdThemingProvider) {
 
     $urlRouterProvider.otherwise(function($injector,$location){

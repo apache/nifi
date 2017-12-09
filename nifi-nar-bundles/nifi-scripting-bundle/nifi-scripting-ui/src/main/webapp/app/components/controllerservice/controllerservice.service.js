@@ -17,6 +17,11 @@
 
 'use strict';
 
+/**
+ * Defines data service for a scripted controller service.
+ *
+ * @argument {object} $http       HTTP service
+ */
 var ControllerServiceService = function ControllerServiceService($http) {
 
     return {
@@ -25,6 +30,14 @@ var ControllerServiceService = function ControllerServiceService($http) {
         'getDetails': getDetails
     };
 
+    /**
+     * Sets configuration for specified scripted controller service.
+     *
+     * @argument {string} controllerServiceId       The controller service ID
+     * @argument {number} revisionId        The current controller service revision ID
+     * @argument {string} clientId        The current client ID
+     * @argument {object} properties        New controller service configuration
+     */
     function setProperties(controllerServiceId, revisionId, clientId, properties) {
         var urlParams = 'controllerServiceId=' + controllerServiceId + '&revisionId=' + revisionId + '&clientId=' + clientId;
         return $http({
@@ -34,6 +47,11 @@ var ControllerServiceService = function ControllerServiceService($http) {
         });
     }
 
+    /**
+     * Gets component type of specified scripted controller service.
+     *
+     * @argument {string} id       The controller service ID
+     */
     function getType(id) {
         return $http({
             url: "api/standard/controller-service/details?controllerServiceId=" + id,
@@ -46,6 +64,11 @@ var ControllerServiceService = function ControllerServiceService($http) {
         });
     }
 
+    /**
+     * Gets configuration of specified scripted controller service.
+     *
+     * @argument {string} id       The controller service ID
+     */
     function getDetails(id) {
         return $http({
             url: "api/standard/controller-service/details?controllerServiceId=" + id,

@@ -17,6 +17,11 @@
 
 'use strict';
 
+/**
+ * Defines data service for a scripted processor.
+ *
+ * @argument {object} $http       HTTP service
+ */
 var ProcessorService = function ProcessorService($http) {
 
     return {
@@ -25,6 +30,14 @@ var ProcessorService = function ProcessorService($http) {
         'getDetails': getDetails
     };
 
+    /**
+     * Sets configuration for specified scripted processor.
+     *
+     * @argument {string} processorId       The processor ID
+     * @argument {number} revisionId        The current processor revision ID
+     * @argument {string} clientId        The current client ID
+     * @argument {object} properties        New processor configuration
+     */
     function setProperties(processorId, revisionId, clientId, properties) {
         var urlParams = 'processorId=' + processorId + '&revisionId=' + revisionId + '&clientId=' + clientId;
         return $http({
@@ -34,6 +47,11 @@ var ProcessorService = function ProcessorService($http) {
         });
     }
 
+    /**
+     * Gets component type of specified scripted processor.
+     *
+     * @argument {string} id       The processor ID
+     */
     function getType(id) {
         return $http({
             url: "api/standard/processor/details?processorId=" + id,
@@ -46,6 +64,11 @@ var ProcessorService = function ProcessorService($http) {
         });
     }
 
+    /**
+     * Gets configuration of specified scripted processor.
+     *
+     * @argument {string} id       The processor ID
+     */
     function getDetails(id) {
         return $http({
             url: "api/standard/processor/details?processorId=" + id,

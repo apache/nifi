@@ -17,6 +17,11 @@
 
 'use strict';
 
+/**
+ * Defines the application main route.
+ *
+ * @argument {object} $stateProvider       The router state manager
+ */
 var MainState = function($stateProvider) {
 
     $stateProvider

@@ -17,6 +17,12 @@
 
 'use strict';
 
+/**
+ * Creates a scripted component service 'implementation'.
+ *
+ * @argument {object} $state       The current router state
+ * @argument {object} $injector       Dependency retriever
+ */
 var ScriptedComponentFactory = function ScriptedComponentFactory($state, $injector) {
 
     // chose a service based on the given entity type
