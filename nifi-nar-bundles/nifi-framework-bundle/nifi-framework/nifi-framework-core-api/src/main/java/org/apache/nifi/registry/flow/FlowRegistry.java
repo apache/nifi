@@ -212,6 +212,5 @@ public interface FlowRegistry {
      * @throws IOException if unable to communicate with the Flow Registry
      * @throws NiFiRegistryException if unable to find a flow with the given bucket ID and flow ID
      */
-    // TODO: Do we still need this?
     VersionedFlow getVersionedFlow(String bucketId, String flowId) throws IOException, NiFiRegistryException;
 }

@@ -965,7 +965,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Disconnects this Process Group from version control. If not currently under version control, this method does nothing.
      */
-    void disconnectVersionControl();
+    void disconnectVersionControl(boolean removeVersionedComponentIds);
 
     /**
      * Synchronizes the Process Group with the given Flow Registry, determining whether or not the local flow

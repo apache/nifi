@@ -234,6 +234,7 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -2372,25 +2373,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * </p>
      *
      * @param group group
-     * @param templateContents contents
+     * @param snippetContents contents
      */
-    private void validateSnippetContents(final ProcessGroup group, final FlowSnippetDTO templateContents) {
+    private void validateSnippetContents(final ProcessGroup group, final FlowSnippetDTO snippetContents) {
         // validate the names of Input Ports
-        for (final PortDTO port : templateContents.getInputPorts()) {
+        for (final PortDTO port : snippetContents.getInputPorts()) {
             if (group.getInputPortByName(port.getName()) != null) {
                 throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 
         // validate the names of Output Ports
-        for (final PortDTO port : templateContents.getOutputPorts()) {
+        for (final PortDTO port : snippetContents.getOutputPorts()) {
             if (group.getOutputPortByName(port.getName()) != null) {
                 throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 
-        verifyComponentTypesInSnippet(templateContents);
+        verifyComponentTypesInSnippet(snippetContents);
+
+        SnippetUtils.verifyNoVersionControlConflicts(snippetContents, group);
     }
+
 
     /**
      * Recursively finds all ConnectionDTO's

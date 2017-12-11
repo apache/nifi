@@ -172,21 +172,23 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
         }
 
-        controllerService.getProcessGroup().onComponentModified();
-
-        // For any component that references this Controller Service, find the component's Process Group
-        // and notify the Process Group that a component has been modified. This way, we know to re-calculate
-        // whether or not the Process Group has local modifications.
         final ProcessGroup group = controllerService.getProcessGroup();
-        controllerService.getReferences().getReferencingComponents().stream()
-            .map(ConfiguredComponent::getProcessGroupIdentifier)
-            .filter(id -> !id.equals(group.getIdentifier()))
-            .forEach(groupId -> {
-                final ProcessGroup descendant = group.findProcessGroup(groupId);
-                if (descendant != null) {
-                    descendant.onComponentModified();
-                }
-            });
+        if (group != null) {
+            group.onComponentModified();
+
+            // For any component that references this Controller Service, find the component's Process Group
+            // and notify the Process Group that a component has been modified. This way, we know to re-calculate
+            // whether or not the Process Group has local modifications.
+            controllerService.getReferences().getReferencingComponents().stream()
+                .map(ConfiguredComponent::getProcessGroupIdentifier)
+                .filter(id -> !id.equals(group.getIdentifier()))
+                .forEach(groupId -> {
+                    final ProcessGroup descendant = group.findProcessGroup(groupId);
+                    if (descendant != null) {
+                        descendant.onComponentModified();
+                    }
+                });
+        }
 
         return controllerService;
     }

@@ -48,6 +48,9 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
     private void mergeVersionControlInformation(ProcessGroupEntity targetGroup, ProcessGroupEntity toMerge) {
         final ProcessGroupDTO targetGroupDto = targetGroup.getComponent();
         final ProcessGroupDTO toMergeGroupDto = toMerge.getComponent();
+        if (targetGroupDto == null || toMergeGroupDto == null) {
+            return;
+        }
 
         final VersionControlInformationDTO targetVersionControl = targetGroupDto.getVersionControlInformation();
         final VersionControlInformationDTO toMergeVersionControl = toMergeGroupDto.getVersionControlInformation();
