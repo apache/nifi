@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -68,10 +69,14 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
         + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query. FlowFile attribute 'executesql.row.count' indicates how many rows were selected.")
-@WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query")
+@WritesAttributes({
+    @WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query"),
+    @WritesAttribute(attribute="executesql.query.duration", description = "Duration of the query in milliseconds")
+})
 public class ExecuteSQL extends AbstractProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
+    public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -191,42 +196,84 @@ public class ExecuteSQL extends AbstractProcessor {
             selectQuery = queryContents.toString();
         }
 
+        int resultCount=0;
         try (final Connection con = dbcpService.getConnection();
             final Statement st = con.createStatement()) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
-            final AtomicLong nrOfRows = new AtomicLong(0L);
-            if (fileToProcess == null) {
-                fileToProcess = session.create();
-            }
-            fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    try {
-                        logger.debug("Executing query {}", new Object[]{selectQuery});
-                        final ResultSet resultSet = st.executeQuery(selectQuery);
-                        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
-                                .convertNames(convertNamesForAvro)
-                                .useLogicalTypes(useAvroLogicalTypes)
-                                .defaultPrecision(defaultPrecision)
-                                .defaultScale(defaultScale)
-                                .build();
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, null));
-                    } catch (final SQLException e) {
-                        throw new ProcessException(e);
-                    }
+
+            logger.debug("Executing query {}", new Object[]{selectQuery});
+            boolean results = st.execute(selectQuery);
+
+
+            while(results){
+                FlowFile resultSetFF;
+                if(fileToProcess == null){
+                    resultSetFF = session.create();
+                } else {
+                    resultSetFF = session.create(fileToProcess);
+                    resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
                 }
-            });
 
-            // set attribute how many rows were selected
-            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-            fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
+                final AtomicLong nrOfRows = new AtomicLong(0L);
+                resultSetFF = session.write(resultSetFF, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream out) throws IOException {
+                        try {
 
-            logger.info("{} contains {} Avro records; transferring to 'success'",
-                    new Object[]{fileToProcess, nrOfRows.get()});
-            session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
-                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(fileToProcess, REL_SUCCESS);
+                            final ResultSet resultSet = st.getResultSet();
+                            final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
+                                    .convertNames(convertNamesForAvro)
+                                    .useLogicalTypes(useAvroLogicalTypes)
+                                    .defaultPrecision(defaultPrecision)
+                                    .defaultScale(defaultScale)
+                                    .build();
+                            nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, null));
+                        } catch (final SQLException e) {
+                            throw new ProcessException(e);
+                        }
+                    }
+                });
+
+                long duration = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+
+                // set attribute how many rows were selected
+                resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+                resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_DURATION, String.valueOf(duration));
+                resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
+
+                logger.info("{} contains {} Avro records; transferring to 'success'",
+                        new Object[]{resultSetFF, nrOfRows.get()});
+                session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", duration);
+                session.transfer(resultSetFF, REL_SUCCESS);
+
+                resultCount++;
+                // are there anymore result sets?
+                try{
+                    results = st.getMoreResults();
+                } catch(SQLException ex){
+                    results = false;
+                }
+            }
+
+            //If we had at least one result then it's OK to drop the original file, but if we had no results then
+            //  pass the original flow file down the line to trigger downstream processors
+            if(fileToProcess != null){
+                if(resultCount > 0){
+                    session.remove(fileToProcess);
+                } else {
+                    fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
+                        @Override
+                        public void process(OutputStream out) throws IOException {
+                            JdbcCommon.createEmptyAvroStream(out);
+                        }
+                    });
+
+                    session.transfer(fileToProcess, REL_SUCCESS);
+                }
+            }
         } catch (final ProcessException | SQLException e) {
+            //If we had at least one result then it's OK to drop the original file, but if we had no results then
+            //  pass the original flow file down the line to trigger downstream processors
             if (fileToProcess == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("Unable to execute SQL select query {} due to {}. No FlowFile to route to failure",

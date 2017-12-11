@@ -41,9 +41,6 @@
     <!-- Logger for managing logging statements for jetty -->
     <logger name="org.mortbay" level="INFO"/>
 
-    <!-- Suppress non-error messages due to excessive logging by class -->
-    <logger name="com.sun.jersey.spi.container.servlet.WebComponent" level="ERROR"/>
-
     <logger name="org.apache.nifi.processors.standard" level="DEBUG"/>
 
     <root level="INFO">

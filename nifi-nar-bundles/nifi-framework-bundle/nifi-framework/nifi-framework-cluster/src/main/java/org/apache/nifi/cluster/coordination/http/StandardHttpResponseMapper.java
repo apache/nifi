@@ -69,6 +69,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.UserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UserGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.UsersEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.VariableRegistryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
@@ -153,6 +154,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new UserGroupEndpointMerger());
         endpointMergers.add(new AccessPolicyEndpointMerger());
         endpointMergers.add(new SearchUsersEndpointMerger());
+        endpointMergers.add(new VariableRegistryEndpointMerger());
     }
 
     @Override

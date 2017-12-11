@@ -388,4 +388,38 @@ public class TestAttributesToJSON {
         Set<String> coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
         val.keySet().forEach(k -> assertTrue(coreAttributes.contains(k)));
     }
+
+    @Test
+    public void testAttributesRegex() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setVariable("regex", "delimited\\.header\\.column\\.[0-9]+");
+        testRunner.setProperty(AttributesToJSON.ATTRIBUTES_REGEX, "${regex}");
+        testRunner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, "test, test1");
+
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("delimited.header.column.1", "Registry");
+        attributes.put("delimited.header.column.2", "Assignment");
+        attributes.put("delimited.header.column.3", "Organization Name");
+        attributes.put("delimited.header.column.4", "Organization Address");
+        attributes.put("delimited.footer.column.1", "not included");
+        attributes.put("test", "test");
+        attributes.put("test1", "test1");
+        testRunner.enqueue("".getBytes(), attributes);
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0);
+
+        Map<String, String> val = new ObjectMapper().readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
+        assertTrue(val.keySet().contains("delimited.header.column.1"));
+        assertTrue(val.keySet().contains("delimited.header.column.2"));
+        assertTrue(val.keySet().contains("delimited.header.column.3"));
+        assertTrue(val.keySet().contains("delimited.header.column.4"));
+        assertTrue(!val.keySet().contains("delimited.footer.column.1"));
+        assertTrue(val.keySet().contains("test"));
+        assertTrue(val.keySet().contains("test1"));
+    }
 }

@@ -15,7 +15,7 @@
 -->
 <web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
     <display-name>nifi</display-name>
-    
+
     <!-- servlet to map to canvas page -->
     <servlet>
         <servlet-name>NiFiCanvas</servlet-name>
@@ -25,7 +25,7 @@
         <servlet-name>NiFiCanvas</servlet-name>
         <url-pattern>/canvas</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to summary page -->
     <servlet>
         <servlet-name>NiFiSummary</servlet-name>
@@ -35,7 +35,7 @@
         <servlet-name>NiFiSummary</servlet-name>
         <url-pattern>/summary</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to history page -->
     <servlet>
         <servlet-name>NiFiHistory</servlet-name>
@@ -45,7 +45,7 @@
         <servlet-name>NiFiHistory</servlet-name>
         <url-pattern>/history</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to provenance page -->
     <servlet>
         <servlet-name>NiFiProvenance</servlet-name>
@@ -55,7 +55,7 @@
         <servlet-name>NiFiProvenance</servlet-name>
         <url-pattern>/provenance</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to counters page -->
     <servlet>
         <servlet-name>NiFiCounters</servlet-name>
@@ -65,7 +65,7 @@
         <servlet-name>NiFiCounters</servlet-name>
         <url-pattern>/counters</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to templates page -->
     <servlet>
         <servlet-name>NiFiTemplates</servlet-name>
@@ -75,7 +75,7 @@
         <servlet-name>NiFiTemplates</servlet-name>
         <url-pattern>/templates</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to users page -->
     <servlet>
         <servlet-name>NiFiUsers</servlet-name>
@@ -85,7 +85,7 @@
         <servlet-name>NiFiUsers</servlet-name>
         <url-pattern>/users</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to cluster page -->
     <servlet>
         <servlet-name>NiFiCluster</servlet-name>
@@ -95,7 +95,7 @@
         <servlet-name>NiFiCluster</servlet-name>
         <url-pattern>/cluster</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to map to bulletin board page -->
     <servlet>
         <servlet-name>BulletinBoard</servlet-name>
@@ -105,7 +105,7 @@
         <servlet-name>BulletinBoard</servlet-name>
         <url-pattern>/bulletin-board</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to support message page -->
     <servlet>
         <servlet-name>MessagePage</servlet-name>
@@ -115,7 +115,7 @@
         <servlet-name>MessagePage</servlet-name>
         <url-pattern>/message</url-pattern>
     </servlet-mapping>
-    
+
     <!-- servlet to login page -->
     <servlet>
         <servlet-name>Login</servlet-name>
@@ -125,7 +125,17 @@
         <servlet-name>Login</servlet-name>
         <url-pattern>/login</url-pattern>
     </servlet-mapping>
-    
+
+    <!-- login filter -->
+    <filter>
+        <filter-name>LoginFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.LoginFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>LoginFilter</filter-name>
+        <url-pattern>/login</url-pattern>
+    </filter-mapping>
+
     <welcome-file-list>
         <welcome-file>canvas.jsp</welcome-file>
         <welcome-file>/WEB-INF/pages/canvas.jsp</welcome-file>

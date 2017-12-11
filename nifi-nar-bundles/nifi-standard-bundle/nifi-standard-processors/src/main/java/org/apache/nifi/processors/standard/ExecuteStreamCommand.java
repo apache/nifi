@@ -46,10 +46,10 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -115,7 +115,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * </li>
  * <li>output-stream
  * <ul>
- * <li>The destination path for the flow file created from the command's output</li>
+ * <li>The destination path for the flow file created from the command's output, if the exit code is zero</li>
+ * </ul>
+ * </li>
+ * <li>nonzero-status
+ * <ul>
+ * <li>The destination path for the flow file created from the command's output, if the exit code is non-zero</li>
  * </ul>
  * </li>
  * </ul>
@@ -138,11 +143,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()
             .name("original")
-            .description("FlowFiles that were successfully processed")
+            .description("FlowFiles that were successfully processed.")
             .build();
     public static final Relationship OUTPUT_STREAM_RELATIONSHIP = new Relationship.Builder()
             .name("output stream")
-            .description("The destination path for the flow file created from the command's output")
+            .description("The destination path for the flow file created from the command's output, if the returned status code is zero.")
+            .build();
+    public static final Relationship NONZERO_STATUS_RELATIONSHIP = new Relationship.Builder()
+            .name("nonzero status")
+            .description("The destination path for the flow file created from the command's output, if the returned status code is non-zero. "
+                    + "All flow files routed to this relationship will be penalized.")
             .build();
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
@@ -198,7 +208,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor PUT_OUTPUT_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Output Destination Attribute")
             .description("If set, the output of the stream command will be put into an attribute of the original FlowFile instead of a separate "
-                    + "FlowFile. There will no longer be a relationship for 'output stream'. The value of this property will be the key for the output attribute.")
+                    + "FlowFile. There will no longer be a relationship for 'output stream' or 'nonzero status'. The value of this property will be the key for the output attribute.")
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
             .build();
 
@@ -222,7 +232,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .defaultValue(";")
             .build();
 
-
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
@@ -240,6 +249,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         Set<Relationship> outputStreamRelationships = new HashSet<>();
         outputStreamRelationships.add(OUTPUT_STREAM_RELATIONSHIP);
         outputStreamRelationships.add(ORIGINAL_RELATIONSHIP);
+        outputStreamRelationships.add(NONZERO_STATUS_RELATIONSHIP);
         OUTPUT_STREAM_RELATIONSHIP_SET = Collections.unmodifiableSet(outputStreamRelationships);
 
         Set<Relationship> attributeRelationships = new HashSet<>();
@@ -339,10 +349,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             throw new ProcessException(e);
         }
         try (final OutputStream pos = process.getOutputStream();
-                final InputStream pis = process.getInputStream();
-                final InputStream pes = process.getErrorStream();
-                final BufferedInputStream bis = new BufferedInputStream(pis);
-                final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
+             final InputStream pis = process.getInputStream();
+             final InputStream pes = process.getErrorStream();
+             final BufferedInputStream bis = new BufferedInputStream(pis);
+             final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
@@ -373,7 +383,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             int length = strBldr.length() > 4000 ? 4000 : strBldr.length();
             attributes.put("execution.error", strBldr.substring(0, length));
 
-            final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
+            final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : (exitCode != 0) ? NONZERO_STATUS_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
             if (exitCode == 0) {
                 logger.info("Transferring flow file {} to {}",
                         new Object[]{outputFlowFile,outputFlowFileRelationship.getName()});
@@ -387,7 +397,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             attributes.put("execution.command.args", commandArguments);
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
 
-            // This transfer will transfer the FlowFile that received the stream out put to it's destined relationship.
+            if (NONZERO_STATUS_RELATIONSHIP.equals(outputFlowFileRelationship)) {
+                outputFlowFile = session.penalize(outputFlowFile);
+            }
+            // This will transfer the FlowFile that received the stream output to its destined relationship.
             // In the event the stream is put to the an attribute of the original, it will be transferred here.
             session.transfer(outputFlowFile, outputFlowFileRelationship);
 

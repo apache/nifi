@@ -797,7 +797,7 @@
             var markup = '';
 
             // ensure user can modify the user
-            if (configurableUsersAndGroups && nfCommon.canModifyTenants()) {
+            if (configurableUsersAndGroups && dataContext.component.configurable === true && nfCommon.canModifyTenants()) {
                 markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }

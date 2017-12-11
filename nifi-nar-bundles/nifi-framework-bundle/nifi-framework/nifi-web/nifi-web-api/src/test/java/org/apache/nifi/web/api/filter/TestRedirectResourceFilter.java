@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.web.api.filter;
 
-import com.sun.jersey.spi.container.ContainerRequest;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
@@ -38,13 +39,16 @@ public class TestRedirectResourceFilter {
 
     @Test
     public void testUnmatched() throws Exception {
-
-        ContainerRequest request = mock(ContainerRequest.class);
         String path = "unmatched";
         String baseUri = "http://example.com:8080/nifi-api/";
-        when(request.getPath()).thenReturn(path);
-        when(request.getBaseUri()).thenReturn(new URI(baseUri));
-        when(request.getRequestUri()).thenReturn(new URI(baseUri + path));
+
+        UriInfo uriInfo = mock(UriInfo.class);
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
+        when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path));
+
+        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(new Answer() {
             @Override
@@ -52,22 +56,24 @@ public class TestRedirectResourceFilter {
                 fail("setUris shouldn't be called");
                 return null;
             }
-        }).when(request).setUris(any(URI.class), any(URI.class));
+        }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);
-
     }
 
     @Test
     public void testController() throws Exception {
-
-        ContainerRequest request = mock(ContainerRequest.class);
         String path = "controller";
         String baseUri = "http://example.com:8080/nifi-api/";
-        when(request.getPath()).thenReturn(path);
-        when(request.getBaseUri()).thenReturn(new URI(baseUri));
-        when(request.getRequestUri()).thenReturn(new URI(baseUri + path));
+
+        UriInfo uriInfo = mock(UriInfo.class);
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
+        when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path));
+
+        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(new Answer() {
             @Override
@@ -76,7 +82,7 @@ public class TestRedirectResourceFilter {
                 assertEquals("request uri should be redirected", new URI(baseUri + "site-to-site"), invocation.getArguments()[1]);
                 return null;
             }
-        }).when(request).setUris(any(URI.class), any(URI.class));
+        }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);
@@ -85,14 +91,17 @@ public class TestRedirectResourceFilter {
 
     @Test
     public void testControllerWithParams() throws Exception {
-
-        ContainerRequest request = mock(ContainerRequest.class);
         String path = "controller";
         String baseUri = "http://example.com:8080/nifi-api/";
         String query = "?a=1&b=23&cde=456";
-        when(request.getPath()).thenReturn(path);
-        when(request.getBaseUri()).thenReturn(new URI(baseUri));
-        when(request.getRequestUri()).thenReturn(new URI(baseUri + path + query));
+
+        UriInfo uriInfo = mock(UriInfo.class);
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
+        when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path + query));
+
+        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(new Answer() {
             @Override
@@ -102,7 +111,7 @@ public class TestRedirectResourceFilter {
                         new URI(baseUri + "site-to-site" + query), invocation.getArguments()[1]);
                 return null;
             }
-        }).when(request).setUris(any(URI.class), any(URI.class));
+        }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);

@@ -103,10 +103,12 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
+     * @param includeCounters specifies whether or not metrics from Processor counters
+     * should be included in the StatusHistory.
      * @return a {@link StatusHistory} that provides the status information
      * about the Processor with the given ID during the given time period
      */
-    StatusHistory getProcessorStatusHistory(String processorId, Date start, Date end, int preferredDataPoints);
+    StatusHistory getProcessorStatusHistory(String processorId, Date start, Date end, int preferredDataPoints, boolean includeCounters);
 
     /**
      * @param remoteGroupId to get history of

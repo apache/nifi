@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.status;
 
+import org.apache.nifi.scheduling.ExecutionNode;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,6 +31,7 @@ public class ProcessorStatus implements Cloneable {
     private String name;
     private String type;
     private RunStatus runStatus;
+    private ExecutionNode executionNode;
     private int inputCount;
     private long inputBytes;
     private int outputCount;
@@ -42,6 +47,7 @@ public class ProcessorStatus implements Cloneable {
     private long bytesReceived;
     private int flowFilesSent;
     private long bytesSent;
+    private Map<String, Long> counters;
 
     public String getId() {
         return id;
@@ -85,6 +91,14 @@ public class ProcessorStatus implements Cloneable {
 
     public void setRunStatus(RunStatus runStatus) {
         this.runStatus = runStatus;
+    }
+
+    public ExecutionNode getExecutionNode() {
+        return executionNode;
+    }
+
+    public void setExecutionNode(ExecutionNode executionNode) {
+        this.executionNode = executionNode;
     }
 
     public void setInputCount(final int inputCount) {
@@ -211,6 +225,14 @@ public class ProcessorStatus implements Cloneable {
         this.bytesSent = bytesSent;
     }
 
+    public Map<String, Long> getCounters() {
+        return counters;
+    }
+
+    public void setCounters(final Map<String, Long> counters) {
+        this.counters = counters;
+    }
+
     @Override
     public ProcessorStatus clone() {
         final ProcessorStatus clonedObj = new ProcessorStatus();
@@ -233,7 +255,9 @@ public class ProcessorStatus implements Cloneable {
         clonedObj.averageLineageDuration = averageLineageDuration;
         clonedObj.flowFilesRemoved = flowFilesRemoved;
         clonedObj.runStatus = runStatus;
+        clonedObj.executionNode = executionNode;
         clonedObj.type = type;
+        clonedObj.counters = counters == null ? null : new HashMap<>(counters);
         return clonedObj;
     }
 
@@ -250,6 +274,8 @@ public class ProcessorStatus implements Cloneable {
         builder.append(type);
         builder.append(", runStatus=");
         builder.append(runStatus);
+        builder.append(", executionNode=");
+        builder.append(executionNode);
         builder.append(", inputCount=");
         builder.append(inputCount);
         builder.append(", inputBytes=");
@@ -268,6 +294,8 @@ public class ProcessorStatus implements Cloneable {
         builder.append(processingNanos);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
+        builder.append(", counters=");
+        builder.append(counters);
         builder.append("]");
         return builder.toString();
     }

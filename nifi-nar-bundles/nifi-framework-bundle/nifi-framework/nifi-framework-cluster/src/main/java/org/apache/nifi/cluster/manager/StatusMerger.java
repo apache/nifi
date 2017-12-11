@@ -362,6 +362,11 @@ public class StatusMerger {
 
         merge(target.getAggregateSnapshot(), targetReadablePermission, toMerge.getAggregateSnapshot(), toMergeReadablePermission);
 
+        // ensure the aggregate snapshot was specified before promoting the runStatus to the status dto
+        if (target.getAggregateSnapshot() != null) {
+            target.setRunStatus(target.getAggregateSnapshot().getRunStatus());
+        }
+
         if (target.getNodeSnapshots() != null) {
             final NodeProcessorStatusSnapshotDTO nodeSnapshot = new NodeProcessorStatusSnapshotDTO();
             nodeSnapshot.setStatusSnapshot(toMerge.getAggregateSnapshot());
@@ -608,6 +613,7 @@ public class StatusMerger {
         target.setUsedNonHeapBytes(target.getUsedNonHeapBytes() + toMerge.getUsedNonHeapBytes());
 
         merge(target.getContentRepositoryStorageUsage(), toMerge.getContentRepositoryStorageUsage());
+        merge(target.getProvenanceRepositoryStorageUsage(), toMerge.getProvenanceRepositoryStorageUsage());
         merge(target.getFlowFileRepositoryStorageUsage(), toMerge.getFlowFileRepositoryStorageUsage());
         mergeGarbageCollection(target.getGarbageCollection(), toMerge.getGarbageCollection());
 

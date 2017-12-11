@@ -34,6 +34,7 @@
 
 #read-only-processor-comments {
     height: 100%;
+    white-space: pre-wrap;
 }
 
 #read-only-processor-bundle {

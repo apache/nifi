@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -75,4 +76,12 @@ public interface ReportingInitializationContext extends KerberosContext {
      * way and generate bulletins when appropriate
      */
     ComponentLog getLogger();
+
+    /**
+     * @return the {@link NodeTypeProvider} which can be used to detect the node
+     * type of this NiFi instance.
+     * @since Apache NiFi 1.5.0
+     */
+    NodeTypeProvider getNodeTypeProvider();
+
 }

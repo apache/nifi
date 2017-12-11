@@ -147,22 +147,22 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return schemaAccessStrategyList;
     }
 
-    protected SchemaAccessWriter getSchemaWriteStrategy(final String allowableValue) {
-        if (allowableValue == null) {
+    protected SchemaAccessWriter getSchemaWriteStrategy(final String strategy) {
+        if (strategy == null) {
             return null;
         }
 
-        if (allowableValue.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
+        if (strategy.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
             return new SchemaNameAsAttribute();
-        } else if (allowableValue.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
+        } else if (strategy.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
             return new WriteAvroSchemaAttributeStrategy();
-        } else if (allowableValue.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
+        } else if (strategy.equalsIgnoreCase(HWX_CONTENT_ENCODED_SCHEMA.getValue())) {
             return new HortonworksEncodedSchemaReferenceWriter();
-        } else if (allowableValue.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
+        } else if (strategy.equalsIgnoreCase(HWX_SCHEMA_REF_ATTRIBUTES.getValue())) {
             return new HortonworksAttributeSchemaReferenceWriter();
-        } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
+        } else if (strategy.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
             return new ConfluentSchemaRegistryWriter();
-        } else if (allowableValue.equalsIgnoreCase(NO_SCHEMA.getValue())) {
+        } else if (strategy.equalsIgnoreCase(NO_SCHEMA.getValue())) {
             return new NopSchemaAccessWriter();
         }
 

@@ -69,6 +69,7 @@ public class TestPutSolrContentStream {
 
     static final SolrDocument expectedDoc1 = new SolrDocument();
     static {
+        expectedDoc1.addField("id", "1");
         expectedDoc1.addField("first", "John");
         expectedDoc1.addField("last", "Doe");
         expectedDoc1.addField("grade", 8);
@@ -79,6 +80,7 @@ public class TestPutSolrContentStream {
 
     static final SolrDocument expectedDoc2 = new SolrDocument();
     static {
+        expectedDoc2.addField("id", "2");
         expectedDoc2.addField("first", "John");
         expectedDoc2.addField("last", "Doe");
         expectedDoc2.addField("grade", 8);
@@ -137,6 +139,7 @@ public class TestPutSolrContentStream {
         runner.setProperty("f.4", "subject:/exams/subject");
         runner.setProperty("f.5", "test:/exams/test");
         runner.setProperty("f.6", "marks:/exams/marks");
+        runner.setProperty("f.7", "id:/exams/id");
 
         try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
             runner.enqueue(fileIn);
@@ -162,7 +165,7 @@ public class TestPutSolrContentStream {
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/csv");
-        runner.setProperty("fieldnames", "first,last,grade,subject,test,marks");
+        runner.setProperty("fieldnames", "id,first,last,grade,subject,test,marks");
 
         try (FileInputStream fileIn = new FileInputStream(CSV_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
@@ -219,6 +222,7 @@ public class TestPutSolrContentStream {
 
         // add a document so there is something to delete
         SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("id", "1");
         doc.addField("first", "bob");
         doc.addField("last", "smith");
         doc.addField("created", new Date());

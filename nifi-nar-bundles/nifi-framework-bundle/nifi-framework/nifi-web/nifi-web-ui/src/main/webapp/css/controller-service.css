@@ -79,6 +79,10 @@ ul.referencing-component-listing li {
     white-space: nowrap;
 }
 
+div.referencing-component-state {
+    width: 13px;
+}
+
 div.referencing-component-state.disabled:before {
     content: '\e802';
     font-family: flowfont;
@@ -144,6 +148,11 @@ div.controller-service-canceling {
 
 #controller-service-comments {
     height: 100%;
+}
+
+#read-only-controller-service-comments {
+    height: 100%;
+    white-space: pre-wrap;
 }
 
 /*
@@ -228,7 +237,7 @@ div.disable-referencing-components, div.enable-referencing-components {
     New inline controller service dialog
 */
 
-div.new-inline-controller-service-requirement, div.new-inline-controller-service-combo, div.new-inline-controller-service-bundle, div.new-inline-controller-service-tags {
+div.new-inline-controller-service-requirement, div.new-inline-controller-service-combo, input.new-inline-controller-service-name, div.new-inline-controller-service-bundle, div.new-inline-controller-service-tags {
     margin-bottom: 15px;
 }
 

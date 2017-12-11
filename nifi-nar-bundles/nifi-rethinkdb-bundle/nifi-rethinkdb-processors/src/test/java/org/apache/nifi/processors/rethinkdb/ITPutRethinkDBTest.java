@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import java.util.List;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.json.simple.JSONArray;
 import org.junit.After;
@@ -29,7 +28,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.net.Connection;
 
 import net.minidev.json.JSONObject;
 
@@ -40,43 +38,25 @@ import net.minidev.json.JSONObject;
  * test accordingly.
  */
 @Ignore("Comment this out for running tests against a real instance of RethinkDB")
-public class ITPutRethinkDBTest {
-    private TestRunner runner;
-    private Connection connection;
-    private String dbName = "test";
-    private String dbHost = "localhost";
-    private String dbPort = "28015";
-    private String user = "admin";
-    private String password = "admin";
-    private String table = "test";
+public class ITPutRethinkDBTest extends ITAbstractRethinkDBTest {
 
     @Before
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutRethinkDB.class);
-        runner.setProperty(PutRethinkDB.DB_NAME, dbName);
-        runner.setProperty(PutRethinkDB.DB_HOST, dbHost);
-        runner.setProperty(PutRethinkDB.DB_PORT, dbPort);
-        runner.setProperty(PutRethinkDB.USERNAME, user);
-        runner.setProperty(PutRethinkDB.PASSWORD, password);
-        runner.setProperty(PutRethinkDB.TABLE_NAME, table);
-        runner.setProperty(PutRethinkDB.CHARSET, "UTF-8");
+        super.setUp();
+        runner.setProperty(AbstractRethinkDBProcessor.MAX_DOCUMENTS_SIZE, "1 KB");
         runner.setProperty(PutRethinkDB.CONFLICT_STRATEGY, PutRethinkDB.CONFLICT_STRATEGY_UPDATE);
         runner.setProperty(PutRethinkDB.DURABILITY, PutRethinkDB.DURABILITY_HARD);
-        runner.setProperty(PutRethinkDB.MAX_DOCUMENTS_SIZE, "1 KB");
-        runner.assertValid();
-
-        connection = RethinkDB.r.connection().user(user, password).db(dbName).hostname(dbHost).port(Integer.parseInt(dbPort)).connect();
     }
 
     @After
     public void tearDown() throws Exception {
-        runner = null;
-        connection.close();
-        connection = null;
+        super.tearDown();
     }
 
     @Test
     public void testValidSingleMessage() {
+        runner.assertValid();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 0L, count);
@@ -104,6 +84,7 @@ public class ITPutRethinkDBTest {
 
     @Test
     public void testValidSingleMessageTwiceConflictUpdate() {
+        runner.assertValid();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 0L, count);
@@ -144,6 +125,7 @@ public class ITPutRethinkDBTest {
     @Test
     public void testValidSingleMessageTwiceConflictError() {
         runner.setProperty(PutRethinkDB.CONFLICT_STRATEGY, PutRethinkDB.CONFLICT_STRATEGY_ERROR);
+        runner.assertValid();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 0L, count);
@@ -183,6 +165,7 @@ public class ITPutRethinkDBTest {
 
     @Test
     public void testValidArrayMessage() {
+        runner.assertValid();
         RethinkDB.r.db(dbName).table(table).delete().run(connection);
         long count = RethinkDB.r.db(dbName).table(table).count().run(connection);
         assertEquals("Count should be same", 0L, count);

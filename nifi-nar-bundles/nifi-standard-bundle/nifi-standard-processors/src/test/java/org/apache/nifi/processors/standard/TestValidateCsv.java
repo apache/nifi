@@ -90,14 +90,18 @@ public class TestValidateCsv {
 
         runner.setProperty(ValidateCsv.SCHEMA, "Unique()");
 
-        runner.enqueue("John\r\nBob\r\nBob\r\nJohn");
+        runner.enqueue("John\r\nBob\r\nBob\r\nJohn\r\nTom");
         runner.run();
 
         runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
 
-        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("John\r\nBob");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("John\r\nBob\r\nTom");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertAttributeEquals("count.total.lines", "5");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertAttributeEquals("count.valid.lines", "3");
         runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertContentEquals("Bob\r\nJohn");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("count.invalid.lines", "2");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("count.total.lines", "5");
     }
 
     @Test

@@ -103,6 +103,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_USER_SEARCH_FILTER = "User Search Filter";
     public static final String PROP_USER_IDENTITY_ATTRIBUTE = "User Identity Attribute";
     public static final String PROP_USER_GROUP_ATTRIBUTE = "User Group Name Attribute";
+    public static final String PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE = "User Group Name Attribute - Referenced Group Attribute";
 
     public static final String PROP_GROUP_SEARCH_BASE = "Group Search Base";
     public static final String PROP_GROUP_OBJECT_CLASS = "Group Object Class";
@@ -110,6 +111,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_GROUP_SEARCH_FILTER = "Group Search Filter";
     public static final String PROP_GROUP_NAME_ATTRIBUTE = "Group Name Attribute";
     public static final String PROP_GROUP_MEMBER_ATTRIBUTE = "Group Member Attribute";
+    public static final String PROP_GROUP_MEMBER_REFERENCED_USER_ATTRIBUTE = "Group Member Attribute - Referenced User Attribute";
 
     public static final String PROP_SYNC_INTERVAL = "Sync Interval";
 
@@ -125,6 +127,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private String userIdentityAttribute;
     private String userObjectClass;
     private String userGroupNameAttribute;
+    private String userGroupReferencedGroupAttribute;
     private boolean useDnForUserIdentity;
     private boolean performUserSearch;
 
@@ -132,6 +135,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private SearchScope groupSearchScope;
     private String groupSearchFilter;
     private String groupMemberAttribute;
+    private String groupMemberReferencedUserAttribute;
     private String groupNameAttribute;
     private String groupObjectClass;
     private boolean useDnForGroupName;
@@ -270,6 +274,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         userSearchFilter = configurationContext.getProperty(PROP_USER_SEARCH_FILTER).getValue();
         userIdentityAttribute = configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE).getValue();
         userGroupNameAttribute = configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE).getValue();
+        userGroupReferencedGroupAttribute = configurationContext.getProperty(PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE).getValue();
 
         try {
             userSearchScope = SearchScope.valueOf(rawUserSearchScope.getValue());
@@ -303,6 +308,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         groupSearchFilter = configurationContext.getProperty(PROP_GROUP_SEARCH_FILTER).getValue();
         groupNameAttribute = configurationContext.getProperty(PROP_GROUP_NAME_ATTRIBUTE).getValue();
         groupMemberAttribute = configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE).getValue();
+        groupMemberReferencedUserAttribute = configurationContext.getProperty(PROP_GROUP_MEMBER_REFERENCED_USER_ATTRIBUTE).getValue();
 
         try {
             groupSearchScope = SearchScope.valueOf(rawGroupSearchScope.getValue());
@@ -323,6 +329,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         // ensure group member attribute is set if searching groups but not users
         if (performGroupSearch && !performUserSearch && StringUtils.isBlank(groupMemberAttribute)) {
             throw new AuthorizerCreationException("'Group Member Attribute' is required when searching groups but not users.");
+        }
+
+        // ensure that performUserSearch is set when groupMemberReferencedUserAttribute is specified
+        if (StringUtils.isNotBlank(groupMemberReferencedUserAttribute) && !performUserSearch) {
+            throw new AuthorizerCreationException("''User Search Base' must be set when specifying 'Group Member Attribute - Referenced User Attribute'.");
+        }
+
+        // ensure that performGroupSearch is set when userGroupReferencedGroupAttribute is specified
+        if (StringUtils.isNotBlank(userGroupReferencedGroupAttribute) && !performGroupSearch) {
+            throw new AuthorizerCreationException("'Group Search Base' must be set when specifying 'User Group Name Attribute - Referenced Group Attribute'.");
         }
 
         // get the page size if configured
@@ -430,10 +446,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             final List<Group> groupList = new ArrayList<>();
 
             // group dn -> user identifiers lookup
-            final Map<String, Set<String>> groupDnToUserIdentifierMappings = new HashMap<>();
+            final Map<String, Set<String>> groupToUserIdentifierMappings = new HashMap<>();
 
             // user dn -> user lookup
-            final Map<String, User> userDnLookup = new HashMap<>();
+            final Map<String, User> userLookup = new HashMap<>();
 
             if (performUserSearch) {
                 // search controls
@@ -461,14 +477,14 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<User>() {
                         @Override
                         protected User doMapFromContext(DirContextOperations ctx) {
-                            final String dn = ctx.getDn().toString();
-
                             // get the user identity
                             final String identity = getUserIdentity(ctx);
 
                             // build the user
                             final User user = new User.Builder().identifierGenerateFromSeed(identity).identity(identity).build();
-                            userDnLookup.put(dn, user);
+
+                            // store the user for group member later
+                            userLookup.put(getReferencedUserValue(ctx), user);
 
                             if (StringUtils.isNotBlank(userGroupNameAttribute)) {
                                 final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
@@ -477,10 +493,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                     logger.warn("User group name attribute [" + userGroupNameAttribute + "] does not exist. Ignoring group membership.");
                                 } else {
                                     try {
-                                        final NamingEnumeration<String> groupDns = (NamingEnumeration<String>) attributeGroups.getAll();
-                                        while (groupDns.hasMoreElements()) {
-                                            // store the group dn -> user identifier mapping
-                                            groupDnToUserIdentifierMappings.computeIfAbsent(groupDns.next(), g -> new HashSet<>()).add(user.getIdentifier());
+                                        final NamingEnumeration<String> groupValues = (NamingEnumeration<String>) attributeGroups.getAll();
+                                        while (groupValues.hasMoreElements()) {
+                                            // store the group -> user identifier mapping
+                                            groupToUserIdentifierMappings.computeIfAbsent(groupValues.next(), g -> new HashSet<>()).add(user.getIdentifier());
                                         }
                                     } catch (NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving user group name attribute [" + userIdentityAttribute + "].");
@@ -524,30 +540,36 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             // get the group identity
                             final String name = getGroupName(ctx);
 
+                            // get the value of this group that may associate it to users
+                            final String referencedGroupValue = getReferencedGroupValue(ctx);
+
                             if (!StringUtils.isBlank(groupMemberAttribute)) {
                                 Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
                                 if (attributeUsers == null) {
                                     logger.warn("Group member attribute [" + groupMemberAttribute + "] does not exist. Ignoring group membership.");
                                 } else {
                                     try {
-                                        final NamingEnumeration<String> userDns = (NamingEnumeration<String>) attributeUsers.getAll();
-                                        while (userDns.hasMoreElements()) {
-                                            final String userDn = userDns.next();
+                                        final NamingEnumeration<String> userValues = (NamingEnumeration<String>) attributeUsers.getAll();
+                                        while (userValues.hasMoreElements()) {
+                                            final String userValue = userValues.next();
 
                                             if (performUserSearch) {
-                                                // find the user by dn add the identifier to this group
-                                                final User user = userDnLookup.get(userDn);
+                                                // find the user by it's referenced attribute and add the identifier to this group
+                                                final User user = userLookup.get(userValue);
 
                                                 // ensure the user is known
                                                 if (user != null) {
-                                                    groupDnToUserIdentifierMappings.computeIfAbsent(dn, g -> new HashSet<>()).add(user.getIdentifier());
+                                                    groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                                 } else {
-                                                    logger.warn(String.format("%s contains member %s but that user was not found while searching users. Ignoring group membership.", name, userDn));
+                                                    logger.warn(String.format("%s contains member %s but that user was not found while searching users. Ignoring group membership.", name, userValue));
                                                 }
                                             } else {
+                                                // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn
+                                                final String userDn = userValue;
+
                                                 final String userIdentity;
                                                 if (useDnForUserIdentity) {
-                                                    // use the dn to avoid the unnecessary look up
+                                                    // use the user value to avoid the unnecessary look up
                                                     userIdentity = userDn;
                                                 } else {
                                                     // lookup the user to extract the user identity
@@ -559,7 +581,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
                                                 // add this user
                                                 userList.add(user);
-                                                groupDnToUserIdentifierMappings.computeIfAbsent(dn, g -> new HashSet<>()).add(user.getIdentifier());
+                                                groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                             }
                                         }
                                     } catch (NamingException e) {
@@ -571,9 +593,9 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             // build this group
                             final Group.Builder groupBuilder = new Group.Builder().identifierGenerateFromSeed(name).name(name);
 
-                            // add all users that were associated with this group dn
-                            if (groupDnToUserIdentifierMappings.containsKey(dn)) {
-                                groupDnToUserIdentifierMappings.remove(dn).forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
+                            // add all users that were associated with this referenced group attribute
+                            if (groupToUserIdentifierMappings.containsKey(referencedGroupValue)) {
+                                groupToUserIdentifierMappings.remove(referencedGroupValue).forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
                             }
 
                             return groupBuilder.build();
@@ -582,13 +604,15 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 } while (hasMorePages(groupProcessor));
 
                 // any remaining groupDn's were referenced by a user but not found while searching groups
-                groupDnToUserIdentifierMappings.forEach((groupDn, userIdentifiers) -> {
+                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> {
                     logger.warn(String.format("[%s] are members of %s but that group was not found while searching users. Ignoring group membership.",
-                            StringUtils.join(userIdentifiers, ", "), groupDn));
+                            StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
                 });
             } else {
+                // since performGroupSearch is false, then the referenced user attribute must be blank... the group value must be the dn
+
                 // groups are not being searched so lookup any groups identified while searching users
-                groupDnToUserIdentifierMappings.forEach((groupDn, userIdentifiers) -> {
+                groupToUserIdentifierMappings.forEach((groupDn, userIdentifiers) -> {
                     final String groupName;
                     if (useDnForGroupName) {
                         // use the dn to avoid the unnecessary look up
@@ -640,6 +664,27 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         return IdentityMappingUtil.mapIdentity(identity, identityMappings);
     }
 
+    private String getReferencedUserValue(final DirContextOperations ctx) {
+        final String referencedUserValue;
+
+        if (StringUtils.isBlank(groupMemberReferencedUserAttribute)) {
+            referencedUserValue = ctx.getDn().toString();
+        } else {
+            final Attribute attributeName = ctx.getAttributes().get(groupMemberReferencedUserAttribute);
+            if (attributeName == null) {
+                throw new AuthorizationAccessException("Referenced user value attribute [" + groupMemberReferencedUserAttribute + "] does not exist.");
+            }
+
+            try {
+                referencedUserValue = (String) attributeName.get();
+            } catch (NamingException e) {
+                throw new AuthorizationAccessException("Error while retrieving reference user value attribute [" + groupMemberReferencedUserAttribute + "].");
+            }
+        }
+
+        return referencedUserValue;
+    }
+
     private String getGroupName(final DirContextOperations ctx) {
         final String name;
 
@@ -659,6 +704,27 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         }
 
         return name;
+    }
+
+    private String getReferencedGroupValue(final DirContextOperations ctx) {
+        final String referencedGroupValue;
+
+        if (StringUtils.isBlank(userGroupReferencedGroupAttribute)) {
+            referencedGroupValue = ctx.getDn().toString();
+        } else {
+            final Attribute attributeName = ctx.getAttributes().get(userGroupReferencedGroupAttribute);
+            if (attributeName == null) {
+                throw new AuthorizationAccessException("Referenced group value attribute [" + userGroupReferencedGroupAttribute + "] does not exist.");
+            }
+
+            try {
+                referencedGroupValue = (String) attributeName.get();
+            } catch (NamingException e) {
+                throw new AuthorizationAccessException("Error while retrieving referenced group value attribute [" + userGroupReferencedGroupAttribute + "].");
+            }
+        }
+
+        return referencedGroupValue;
     }
 
     @AuthorizerContext

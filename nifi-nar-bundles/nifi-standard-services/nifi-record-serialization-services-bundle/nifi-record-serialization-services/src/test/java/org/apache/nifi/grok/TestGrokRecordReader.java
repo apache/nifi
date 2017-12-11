@@ -48,23 +48,28 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "WARN", "ERROR", "FATAL", "FINE"};
             final String[] messages = new String[] {"Test Message 1", "Red", "Green", "Blue", "Yellow"};
+            final String[] rawMessages = new String[] {"2016-11-08 21:24:23,029 INFO Test Message 1",
+                    "2016-11-08 21:24:23,029 WARN Red", "2016-11-08 21:24:23,029 ERROR Green",
+                    "2016-11-08 21:24:23,029 FATAL Blue", "2016-11-08 21:24:23,029 FINE Yellow"};
 
             for (int i = 0; i < logLevels.length; i++) {
                 final Object[] values = deserializer.nextRecord().getValues();
 
                 assertNotNull(values);
-                assertEquals(4, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE
+                assertEquals(5, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE, RAW_MESSAGE
                 assertEquals("2016-11-08 21:24:23,029", values[0]);
                 assertEquals(logLevels[i], values[1]);
                 assertEquals(messages[i], values[2]);
                 assertNull(values[3]);
+                assertEquals(rawMessages[i], values[4]);
             }
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -78,18 +83,21 @@ public class TestGrokRecordReader {
         final String msg = "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass \n"
             + "org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces";
         final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
-        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), true);
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
         final Object[] values = deserializer.nextRecord().getValues();
 
         assertNotNull(values);
-        assertEquals(6, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE
+        assertEquals(7, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE, RAW_MESSAGE
         assertEquals("2016-08-04 13:26:32,473", values[0]);
         assertEquals("INFO", values[1]);
         assertEquals("Leader Election Notification Thread-1", values[2]);
         assertEquals("o.a.n.LoggerClass", values[3]);
         assertEquals("", values[4]);
         assertEquals("org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces", values[5]);
+        assertEquals(msg, values[6]);
+
+        deserializer.close();
     }
 
 
@@ -101,7 +109,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "INFO", "WARN", "WARN"};
 
@@ -109,12 +117,14 @@ public class TestGrokRecordReader {
                 final Object[] values = deserializer.nextRecord().getValues();
 
                 assertNotNull(values);
-                assertEquals(6, values.length); // values[] contains 6 elements: timestamp, level, thread, class, message, STACK_TRACE
+                assertEquals(7, values.length); // values[] contains 6 elements: timestamp, level, thread, class, message, STACK_TRACE, RAW_MESSAGE
                 assertEquals(logLevels[i], values[1]);
                 assertNull(values[5]);
+                assertNotNull(values[6]);
             }
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -125,7 +135,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}?");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "INFO", "ERROR", "WARN", "WARN"};
 
@@ -134,18 +144,23 @@ public class TestGrokRecordReader {
                 final Object[] values = record.getValues();
 
                 assertNotNull(values);
-                assertEquals(6, values.length); // values[] contains 6 elements: timestamp, level, thread, class, message, STACK_TRACE
+                assertEquals(7, values.length); // values[] contains 6 elements: timestamp, level, thread, class, message, STACK_TRACE, RAW_MESSAGE
                 assertEquals(logLevels[i], values[1]);
                 if ("ERROR".equals(values[1])) {
                     final String msg = (String) values[4];
                     assertEquals("One\nTwo\nThree", msg);
                     assertNotNull(values[5]);
+                    assertTrue(values[6].toString().startsWith("2016-08-04 13:26:32,474 ERROR [Leader Election Notification Thread-2] o.apache.nifi.controller.FlowController One"));
+                    assertTrue(values[6].toString().endsWith("    at org.apache.nifi.cluster."
+                            + "coordination.node.NodeClusterCoordinator.getElectedActiveCoordinatorAddress(NodeClusterCoordinator.java:185) "
+                            + "[nifi-framework-cluster-1.0.0-SNAPSHOT.jar:1.0.0-SNAPSHOT]\n    ... 12 common frames omitted"));
                 } else {
                     assertNull(values[5]);
                 }
             }
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -157,7 +172,7 @@ public class TestGrokRecordReader {
             grok.addPatternFromFile("src/main/resources/default-grok-patterns.txt");
             grok.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
 
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
 
             final String[] logLevels = new String[] {"INFO", "ERROR", "INFO"};
             final String[] messages = new String[] {"message without stack trace",
@@ -168,9 +183,10 @@ public class TestGrokRecordReader {
                 final Object[] values = deserializer.nextRecord().getValues();
 
                 assertNotNull(values);
-                assertEquals(4, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE
+                assertEquals(5, values.length); // values[] contains 4 elements: timestamp, level, message, STACK_TRACE, RAW_MESSAGE
                 assertEquals(logLevels[i], values[1]);
                 assertEquals(messages[i], values[2]);
+                assertNotNull(values[4]);
 
                 if (values[1].equals("ERROR")) {
                     final String stackTrace = (String) values[3];
@@ -182,10 +198,21 @@ public class TestGrokRecordReader {
                     assertTrue(stackTrace.contains("at org.apache.nifi.cluster.coordination.node.NodeClusterCoordinator.getElectedActiveCoordinatorAddress("
                         + "NodeClusterCoordinator.java:185) [nifi-framework-cluster-1.0.0-SNAPSHOT.jar:1.0.0-SNAPSHOT]"));
                     assertTrue(stackTrace.endsWith("    ... 12 common frames omitted"));
+
+                    final String raw = (String) values[4];
+                    assertTrue(raw.startsWith("2016-11-23 16:00:02,689 ERROR Log message with stack trace"));
+                    assertTrue(raw.contains("org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces"));
+                    assertTrue(raw.contains("        at org.apache.nifi.cluster.coordination.node.NodeClusterCoordinator.getElectedActiveCoordinatorAddress("
+                        + "NodeClusterCoordinator.java:185) [nifi-framework-cluster-1.0.0-SNAPSHOT.jar:1.0.0-SNAPSHOT]"));
+                    assertTrue(raw.contains("Caused by: org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces"));
+                    assertTrue(raw.contains("at org.apache.nifi.cluster.coordination.node.NodeClusterCoordinator.getElectedActiveCoordinatorAddress("
+                        + "NodeClusterCoordinator.java:185) [nifi-framework-cluster-1.0.0-SNAPSHOT.jar:1.0.0-SNAPSHOT]"));
+                    assertTrue(raw.endsWith("    ... 12 common frames omitted"));
                 }
             }
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -201,7 +228,7 @@ public class TestGrokRecordReader {
 
             final RecordSchema schema = GrokReader.createRecordSchema(grok);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(8, fieldNames.size());
+            assertEquals(9, fieldNames.size());
             assertTrue(fieldNames.contains("timestamp"));
             assertTrue(fieldNames.contains("logsource"));
             assertTrue(fieldNames.contains("facility"));
@@ -210,8 +237,9 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("pid"));
             assertTrue(fieldNames.contains("message"));
             assertTrue(fieldNames.contains("stackTrace"));  // always implicitly there
+            assertTrue(fieldNames.contains("_raw"));  // always implicitly there
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, true);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, true);
             final Record record = deserializer.nextRecord();
 
             assertEquals("May 22 15:58:23", record.getValue("timestamp"));
@@ -221,8 +249,10 @@ public class TestGrokRecordReader {
             assertEquals("nifi", record.getValue("program"));
             assertEquals("12345", record.getValue("pid"));
             assertEquals("My Message", record.getValue("message"));
+            assertEquals("May 22 15:58:23 my-host nifi[12345]:My Message", record.getValue("_raw"));
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -241,14 +271,14 @@ public class TestGrokRecordReader {
 
             final RecordSchema schema = GrokReader.createRecordSchema(grok);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(6, fieldNames.size());
+            assertEquals(7, fieldNames.size());
             assertTrue(fieldNames.contains("first"));
             assertTrue(fieldNames.contains("second"));
             assertTrue(fieldNames.contains("third"));
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
             final Record record = deserializer.nextRecord();
 
             assertEquals("1", record.getValue("first"));
@@ -258,6 +288,7 @@ public class TestGrokRecordReader {
             assertEquals("5", record.getValue("fifth"));
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 
@@ -276,14 +307,14 @@ public class TestGrokRecordReader {
 
             final RecordSchema schema = GrokReader.createRecordSchema(grok);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(6, fieldNames.size());
+            assertEquals(7, fieldNames.size());
             assertTrue(fieldNames.contains("first"));
             assertTrue(fieldNames.contains("second"));
             assertTrue(fieldNames.contains("third"));
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
             for (int i = 0; i < 2; i++) {
                 final Record record = deserializer.nextRecord();
 
@@ -295,6 +326,7 @@ public class TestGrokRecordReader {
             }
 
             assertNull(deserializer.nextRecord());
+            deserializer.close();
         }
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -25,17 +24,11 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -66,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.UnsupportedEncodingException;
@@ -100,29 +94,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private void authorizeFlowAccess(final NiFiUser user) {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Map<String,String> userContext;
-            if (!StringUtils.isBlank(user.getClientAddress())) {
-                userContext = new HashMap<>();
-                userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-            } else {
-                userContext = null;
-            }
-
-            final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                    .resource(ResourceFactory.getFlowResource())
-                    .identity(user.getIdentity())
-                    .groups(user.getGroups())
-                    .anonymous(user.isAnonymous())
-                    .accessAttempt(true)
-                    .action(RequestAction.READ)
-                    .userContext(userContext)
-                    .explanationSupplier(() -> "Unable to view the user interface.")
-                    .build();
-
-            final AuthorizationResult result = authorizer.authorize(request);
-            if (!Result.Approved.equals(result.getResult())) {
-                throw new AccessDeniedException(result.getExplanation());
-            }
+            final Authorizable flow = lookup.getFlow();
+            flow.authorize(authorizer, RequestAction.READ, user);
         });
     }
 
@@ -362,7 +335,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -378,7 +351,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return processor
                 ProcessorEntity entity = (ProcessorEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ProcessorEntity.class);
                 }
                 processor = entity.getComponent();
             } else {
@@ -447,7 +420,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return processor
                 ProcessorEntity entity = (ProcessorEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ProcessorEntity.class);
                 }
                 processor = entity.getComponent();
             } else {
@@ -555,7 +528,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -571,7 +544,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return controller service
                 ControllerServiceEntity entity = (ControllerServiceEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ControllerServiceEntity.class);
                 }
                 controllerService = entity.getComponent();
             }
@@ -662,7 +635,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return controller service
                 ControllerServiceEntity entity = (ControllerServiceEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ControllerServiceEntity.class);
                 }
                 controllerService = entity.getComponent();
             }
@@ -720,7 +693,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -736,7 +709,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return reporting task
                 ReportingTaskEntity entity = (ReportingTaskEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ReportingTaskEntity.class);
                 }
                 reportingTask = entity.getComponent();
             }
@@ -828,7 +801,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // return reporting task
                 ReportingTaskEntity entity = (ReportingTaskEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
-                    entity = nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
+                    entity = nodeResponse.getClientResponse().readEntity(ReportingTaskEntity.class);
                 }
                 reportingTask = entity.getComponent();
             }

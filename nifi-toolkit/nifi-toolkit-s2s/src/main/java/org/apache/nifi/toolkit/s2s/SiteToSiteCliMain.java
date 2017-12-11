@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.s2s;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.CommandLine;
@@ -87,7 +88,7 @@ public class SiteToSiteCliMain {
         }
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
         System.out.println("s2s is a command line tool that can either read a list of DataPackets from stdin to send over site-to-site or write the received DataPackets to stdout");
         System.out.println();
         System.out.println("The s2s cli input/output format is a JSON list of DataPackets.  They can have the following formats:");

@@ -74,8 +74,7 @@ public class ScheduleState {
      * scheduled to run will receive a <code>true</code> and MUST call the methods annotated with
      * {@link OnStopped @OnStopped}
      *
-     * @return <code>true</code> if the caller is required to call Processor methods annotated with
-     *         @OnStopped, <code>false</code> otherwise
+     * @return <code>true</code> if the caller is required to call Processor methods annotated with @OnStopped
      */
     public boolean mustCallOnStoppedMethods() {
         return mustCallOnStoppedMethods.getAndSet(false);

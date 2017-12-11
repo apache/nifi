@@ -66,6 +66,21 @@ public interface ConfigurableUserGroupProvider extends UserGroupProvider {
     User addUser(User user) throws AuthorizationAccessException;
 
     /**
+     * Determines whether the specified user is configurable. Provides the opportunity for a ConfigurableUserGroupProvider to prevent
+     * editing of a specific user. By default, all known users are configurable.
+     *
+     * @param user the user
+     * @return is configurable
+     */
+    default boolean isConfigurable(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        return getUser(user.getIdentifier()) != null;
+    }
+
+    /**
      * The user represented by the provided instance will be updated based on the provided instance.
      *
      * @param user an updated user instance
@@ -93,6 +108,21 @@ public interface ConfigurableUserGroupProvider extends UserGroupProvider {
      * @throws IllegalStateException if a group with the same name already exists
      */
     Group addGroup(Group group) throws AuthorizationAccessException;
+
+    /**
+     * Determines whether the specified group is configurable. Provides the opportunity for a ConfigurableUserGroupProvider to prevent
+     * editing of a specific group. By default, all known groups are configurable.
+     *
+     * @param group the group
+     * @return is configurable
+     */
+    default boolean isConfigurable(Group group) {
+        if (group == null) {
+            throw new IllegalArgumentException("Group cannot be null");
+        }
+
+        return getGroup(group.getIdentifier()) != null;
+    }
 
     /**
      * The group represented by the provided instance will be updated based on the provided instance.

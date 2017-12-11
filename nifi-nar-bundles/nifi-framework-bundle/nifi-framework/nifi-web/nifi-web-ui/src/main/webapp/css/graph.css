@@ -66,7 +66,6 @@ g.component rect.body.unauthorized {
     fill: #f4f6f7;
 }
 
-
 g.component rect.border {
     stroke: rgba(0,0,0,0.25);
     stroke-width: 1;
@@ -187,7 +186,7 @@ text.processor-icon {
     font-size: 30px;
 }
 
-circle.restricted-background {
+circle.restricted-background, circle.is-primary-background {
     visibility: hidden;
     fill: rgba(255, 255, 255, 0.90);
 }
@@ -197,6 +196,12 @@ text.restricted {
     font-family: FontAwesome;
     font-size: 12px;
     fill: #ba554a;
+}
+
+text.is-primary {
+    visibility: hidden;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 text.run-status-icon {

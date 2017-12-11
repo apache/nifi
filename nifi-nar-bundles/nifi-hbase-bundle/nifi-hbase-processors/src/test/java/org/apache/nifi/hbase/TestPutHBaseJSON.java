@@ -19,7 +19,10 @@ package org.apache.nifi.hbase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import static org.apache.nifi.hbase.HBaseTestUtil.getHBaseClientService;
+
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,7 @@ public class TestPutHBaseJSON {
     public static final String DEFAULT_TABLE_NAME = "nifi";
     public static final String DEFAULT_ROW = "row1";
     public static final String DEFAULT_COLUMN_FAMILY = "family1";
+    public static final Long DEFAULT_TIMESTAMP = 1L;
 
     @Test
     public void testCustomValidate() throws InitializationException {
@@ -439,20 +443,69 @@ public class TestPutHBaseJSON {
         runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_FAILURE, 1);
     }
 
+    @Test
+    public void testTimestamp() throws UnsupportedEncodingException, InitializationException {
+        final TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, "1");
+        final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
+        runner.setProperty(PutHBaseJSON.ROW_ID, DEFAULT_ROW);
+        runner.setProperty(PutHBaseJSON.TIMESTAMP, DEFAULT_TIMESTAMP.toString());
+
+        final String content = "{ \"field1\" : \"value1\", \"field2\" : \"value2\" }";
+        runner.enqueue(content.getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_SUCCESS);
+
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
+        outFile.assertContentEquals(content);
+
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
+
+        final List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(DEFAULT_TABLE_NAME);
+        assertEquals(1, puts.size());
+
+        final Map<String,byte[]> expectedColumns = new HashMap<>();
+        expectedColumns.put("field1", hBaseClient.toBytes("value1"));
+        expectedColumns.put("field2", hBaseClient.toBytes("value2"));
+        HBaseTestUtil.verifyPut(DEFAULT_ROW, DEFAULT_COLUMN_FAMILY, DEFAULT_TIMESTAMP, expectedColumns, puts);
+    }
+
+    @Test
+    public void testTimestampWithEL() throws UnsupportedEncodingException, InitializationException {
+        final TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, "1");
+        final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
+        runner.setProperty(PutHBaseJSON.ROW_ID, DEFAULT_ROW);
+        runner.setProperty(PutHBaseJSON.TIMESTAMP, "${hbase.timestamp}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("hbase.timestamp", DEFAULT_TIMESTAMP.toString());
+
+        final String content = "{ \"field1\" : \"value1\", \"field2\" : \"value2\" }";
+        runner.enqueue(content.getBytes("UTF-8"), attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_SUCCESS);
+
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
+        outFile.assertContentEquals(content);
+
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
+
+        final List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(DEFAULT_TABLE_NAME);
+        assertEquals(1, puts.size());
+
+        final Map<String,byte[]> expectedColumns = new HashMap<>();
+        expectedColumns.put("field1", hBaseClient.toBytes("value1"));
+        expectedColumns.put("field2", hBaseClient.toBytes("value2"));
+        HBaseTestUtil.verifyPut(DEFAULT_ROW, DEFAULT_COLUMN_FAMILY, DEFAULT_TIMESTAMP, expectedColumns, puts);
+    }
+
     private TestRunner getTestRunner(String table, String columnFamily, String batchSize) {
         final TestRunner runner = TestRunners.newTestRunner(PutHBaseJSON.class);
         runner.setProperty(PutHBaseJSON.TABLE_NAME, table);
         runner.setProperty(PutHBaseJSON.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseJSON.BATCH_SIZE, batchSize);
         return runner;
-    }
-
-    private MockHBaseClientService getHBaseClientService(final TestRunner runner) throws InitializationException {
-        final MockHBaseClientService hBaseClient = new MockHBaseClientService();
-        runner.addControllerService("hbaseClient", hBaseClient);
-        runner.enableControllerService(hBaseClient);
-        runner.setProperty(PutHBaseCell.HBASE_CLIENT_SERVICE, "hbaseClient");
-        return hBaseClient;
     }
 
 }

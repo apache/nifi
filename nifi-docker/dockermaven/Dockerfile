@@ -16,11 +16,11 @@
 # under the License.
 #
 
-FROM openjdk:8
-MAINTAINER Apache NiFi <dev@nifi.apache.org>
+FROM openjdk:8-jre
+LABEL maintainer "Apache NiFi <dev@nifi.apache.org>"
 
 ARG UID=1000
-ARG GID=50
+ARG GID=1000
 ARG NIFI_VERSION
 ARG NIFI_BINARY
 
@@ -28,20 +28,21 @@ ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
 
 # Setup NiFi user
-RUN groupadd -g $GID nifi || groupmod -n nifi `getent group $GID | cut -d: -f1`
-RUN useradd --shell /bin/bash -u $UID -g $GID -m nifi
-RUN mkdir -p $NIFI_HOME 
+RUN groupadd -g $GID nifi || groupmod -n nifi `getent group $GID | cut -d: -f1` \
+    && useradd --shell /bin/bash -u $UID -g $GID -m nifi \
+    && mkdir -p $NIFI_HOME/conf/templates \
+    && chown -R nifi:nifi $NIFI_BASE_DIR
 
 ADD $NIFI_BINARY $NIFI_BASE_DIR
 RUN chown -R nifi:nifi $NIFI_HOME
 
-# Web HTTP Port
-EXPOSE 8080
-
-# Remote Site-To-Site Port
-EXPOSE 8181
-
 USER nifi
 
+# Web HTTP Port & Remote Site-to-Site Ports
+EXPOSE 8080 8181
+
+WORKDIR $NIFI_HOME
+
 # Startup NiFi
-CMD $NIFI_HOME/bin/nifi.sh run
+ENTRYPOINT ["bin/nifi.sh"]
+CMD ["run"]

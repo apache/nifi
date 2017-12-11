@@ -20,7 +20,6 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -190,16 +189,16 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 // use a child FlowFile so that if any error occurs we can route the original untouched FlowFile to retry/failure
                 child = session.create(originalFlowFile);
 
-                final FlowFile writableFlowFile = child;
                 final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                 child = session.write(child, (final OutputStream rawOut) -> {
                     try (final BufferedOutputStream out = new BufferedOutputStream(rawOut);
                          final HDFSRecordReader recordReader = createHDFSRecordReader(context, originalFlowFile, configuration, path)) {
 
                         Record record = recordReader.nextRecord();
-                        final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile, record == null ? null : record.getSchema());
+                        final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile.getAttributes(),
+                                record == null ? null : record.getSchema());
 
-                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, writableFlowFile, out)) {
+                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out)) {
                             recordSetWriter.beginRecordSet();
                             if (record != null) {
                                 recordSetWriter.write(record);
@@ -232,9 +231,10 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                 successFlowFile = session.putAllAttributes(successFlowFile, attributes);
 
-                final URI uri = path.toUri();
-                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {uri, successFlowFile, stopWatch.getDuration()});
-                session.getProvenanceReporter().fetch(successFlowFile, uri.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+
+                final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {qualifiedPath, successFlowFile, stopWatch.getDuration()});
+                session.getProvenanceReporter().fetch(successFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(successFlowFile, REL_SUCCESS);
                 session.remove(originalFlowFile);
                 return null;

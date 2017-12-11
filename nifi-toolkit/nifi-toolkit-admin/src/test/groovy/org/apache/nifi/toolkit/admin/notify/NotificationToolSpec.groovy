@@ -17,9 +17,6 @@
 
 package org.apache.nifi.toolkit.admin.notify
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import org.apache.commons.cli.ParseException
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.toolkit.admin.client.ClientFactory
@@ -30,6 +27,9 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
 import spock.lang.Specification
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Invocation
+import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.Response
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
@@ -104,9 +104,9 @@ class NotificationToolSpec extends Specification{
         given:
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
 
         def config = new NotificationTool()
 
@@ -116,9 +116,9 @@ class NotificationToolSpec extends Specification{
         then:
 
         1 * clientFactory.getClient(_,_) >> client
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.post(_,_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.post(_) >> response
         1 * response.getStatus() >> 200
 
     }
@@ -140,9 +140,9 @@ class NotificationToolSpec extends Specification{
 
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
 
         def config = new NotificationTool()
 
@@ -152,10 +152,10 @@ class NotificationToolSpec extends Specification{
         then:
 
         1 * clientFactory.getClient(_,_) >> client
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
         1 * builder.header(_,_) >> builder
-        1 * builder.post(_,_) >> response
+        1 * builder.post(_) >> response
         1 * response.getStatus() >> 200
 
         cleanup:
@@ -170,9 +170,9 @@ class NotificationToolSpec extends Specification{
         given:
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
         def Response.StatusType statusType = Mock Response.StatusType
 
         def config = new NotificationTool()
@@ -183,11 +183,11 @@ class NotificationToolSpec extends Specification{
         then:
 
         1 * clientFactory.getClient(_,_) >> client
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.post(_,_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.post(_) >> response
         1 * response.getStatus() >> 403
-        1 * response.getEntity(String.class) >> "Unauthorized User"
+        1 * response.readEntity(String.class) >> "Unauthorized User"
         def e = thrown(RuntimeException)
         e.message == "Failed with HTTP error code 403 with reason: Unauthorized User"
 
@@ -210,9 +210,9 @@ class NotificationToolSpec extends Specification{
 
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
 
         def config = new NotificationTool()
 
@@ -222,7 +222,7 @@ class NotificationToolSpec extends Specification{
         then:
 
         1 * clientFactory.getClient(_,_) >> client
-        1 * client.resource(_ as String) >> resource
+        1 * client.target(_ as String) >> resource
         def e = thrown(UnsupportedOperationException)
         e.message == "Proxy DN is required for sending a notification to this node or cluster"
 
@@ -236,9 +236,9 @@ class NotificationToolSpec extends Specification{
         given:
         def ClientFactory clientFactory = Mock ClientFactory
         def Client client = Mock Client
-        def WebResource resource = Mock WebResource
-        def WebResource.Builder builder = Mock WebResource.Builder
-        def ClientResponse response = Mock ClientResponse
+        def WebTarget resource = Mock WebTarget
+        def Invocation.Builder builder = Mock Invocation.Builder
+        def Response response = Mock Response
 
         def config = new NotificationTool()
 
@@ -248,9 +248,9 @@ class NotificationToolSpec extends Specification{
         then:
 
         1 * clientFactory.getClient(_,_) >> client
-        1 * client.resource(_ as String) >> resource
-        1 * resource.type(_) >> builder
-        1 * builder.post(_,_) >> response
+        1 * client.target(_ as String) >> resource
+        1 * resource.request() >> builder
+        1 * builder.post(_) >> response
         1 * response.getStatus() >> 200
 
     }

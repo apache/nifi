@@ -67,4 +67,16 @@ public class PutFlowFile {
         return true;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof PutFlowFile) {
+            PutFlowFile pff = (PutFlowFile)obj;
+            return this.tableName.equals(pff.tableName)
+                    && this.row.equals(pff.row)
+                    && this.columns.equals(pff.columns)
+                    && this.flowFile.equals(pff.flowFile);
+        } else {
+            return false;
+        }
+    }
 }

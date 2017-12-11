@@ -20,15 +20,15 @@ package org.apache.nifi.schema.access;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class InheritSchemaFromRecord implements SchemaAccessStrategy {
 
     @Override
-    public RecordSchema getSchema(final FlowFile flowFile, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         if (readSchema == null) {
             throw new SchemaNotFoundException("Cannot inherit Schema from Record because no schema was found");
         }

@@ -44,6 +44,7 @@ import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -293,6 +294,33 @@ public class TestFetchElasticsearchHttp {
 
     }
 
+    @Test
+    public void testFetchElasticsearchOnTriggerQueryParameter() throws IOException {
+        FetchElasticsearchHttpTestProcessor p = new FetchElasticsearchHttpTestProcessor(true); // all docs are found
+        p.setExpectedUrl("http://127.0.0.1:9200/doc/status/28039652140?_source_include=id&myparam=myvalue");
+        runner = TestRunners.newTestRunner(p);
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+        runner.setProperty(FetchElasticsearchHttp.FIELDS, "id");
+
+        // Set dynamic property, to be added to the URL as a query parameter
+        runner.setProperty("myparam", "myvalue");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -302,8 +330,8 @@ public class TestFetchElasticsearchHttp {
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
-
         URL url = null;
+        String expectedUrl = null;
 
         FetchElasticsearchHttpTestProcessor(boolean documentExists) {
             this.documentExists = documentExists;
@@ -318,6 +346,10 @@ public class TestFetchElasticsearchHttp {
             statusMessage = message;
         }
 
+        void setExpectedUrl(String url) {
+            expectedUrl = url;
+        }
+
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -327,6 +359,7 @@ public class TestFetchElasticsearchHttp {
                 @Override
                 public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                    assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
                     StringBuilder sb = new StringBuilder("{\"_index\":\"randomuser.me\",\"_type\":\"user\",\"_id\":\"0\",\"_version\":2,");
                     if (documentExists) {
                         sb.append("\"found\":true,\"_source\":{\"gender\":\"female\",\"name\":{\"title\":\"Ms\",\"first\":\"Joan\",\"last\":\"Smith\"}}");

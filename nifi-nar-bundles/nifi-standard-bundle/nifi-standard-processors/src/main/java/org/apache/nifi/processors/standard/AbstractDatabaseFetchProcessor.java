@@ -21,6 +21,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -81,6 +83,8 @@ import static java.sql.Types.VARCHAR;
  * A base class for common code shared by processors that fetch RDBMS data.
  */
 public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFactoryProcessor {
+
+    public static final String INITIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -143,6 +147,15 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .expressionLanguageSupported(true)
             .build();
 
+    public static final PropertyDescriptor WHERE_CLAUSE = new PropertyDescriptor.Builder()
+            .name("db-fetch-where-clause")
+            .displayName("Additional WHERE clause")
+            .description("A custom clause to be added in the WHERE condition when generating SQL requests.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     protected List<PropertyDescriptor> propDescriptors;
 
     // The delimiter to use when referencing qualified names (such as table@!@column in the state map)
@@ -165,6 +178,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 
+    // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
+    protected Map<String,String> maxValueProperties;
+
     static {
         // Load the DatabaseAdapters
         ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
@@ -185,6 +201,18 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 .build();
     }
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
+
     // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
@@ -195,7 +223,11 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     public void setup(final ProcessContext context) {
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        setup(context,true,null);
+    }
+
+    public void setup(final ProcessContext context, boolean shouldCleanCache, FlowFile flowFile) {
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(flowFile).getValue();
 
         // If there are no max-value column names specified, we don't need to perform this processing
         if (StringUtils.isEmpty(maxValueColumnNames)) {
@@ -204,7 +236,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
         // Try to fill the columnTypeMap with the types of the desired max-value columns
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
         try (final Connection con = dbcpService.getConnection();
@@ -218,7 +250,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
             int numCols = resultSetMetaData.getColumnCount();
             if (numCols > 0) {
-                columnTypeMap.clear();
+                if (shouldCleanCache){
+                    columnTypeMap.clear();
+                }
                 for (int i = 1; i <= numCols; i++) {
                     String colName = resultSetMetaData.getColumnName(i).toLowerCase();
                     String colKey = getStateKey(tableName, colName);
@@ -423,5 +457,21 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             sb.append(columnName.toLowerCase());
         }
         return sb.toString();
+    }
+
+    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
+        final Map<String,String> defaultMaxValues = new HashMap<>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final String key = entry.getKey().getName();
+
+            if(!key.startsWith(INITIAL_MAX_VALUE_PROP_START)) {
+                continue;
+            }
+
+            defaultMaxValues.put(key.substring(INITIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
+        }
+
+        return defaultMaxValues;
     }
 }

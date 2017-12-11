@@ -20,6 +20,8 @@ import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -88,6 +90,10 @@ public class TestSimpleMapCache {
         assertNull(putResult.getExisting());
         assertNull(putResult.getEvicted());
         assertEquals("Revision should start from 0", 0, putResult.getRecord().getRevision());
+
+        // Get multiple keys
+        Map<ByteBuffer, ByteBuffer> results = cache.subMap(Arrays.asList(key1, key2, key3));
+        assertEquals(3, results.size());
 
     }
 

@@ -55,13 +55,16 @@ org.apache.nifi.processors.standard.ListenHTTP
 org.apache.nifi.processors.standard.ListenRELP
 org.apache.nifi.processors.standard.ListenSyslog
 org.apache.nifi.processors.standard.ListenTCP
+org.apache.nifi.processors.standard.ListenTCPRecord
 org.apache.nifi.processors.standard.ListenUDP
+org.apache.nifi.processors.standard.ListenUDPRecord
 org.apache.nifi.processors.standard.ListSFTP
 org.apache.nifi.processors.standard.LogAttribute
 org.apache.nifi.processors.standard.LogMessage
 org.apache.nifi.processors.standard.LookupAttribute
 org.apache.nifi.processors.standard.LookupRecord
 org.apache.nifi.processors.standard.MergeContent
+org.apache.nifi.processors.standard.MergeRecord
 org.apache.nifi.processors.standard.ModifyBytes
 org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify
@@ -100,6 +103,7 @@ org.apache.nifi.processors.standard.TransformXml
 org.apache.nifi.processors.standard.UnpackContent
 org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.ValidateCsv
+org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.Wait
 org.apache.nifi.processors.standard.ExecuteSQL
 org.apache.nifi.processors.standard.FetchDistributedMapCache

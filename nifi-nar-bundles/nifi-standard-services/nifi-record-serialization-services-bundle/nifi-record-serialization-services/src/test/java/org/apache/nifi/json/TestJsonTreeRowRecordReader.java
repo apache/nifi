@@ -162,6 +162,74 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
+    public void testReadRawRecordIncludesFieldsNotInSchema() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final Record schemaValidatedRecord = reader.nextRecord();
+            assertEquals(1, schemaValidatedRecord.getValue("id"));
+            assertEquals("John Doe", schemaValidatedRecord.getValue("name"));
+            assertNull(schemaValidatedRecord.getValue("balance"));
+        }
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final Record rawRecord = reader.nextRecord(false, false);
+            assertEquals(1, rawRecord.getValue("id"));
+            assertEquals("John Doe", rawRecord.getValue("name"));
+            assertEquals(4750.89, rawRecord.getValue("balance"));
+            assertEquals("123 My Street", rawRecord.getValue("address"));
+            assertEquals("My City", rawRecord.getValue("city"));
+            assertEquals("MS", rawRecord.getValue("state"));
+            assertEquals("11111", rawRecord.getValue("zipCode"));
+            assertEquals("USA", rawRecord.getValue("country"));
+        }
+    }
+
+
+    @Test
+    public void testReadRawRecordTypeCoercion() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final Record schemaValidatedRecord = reader.nextRecord();
+            assertEquals("1", schemaValidatedRecord.getValue("id")); // will be coerced into a STRING as per the schema
+            assertEquals("John Doe", schemaValidatedRecord.getValue("name"));
+            assertNull(schemaValidatedRecord.getValue("balance"));
+
+            assertEquals(2, schemaValidatedRecord.getRawFieldNames().size());
+        }
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final Record rawRecord = reader.nextRecord(false, false);
+            assertEquals(1, rawRecord.getValue("id")); // will return raw value of (int) 1
+            assertEquals("John Doe", rawRecord.getValue("name"));
+            assertEquals(4750.89, rawRecord.getValue("balance"));
+            assertEquals("123 My Street", rawRecord.getValue("address"));
+            assertEquals("My City", rawRecord.getValue("city"));
+            assertEquals("MS", rawRecord.getValue("state"));
+            assertEquals("11111", rawRecord.getValue("zipCode"));
+            assertEquals("USA", rawRecord.getValue("country"));
+
+            assertEquals(8, rawRecord.getRawFieldNames().size());
+        }
+    }
+
+
+    @Test
     public void testSingleJsonElement() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 

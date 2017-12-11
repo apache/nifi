@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -80,6 +81,8 @@ import org.apache.nifi.util.Tuple;
     + "that match will be updated. If there is no match in the configured LookupService, then no fields will be updated. I.e., it will not overwrite an existing value in the Record "
     + "with a null value. Please note, however, that if the results returned by the LookupService are not accounted for in your schema (specifically, "
     + "the schema that is configured for your Record Writer) then the fields will not be written out to the FlowFile.")
+@DynamicProperty(name = "Value To Lookup", value = "Valid Record Path", supportsExpressionLanguage = true, description = "A RecordPath that points to the field whose value will be "
+    + "looked up in the configured Lookup Service")
 @SeeAlso(value = {ConvertRecord.class, SplitRecord.class}, classNames = {"org.apache.nifi.lookup.SimpleKeyValueLookupService", "org.apache.nifi.lookup.maxmind.IPLookupService"})
 public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPath>, RecordPath>> {
 
@@ -91,6 +94,11 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     static final AllowableValue ROUTE_TO_MATCHED_UNMATCHED = new AllowableValue("route-to-matched-unmatched", "Route to 'matched' or 'unmatched'",
         "Records will be routed to either a 'matched' or an 'unmatched' Relationship depending on whether or not there was a match in the configured Lookup Service. "
             + "A single input FlowFile may result in two different output FlowFiles.");
+
+    static final AllowableValue RESULT_ENTIRE_RECORD = new AllowableValue("insert-entire-record", "Insert Entire Record",
+        "The entire Record that is retrieved from the Lookup Service will be inserted into the destination path.");
+    static final AllowableValue RESULT_RECORD_FIELDS = new AllowableValue("record-fields", "Insert Record Fields",
+        "All of the fields in the Record that is retrieved from the Lookup Service will be inserted into the destination path.");
 
     static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
         .name("lookup-service")
@@ -109,6 +117,16 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         .addValidator(new RecordPathValidator())
         .expressionLanguageSupported(true)
         .required(false)
+        .build();
+
+    static final PropertyDescriptor RESULT_CONTENTS = new PropertyDescriptor.Builder()
+        .name("result-contents")
+        .displayName("Record Result Contents")
+        .description("When a result is obtained that contains a Record, this property determines whether the Record itself is inserted at the configured "
+            + "path or if the contents of the Record (i.e., the sub-fields) will be inserted at the configured path.")
+        .allowableValues(RESULT_ENTIRE_RECORD, RESULT_RECORD_FIELDS)
+        .defaultValue(RESULT_ENTIRE_RECORD.getValue())
+        .required(true)
         .build();
 
     static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
@@ -158,6 +176,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         properties.add(LOOKUP_SERVICE);
         properties.add(RESULT_RECORD_PATH);
         properties.add(ROUTING_STRATEGY);
+        properties.add(RESULT_CONTENTS);
         return properties;
     }
 
@@ -269,14 +288,14 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             lookupCoordinates.put(coordinateKey, coordinateValue);
         }
 
-        final Optional<?> lookupValue;
+        final Optional<?> lookupValueOption;
         try {
-            lookupValue = lookupService.lookup(lookupCoordinates);
+            lookupValueOption = lookupService.lookup(lookupCoordinates);
         } catch (final Exception e) {
             throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
         }
 
-        if (!lookupValue.isPresent()) {
+        if (!lookupValueOption.isPresent()) {
             final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
             return rels;
         }
@@ -286,9 +305,39 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         if (resultPath != null) {
             record.incorporateSchema(writeSchema);
 
-            final Object replacementValue = lookupValue.get();
+            final Object lookupValue = lookupValueOption.get();
             final RecordPathResult resultPathResult = flowFileContext.getValue().evaluate(record);
-            resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(replacementValue));
+
+            final String resultContentsValue = context.getProperty(RESULT_CONTENTS).getValue();
+            if (RESULT_RECORD_FIELDS.getValue().equals(resultContentsValue) && lookupValue instanceof Record) {
+                final Record lookupRecord = (Record) lookupValue;
+
+                // Use wants to add all fields of the resultant Record to the specified Record Path.
+                // If the destination Record Path returns to us a Record, then we will add all field values of
+                // the Lookup Record to the destination Record. However, if the destination Record Path returns
+                // something other than a Record, then we can't add the fields to it. We can only replace it,
+                // because it doesn't make sense to add fields to anything but a Record.
+                resultPathResult.getSelectedFields().forEach(fieldVal -> {
+                    final Object destinationValue = fieldVal.getValue();
+
+                    if (destinationValue instanceof Record) {
+                        final Record destinationRecord = (Record) destinationValue;
+
+                        for (final String fieldName : lookupRecord.getRawFieldNames()) {
+                            final Object value = lookupRecord.getValue(fieldName);
+                            destinationRecord.setValue(fieldName, value);
+                        }
+                    } else {
+                        final Optional<Record> parentOption = fieldVal.getParentRecord();
+
+                        if (parentOption.isPresent()) {
+                            parentOption.get().setValue(fieldVal.getField().getFieldName(), lookupRecord);
+                        }
+                    }
+                });
+            } else {
+                resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue));
+            }
         }
 
         final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;

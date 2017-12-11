@@ -209,7 +209,7 @@ label {
     color: #728e9b;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password] {
     background-color: #eaeef0;
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
@@ -235,11 +235,22 @@ input:focus, textarea:focus {
 }
 
 textarea {
-    overflow: hidden;
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px !important;
     padding: 10px 10px;
     resize: vertical;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
     color: #262626;
-    font-size: 13px !important;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
 
 ul.property-info {
@@ -537,7 +548,7 @@ div.context-menu-item.hover {
     background-size: cover;
 }
 
-.context-menu-item-img.fa{
+.context-menu-item-img.fa {
     position: relative;
     top: 2px;
     left: 2px;
@@ -554,6 +565,21 @@ div.context-menu-item-text {
     line-height: 16px;
     float: left;
     color: #262626;
+}
+
+div.context-menu-group-item-img {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-size: cover;
+    font-size: 14px;
+}
+
+div.context-menu-item-separator {
+    height: 1px;
+    background-color: #C7D2D7;
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
 /* search */

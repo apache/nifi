@@ -16,6 +16,31 @@
  */
 package org.apache.nifi.controller;
 
+import static java.util.Objects.requireNonNull;
+
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -56,7 +81,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -67,30 +92,6 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
-
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * ProcessorNode provides thread-safe access to a FlowFileProcessor as it exists
@@ -129,6 +130,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private long runNanos = 0L;
     private volatile long yieldNanos;
     private final NiFiProperties nifiProperties;
+    private volatile ScheduledState desiredState;
 
     private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
                                                    // ??????? NOT any more
@@ -137,7 +139,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final NiFiProperties nifiProperties,
-                                 final VariableRegistry variableRegistry, final ReloadComponent reloadComponent) {
+                                 final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider,
             processor.getComponent().getClass().getSimpleName(), processor.getComponent().getClass().getCanonicalName(), nifiProperties, variableRegistry, reloadComponent, false);
@@ -147,7 +149,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider,
                                  final String componentType, final String componentCanonicalClass, final NiFiProperties nifiProperties,
-                                 final VariableRegistry variableRegistry, final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
+                                 final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
 
         super(uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, isExtensionMissing);
 
@@ -1280,68 +1282,81 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </p>
      */
     @Override
-    public <T extends ProcessContext & ControllerServiceLookup> void start(final ScheduledExecutorService taskScheduler,
-            final long administrativeYieldMillis, final T processContext, final SchedulingAgentCallback schedulingAgentCallback) {
+    public void start(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final ProcessContext processContext,
+            final SchedulingAgentCallback schedulingAgentCallback, final boolean failIfStopping) {
+
         if (!this.isValid()) {
             throw new IllegalStateException( "Processor " + this.getName() + " is not in a valid state due to " + this.getValidationErrors());
         }
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
 
-        final boolean starting;
+        ScheduledState currentState;
+        boolean starting;
         synchronized (this) {
-            starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING);
+            currentState = this.scheduledState.get();
+
+            if (currentState == ScheduledState.STOPPED) {
+                starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING);
+                if (starting) {
+                    desiredState = ScheduledState.RUNNING;
+                }
+            } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
+                desiredState = ScheduledState.RUNNING;
+                return;
+            } else {
+                starting = false;
+            }
         }
 
         if (starting) { // will ensure that the Processor represented by this node can only be started once
-            final Runnable startProcRunnable = new Runnable() {
+            taskScheduler.execute(() -> initiateStart(taskScheduler, administrativeYieldMillis, processContext, schedulingAgentCallback));
+        } else {
+            final String procName = processorRef.get().toString();
+            LOG.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+            procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", new Object[] {procName, currentState});
+        }
+    }
+
+    private void initiateStart(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis,
+            final ProcessContext processContext, final SchedulingAgentCallback schedulingAgentCallback) {
+
+        final Processor processor = getProcessor();
+        final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
+
+        try {
+            invokeTaskAsCancelableFuture(schedulingAgentCallback, new Callable<Void>() {
                 @Override
-                public void run() {
-                    try {
-                        invokeTaskAsCancelableFuture(schedulingAgentCallback, new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                                    ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
-                                    return null;
-                                }
-                            }
-                        });
-
-                        if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
-                            schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
-                        } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                            }
-                            scheduledState.set(ScheduledState.STOPPED);
-                        }
-                    } catch (final Exception e) {
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {} seconds",
-                                new Object[]{StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis / 1000L}, cause);
-                        LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
-
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
-
-                        if (scheduledState.get() != ScheduledState.STOPPING) { // make sure we only continue retry loop if STOP action wasn't initiated
-                            taskScheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
-                        } else {
-                            scheduledState.set(ScheduledState.STOPPED);
-                        }
+                public Void call() throws Exception {
+                    try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
+                        return null;
                     }
                 }
-            };
-            taskScheduler.execute(startProcRunnable);
-        } else {
-            final String procName = processorRef.getClass().getSimpleName();
-            LOG.warn("Can not start '" + procName
-                    + "' since it's already in the process of being started or it is DISABLED - "
-                    + scheduledState.get());
-            procLog.warn("Can not start '" + procName
-                    + "' since it's already in the process of being started or it is DISABLED - "
-                    + scheduledState.get());
+            });
+
+            if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
+                schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
+            } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                }
+                scheduledState.set(ScheduledState.STOPPED);
+            }
+        } catch (final Exception e) {
+            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+            procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {} seconds",
+                    new Object[]{StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis / 1000L}, cause);
+            LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
+
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+
+            if (scheduledState.get() != ScheduledState.STOPPING) { // make sure we only continue retry loop if STOP action wasn't initiated
+                taskScheduler.schedule(() -> initiateStart(taskScheduler, administrativeYieldMillis, processContext, schedulingAgentCallback), administrativeYieldMillis, TimeUnit.MILLISECONDS);
+            } else {
+                scheduledState.set(ScheduledState.STOPPED);
+            }
         }
     }
 
@@ -1372,19 +1387,20 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </p>
      */
     @Override
-    public <T extends ProcessContext & ControllerServiceLookup> void stop(final ScheduledExecutorService scheduler,
-        final T processContext, final SchedulingAgent schedulingAgent, final ScheduleState scheduleState) {
+    public CompletableFuture<Void> stop(final ProcessScheduler processScheduler, final ScheduledExecutorService executor, final ProcessContext processContext,
+            final SchedulingAgent schedulingAgent, final ScheduleState scheduleState) {
 
         final Processor processor = processorRef.get().getProcessor();
         LOG.info("Stopping processor: " + processor.getClass());
+        desiredState = ScheduledState.STOPPED;
 
-
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
             scheduleState.incrementActiveThreadCount();
 
             // will continue to monitor active threads, invoking OnStopped once there are no
             // active threads (with the exception of the thread performing shutdown operations)
-            scheduler.execute(new Runnable() {
+            executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -1405,9 +1421,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
                             scheduleState.decrementActiveThreadCount();
                             scheduledState.set(ScheduledState.STOPPED);
+                            future.complete(null);
+
+                            if (desiredState == ScheduledState.RUNNING) {
+                                processScheduler.startProcessor(StandardProcessorNode.this, true);
+                            }
                         } else {
                             // Not all of the active threads have finished. Try again in 100 milliseconds.
-                            scheduler.schedule(this, 100, TimeUnit.MILLISECONDS);
+                            executor.schedule(this, 100, TimeUnit.MILLISECONDS);
                         }
                     } catch (final Exception e) {
                         LOG.warn("Failed while shutting down processor " + processor, e);
@@ -1415,16 +1436,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 }
             });
         } else {
-        /*
-         * We do compareAndSet() instead of set() to ensure that Processor
-         * stoppage is handled consistently including a condition where
-         * Processor never got a chance to transition to RUNNING state
-         * before stop() was called. If that happens the stop processor
-         * routine will be initiated in start() method, otherwise the IF
-         * part will handle the stop processor routine.
-         */
+            // We do compareAndSet() instead of set() to ensure that Processor
+            // stoppage is handled consistently including a condition where
+            // Processor never got a chance to transition to RUNNING state
+            // before stop() was called. If that happens the stop processor
+            // routine will be initiated in start() method, otherwise the IF
+            // part will handle the stop processor routine.
             this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+            future.complete(null);
         }
+
+        return future;
     }
 
     /**
@@ -1458,7 +1480,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
         final long onScheduleTimeout = timeoutString == null ? 60000
                 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
-        final Future<?> taskFuture = callback.invokeMonitoringTask(task);
+        final Future<?> taskFuture = callback.scheduleTask(task);
         try {
             taskFuture.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
         } catch (final InterruptedException e) {
@@ -1479,7 +1501,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } catch (final ExecutionException e){
             throw new RuntimeException("Failed while executing one of processor's OnScheduled task.", e);
         } finally {
-            callback.postMonitor();
+            callback.onTaskComplete();
         }
     }
 

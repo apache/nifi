@@ -32,7 +32,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -188,10 +187,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         return props;
     }
 
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws Exception {
-        super.abstractOnScheduled(context);
-
+    @Override
+    protected void preProcessConfiguration(final Configuration config, final ProcessContext context) {
         // Set umask once, to avoid thread safety issues doing it in onTrigger
         final PropertyValue umaskProp = context.getProperty(UMASK);
         final short dfsUmask;
@@ -200,8 +197,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         } else {
             dfsUmask = FsPermission.DEFAULT_UMASK;
         }
-        final Configuration conf = getConfiguration();
-        FsPermission.setUMask(conf, new FsPermission(dfsUmask));
+
+        FsPermission.setUMask(config, new FsPermission(dfsUmask));
     }
 
     @Override
@@ -360,13 +357,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                             new Object[]{putFlowFile, copyFile, millis, dataRate});
 
-                    final String outputPath = copyFile.toString();
                     final String newFilename = copyFile.getName();
                     final String hdfsPath = copyFile.getParent().toString();
                     putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
                     putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
-                    final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
-                    session.getProvenanceReporter().send(putFlowFile, transitUri);
+                    final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
+                    session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
 
                     session.transfer(putFlowFile, REL_SUCCESS);
 

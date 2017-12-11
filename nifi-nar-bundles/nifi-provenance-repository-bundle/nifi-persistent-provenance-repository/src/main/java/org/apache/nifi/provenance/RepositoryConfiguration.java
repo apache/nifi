@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -370,6 +371,8 @@ public class RepositoryConfiguration {
 
         return keyProviderIsConfigured;
     }
+
+    // TODO: Add verbose error output for encryption support failure if requested
 
     public Map<String, String> getEncryptionKeys() {
         return encryptionKeys;

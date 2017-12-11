@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 public class RemoteProcessGroupPortDTO {
 
     private String id;
+    private String targetId;
     private String groupId;
     private String name;
     private String comments;
@@ -69,7 +70,7 @@ public class RemoteProcessGroupPortDTO {
      * @return id of the target port
      */
     @ApiModelProperty(
-            value = "The id of the target port."
+            value = "The id of the port."
     )
     public String getId() {
         return id;
@@ -77,6 +78,15 @@ public class RemoteProcessGroupPortDTO {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    @ApiModelProperty("The id of the target port.")
+    public String getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(String targetId) {
+        this.targetId = targetId;
     }
 
     /**

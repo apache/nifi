@@ -80,6 +80,15 @@ public class TestMockProcessSession {
 
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectTransferNewlyCreatedFileToSelf() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        final FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        // this should throw an exception because we shouldn't allow a newly created flowfile to get routed back to self
+        session.transfer(ff1);
+    }
+
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
 
         private static final Relationship REL_FAILURE = new Relationship.Builder()

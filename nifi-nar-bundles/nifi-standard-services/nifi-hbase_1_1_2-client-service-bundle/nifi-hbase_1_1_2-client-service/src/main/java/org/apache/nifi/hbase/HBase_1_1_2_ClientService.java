@@ -57,6 +57,8 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,6 +83,8 @@ import java.util.concurrent.atomic.AtomicReference;
         description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
 
+    private static final Logger logger = LoggerFactory.getLogger(HBase_1_1_2_ClientService.class);
+
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
     static final String HBASE_CONF_ZNODE_PARENT = "zookeeper.znode.parent";
@@ -99,6 +103,10 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
+    protected Connection getConnection() {
+        return connection;
+    }
+
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         kerberosConfigFile = config.getKerberosConfigurationFile();
@@ -113,7 +121,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         props.add(PHOENIX_CLIENT_JAR_LOCATION);
+        props.addAll(getAdditionalProperties());
         this.properties = Collections.unmodifiableList(props);
+    }
+
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return new ArrayList<>();
     }
 
     protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
@@ -284,10 +297,18 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 }
 
                 for (final PutColumn column : putFlowFile.getColumns()) {
-                    put.addColumn(
-                            column.getColumnFamily(),
-                            column.getColumnQualifier(),
-                            column.getBuffer());
+                    if (column.getTimestamp() != null) {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getTimestamp(),
+                                column.getBuffer());
+                    } else {
+                        put.addColumn(
+                                column.getColumnFamily(),
+                                column.getColumnQualifier(),
+                                column.getBuffer());
+                    }
                 }
             }
 
@@ -490,6 +511,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
+    public byte[] toBytes(float f) {
+        return Bytes.toBytes(f);
+    }
+
+    @Override
+    public byte[] toBytes(int i) {
+        return Bytes.toBytes(i);
+    }
+
+    @Override
     public byte[] toBytes(long l) {
         return Bytes.toBytes(l);
     }
@@ -507,5 +538,19 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public byte[] toBytesBinary(String s) {
         return Bytes.toBytesBinary(s);
+    }
+
+    @Override
+    public String toTransitUri(String tableName, String rowKey) {
+        if (connection == null) {
+            logger.warn("Connection has not been established, could not create a transit URI. Returning null.");
+            return null;
+        }
+        try {
+            final String masterAddress = connection.getAdmin().getClusterStatus().getMaster().getHostAndPort();
+            return "hbase://" + masterAddress + "/" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to get HBase Admin interface, due to " + e, e);
+        }
     }
 }

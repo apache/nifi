@@ -22,23 +22,26 @@
         define(['jquery',
                 'Slick',
                 'nf.Common',
-                'nf.ErrorHandler'],
-            function ($, Slick, nfCommon, nfErrorHandler) {
-                return (nf.CountersTable = factory($, Slick, nfCommon, nfErrorHandler));
+                'nf.ErrorHandler',
+                'nf.Dialog'],
+            function ($, Slick, nfCommon, nfErrorHandler, nfDialog) {
+                return (nf.CountersTable = factory($, Slick, nfCommon, nfErrorHandler, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CountersTable =
             factory(require('jquery'),
                 require('Slick'),
                 require('nf.Common'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Dialog')));
     } else {
         nf.CountersTable = factory(root.$,
             root.Slick,
             root.nf.Common,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Dialog);
     }
-}(this, function ($, Slick, nfCommon, nfErrorHandler) {
+}(this, function ($, Slick, nfCommon, nfErrorHandler, nfDialog) {
     'use strict';
 
     /**
@@ -133,18 +136,25 @@
      * @argument {object} item     The counter item
      */
     var resetCounter = function (item) {
-        $.ajax({
-            type: 'PUT',
-            url: config.urls.counters + '/' + encodeURIComponent(item.id),
-            dataType: 'json'
-        }).done(function (response) {
-            var counter = response.counter;
+        // prompt reset confirmation
+        nfDialog.showYesNoDialog({
+            headerText: 'Reset Counter',
+            dialogContent: 'Reset counter \'' + nfCommon.escapeHtml(item.name) + '\' to default value?',
+            yesHandler: function () {
+                $.ajax({
+                    type: 'PUT',
+                    url: config.urls.counters + '/' + encodeURIComponent(item.id),
+                    dataType: 'json'
+                }).done(function (response) {
+                    var counter = response.counter;
 
-            // get the table and update the row accordingly
-            var countersGrid = $('#counters-table').data('gridInstance');
-            var countersData = countersGrid.getData();
-            countersData.updateItem(counter.id, counter);
-        }).fail(nfErrorHandler.handleAjaxError);
+                    // get the table and update the row accordingly
+                    var countersGrid = $('#counters-table').data('gridInstance');
+                    var countersData = countersGrid.getData();
+                    countersData.updateItem(counter.id, counter);
+                }).fail(nfErrorHandler.handleAjaxError);
+            }
+        });
     };
 
     return {

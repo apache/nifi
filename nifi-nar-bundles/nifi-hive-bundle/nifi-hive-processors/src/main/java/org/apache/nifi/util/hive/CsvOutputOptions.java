@@ -24,6 +24,8 @@ public class CsvOutputOptions {
     private boolean quote = false;
     private boolean escape = true;
 
+    private int maxRowsPerFlowFile = 0;
+
     public boolean isHeader() {
         return header;
     }
@@ -46,11 +48,16 @@ public class CsvOutputOptions {
         return escape;
     }
 
-    public CsvOutputOptions(boolean header, String altHeader, String delimiter, boolean quote, boolean escape) {
+    public int getMaxRowsPerFlowFile() {
+        return maxRowsPerFlowFile;
+    }
+
+    public CsvOutputOptions(boolean header, String altHeader, String delimiter, boolean quote, boolean escape, int maxRowsPerFlowFile) {
         this.header = header;
         this.altHeader = altHeader;
         this.delimiter = delimiter;
         this.quote = quote;
         this.escape = escape;
+        this.maxRowsPerFlowFile = maxRowsPerFlowFile;
     }
 }

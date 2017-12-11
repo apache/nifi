@@ -16,25 +16,18 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -71,8 +64,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -90,49 +81,14 @@ public class ControllerResource extends ApplicationResource {
     private ReportingTaskResource reportingTaskResource;
     private ControllerServiceResource controllerServiceResource;
 
-    @Context
-    private ResourceContext resourceContext;
-
     /**
      * Authorizes access to the flow.
      */
     private void authorizeController(final RequestAction action) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getControllerResource())
-                .identity(user.getIdentity())
-                .groups(user.getGroups())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(action)
-                .userContext(userContext)
-                .explanationSupplier(() -> {
-                    final StringBuilder explanation = new StringBuilder("Unable to ");
-
-                    if (RequestAction.READ.equals(action)) {
-                        explanation.append("view ");
-                    } else {
-                        explanation.append("modify ");
-                    }
-                    explanation.append("the controller.");
-
-                    return explanation.toString();
-                })
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controller = lookup.getController();
+            controller.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     /**
@@ -148,7 +104,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Retrieves the configuration for this NiFi Controller",
             response = ControllerConfigurationEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller", type = "")
+                    @Authorization(value = "Read - /controller")
             }
     )
     @ApiResponses(
@@ -186,7 +142,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Retrieves the configuration for this NiFi",
             response = ControllerConfigurationEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller")
             }
     )
     @ApiResponses(
@@ -251,9 +207,9 @@ public class ControllerResource extends ApplicationResource {
             value = "Creates a new reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Write - if the Reporting Task is restricted - /restricted-components", type = "")
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - if the Reporting Task is restricted - /restricted-components")
             }
     )
     @ApiResponses(
@@ -349,7 +305,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Creates a new bulletin",
             response = BulletinEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller")
             }
     )
     @ApiResponses(
@@ -418,9 +374,9 @@ public class ControllerResource extends ApplicationResource {
             value = "Creates a new controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Write - if the Controller Service is restricted - /restricted-components", type = "")
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - if the Controller Service is restricted - /restricted-components")
             }
     )
     @ApiResponses(
@@ -523,7 +479,7 @@ public class ControllerResource extends ApplicationResource {
             notes = "Returns the contents of the cluster including all nodes and their status.",
             response = ClusterEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller", type = "")
+                    @Authorization(value = "Read - /controller")
             }
     )
     @ApiResponses(
@@ -571,7 +527,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Gets a node in the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller", type = "")
+                    @Authorization(value = "Read - /controller")
             }
     )
     @ApiResponses(
@@ -627,7 +583,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Updates a node in the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller")
             }
     )
     @ApiResponses(
@@ -697,7 +653,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Removes a node from the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller")
             }
     )
     @ApiResponses(
@@ -754,7 +710,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Purges history",
             response = HistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller")
             }
     )
     @ApiResponses(

@@ -61,9 +61,12 @@ public class PutMongoTest {
     @Before
     public void setup() {
         runner = TestRunners.newTestRunner(PutMongo.class);
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
-        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
+        runner.setVariable("uri", MONGO_URI);
+        runner.setVariable("db", DATABASE_NAME);
+        runner.setVariable("collection", COLLECTION_NAME);
+        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
+        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
@@ -252,5 +255,36 @@ public class PutMongoTest {
 
         assertEquals(1, collection.count());
         assertEquals(doc, collection.find().first());
+    }
+
+    @Test
+    public void testUpsertWithOperators() throws Exception {
+        String upsert = "{\n" +
+                "  \"_id\": \"Test\",\n" +
+                "  \"$push\": {\n" +
+                "     \"testArr\": { \"msg\": \"Hi\" }\n" +
+                "  }\n" +
+                "}";
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPSERT, "true");
+        for (int x = 0; x < 3; x++) {
+            runner.enqueue(upsert.getBytes());
+        }
+        runner.run(3, true, true);
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 3);
+
+        Document query = new Document("_id", "Test");
+        Document result = collection.find(query).first();
+        List array = (List)result.get("testArr");
+        Assert.assertNotNull("Array was empty", array);
+        Assert.assertEquals("Wrong size", array.size(), 3);
+        for (int index = 0; index < array.size(); index++) {
+            Document doc = (Document)array.get(index);
+            String msg = doc.getString("msg");
+            Assert.assertNotNull("Msg was null", msg);
+            Assert.assertEquals("Msg had wrong value", msg, "Hi");
+        }
     }
 }

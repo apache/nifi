@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -46,6 +35,17 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
@@ -104,15 +104,16 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         final AtomicInteger recordCount = new AtomicInteger();
 
         final FlowFile original = flowFile;
+        final Map<String, String> originalAttributes = flowFile.getAttributes();
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(original, reader.getSchema());
-                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, original, out)) {
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
                             writer.beginRecordSet();
 
                             Record record;
@@ -127,7 +128,9 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                             recordCount.set(writeResult.getRecordCount());
                         }
-                    } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                    } catch (final SchemaNotFoundException e) {
+                        throw new ProcessException(e.getLocalizedMessage(), e);
+                    } catch (final MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
                     }
                 }

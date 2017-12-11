@@ -213,6 +213,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         properties.add(MIN_SIZE);
         properties.add(MAX_SIZE);
         properties.add(IGNORE_HIDDEN_FILES);
+        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();

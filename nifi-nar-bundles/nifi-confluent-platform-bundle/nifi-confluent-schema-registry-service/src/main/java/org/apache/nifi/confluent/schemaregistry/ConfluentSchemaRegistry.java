@@ -137,7 +137,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
         }
 
-        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext);
+        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, getLogger());
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();

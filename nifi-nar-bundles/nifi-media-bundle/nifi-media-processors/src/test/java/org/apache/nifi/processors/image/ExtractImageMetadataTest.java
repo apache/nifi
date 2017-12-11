@@ -34,10 +34,11 @@ import static org.junit.Assert.assertNull;
 
 
 public class ExtractImageMetadataTest {
-    private static String BMP_HEADER = "BMP Header.";
-    private static String JPEG_HEADER = "JPEG.";
-    private static String GIF_HEADER = "GIF Header.";
-    private static String PNG_HEADER = "PNG-";
+    private final static String BMP_HEADER = "BMP Header.";
+    private final static String JPEG_HEADER = "JPEG.";
+    private final static String GIF_HEADER = "GIF Header.";
+    private final static String GIF_CONTROL = "GIF Control.";
+    private final static String PNG_HEADER = "PNG-";
 
     private TestRunner testRunner;
 
@@ -79,7 +80,7 @@ public class ExtractImageMetadataTest {
         assertEquals("12", attributes.get(GIF_HEADER + "Image Height"));
         assertEquals("true", attributes.get(GIF_HEADER + "Has Global Color Table"));
         assertEquals("32", attributes.get(GIF_HEADER + "Color Table Size"));
-        assertEquals("8", attributes.get(GIF_HEADER + "Transparent Color Index"));
+        assertEquals("8", attributes.get(GIF_CONTROL + "Transparent Color Index"));
         assertEquals("89a", attributes.get(GIF_HEADER + "GIF Format Version"));
         assertEquals("5", attributes.get(GIF_HEADER + "Bits per Pixel"));
         assertEquals("false", attributes.get(GIF_HEADER + "Is Color Table Sorted"));
@@ -92,7 +93,7 @@ public class ExtractImageMetadataTest {
 
         assertEquals("8", attributes.get(PNG_HEADER + "IHDR.Image Width"));
         assertEquals("12", attributes.get(PNG_HEADER + "IHDR.Image Height"));
-        assertEquals("0.45455", attributes.get(PNG_HEADER + "gAMA.Image Gamma"));
+        assertEquals("0.455", attributes.get(PNG_HEADER + "gAMA.Image Gamma"));
         assertEquals("Deflate", attributes.get(PNG_HEADER + "IHDR.Compression Type"));
         assertEquals("No Interlace", attributes.get(PNG_HEADER + "IHDR.Interlace Method"));
         assertEquals("Perceptual", attributes.get(PNG_HEADER + "sRGB.sRGB Rendering Intent"));
@@ -123,7 +124,6 @@ public class ExtractImageMetadataTest {
 
         assertEquals("10", attributes.get(BMP_HEADER+"Image Width"));
         assertEquals("10", attributes.get(BMP_HEADER+"Image Height"));
-        assertEquals("4", attributes.get(BMP_HEADER+"Bits Per Pixel"));
         assertEquals("1", attributes.get(BMP_HEADER+"Planes"));
         assertEquals("40", attributes.get(BMP_HEADER+"Header Size"));
 

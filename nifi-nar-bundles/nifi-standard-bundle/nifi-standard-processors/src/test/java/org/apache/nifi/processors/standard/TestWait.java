@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -459,8 +460,65 @@ public class TestWait {
 
         runner.clearTransferState();
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
+    }
 
+    @Test
+    public void testDecrementCache() throws ConcurrentModificationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("both", "notifyValue");
+        cachedAttributes.put("uuid", "notifyUuid");
+        cachedAttributes.put("notify.only", "notifyValue");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+
+        // A flow file comes in Notify and increment the counter
+        protocol.notify("key", "counter", 1, cachedAttributes);
+
+        // another flow files comes in Notify and increment the counter
+        protocol.notify("key", "counter", 1, cachedAttributes);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.SIGNAL_COUNTER_NAME, "${signalCounterName}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "1");
+        runner.assertValid();
+
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("signalCounterName", "counter");
+        waitAttributes.put("wait.only", "waitValue");
+        waitAttributes.put("both", "waitValue");
+        waitAttributes.put("uuid", UUID.randomUUID().toString());
+        String flowFileContent = "content";
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+
+        /*
+         * 1st iteration
+         */
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
+        MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+        outputFlowFile.assertAttributeEquals("wait.counter.counter", "2");
+
+        // expect counter to be decremented to 0 and releasable count remains 1.
+        assertEquals("0", Long.toString(protocol.getSignal("key").getCount("counter")));
+        assertEquals("1", Long.toString(protocol.getSignal("key").getReleasableCount()));
+
+        // introduce a second flow file with the same signal attribute
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+
+        /*
+         * 2nd iteration
+         */
+        runner.clearTransferState();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
+        outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+        // All counters are consumed.
+        outputFlowFile.assertAttributeEquals("wait.counter.counter", "0");
+
+        assertNull("The key no longer exist", protocol.getSignal("key"));
+        runner.clearTransferState();
     }
 
     private class TestIteration {

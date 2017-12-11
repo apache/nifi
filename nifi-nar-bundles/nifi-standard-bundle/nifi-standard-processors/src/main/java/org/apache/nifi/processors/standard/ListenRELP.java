@@ -47,6 +47,7 @@ import org.apache.nifi.processors.standard.relp.handler.RELPSocketChannelHandler
 import org.apache.nifi.processors.standard.relp.response.RELPChannelResponse;
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
@@ -83,7 +84,7 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
                     "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Auth")

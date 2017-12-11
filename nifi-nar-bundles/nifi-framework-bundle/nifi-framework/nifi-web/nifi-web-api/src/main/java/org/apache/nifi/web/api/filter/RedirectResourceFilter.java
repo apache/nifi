@@ -17,13 +17,13 @@
 package org.apache.nifi.web.api.filter;
 
 
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerRequestFilter;
 import org.apache.nifi.web.api.SiteToSiteResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
 import java.net.URI;
 
 /**
@@ -31,26 +31,23 @@ import java.net.URI;
  */
 public class RedirectResourceFilter implements ContainerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedirectResourceFilter.class);
-
     /**
      * This method checks path of the incoming request, and
      * redirects following URIs:
      * <li>/controller -> SiteToSiteResource
-     * @param containerRequest request to be modified
-     * @return modified request
+     * @param requestContext request to be modified
      */
     @Override
-    public ContainerRequest filter(ContainerRequest containerRequest) {
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        final UriInfo uriInfo = requestContext.getUriInfo();
 
-        if(containerRequest.getPath().equals("controller")){
-            UriBuilder builder = UriBuilder.fromUri(containerRequest.getBaseUri())
+        if (uriInfo.getPath().equals("controller")){
+            UriBuilder builder = UriBuilder.fromUri(uriInfo.getBaseUri())
                     .path(SiteToSiteResource.class)
-                    .replaceQuery(containerRequest.getRequestUri().getRawQuery());
+                    .replaceQuery(uriInfo.getRequestUri().getRawQuery());
 
             URI redirectTo = builder.build();
-            containerRequest.setUris(containerRequest.getBaseUri(), redirectTo);
+            requestContext.setRequestUri(uriInfo.getBaseUri(), redirectTo);
         }
-        return containerRequest;
     }
 }

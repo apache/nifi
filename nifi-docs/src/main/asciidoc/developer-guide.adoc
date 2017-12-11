@@ -564,6 +564,28 @@ while methods using this annotation can be used to clean up resources,
 for instance, they should not be
 relied upon for critical business logic.
 
+=== Component Notification
+
+The NiFi API provides notification support through use of Java
+Annotations. The `org.apache.nifi.annotations.notification` package
+contains several annotations for notification management. The following
+annotations may be applied to Java methods in a NiFi component to
+indicate to the framework when the methods should be called. For the 
+discussion of Component Notification, we will define a NiFi component 
+as a *Processor*, *Controller Service*, or *Reporting Task*.
+
+==== @OnPrimaryNodeStateChange
+
+The `@OnPrimaryNodeStateChange` annotation causes a method to be invoked 
+as soon as the state of the Primary Node in a cluster has changed. 
+Methods with this annotation should take either no arguments or one 
+argument of type `PrimaryNodeState`. The `PrimaryNodeState` provides 
+context about what changed so that the component can take appropriate 
+action. The `PrimaryNodeState` enumerator has two possible values: 
+`ELECTED_PRIMARY_NODE` (the node receiving this
+state has been elected the Primary Node of the NiFi cluster), or 
+`PRIMARY_NODE_REVOKED` (the node receiving this state was the Primary 
+Node but has now had its Primary Node role revoked).
 
 [[restricted]]
 === Restricted

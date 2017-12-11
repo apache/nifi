@@ -997,6 +997,12 @@
                                 '</div>' +
                             '</div>' +
                             '<div>' +
+                                '<div class="setting-name">Controller Service Name</div>' +
+                                '<div class="setting-field">' +
+                                    '<input type="text" class="new-inline-controller-service-name"/>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
                                 '<div class="setting-name">Bundle</div>' +
                                 '<div class="setting-field">' +
                                     '<div class="new-inline-controller-service-bundle"></div>' +
@@ -1020,6 +1026,7 @@
                 var newControllerServiceDialog = $(newControllerServiceDialogMarkup).appendTo(configurationOptions.dialogContainer);
                 var newControllerServiceRequirement = newControllerServiceDialog.find('div.new-inline-controller-service-requirement');
                 var newControllerServiceCombo = newControllerServiceDialog.find('div.new-inline-controller-service-combo');
+                var newControllerServiceNameInput = newControllerServiceDialog.find('input.new-inline-controller-service-name');
                 var newControllerServiceBundle = newControllerServiceDialog.find('div.new-inline-controller-service-bundle');
                 var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
                 var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
@@ -1043,6 +1050,10 @@
                     return aName === bName ? -nfCommon.sortVersion(aCS.bundle.version, bCS.bundle.version) : aName > bName ? 1 : -1;
                 });
 
+                // default to the first service
+                var newControllerServiceNameDefault = nfCommon.formatClassName(controllerServiceLookup.get(0));
+                newControllerServiceNameInput.val(newControllerServiceNameDefault);
+
                 // build the combo field
                 newControllerServiceCombo.combo({
                     options: options,
@@ -1052,6 +1063,12 @@
                         newControllerServiceBundle.text(nfCommon.formatBundle(service.bundle));
                         newControllerServiceTags.text(service.tags.join(', '));
                         newControllerServiceDescription.text(service.description);
+
+                        // update default when no edits were made
+                        if (newControllerServiceNameDefault === newControllerServiceNameInput.val().trim()) {
+                            newControllerServiceNameDefault = nfCommon.formatClassName(service);
+                            newControllerServiceNameInput.val(newControllerServiceNameDefault);
+                        }
                     }
                 });
 
@@ -1089,6 +1106,7 @@
                 var create = function () {
                     var newControllerServiceKey = newControllerServiceCombo.combo('getSelectedOption').value;
                     var newControllerServiceType = controllerServiceLookup.get(newControllerServiceKey);
+                    var newControllerServiceName = newControllerServiceNameInput.val();
 
                     // build the controller service entity
                     var controllerServiceEntity = {
@@ -1102,6 +1120,11 @@
                             'bundle': newControllerServiceType.bundle
                         }
                     };
+
+                    // set custom name when specified
+                    if (newControllerServiceName.trim() !== '') {
+                        controllerServiceEntity.component.name = newControllerServiceName.trim();
+                    }
 
                     // determine the appropriate uri for creating the controller service
                     var uri = '../nifi-api/controller/controller-services';
@@ -1659,14 +1682,14 @@
                         // build the new property dialog
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
-                            '<div class="dialog-content">' +
-                            '<div>' +
-                            '<div class="setting-name">Property name</div>' +
-                            '<div class="setting-field new-property-name-container">' +
-                            '<input class="new-property-name" type="text"/>' +
-                            '</div>' +
-                            '</div>' +
-                            '</div>' +
+                                '<div class="dialog-content">' +
+                                    '<div>' +
+                                    '<div class="setting-name">Property name</div>' +
+                                        '<div class="setting-field new-property-name-container">' +
+                                            '<input class="new-property-name" type="text"/>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
                             '</div>';
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);

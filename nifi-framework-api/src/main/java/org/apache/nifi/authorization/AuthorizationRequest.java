@@ -31,6 +31,7 @@ public class AuthorizationRequest {
     public static final String DEFAULT_EXPLANATION = "Unable to perform the desired action.";
 
     private final Resource resource;
+    private final Resource requestedResource;
     private final String identity;
     private final Set<String> groups;
     private final RequestAction action;
@@ -64,6 +65,12 @@ public class AuthorizationRequest {
                 return explanation;
             }
         };
+
+        if (builder.requestedResource == null) {
+            this.requestedResource = builder.resource;
+        } else {
+            this.requestedResource = builder.requestedResource;
+        }
     }
 
     /**
@@ -73,6 +80,17 @@ public class AuthorizationRequest {
      */
     public Resource getResource() {
         return resource;
+    }
+
+    /**
+     * The original Resource being requested. In cases with inherited policies, this will be a ancestor resource of
+     * of the current resource. The initial request, and cases without inheritance, the requested resource will be
+     * the same as the current resource.
+     *
+     * @return The requested resource
+     */
+    public Resource getRequestedResource() {
+        return requestedResource;
     }
 
     /**
@@ -154,6 +172,7 @@ public class AuthorizationRequest {
     public static final class Builder {
 
         private Resource resource;
+        private Resource requestedResource;
         private String identity;
         private Set<String> groups;
         private Boolean isAnonymous;
@@ -165,6 +184,11 @@ public class AuthorizationRequest {
 
         public Builder resource(final Resource resource) {
             this.resource = resource;
+            return this;
+        }
+
+        public Builder requestedResource(final Resource requestedResource) {
+            this.requestedResource = requestedResource;
             return this;
         }
 

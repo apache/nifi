@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -156,7 +156,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Create a transaction to the specified output port or input port",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -232,7 +232,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Transfer flow files to the input port",
             response = String.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -382,7 +382,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -491,7 +491,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -611,7 +611,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Transfer flow files from the output port",
             response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -697,7 +697,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Extend transaction TTL",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -734,7 +734,7 @@ public class DataTransferResource extends ApplicationResource {
             value = "Extend transaction TTL",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(

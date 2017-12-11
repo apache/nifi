@@ -328,9 +328,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
             // remove any references to the user group being deleted from policies if possible
             if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
                 for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
-                    if (policy.getGroups().contains(removedGroup.getIdentifier())) {
+                    final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
+
+                    // ensure this policy contains a reference to the user group and this policy is configurable (check proactively to prevent an exception)
+                    if (policy.getGroups().contains(removedGroup.getIdentifier()) && configurableAccessPolicyProvider.isConfigurable(policy)) {
                         final AccessPolicy.Builder builder = new AccessPolicy.Builder(policy).removeGroup(removedGroup.getIdentifier());
-                        ((ConfigurableAccessPolicyProvider) accessPolicyProvider).updateAccessPolicy(builder.build());
+                        configurableAccessPolicyProvider.updateAccessPolicy(builder.build());
                     }
                 }
             }
@@ -405,9 +408,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
             // remove any references to the user being deleted from policies if possible
             if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
                 for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
-                    if (policy.getUsers().contains(removedUser.getIdentifier())) {
+                    final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
+
+                    // ensure this policy contains a reference to the user and this policy is configurable (check proactively to prevent an exception)
+                    if (policy.getUsers().contains(removedUser.getIdentifier()) && configurableAccessPolicyProvider.isConfigurable(policy)) {
                         final AccessPolicy.Builder builder = new AccessPolicy.Builder(policy).removeUser(removedUser.getIdentifier());
-                        ((ConfigurableAccessPolicyProvider) accessPolicyProvider).updateAccessPolicy(builder.build());
+                        configurableAccessPolicyProvider.updateAccessPolicy(builder.build());
                     }
                 }
             }

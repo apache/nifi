@@ -58,6 +58,7 @@ import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.handler.BeatsSocketChannelHandlerFactory;
 import org.apache.nifi.processors.beats.response.BeatsChannelResponse;
 import org.apache.nifi.processors.beats.response.BeatsResponse;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -81,7 +82,7 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
             "messages will be received over a secure connection.")
         // Nearly all Lumberjack v1 implementations require TLS to work. v2 implementations (i.e. beats) have TLS as optional
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
 
     @Override

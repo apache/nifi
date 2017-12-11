@@ -71,6 +71,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,9 @@ import java.util.regex.Pattern;
         + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "hivestreaming.record.count", description = "This attribute is written on the flow files routed to the 'success' "
-                + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively.")
+                + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively."),
+        @WritesAttribute(attribute = "query.output.tables", description = "This attribute is written on the flow files routed to the 'success' "
+                + "and 'failure' relationships, and contains the target table name in 'databaseName.tableName' format.")
 })
 @RequiresInstanceClassLoading
 public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
@@ -143,6 +146,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
                     + "Hive metastore is 9043.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
             .build();
@@ -162,6 +166,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Database Name")
             .description("The name of the database in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -170,6 +175,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Table Name")
             .description("The name of the database table in which to put the data.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -179,6 +185,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("A comma-delimited list of column names on which the table has been partitioned. The order of values in this list must "
                     + "correspond exactly to the order of partition columns specified during the table creation.")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("[^,]+(,[^,]+)*"))) // comma-separated list with non-empty entries
             .build();
 
@@ -322,9 +329,9 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     public void setup(final ProcessContext context) {
         ComponentLog log = getLogger();
 
-        final String metastoreUri = context.getProperty(METASTORE_URI).getValue();
-        final String dbName = context.getProperty(DB_NAME).getValue();
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
+        final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
+        final String dbName = context.getProperty(DB_NAME).evaluateAttributeExpressions().getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
         final Integer maxConnections = context.getProperty(MAX_OPEN_CONNECTIONS).asInteger();
         final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).asInteger();
@@ -469,13 +476,15 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             failedRecordCount.addAndGet(records.size());
         }
 
-        private void transferFlowFiles(ProcessSession session, RoutingResult result, String transitUri) {
+        private void transferFlowFiles(ProcessSession session, RoutingResult result, HiveOptions options) {
 
             if (successfulRecordCount.get() > 0) {
                 // Transfer the flow file with successful records
-                successFlowFile.set(
-                        session.putAttribute(successFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(successfulRecordCount.get())));
-                session.getProvenanceReporter().send(successFlowFile.get(), transitUri);
+                Map<String, String> updateAttributes = new HashMap<>();
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(successfulRecordCount.get()));
+                updateAttributes.put(AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                successFlowFile.set(session.putAllAttributes(successFlowFile.get(), updateAttributes));
+                session.getProvenanceReporter().send(successFlowFile.get(), options.getMetaStoreURI());
                 result.routeTo(successFlowFile.get(), REL_SUCCESS);
             } else {
                 session.remove(successFlowFile.get());
@@ -483,8 +492,10 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
             if (failedRecordCount.get() > 0) {
                 // There were some failed records, so transfer that flow file to failure
-                failureFlowFile.set(
-                        session.putAttribute(failureFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(failedRecordCount.get())));
+                Map<String, String> updateAttributes = new HashMap<>();
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(failedRecordCount.get()));
+                updateAttributes.put(AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
+                failureFlowFile.set(session.putAllAttributes(failureFlowFile.get(), updateAttributes));
                 result.routeTo(failureFlowFile.get(), REL_FAILURE);
             } else {
                 session.remove(failureFlowFile.get());
@@ -565,7 +576,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
         final List<String> partitionColumnList;
-        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
+        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).evaluateAttributeExpressions().getValue();
         if (partitionColumns == null || partitionColumns.isEmpty()) {
             partitionColumnList = Collections.emptyList();
         } else {
@@ -756,7 +767,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             result.routeTo(flowFile, REL_RETRY);
 
         } finally {
-            functionContext.transferFlowFiles(session, result, options.getMetaStoreURI());
+            functionContext.transferFlowFiles(session, result, options);
             // Restore original class loader, might not be necessary but is good practice since the processor task changed it
             Thread.currentThread().setContextClassLoader(originalClassloader);
         }

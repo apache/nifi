@@ -112,12 +112,10 @@
     <logger name="org.eclipse.jetty" level="INFO"/>
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
-    <logger name="com.sun.jersey.spi.container.servlet.WebComponent" level="ERROR"/>
-    <logger name="com.sun.jersey.spi.spring" level="ERROR"/>
     <logger name="org.springframework" level="ERROR"/>
     
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
-    <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
+    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
     <!--
         Logger for capturing user events. We do not want to propagate these

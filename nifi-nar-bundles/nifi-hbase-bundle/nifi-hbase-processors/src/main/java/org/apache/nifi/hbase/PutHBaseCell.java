@@ -30,6 +30,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,7 @@ public class PutHBaseCell extends AbstractPutHBase {
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(COLUMN_QUALIFIER);
+        properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         return properties;
     }
@@ -75,6 +77,20 @@ public class PutHBaseCell extends AbstractPutHBase {
         final String row = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
         final String columnQualifier = context.getProperty(COLUMN_QUALIFIER).evaluateAttributeExpressions(flowFile).getValue();
+        final String timestampValue = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
+
+        final Long timestamp;
+        if (!StringUtils.isBlank(timestampValue)) {
+            try {
+                timestamp = Long.valueOf(timestampValue);
+            } catch (Exception e) {
+                getLogger().error("Invalid timestamp value: " + timestampValue, e);
+                return null;
+            }
+        } else {
+            timestamp = null;
+        }
+
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
@@ -86,7 +102,7 @@ public class PutHBaseCell extends AbstractPutHBase {
 
 
         final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
-                                                                            columnQualifier.getBytes(StandardCharsets.UTF_8), buffer));
+                                                                            columnQualifier.getBytes(StandardCharsets.UTF_8), buffer, timestamp));
         byte[] rowKeyBytes = getRow(row,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
 
 

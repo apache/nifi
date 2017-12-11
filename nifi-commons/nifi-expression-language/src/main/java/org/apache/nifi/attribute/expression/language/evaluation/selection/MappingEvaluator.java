@@ -68,4 +68,8 @@ public class MappingEvaluator<T> implements Evaluator<T> {
     public void setToken(final String token) {
         this.token = token;
     }
+
+    public MultiAttributeEvaluator getVariableIteratingEvaluator() {
+        return multiAttributeEvaluator;
+    }
 }

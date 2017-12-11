@@ -21,14 +21,17 @@ import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collections;
-
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
@@ -40,34 +43,24 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 /**
  */
 public class FingerprintFactoryTest {
 
-    private NiFiProperties nifiProperties;
     private StringEncryptor encryptor;
     private FingerprintFactory fingerprinter;
 
     @Before
     public void setup() {
-        nifiProperties = getNiFiProperties();
-        encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
         fingerprinter = new FingerprintFactory(encryptor);
     }
 
@@ -186,14 +179,6 @@ public class FingerprintFactoryTest {
         return rootElement;
     }
 
-    private NiFiProperties getNiFiProperties() {
-        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
-        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM)).thenReturn("PBEWITHMD5AND256BITAES-CBC-OPENSSL");
-        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER)).thenReturn("BC");
-        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgumentAt(1, String.class));
-        return nifiProperties;
-    }
-
     private <T> String fingerprint(final String methodName, final Class<T> inputClass, final T input) throws Exception {
         final Method fingerprintFromComponent = FingerprintFactory.class.getDeclaredMethod(methodName,
                 StringBuilder.class, inputClass);
@@ -306,6 +291,7 @@ public class FingerprintFactoryTest {
 
         // Assert fingerprints with expected one.
         final String expected = "portId" +
+                "NO_VALUE" +
                 "3" +
                 "true" +
                 "1234" +
@@ -314,6 +300,6 @@ public class FingerprintFactoryTest {
 
         final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, groupComponent, "addRemoteProcessGroup", IDENTITY_LOOKUP);
         final Element componentElement = (Element) rootElement.getElementsByTagName("inputPort").item(0);
-        assertEquals(expected.toString(), fingerprint("addRemoteGroupPortFingerprint", Element.class, componentElement));
+        assertEquals(expected, fingerprint("addRemoteGroupPortFingerprint", Element.class, componentElement));
     }
 }

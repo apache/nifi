@@ -31,6 +31,8 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;

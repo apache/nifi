@@ -19,17 +19,20 @@ package org.apache.nifi.processor.util.put.sender;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelOutputStream;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Sends messages over an SSLSocketChannel.
  */
 public class SSLSocketChannelSender extends SocketChannelSender {
 
-    private SSLSocketChannel sslChannel;
     private SSLContext sslContext;
+    private SSLSocketChannel sslChannel;
+    private SSLSocketChannelOutputStream sslOutputStream;
 
     public SSLSocketChannelSender(final String host,
                                   final int port,
@@ -50,6 +53,7 @@ public class SSLSocketChannelSender extends SocketChannelSender {
 
         // SSLSocketChannel will check if already connected so we can safely call this
         sslChannel.connect();
+        sslOutputStream = new SSLSocketChannelOutputStream(sslChannel);
     }
 
     @Override
@@ -65,7 +69,14 @@ public class SSLSocketChannelSender extends SocketChannelSender {
     @Override
     public void close() {
         super.close();
+        IOUtils.closeQuietly(sslOutputStream);
         IOUtils.closeQuietly(sslChannel);
         sslChannel = null;
     }
+
+    @Override
+    public OutputStream getOutputStream() {
+        return sslOutputStream;
+    }
+
 }

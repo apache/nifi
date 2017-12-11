@@ -17,20 +17,17 @@
 
 package org.apache.nifi.toolkit.admin.notify
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
-import org.apache.commons.lang3.StringUtils
-import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
+import org.apache.commons.lang3.StringUtils
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
+import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.nifi.toolkit.admin.util.AdminUtil
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.BulletinDTO
@@ -39,6 +36,10 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Entity
+import javax.ws.rs.client.WebTarget
+import javax.ws.rs.core.Response
 import java.nio.file.Paths
 
 public class NotificationTool extends AbstractAdminTool {
@@ -91,7 +92,7 @@ public class NotificationTool extends AbstractAdminTool {
         final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFile)
         final Client client =  clientFactory.getClient(niFiProperties,nifiInstallDir)
         final String url = NiFiClientUtil.getUrl(niFiProperties,NOTIFICATION_ENDPOINT)
-        final WebResource webResource = client.resource(url)
+        final WebTarget webTarget = client.target(url)
 
         if(isVerbose){
             logger.info("Contacting node at url:" + url)
@@ -104,17 +105,17 @@ public class NotificationTool extends AbstractAdminTool {
         bulletinDTO.level = StringUtils.isEmpty(level) ? "INFO" : level
         bulletinEntity.bulletin = bulletinDTO
 
-        ClientResponse response
+        Response response
         if(!org.apache.nifi.util.StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT))) {
 
             if(StringUtils.isEmpty(proxyDN)){
                 throw new UnsupportedOperationException("Proxy DN is required for sending a notification to this node or cluster")
             }
 
-            response = webResource.type("application/json").header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).post(ClientResponse.class, bulletinEntity)
+            response = webTarget.request().header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.formatProxyDn(proxyDN)).post(Entity.json(bulletinEntity))
         }
         else {
-            response = webResource.type("application/json").post(ClientResponse.class, bulletinEntity)
+            response = webTarget.request().post(Entity.json(bulletinEntity))
         }
 
         Integer status = response.getStatus()
@@ -123,7 +124,7 @@ public class NotificationTool extends AbstractAdminTool {
             if(status == 404){
                 throw new RuntimeException("The notification feature is not supported by each node in the cluster")
             }else{
-                throw new RuntimeException("Failed with HTTP error code " + status + " with reason: " +response.getEntity(String.class))
+                throw new RuntimeException("Failed with HTTP error code " + status + " with reason: " + response.readEntity(String.class))
             }
         }
 

@@ -149,6 +149,23 @@ public interface HBaseClientService extends ControllerService {
     byte[] toBytes(boolean b);
 
     /**
+     * Converts the given float to its byte representation.
+     *
+     * @param f a float
+     * @return the float represented as bytes
+     */
+    byte[] toBytes(float f);
+
+
+    /**
+     * Converts the given float to its byte representation.
+     *
+     * @param i an int
+     * @return the int represented as bytes
+     */
+    byte[] toBytes(int i);
+
+    /**
      * Converts the given long to it's byte representation.
      *
      * @param l a long
@@ -178,5 +195,16 @@ public interface HBaseClientService extends ControllerService {
      * @return the string represented as bytes
      */
     byte[] toBytesBinary(String s);
+
+    /**
+     * Create a transit URI from the current configuration and the specified table name.
+     * The default implementation just prepend "hbase://" to the table name and row key, i.e. "hbase://tableName/rowKey".
+     * @param tableName The name of a HBase table
+     * @param rowKey The target HBase row key, this can be null or empty string if the operation is not targeted to a specific row
+     * @return a qualified transit URI which can identify a HBase table row in a HBase cluster
+     */
+    default String toTransitUri(String tableName, String rowKey) {
+        return "hbase://" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+    }
 
 }

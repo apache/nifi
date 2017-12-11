@@ -16,10 +16,19 @@
  */
 package org.apache.nifi.ssl;
 
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -60,4 +69,39 @@ public interface SSLContextService extends ControllerService {
     public boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();
+
+    /**
+     * Build a set of allowable TLS/SSL protocol algorithms based on JVM configuration.
+     *
+     * @return the computed set of allowable values
+     */
+    static AllowableValue[] buildAlgorithmAllowableValues() {
+        final Set<String> supportedProtocols = new HashSet<>();
+
+        /*
+         * Prepopulate protocols with generic instance types commonly used
+         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
+         */
+        supportedProtocols.add("TLS");
+        supportedProtocols.add("SSL");
+
+        // Determine those provided by the JVM on the system
+        try {
+            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
+        } catch (NoSuchAlgorithmException e) {
+            // ignored as default is used
+        }
+
+        final int numProtocols = supportedProtocols.size();
+
+        // Sort for consistent presentation in configuration views
+        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
+        Collections.sort(supportedProtocolList);
+
+        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
+        for (final String protocol : supportedProtocolList) {
+            protocolAllowableValues.add(new AllowableValue(protocol));
+        }
+        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
+    }
 }

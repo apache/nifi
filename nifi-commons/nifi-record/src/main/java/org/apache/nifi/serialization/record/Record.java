@@ -19,12 +19,31 @@ package org.apache.nifi.serialization.record;
 
 import java.util.Date;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public interface Record {
 
     RecordSchema getSchema();
+
+    /**
+     * Indicates whether or not field values for this record are expected to be coerced into the type designated by the schema.
+     * If <code>true</code>, then it is safe to assume that calling {@link #getValue(RecordField)} will return an Object of the appropriate
+     * type according to the schema, or an object that can be coerced into the appropriate type. If type checking
+     * is not enabled, then calling {@link #getValue(RecordField)} can return an object of any type.
+     *
+     * @return <code>true</code> if type checking is enabled, <code>false</code> otherwise.
+     */
+    boolean isTypeChecked();
+
+    /**
+     * If <code>true</code>, any field that is added to the record will be drop unless the field is known by the schema
+     *
+     * @return <code>true</code> if fields that are unknown to the schema will be dropped, <code>false</code>
+     *         if all field values are retained.
+     */
+    boolean isDropUnknownFields();
 
     /**
      * Updates the Record's schema to to incorporate all of the fields in the given schema. If both schemas have a
@@ -45,7 +64,9 @@ public interface Record {
 
     /**
      * <p>
-     * Returns a view of the the values of the fields in this Record.
+     * Returns a view of the the values of the fields in this Record. Note that this method returns values only for
+     * those entries in the Record's schema. This allows the Record to guarantee that it will return the values in
+     * the order dictated by the schema.
      * </p>
      *
      * <b>NOTE:</b> The array that is returned may be an underlying array that is backing
@@ -134,4 +155,13 @@ public interface Record {
      *             name is not a Map
      */
     void setMapValue(String fieldName, String mapKey, Object value);
+
+    /**
+     * Returns a Set that contains the names of all of the fields that are present in the Record, regardless of
+     * whether or not those fields are contained in the schema. To determine which fields exist in the Schema, use
+     * {@link #getSchema()}.{@link RecordSchema#getFieldNames() getFieldNames()} instead.
+     *
+     * @return a Set that contains the names of all of the fields that are present in the Record
+     */
+    Set<String> getRawFieldNames();
 }

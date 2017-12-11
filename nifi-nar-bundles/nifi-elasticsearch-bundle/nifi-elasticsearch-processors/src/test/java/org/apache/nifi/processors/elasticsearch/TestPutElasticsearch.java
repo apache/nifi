@@ -101,7 +101,7 @@ public class TestPutElasticsearch {
 
         runner.assertAllFlowFilesTransferred(PutElasticsearch.REL_SUCCESS, 1);
         assertFalse(runner.getProvenanceEvents().isEmpty());
-        runner.getProvenanceEvents().forEach(event -> { assertEquals(event.getEventType(), ProvenanceEventType.SEND); });
+        runner.getProvenanceEvents().forEach(event -> assertEquals(event.getEventType(), ProvenanceEventType.SEND));
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");

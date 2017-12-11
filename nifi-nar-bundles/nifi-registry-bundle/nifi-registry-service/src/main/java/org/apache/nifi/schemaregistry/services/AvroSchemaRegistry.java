@@ -17,8 +17,13 @@
 package org.apache.nifi.schemaregistry.services;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,8 +37,12 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -49,24 +58,73 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     private final Map<String, String> schemaNameToSchemaMap;
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
+    static final PropertyDescriptor VALIDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
+            .name("avro-reg-validated-field-names")
+            .displayName("Validate Field Names")
+            .description("Whether or not to validate the field names in the Avro schema based on Avro naming rules. If set to true, all field names must be valid Avro names, "
+                    + "which must begin with [A-Za-z_], and subsequently contain only [A-Za-z0-9_]. If set to false, no validation will be performed on the field names.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
+    private List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+
     public AvroSchemaRegistry() {
         this.schemaNameToSchemaMap = new HashMap<>();
     }
 
     @Override
+    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
+        super.init(config);
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(VALIDATE_FIELD_NAMES);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    }
+
+    @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (newValue == null) {
-            recordSchemas.remove(descriptor.getName());
-        } else {
-            try {
-                final Schema avroSchema = new Schema.Parser().parse(newValue);
-                final SchemaIdentifier schemaId = SchemaIdentifier.ofName(descriptor.getName());
-                final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
-                recordSchemas.put(descriptor.getName(), recordSchema);
-            } catch (final Exception e) {
-                // not a problem - the service won't be valid and the validation message will indicate what is wrong.
+        if(descriptor.isDynamic()) {
+            // Dynamic property = schema, validate it
+            if (newValue == null) {
+                recordSchemas.remove(descriptor.getName());
+            } else {
+                try {
+                    // Use a non-strict parser here, a strict parse can be done (if specified) in customValidate().
+                    final Schema avroSchema = new Schema.Parser().setValidate(false).parse(newValue);
+                    final SchemaIdentifier schemaId = SchemaIdentifier.ofName(descriptor.getName());
+                    final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
+                    recordSchemas.put(descriptor.getName(), recordSchema);
+                } catch (final Exception e) {
+                    // not a problem - the service won't be valid and the validation message will indicate what is wrong.
+                }
             }
         }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = new HashSet<>();
+        boolean strict = validationContext.getProperty(VALIDATE_FIELD_NAMES).asBoolean();
+
+        // Iterate over dynamic properties, validating the schemas, and adding results
+        validationContext.getProperties().entrySet().stream().filter(entry -> entry.getKey().isDynamic()).forEach(entry -> {
+            String subject = entry.getKey().getDisplayName();
+            String input = entry.getValue();
+
+            try {
+                final Schema avroSchema = new Schema.Parser().setValidate(strict).parse(input);
+                AvroTypeUtil.createSchema(avroSchema, input, SchemaIdentifier.EMPTY);
+            } catch (final Exception e) {
+                results.add(new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation("Not a valid Avro Schema: " + e.getMessage())
+                        .build());
+            }
+        });
+        return results;
     }
 
     @Override
@@ -111,13 +169,17 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
     }
 
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
             .required(false)
-            .addValidator(new AvroSchemaValidator())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
             .expressionLanguageSupported(true)
             .build();

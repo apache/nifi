@@ -22,10 +22,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -260,7 +260,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSchema getSchema(FlowFile flowFile, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
             final List<RecordField> recordFields = columnNames.stream()
                 .map(name -> new RecordField(name, RecordFieldType.STRING.getDataType()))
                 .collect(Collectors.toList());
@@ -268,7 +268,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final FlowFile flowFile, final OutputStream out) {
+        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
             return new RecordSetWriter() {
 
                 @Override

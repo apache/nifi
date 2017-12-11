@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
-    license agreements. See the NOTICE file distributed with this work for additional 
-    information regarding copyright ownership. The ASF licenses this file to 
-    You under the Apache License, Version 2.0 (the "License"); you may not use 
-    this file except in compliance with the License. You may obtain a copy of 
-    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
-    by applicable law or agreed to in writing, software distributed under the 
-    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
-    OF ANY KIND, either express or implied. See the License for the specific 
-    language governing permissions and limitations under the License. -->
+license agreements. See the NOTICE file distributed with this work for additional 
+information regarding copyright ownership. The ASF licenses this file to 
+You under the Apache License, Version 2.0 (the "License"); you may not use 
+this file except in compliance with the License. You may obtain a copy of 
+the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+by applicable law or agreed to in writing, software distributed under the 
+License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+OF ANY KIND, either express or implied. See the License for the specific 
+language governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -44,6 +44,11 @@
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>dir</format>
+                                <format>zip</format>
+                                <format>tar.gz</format>
+                            </formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -188,6 +193,16 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-0-11-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-1-0-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-confluent-platform-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -218,6 +233,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kudu-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flume-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -239,6 +259,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mongodb-services-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -274,6 +299,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-aws-service-api-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -329,6 +359,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-scripting-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-groovyx-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -468,11 +503,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-grpc-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateful-analysis-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -501,8 +531,34 @@
             <artifactId>nifi-redis-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics-reporting-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     <profiles>
+        <profile>
+            <id>include-grpc</id>
+            <!-- This profile handles the inclusion of grpc artifacts. They are notoriously
+            environment specific in terms of build such as not working in os/arch=ppc64le
+            or in Centos6 due to requiring a newer version of GLIBC. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-grpc-nar</artifactId>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>rpm</id>
             <activation>
@@ -639,11 +695,11 @@
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                         </mapping>
                                         <!-- The lib excludes and lib/bootstrap 
-                                            includes are computed by looking at the desired contents of lib vs the desired 
-                                            contents of bootstrap directories. The bootstrap directory should be comprised 
-                                            of explicitly included items as found from the lib/bootstrap of a non rpm 
-                                            build and the lib folder should be specific excludes being those which we 
-                                            want in bootstrap and NOT in lib. -->
+                                        includes are computed by looking at the desired contents of lib vs the desired 
+                                        contents of bootstrap directories. The bootstrap directory should be comprised 
+                                        of explicitly included items as found from the lib/bootstrap of a non rpm 
+                                        build and the lib folder should be specific excludes being those which we 
+                                        want in bootstrap and NOT in lib. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                             <dependency>
@@ -677,7 +733,7 @@
                                                     <exclude>org.apache.nifi:nifi-security-utils</exclude>
                                                     <exclude>org.apache.nifi:nifi-utils</exclude>
                                                     <!-- Items to not include 
-                                                        which are also not in bootstrap -->
+                                                    which are also not in bootstrap -->
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
                                                 </excludes>
@@ -787,9 +843,11 @@
             </dependencies>
         </profile>
         <profile>
-            <id>generateArchives</id>
+            <id>avoid-archive-formats</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>dir-only</name>
+                </property>
             </activation>
             <build>
                 <plugins>
@@ -807,39 +865,15 @@
                                 </goals>
                                 <phase>package</phase>
                                 <configuration>
-                                    <formats>
-                                        <format>dir</format>
-                                        <format>zip</format>
-                                        <format>tar.gz</format>
-                                    </formats>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>dir-only</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>nifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
+                                    <archiverConfig>
+                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                        <directoryMode>0775</directoryMode>
+                                        <fileMode>0664</fileMode>
+                                    </archiverConfig>
+                                    <descriptors>
+                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
                                     <formats>
                                         <format>dir</format>
                                     </formats>

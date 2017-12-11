@@ -73,42 +73,44 @@
 
 		<h2>Examples</h2>
 		
+		<h3>Example 1</h3>
+		
         <p>
         	As an example, consider a FlowFile whose contents consists of the following:
         </p>
 
-        <code>
-        	id, name, balance, join_date, notes<br />
-        	1, John, 48.23, 04/03/2007 "Our very<br />
+<code>
+id, name, balance, join_date, notes<br />
+1, John, 48.23, 04/03/2007 "Our very<br />
 first customer!"<br />
-        	2, Jane, 1245.89, 08/22/2009,<br />
-        	3, Frank Franklin, "48481.29", 04/04/2016,<br />
-        </code>
+2, Jane, 1245.89, 08/22/2009,<br />
+3, Frank Franklin, "48481.29", 04/04/2016,<br />
+</code>
         
         <p>
         	Additionally, let's consider that this Controller Service is configured with the Schema Registry pointing to an AvroSchemaRegistry and the schema is
         	configured as the following:
         </p>
         
-		<code>
-		<pre>
-		{
-		  "namespace": "nifi",
-		  "name": "balances",
-		  "type": "record",
-		  "fields": [
-		  		{ "name": "id", "type": "int" },
-		  		{ "name": "name": "type": "string" },
-		  		{ "name": "balance": "type": "double" },
-		  		{ "name": "join_date", "type": {
-		  			"type": "int",
-		  			"logicalType": "date"
-		  		},
-		  		{ "name": "notes": "type": "string" }
-		  ]
-		}
-		</pre>
-		</code>
+<code>
+<pre>
+{
+  "namespace": "nifi",
+  "name": "balances",
+  "type": "record",
+  "fields": [
+    { "name": "id", "type": "int" },
+    { "name": "name": "type": "string" },
+    { "name": "balance": "type": "double" },
+    { "name": "join_date", "type": {
+      "type": "int",
+      "logicalType": "date"
+    }},
+    { "name": "notes": "type": "string" }
+  ]
+}
+</pre>
+</code>
 
     	<p>
     		In the example above, we see that the 'join_date' column is a Date type. In order for the CSV Reader to be able to properly parse a value as a date,
@@ -211,7 +213,122 @@ first customer!"<br />
     			</tr>
     		</body>
     	</table>
+
+
+
+    	<h3>Example 2 - Schema with CSV Header Line</h3>
+
+    	<p>
+    		When CSV data consists of a header line that outlines the column names, the reader provides
+    		a couple of different properties for configuring how to handle these column names. The
+    		"Schema Access Strategy" property as well as the associated properties ("Schema Registry," "Schema Text," and
+    		"Schema Name" properties) can be used to specify how to obtain the schema. If the "Schema Access Strategy" is set
+    		to "Use String Fields From Header" then the header line of the CSV will be used to determine the schema. Otherwise,
+    		a schema will be referenced elsewhere. But what happens if a schema is obtained from a Schema Registry, for instance,
+    		and the CSV Header indicates a different set of column names?
+    	</p>
     	
+    	<p>
+    		For example, let's say that the following schema is obtained from the Schema Registry:
+    	</p>
+
+<code>
+<pre>
+{
+  "namespace": "nifi",
+  "name": "balances",
+  "type": "record",
+  "fields": [
+    { "name": "id", "type": "int" },
+    { "name": "name": "type": "string" },
+    { "name": "balance": "type": "double" },
+    { "name": "memo": "type": "string" }
+  ]
+}
+</pre>
+</code>
+		
+		<p>
+			And the CSV contains the following data:
+		</p>
+		
+<code>
+<pre>
+id, name, balance, notes
+1, John Doe, 123.45, First Customer
+</pre>
+</code>
+		
+		<p>
+		Note here that our schema indicates that the final column is named "memo" whereas the CSV Header indicates that it is named "notes."
+		</p>
     	
+    	<p>
+    	In this case, the reader will look at the "Ignore CSV Header Column Names" property. If this property is set to "true" then the column names
+    	provided in the CSV will simply be ignored and the last column will be called "memo." However, if the "Ignore CSV Header Column Names" property
+    	is set to "false" then the result will be that the last column will be named "notes" and each record will have a null value for the "memo" column.
+    	</p>
+
+		<p>
+		With "Ignore CSV Header Column Names" property set to "false":<br />
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John Doe</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>123.45</td>
+    			</tr>
+    			<tr>
+    				<td>memo</td>
+    				<td>First Customer</td>
+    			</tr>
+    		</body>
+    	</table>
+		</p>
+		
+		
+		<p>
+		With "Ignore CSV Header Column Names" property set to "true":<br />
+				<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John Doe</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>123.45</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td>First Customer</td>
+    			</tr>
+    			<tr>
+    				<td>memo</td>
+    				<td><code>null</code></td>
+    			</tr>
+    		</body>
+    	</table>
+		</p>
+		
     </body>
 </html>

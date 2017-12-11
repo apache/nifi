@@ -1011,10 +1011,28 @@
                     })
                     .on('mousedown', function (d) {
                         d3.event.stopPropagation();
+                    })
+                    .on('dblclick', function (d) {
+                        // show the event details
+                        provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
                     });
 
                 events
                     .classed('event', true)
+                    // join node to its label
+                    .append('rect')
+                    .attr({
+                        'x': 0,
+                        'y': -8,
+                        'height': 16,
+                        'width': 14,
+                        'opacity': 0,
+                        'id': function (d) {
+                            return 'event-filler-' + d.id;
+                        }
+                    });
+
+                events    
                     .append('circle')
                     .classed('selected', function (d) {
                         return d.id === eventId;

@@ -41,12 +41,12 @@ public class SearchUsersEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final TenantsEntity responseEntity = clientResponse.getClientResponse().getEntity(TenantsEntity.class);
+        final TenantsEntity responseEntity = clientResponse.getClientResponse().readEntity(TenantsEntity.class);
         final Collection<TenantEntity> userEntities = responseEntity.getUsers();
         final Collection<TenantEntity> userGroupEntities = responseEntity.getUserGroups();
 
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final TenantsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(TenantsEntity.class);
+            final TenantsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(TenantsEntity.class);
 
             // only retain users/groups that all nodes agree on
             userEntities.retainAll(nodeResponseEntity.getUsers());

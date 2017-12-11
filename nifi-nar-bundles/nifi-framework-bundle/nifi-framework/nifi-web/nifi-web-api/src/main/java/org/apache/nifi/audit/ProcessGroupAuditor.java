@@ -26,6 +26,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
@@ -175,6 +176,60 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         + "execution(void scheduleComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, java.util.Set)) && "
         + "args(groupId, state)")
     public void scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state) throws Throwable {
+        final Operation operation;
+        // determine the running state
+        if (ScheduledState.RUNNING.equals(state)) {
+            operation = Operation.Start;
+        } else {
+            operation = Operation.Stop;
+        }
+
+        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+    }
+
+
+    /**
+     * Audits the update of controller serivce state
+     *
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param state controller serivce state state
+     * @throws Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+        + "execution(java.util.concurrent.Future activateControllerServices(java.lang.String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Set)) && "
+        + "args(groupId, state)")
+    public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state) throws Throwable {
+
+        // determine the service state
+        final Operation operation;
+        if (ControllerServiceState.ENABLED.equals(state)) {
+            operation = Operation.Enable;
+        } else {
+            operation = Operation.Disable;
+        }
+
+        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+    }
+
+    /**
+     * Audits the update of process group variable registry.
+     *
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @throws Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+        + "execution(org.apache.nifi.groups.ProcessGroup updateVariableRegistry(org.apache.nifi.web.api.dto.VariableRegistryDTO)) && "
+        + "args(groupId)")
+    public void updateVariableRegistryAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId) throws Throwable {
+        final Operation operation = Operation.Configure;
+        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+    }
+
+
+
+    private void saveUpdateAction(final ProceedingJoinPoint proceedingJoinPoint, final String groupId, final Operation operation) throws Throwable {
         ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
 
@@ -191,13 +246,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         action.setSourceName(processGroup.getName());
         action.setSourceType(Component.ProcessGroup);
         action.setTimestamp(new Date());
-
-        // determine the running state
-        if (ScheduledState.RUNNING.equals(state)) {
-            action.setOperation(Operation.Start);
-        } else {
-            action.setOperation(Operation.Stop);
-        }
+        action.setOperation(operation);
 
         // add this action
         saveAction(action, logger);

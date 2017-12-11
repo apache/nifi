@@ -42,6 +42,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -77,6 +79,11 @@ import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 @DynamicProperty(name = "Relationship Name", value = "value to match against", description = "Routes data that matches the value specified in the Dynamic Property Value to the "
     + "Relationship specified in the Dynamic Property Key.")
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's value")
+@WritesAttributes({
+    @WritesAttribute(attribute = "RouteText.Route", description = "The name of the relationship to which the FlowFile was routed."),
+    @WritesAttribute(attribute = "RouteText.Group", description = "The value captured by all capturing groups in the 'Grouping Regular Expression' property. "
+            + "If this property is not set or contains no capturing groups, this attribute will not be added.")
+})
 public class RouteText extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteText.Route";
@@ -158,8 +165,8 @@ public class RouteText extends AbstractProcessor {
     static final PropertyDescriptor GROUPING_REGEX = new PropertyDescriptor.Builder()
         .name("Grouping Regular Expression")
         .description("Specifies a Regular Expression to evaluate against each line to determine which Group the line should be placed in. "
-            + "The Regular Expression must have at least one Capturing Group that defines the line's Group. If multiple Capturing Groups exist in the Regular Expression, the Group from all "
-            + "Capturing Groups. Two lines will not be placed into the same FlowFile unless the they both have the same value for the Group "
+            + "The Regular Expression must have at least one Capturing Group that defines the line's Group. If multiple Capturing Groups exist in the Regular Expression, the values from all "
+            + "Capturing Groups will be concatenated together. Two lines will not be placed into the same FlowFile unless they both have the same value for the Group "
             + "(or neither line matches the Regular Expression). For example, to group together all lines in a CSV File by the first column, we can set this value to \"(.*?),.*\". "
             + "Two lines that have the same Group but different Relationships will never be placed into the same FlowFile.")
         .addValidator(StandardValidators.createRegexValidator(1, Integer.MAX_VALUE, false))
