@@ -519,6 +519,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
                     try {
                         reader = readerFactory.createRecordReader(attributes, in, logger);
+                    } catch (final IOException e) {
+                        yield();
+                        rollback(topicPartition);
+                        handleParseFailure(consumerRecord, session, e, "Failed to parse message from Kafka due to comms failure. Will roll back session and try again momentarily.");
+                        closeWriter(writer);
+                        return;
                     } catch (final Exception e) {
                         handleParseFailure(consumerRecord, session, e);
                         continue;
@@ -543,13 +549,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                             } catch (final Exception e) {
                                 logger.error("Failed to obtain Schema for FlowFile. Will roll back the Kafka message offsets.", e);
 
-                                try {
-                                    rollback(topicPartition);
-                                } catch (final Exception rollbackException) {
-                                    logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
-                                }
-
+                                rollback(topicPartition);
                                 yield();
+
                                 throw new ProcessException(e);
                             }
 
@@ -572,40 +574,42 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         }
 
                         tracker.incrementRecordCount(1L);
-                        session.adjustCounter("Records Received", records.size(), false);
+                        session.adjustCounter("Records Received", 1L, false);
                     }
                 }
             }
         } catch (final Exception e) {
             logger.error("Failed to properly receive messages from Kafka. Will roll back session and any un-committed offsets from Kafka.", e);
 
-            try {
-                if (writer != null) {
-                    writer.close();
-                }
-            } catch (final Exception ioe) {
-                logger.warn("Failed to close Record Writer", ioe);
-            }
-
-            try {
-                rollback(topicPartition);
-            } catch (final Exception rollbackException) {
-                logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
-            }
+            closeWriter(writer);
+            rollback(topicPartition);
 
             throw new ProcessException(e);
         }
     }
 
+    private void closeWriter(final RecordSetWriter writer) {
+        try {
+            if (writer != null) {
+                writer.close();
+            }
+        } catch (final Exception ioe) {
+            logger.warn("Failed to close Record Writer", ioe);
+        }
+    }
 
     private void rollback(final TopicPartition topicPartition) {
-        OffsetAndMetadata offsetAndMetadata = uncommittedOffsetsMap.get(topicPartition);
-        if (offsetAndMetadata == null) {
-            offsetAndMetadata = kafkaConsumer.committed(topicPartition);
-        }
+        try {
+            OffsetAndMetadata offsetAndMetadata = uncommittedOffsetsMap.get(topicPartition);
+            if (offsetAndMetadata == null) {
+                offsetAndMetadata = kafkaConsumer.committed(topicPartition);
+            }
 
-        final long offset = offsetAndMetadata.offset();
-        kafkaConsumer.seek(topicPartition, offset);
+            final long offset = offsetAndMetadata == null ? 0L : offsetAndMetadata.offset();
+            kafkaConsumer.seek(topicPartition, offset);
+        } catch (final Exception rollbackException) {
+            logger.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+        }
     }
 
 

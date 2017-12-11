@@ -107,12 +107,14 @@ public class GetMongo extends AbstractMongoProcessor {
         .name("Limit")
         .description("The maximum number of elements to return")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")
         .description("The number of elements returned from the server in one batch")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -120,6 +122,7 @@ public class GetMongo extends AbstractMongoProcessor {
         .displayName("Results Per FlowFile")
         .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
         .required(false)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
@@ -241,10 +244,10 @@ public class GetMongo extends AbstractMongoProcessor {
                 it.sort(sort);
             }
             if (context.getProperty(LIMIT).isSet()) {
-                it.limit(context.getProperty(LIMIT).asInteger());
+                it.limit(context.getProperty(LIMIT).evaluateAttributeExpressions().asInteger());
             }
             if (context.getProperty(BATCH_SIZE).isSet()) {
-                it.batchSize(context.getProperty(BATCH_SIZE).asInteger());
+                it.batchSize(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
             }
 
             final MongoCursor<Document> cursor = it.iterator();
@@ -252,7 +255,7 @@ public class GetMongo extends AbstractMongoProcessor {
             try {
                 FlowFile flowFile = null;
                 if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
-                    int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+                    int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger();
                     List<Document> batch = new ArrayList<>();
 
                     while (cursor.hasNext()) {

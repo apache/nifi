@@ -20,3 +20,4 @@ org.apache.nifi.processors.hadoop.inotify.GetHDFSEvents
 org.apache.nifi.processors.hadoop.ListHDFS
 org.apache.nifi.processors.hadoop.PutHDFS
 org.apache.nifi.processors.hadoop.DeleteHDFS
+org.apache.nifi.processors.hadoop.MoveHDFS

@@ -1168,8 +1168,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         migrate((StandardProcessSession) newOwner, flowFiles);
     }
 
-    private void migrate(final StandardProcessSession newOwner, final Collection<FlowFile> flowFiles) {
+    private void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {
         // We don't call validateRecordState() here because we want to allow migration of FlowFiles that have already been marked as removed or transferred, etc.
+        flowFiles = flowFiles.stream().map(this::getMostRecent).collect(Collectors.toList());
+
         for (final FlowFile flowFile : flowFiles) {
             if (openInputStreams.containsKey(flowFile)) {
                 throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
@@ -1580,7 +1582,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 registerDequeuedRecord(flowFile, connection);
             }
 
-            return new ArrayList<FlowFile>(newlySelected);
+            return new ArrayList<>(newlySelected);
         } finally {
             if (lockQueue) {
                 connection.unlock();
@@ -1615,7 +1617,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     registerDequeuedRecord(flowFile, conn);
                 }
 
-                return new ArrayList<FlowFile>(newlySelected);
+                return new ArrayList<>(newlySelected);
             }
 
             return new ArrayList<>();
@@ -1658,7 +1660,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile clone(final FlowFile example) {
+    public FlowFile clone(FlowFile example) {
+        example = validateRecordState(example);
         return clone(example, 0L, example.getSize());
     }
 
@@ -3098,8 +3101,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return records.containsKey(flowFile);
     }
 
+    private FlowFile getMostRecent(final FlowFile flowFile) {
+        final StandardRepositoryRecord existingRecord = records.get(flowFile);
+        return existingRecord == null ? flowFile : existingRecord.getCurrent();
+    }
+
     @Override
-    public FlowFile create(final FlowFile parent) {
+    public FlowFile create(FlowFile parent) {
+        parent = getMostRecent(parent);
+
         final Map<String, String> newAttributes = new HashMap<>(3);
         newAttributes.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()));
         newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
@@ -3135,7 +3145,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public FlowFile create(final Collection<FlowFile> parents) {
+    public FlowFile create(Collection<FlowFile> parents) {
+        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
+
         final Map<String, String> newAttributes = intersectAttributes(parents);
         newAttributes.remove(CoreAttributes.UUID.key());
         newAttributes.remove(CoreAttributes.ALTERNATE_IDENTIFIER.key());

@@ -320,7 +320,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             findAllProcessors().stream().filter(SCHEDULABLE_PROCESSORS).forEach(node -> {
                 try {
-                    node.getProcessGroup().startProcessor(node);
+                    node.getProcessGroup().startProcessor(node, true);
                 } catch (final Throwable t) {
                     LOG.error("Unable to start processor {} due to {}", new Object[]{node.getIdentifier(), t});
                 }
@@ -1092,7 +1092,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessor(final ProcessorNode processor) {
+    public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
         readLock.lock();
         try {
             if (getProcessor(processor.getIdentifier()) == null) {
@@ -1106,7 +1106,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return scheduler.startProcessor(processor);
+            return scheduler.startProcessor(processor, failIfStopping);
         } finally {
             readLock.unlock();
         }

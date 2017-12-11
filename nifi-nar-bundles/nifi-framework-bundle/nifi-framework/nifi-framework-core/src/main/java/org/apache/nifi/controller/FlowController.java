@@ -805,7 +805,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                     try {
                         if (connectable instanceof ProcessorNode) {
-                            connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
+                            connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
                         } else {
                             startConnectable(connectable);
                         }
@@ -2984,6 +2984,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     public void startProcessor(final String parentGroupId, final String processorId) {
+        startProcessor(parentGroupId, processorId, true);
+    }
+
+    public void startProcessor(final String parentGroupId, final String processorId, final boolean failIfStopping) {
         final ProcessGroup group = lookupGroup(parentGroupId);
         final ProcessorNode node = group.getProcessor(processorId);
         if (node == null) {
@@ -2993,7 +2997,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         writeLock.lock();
         try {
             if (initialized.get()) {
-                group.startProcessor(node);
+                group.startProcessor(node, failIfStopping);
             } else {
                 startConnectablesAfterInitialization.add(node);
             }
