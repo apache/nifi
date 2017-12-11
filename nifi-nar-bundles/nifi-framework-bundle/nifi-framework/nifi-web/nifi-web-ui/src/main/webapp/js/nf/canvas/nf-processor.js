@@ -661,7 +661,10 @@
                     processor.select('text.processor-bundle').text(null);
 
                     // clear the processor comments
-                    processor.select('path.component-comments').style('visibility', false);
+                    processor.select('path.component-comments').style('visibility', 'hidden');
+
+                    // clear tooltips
+                    processor.call(removeTooltips);
                 }
 
                 // populate the stats

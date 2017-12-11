@@ -224,6 +224,7 @@ public final class EntityFactory {
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
+
             entity.setInputPortCount(dto.getInputPortCount());
             entity.setOutputPortCount(dto.getOutputPortCount());
             entity.setRunningCount(dto.getRunningCount());
@@ -232,6 +233,17 @@ public final class EntityFactory {
             entity.setDisabledCount(dto.getDisabledCount());
             entity.setActiveRemotePortCount(dto.getActiveRemotePortCount());
             entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
+
+            entity.setUpToDateCount(dto.getUpToDateCount());
+            entity.setLocallyModifiedCount(dto.getLocallyModifiedCount());
+            entity.setStaleCount(dto.getStaleCount());
+            entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
+            entity.setSyncFailureCount(dto.getSyncFailureCount());
+
+            if (dto.getVersionControlInformation() != null) {
+                entity.setState(dto.getVersionControlInformation().getState());
+            }
+
             entity.setBulletins(bulletins); // include bulletins as authorized descendant component bulletins should be available
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -499,6 +511,11 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
+
+            if (dto.getVersionControlInformation() != null) {
+                entity.setState(dto.getVersionControlInformation().getState());
+            }
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setBreadcrumb(dto);
             }

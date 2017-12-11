@@ -368,7 +368,10 @@
                     port.select('text.port-name').text(null);
 
                     // clear the port comments
-                    port.select('path.component-comments').style('visibility', false);
+                    port.select('path.component-comments').style('visibility', 'hidden');
+
+                    // clear tooltips
+                    port.call(removeTooltips);
                 }
 
                 // populate the stats

@@ -30,6 +30,7 @@ public class FlowBreadcrumbEntity extends Entity {
 
     private String id;
     private PermissionsDTO permissions;
+    private String state;
     private FlowBreadcrumbDTO breadcrumb;
     private FlowBreadcrumbEntity parentBreadcrumb;
 
@@ -95,5 +96,16 @@ public class FlowBreadcrumbEntity extends Entity {
 
     public void setParentBreadcrumb(FlowBreadcrumbEntity parentBreadcrumb) {
         this.parentBreadcrumb = parentBreadcrumb;
+    }
+
+    @ApiModelProperty(readOnly = true,
+            value = "The current state of the Process Group, as it relates to the Versioned Flow",
+            allowableValues = "LOCALLY_MODIFIED_DESCENDANT, LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

@@ -288,18 +288,6 @@
                             'fill': '#ffffff'
                         });
 
-                    // border
-                    details.append('rect')
-                        .attr({
-                            'width': function () {
-                                return remoteProcessGroupData.dimensions.width;
-                            },
-                            'height': 1,
-                            'x': 0,
-                            'y': 103,
-                            'fill': '#c7d2d7'
-                        });
-
                     // -----
                     // stats
                     // -----
@@ -499,7 +487,7 @@
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 17;
                             },
-                            'y': 50
+                            'y': 49
                         })
                         .text('\uf24a');
                 }
@@ -625,13 +613,16 @@
                     details.select('text.remote-process-group-transmission-secure').text(null);
 
                     // clear the comments
-                    details.select('path.component-comments').style('visibility', false);
+                    details.select('path.component-comments').style('visibility', 'hidden');
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);
 
                     // clear the name
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
+
+                    // clear tooltips
+                    remoteProcessGroup.call(removeTooltips);
                 }
 
                 // populate the stats
