@@ -985,7 +985,7 @@ public class DataTypeUtils {
             dataType = RecordFieldType.CHOICE.getChoiceDataType(thisField.getDataType(), otherField.getDataType());
         }
 
-        return new RecordField(fieldName, dataType, defaultValue, aliases);
+        return new RecordField(fieldName, dataType, defaultValue, aliases, thisField.isNullable() || otherField.isNullable());
     }
 
     public static boolean isScalarValue(final DataType dataType, final Object value) {

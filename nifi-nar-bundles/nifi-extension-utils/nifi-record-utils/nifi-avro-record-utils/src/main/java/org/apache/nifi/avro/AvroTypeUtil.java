@@ -289,11 +289,12 @@ public class AvroTypeUtil {
                         final String fieldName = field.name();
                         final Schema fieldSchema = field.schema();
                         final DataType fieldType = determineDataType(fieldSchema, knownRecordTypes);
+                        final boolean nullable = isNullable(fieldSchema);
 
                         if (field.defaultVal() == JsonProperties.NULL_VALUE) {
-                            recordFields.add(new RecordField(fieldName, fieldType, field.aliases()));
+                            recordFields.add(new RecordField(fieldName, fieldType, field.aliases(), nullable));
                         } else {
-                            recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases()));
+                            recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases(), nullable));
                         }
                     }
 
@@ -800,7 +801,7 @@ public class AvroTypeUtil {
                 final DataType elementType = AvroTypeUtil.determineDataType(avroSchema.getValueType());
                 final List<RecordField> mapFields = new ArrayList<>();
                 for (final String key : map.keySet()) {
-                    mapFields.add(new RecordField(key, elementType));
+                    mapFields.add(new RecordField(key, elementType, true));
                 }
                 final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
                 return new MapRecord(mapSchema, map);
