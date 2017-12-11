@@ -667,7 +667,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void disconnectVersionControl() {
+    public void disconnectVersionControl(final boolean removeVersionedComponentIds) {
         this.versionControlInfo = null;
     }
 

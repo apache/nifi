@@ -23,7 +23,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
@@ -117,7 +116,6 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -423,11 +421,12 @@ public interface NiFiServiceFacade {
      * with the given id
      *
      * @param versionControlInfo the information about the versioned flow
+     * @param versionedProcessGroup the contents to be imported
      * @param groupId the ID of the Process Group where the flow should be instantiated
      *
      * @throws IllegalStateException if the flow cannot be imported into the specified group
      */
-    void verifyImportProcessGroup(VersionControlInformationDTO versionControlInfo, String groupId);
+    void verifyImportProcessGroup(VersionControlInformationDTO versionControlInfo, final VersionedProcessGroup versionedProcessGroup, String groupId);
 
     /**
      * Creates a new Template based off the specified snippet.
@@ -1295,7 +1294,7 @@ public interface NiFiServiceFacade {
      *         was last synchronized with the Flow Registry
      * @throws IllegalStateException if the Process Group with the given ID is not under version control
      */
-    FlowComparisonEntity getLocalModifications(String processGroupId) throws IOException, NiFiRegistryException;
+    FlowComparisonEntity getLocalModifications(String processGroupId);
 
     /**
      * Returns the Version Control information for the Process Group with the given ID
@@ -1314,9 +1313,9 @@ public interface NiFiServiceFacade {
      * @param flow the flow to add to the registry
      * @return a VersionedFlow that is fully populated, including identifiers
      *
-     * @throws IOException if unable to communicate with the Flow Registry
+     * @throws NiFiCoreException if unable to register flow
      */
-    VersionedFlow registerVersionedFlow(String registryId, VersionedFlow flow) throws IOException, NiFiRegistryException;
+    VersionedFlow registerVersionedFlow(String registryId, VersionedFlow flow);
 
     /**
      * Creates a snapshot of the Process Group with the given identifier, then creates a new Flow entity in the NiFi Registry
@@ -1337,7 +1336,7 @@ public interface NiFiServiceFacade {
      * @param flowId the ID of the flow
      * @return the VersionedFlow that was deleted
      */
-    VersionedFlow deleteVersionedFlow(String registryId, String bucketId, String flowId) throws IOException, NiFiRegistryException;
+    VersionedFlow deleteVersionedFlow(String registryId, String bucketId, String flowId);
 
     /**
      * Adds the given snapshot to the already existing Versioned Flow, which resides in the given Flow Registry with the given id
@@ -1349,10 +1348,9 @@ public interface NiFiServiceFacade {
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
      *
-     * @throws IOException if unable to communicate with the Flow Registry
+     * @throws NiFiCoreException if unable to register the snapshot with the flow registry
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, String comments, int expectedVersion)
-        throws IOException, NiFiRegistryException;
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, String comments, int expectedVersion);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID
@@ -1386,7 +1384,7 @@ public interface NiFiServiceFacade {
      *
      * @throws ResourceNotFoundException if the Versioned Flow Snapshot could not be found
      */
-    VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows) throws IOException;
+    VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows);
 
     /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
@@ -1406,7 +1404,7 @@ public interface NiFiServiceFacade {
      * @param user the user making the request
      * @return the set of all components that would be affected by updating the Process Group
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot, NiFiUser user) throws IOException;
+    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot, NiFiUser user);
 
     /**
      * Verifies that the Process Group with the given identifier can be updated to the proposed flow

@@ -112,6 +112,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
@@ -2294,6 +2295,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             verifyContents(snippet);
             verifyDestinationNotInSnippet(snippet, destination);
+            SnippetUtils.verifyNoVersionControlConflicts(snippet, this, destination);
 
             if (!isDisconnected(snippet)) {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
@@ -3087,13 +3089,15 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void disconnectVersionControl() {
+    public void disconnectVersionControl(final boolean removeVersionedComponentIds) {
         writeLock.lock();
         try {
             this.versionControlInfo.set(null);
 
-            // remove version component ids from each component (until another versioned PG is encountered)
-            applyVersionedComponentIds(this, id -> null);
+            if (removeVersionedComponentIds) {
+                // remove version component ids from each component (until another versioned PG is encountered)
+                applyVersionedComponentIds(this, id -> null);
+            }
         } finally {
             writeLock.unlock();
         }
@@ -3278,7 +3282,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Set<String> knownVariables = getKnownVariableNames();
             updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, updateDescendantVersionedFlows, knownVariables);
         } catch (final ProcessorInstantiationException pie) {
-            throw new RuntimeException(pie);
+            throw new IllegalStateException("Failed to update flow", pie);
         } finally {
             writeLock.unlock();
         }
@@ -3366,7 +3370,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         group.setVariables(updatedVariableMap);
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
-        if (remoteCoordinates != null) {
+        if (remoteCoordinates == null) {
+            group.disconnectVersionControl(false);
+        } else {
             final String registryId = flowController.getFlowRegistryClient().getFlowRegistryId(remoteCoordinates.getRegistryUrl());
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
@@ -3681,8 +3687,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private String generateUuid(final String propposedId, final String destinationGroupId, final String seed) {
-        // TODO: I think we can get rid of all of those LinkedHashSet's now in the VersionedProcessGroup because
-        /// the UUID is properly keyed off of the ID of the component in the VersionedProcessGroup.
         long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
 
         UUID uuid;
@@ -3733,7 +3737,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     return flowController.createPrioritizer(prioritizerName);
                 } catch (final Exception e) {
-                    throw new RuntimeException("Failed to create Prioritizer of type " + prioritizerName + " for Connection with ID " + connection.getIdentifier());
+                    throw new IllegalStateException("Failed to create Prioritizer of type " + prioritizerName + " for Connection with ID " + connection.getIdentifier());
                 }
             })
             .collect(Collectors.toList());
@@ -4016,7 +4020,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                     // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
                     // to the instance ID of the Controller Service.
                     final String serviceVersionedComponentId = entry.getValue();
-                    final String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
+                    String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
+                    if (instanceId == null) {
+                        // We didn't find the instance ID based on the Versioned Component ID. So we want to just
+                        // leave the value set to whatever it currently is, if it's currently set.
+                        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(entry.getKey()).build();
+                        instanceId = currentProperties.get(propertyDescriptor);
+                    }
+
                     value = instanceId == null ? serviceVersionedComponentId : instanceId;
                 } else {
                     value = entry.getValue();
@@ -4169,15 +4180,22 @@ public final class StandardProcessGroup implements ProcessGroup {
                             + " reverted to its original form before changing the version.");
                     }
                 }
+
+                verifyNoDescendantsWithLocalModifications("be updated");
             }
 
             final VersionedProcessGroup flowContents = updatedFlow.getFlowContents();
             if (verifyConnectionRemoval) {
                 // Determine which Connections have been removed.
                 final Map<String, Connection> removedConnectionByVersionedId = new HashMap<>();
+
+                // Populate the 'removedConnectionByVersionId' map with all Connections. We key off of the connection's VersionedComponentID
+                // if it is populated. Otherwise, we key off of its actual ID. We do this because it allows us to then remove from this Map
+                // any connection that does exist in the proposed flow. This results in us having a Map whose values are those Connections
+                // that were removed. We can then check for any connections that have data in them. If any Connection is to be removed but
+                // has data, then we should throw an IllegalStateException.
                 findAllConnections().stream()
-                    .filter(conn -> conn.getVersionedComponentId().isPresent())
-                    .forEach(conn -> removedConnectionByVersionedId.put(conn.getVersionedComponentId().get(), conn));
+                    .forEach(conn -> removedConnectionByVersionedId.put(conn.getVersionedComponentId().orElse(conn.getIdentifier()), conn));
 
                 final Set<String> proposedFlowConnectionIds = new HashSet<>();
                 findAllConnectionIds(flowContents, proposedFlowConnectionIds);
@@ -4252,8 +4270,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (!proposedProcessGroups.containsKey(versionedId)) {
                     // Process Group was removed.
                     throw new IllegalStateException(this + " cannot be updated to the proposed version of the flow because the child " + childGroup
-                        + " that exists locally has one or more Templates, and the proposed flow does not contain this Process Group. "
-                        + "A Process Group cannot be deleted while it contains Templates. Please remove the Templates before attempting to chnage the version of the flow.");
+                        + " that exists locally has one or more Templates, and the proposed flow does not contain these templates. "
+                        + "A Process Group cannot be deleted while it contains Templates. Please remove the Templates before attempting to change the version of the flow.");
                 }
             }
 
@@ -4429,6 +4447,12 @@ public final class StandardProcessGroup implements ProcessGroup {
                     throw new IllegalStateException("Process Group cannot " + action + " because it contains a child or descendant Process Group that is under Version Control and "
                         + "has local modifications. Each descendant Process Group that is under Version Control must first be reverted or have its changes pushed to the Flow Registry before "
                         + "this action can be performed on the parent Process Group.");
+                }
+
+                if (flowState == VersionedFlowState.SYNC_FAILURE) {
+                    throw new IllegalStateException("Process Group cannot " + action + " because it contains a child or descendant Process Group that is under Version Control and "
+                        + "is not synchronized with the Flow Registry. Each descendant Process Group must first be synchronized with the Flow Registry before this action can be "
+                        + "performed on the parent Process Group. NiFi will continue to attempt to communicate with the Flow Registry periodically in the background.");
                 }
             }
         }

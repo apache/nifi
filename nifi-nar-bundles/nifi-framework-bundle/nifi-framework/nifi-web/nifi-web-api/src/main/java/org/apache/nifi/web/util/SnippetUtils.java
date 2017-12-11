@@ -90,7 +90,6 @@ public final class SnippetUtils {
     private DtoFactory dtoFactory;
     private AccessPolicyDAO accessPolicyDAO;
 
-
     /**
      * Populates the specified snippet and returns the details.
      *

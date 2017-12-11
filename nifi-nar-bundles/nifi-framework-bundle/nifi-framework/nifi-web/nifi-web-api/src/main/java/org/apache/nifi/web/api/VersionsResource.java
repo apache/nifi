@@ -1110,7 +1110,7 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Processors");
+                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Affected Processors");
 
                 // Submit the request to be performed in the background
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
@@ -1275,7 +1275,7 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Processors");
+                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, "Stopping Affected Processors");
 
                 // Submit the request to be performed in the background
                 final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
